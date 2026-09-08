@@ -4,6 +4,7 @@ const { chromium } = require('playwright-core');
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const BASE = 'http://localhost:5173';
 const XLSX = 'C:/Users/DELL/Desktop/kanban/backend/test-data/销售数据.xlsx';
+const errors = [];
 
 function log(...args) { console.log('[e2e]', ...args); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -19,8 +20,6 @@ async function pickSelect(page, selectLocator, optionIndex) {
 (async () => {
   const browser = await chromium.launch({ executablePath: CHROME, headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-
-  const errors = [];
   page.on('pageerror', (e) => errors.push(`PAGEERROR: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`CONSOLE: ${m.text()}`); });
   page.on('response', async (r) => {
@@ -46,7 +45,7 @@ async function pickSelect(page, selectLocator, optionIndex) {
   await page.waitForSelector('text=确认字段类型', { timeout: 30000 });
   await page.waitForSelector('text=数据预览', { timeout: 10000 });
   log('3 字段预览成功');
-  await page.click('text=创建数据集');
+  await page.click('button:has-text("创建数据集")');
   await page.waitForSelector('text=创建成功', { timeout: 30000 });
   await page.click('text=去创建图表');
   await page.waitForSelector('text=实时预览', { timeout: 20000 });
@@ -104,9 +103,10 @@ async function pickSelect(page, selectLocator, optionIndex) {
   // HTML5 拖拽用 dispatchEvent
   const src = palette[0];
   const box = await src.boundingBox();
+  const gridBox = await page.locator('.grid-body').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move((box.x + box.width / 2) + 50, (box.y + box.height / 2) + 80, { steps: 10 });
+  await page.mouse.move(gridBox.x + gridBox.width / 2, gridBox.y + gridBox.height / 2, { steps: 20 });
   await page.mouse.up();
   await sleep(1500);
   const gridCount = await page.$$('.grid-item').then((els) => els.length);
@@ -149,8 +149,12 @@ async function pickSelect(page, selectLocator, optionIndex) {
 
   await page.goto(`${BASE}/dashboards/${dashId}`, { waitUntil: 'networkidle' });
   await page.waitForSelector('text=预览模式', { timeout: 15000 });
-  await sleep(2500);
-  const viewCanvas = await page.$$('.grid-item canvas').then((els) => els.length);
+  let viewCanvas = 0;
+  for (let i = 0; i < 10; i++) {
+    sleep(1000);
+    viewCanvas = await page.$$('.grid-item canvas').then((els) => els.length);
+    if (viewCanvas > 0) break;
+  }
   log('15 看板预览 canvas =', viewCanvas);
 
   // 截图
@@ -162,4 +166,10 @@ async function pickSelect(page, selectLocator, optionIndex) {
 
   await browser.close();
   if (errors.length) { process.exit(1); } else { log('SMOKE TEST PASSED'); }
-})().catch((e) => { console.error('E2E FAILED:', e); process.exit(1); });
+})().catch((e) => {
+  console.error('\n=== E2E FAILED ===');
+  console.error(e.message);
+  console.error('\n=== 页面错误 ===');
+  console.error(errors.length ? errors.join('\n') : '无');
+  process.exit(1);
+});
