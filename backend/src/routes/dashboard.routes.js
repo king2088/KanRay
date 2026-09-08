@@ -1,0 +1,44 @@
+const express = require('express');
+const { z } = require('zod');
+const HttpError = require('../utils/http-error');
+const { ok } = require('../middleware/response');
+const dashboardService = require('../services/dashboard.service');
+
+const router = express.Router();
+
+// GET /api/dashboards
+router.get('/', (req, res) => {
+  ok(res, dashboardService.listDashboards());
+});
+
+// GET /api/dashboards/:id
+router.get('/:id', (req, res) => {
+  ok(res, dashboardService.getDashboardOrThrow(Number(req.params.id)));
+});
+
+// POST /api/dashboards  { name }
+router.post('/', (req, res) => {
+  const schema = z.object({ name: z.string().trim().min(1).max(100) }).strict();
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) throw new HttpError(400, '看板名称不能为空且不超过 100 字符');
+  ok(res, dashboardService.createDashboard(parsed.data.name), '看板创建成功');
+});
+
+// PATCH /api/dashboards/:id  { name?, layout? }
+router.patch('/:id', (req, res) => {
+  const schema = z.object({
+    name: z.string().trim().min(1).max(100).optional(),
+    layout: z.array(z.any()).optional(),
+  }).strict();
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) throw new HttpError(400, '看板参数不正确', parsed.error.flatten());
+  ok(res, dashboardService.updateDashboard(Number(req.params.id), parsed.data), '看板更新成功');
+});
+
+// DELETE /api/dashboards/:id
+router.delete('/:id', (req, res) => {
+  dashboardService.deleteDashboard(Number(req.params.id));
+  ok(res, true, '删除成功');
+});
+
+module.exports = router;
