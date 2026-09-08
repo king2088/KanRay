@@ -1,7 +1,12 @@
 import http from './http'
 
+function listPaged(url, page, pageSize) {
+  return http.get(url, { params: { page, pageSize } })
+}
+
 export const datasetApi = {
   list: () => http.get('/datasets'),
+  listPaged: (page, pageSize) => listPaged('/datasets', page, pageSize),
   get: (id) => http.get(`/datasets/${id}`),
   preview: (file) => {
     const fd = new FormData()
@@ -23,6 +28,7 @@ export const datasetApi = {
 
 export const chartApi = {
   list: () => http.get('/charts'),
+  listPaged: (page, pageSize) => listPaged('/charts', page, pageSize),
   get: (id) => http.get(`/charts/${id}`),
   create: (payload) => http.post('/charts', payload),
   update: (id, payload) => http.patch(`/charts/${id}`, payload),
@@ -32,6 +38,7 @@ export const chartApi = {
 
 export const dashboardApi = {
   list: () => http.get('/dashboards'),
+  listPaged: (page, pageSize) => listPaged('/dashboards', page, pageSize),
   get: (id) => http.get(`/dashboards/${id}`),
   create: (name) => http.post('/dashboards', { name }),
   update: (id, payload) => http.patch(`/dashboards/${id}`, payload),

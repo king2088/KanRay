@@ -16,7 +16,7 @@
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><FolderOpened /></el-icon></div>
         <div>
-          <div class="stat-item__value">{{ datasets.length }}</div>
+          <div class="stat-item__value">{{ total }}</div>
           <div class="stat-item__label">数据集总数</div>
         </div>
       </div>
@@ -47,11 +47,11 @@
             style="width: 240px"
             :prefix-icon="Search"
           />
-          <el-tag type="info" effect="plain">{{ filtered.length }} / {{ datasets.length }}</el-tag>
+          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 320px)" empty-text="还没有数据集，点击右上角「上传数据」开始">
+      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 375px)" empty-text="还没有数据集，点击右上角「上传数据」开始">
         <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
@@ -84,6 +84,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="page-card__footer">
+        <el-pagination
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="page"
+          :page-sizes="[10, 20, 50]"
+          background
+          @size-change="onSizeChange"
+          @current-change="onPageChange"
+        />
+      </div>
     </div>
 
     <el-dialog v-model="renameVisible" title="重命名数据集" width="440px">
@@ -105,6 +118,9 @@ import { datasetApi } from '@/api'
 const datasets = ref([])
 const loading = ref(false)
 const search = ref('')
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const renameVisible = ref(false)
 const renameName = ref('')
 const renaming = ref(false)
@@ -126,10 +142,23 @@ function formatDate(s) {
 async function load() {
   loading.value = true
   try {
-    datasets.value = await datasetApi.list()
+    const res = await datasetApi.listPaged(page.value, pageSize.value)
+    datasets.value = res.list
+    total.value = res.total
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+  load()
 }
 
 function openRename(row) {

@@ -9,6 +9,7 @@ const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
 const datasetService = require('../services/dataset.service');
 const queryEngine = require('../engines/query-engine');
+const { parsePageQuery, paginate } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -37,9 +38,11 @@ function cleanup(filePath) {
   }
 }
 
-// GET /api/datasets
+// GET /api/datasets  (可选 page/pageSize -> {list,total}，否则返回全量数组)
 router.get('/', (req, res) => {
-  ok(res, datasetService.listDatasets());
+  const items = datasetService.listDatasets();
+  const page = parsePageQuery(req.query);
+  ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // GET /api/datasets/:id  (含字段)

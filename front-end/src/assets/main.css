@@ -89,6 +89,15 @@ body {
   line-height: 1.4;
 }
 
+.page-card__footer {
+  border-top: 1px solid var(--app-border-light);
+  background: var(--app-card);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .page-desc {
   font-size: 13px;
   color: var(--app-text-secondary);

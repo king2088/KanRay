@@ -24,11 +24,11 @@
       <div class="page-card__header">
         <div class="page-card__header-title">看板列表</div>
         <div class="page-card__header-right">
-          <el-tag type="info" effect="plain">{{ dashboards.length }} 个看板</el-tag>
+          <el-tag type="info" effect="plain">共 {{ total }} 个看板</el-tag>
         </div>
       </div>
 
-      <el-table :data="dashboards" v-loading="loading" height="calc(100vh - 220px)" empty-text="还没有看板，输入名称创建一个">
+      <el-table :data="dashboards" v-loading="loading" height="calc(100vh - 275px)" empty-text="还没有看板，输入名称创建一个">
         <el-table-column prop="name" label="名称" min-width="220">
           <template #default="{ row }">
             <div class="cell-name">
@@ -55,6 +55,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="page-card__footer">
+        <el-pagination
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="page"
+          :page-sizes="[10, 20, 50]"
+          background
+          @size-change="onSizeChange"
+          @current-change="onPageChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -70,6 +83,9 @@ const router = useRouter()
 const dashboards = ref([])
 const loading = ref(false)
 const newName = ref('')
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 function formatDate(s) {
   return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
@@ -78,10 +94,23 @@ function formatDate(s) {
 async function load() {
   loading.value = true
   try {
-    dashboards.value = await dashboardApi.list()
+    const res = await dashboardApi.listPaged(page.value, pageSize.value)
+    dashboards.value = res.list
+    total.value = res.total
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+  load()
 }
 
 async function create() {

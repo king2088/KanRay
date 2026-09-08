@@ -4,12 +4,15 @@ const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
 const chartService = require('../services/chart.service');
 const queryEngine = require('../engines/query-engine');
+const { parsePageQuery, paginate } = require('../utils/pagination');
 
 const router = express.Router();
 
-// GET /api/charts
+// GET /api/charts  (可选 page/pageSize -> {list,total}，否则返回全量数组)
 router.get('/', (req, res) => {
-  ok(res, chartService.listCharts());
+  const items = chartService.listCharts();
+  const page = parsePageQuery(req.query);
+  ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // GET /api/charts/:id

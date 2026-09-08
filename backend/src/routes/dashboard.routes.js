@@ -3,12 +3,15 @@ const { z } = require('zod');
 const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
 const dashboardService = require('../services/dashboard.service');
+const { parsePageQuery, paginate } = require('../utils/pagination');
 
 const router = express.Router();
 
-// GET /api/dashboards
+// GET /api/dashboards  (可选 page/pageSize -> {list,total}，否则返回全量数组)
 router.get('/', (req, res) => {
-  ok(res, dashboardService.listDashboards());
+  const items = dashboardService.listDashboards();
+  const page = parsePageQuery(req.query);
+  ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // GET /api/dashboards/:id

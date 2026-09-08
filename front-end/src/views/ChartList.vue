@@ -16,7 +16,7 @@
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><PieChart /></el-icon></div>
         <div>
-          <div class="stat-item__value">{{ charts.length }}</div>
+          <div class="stat-item__value">{{ total }}</div>
           <div class="stat-item__label">图表总数</div>
         </div>
       </div>
@@ -47,11 +47,11 @@
             style="width: 240px"
             :prefix-icon="Search"
           />
-          <el-tag type="info" effect="plain">{{ filtered.length }} / {{ charts.length }}</el-tag>
+          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 320px)" empty-text="还没有图表，点击右上角「新建图表」开始">
+      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 375px)" empty-text="还没有图表，点击右上角「新建图表」开始">
         <el-table-column prop="name" label="名称" min-width="200">
           <template #default="{ row }">
             <div class="cell-name">
@@ -88,6 +88,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="page-card__footer">
+        <el-pagination
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="page"
+          :page-sizes="[10, 20, 50]"
+          background
+          @size-change="onSizeChange"
+          @current-change="onPageChange"
+        />
+      </div>
     </div>
 
     <el-dialog v-model="previewVisible" :title="previewChartRef?.name || '图表预览'" width="680px">
@@ -110,6 +123,9 @@ import EChartRenderer from '@/components/charts/EChartRenderer.vue'
 const charts = ref([])
 const loading = ref(false)
 const search = ref('')
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const previewVisible = ref(false)
 const previewChartRef = ref(null)
 const previewData = ref(null)
@@ -136,7 +152,9 @@ function formatDate(s) {
 async function load() {
   loading.value = true
   try {
-    charts.value = await chartApi.list()
+    const res = await chartApi.listPaged(page.value, pageSize.value)
+    charts.value = res.list
+    total.value = res.total
     const dashes = await dashboardApi.list()
     usedIds.clear()
     dashes.forEach((d) => (d.layout || []).forEach((it) => {
@@ -145,6 +163,17 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+  load()
 }
 
 async function previewChart(row) {
