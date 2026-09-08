@@ -1,0 +1,43 @@
+/* 全局基础样式：干净、克制的看板工作台风格 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  background: #f4f6f9;
+  color: #1f2d3d;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page-container {
+  padding: 20px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2d3d;
+  margin: 0;
+}
+
+.el-card {
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
