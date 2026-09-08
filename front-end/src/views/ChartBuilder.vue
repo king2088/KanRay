@@ -287,7 +287,7 @@ function buildQuery() {
 
 async function loadPreview() {
   if (!datasetId.value) return
-  if (metrics.value.length === 0) {
+  if (metrics.value.filter((m) => m.field).length === 0) {
     previewData.value = null
     return
   }
