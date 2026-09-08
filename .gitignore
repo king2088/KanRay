@@ -27,3 +27,5 @@ Thumbs.db
 backend/data/
 backend/uploads/
 backend/test-data/
+front-end/scripts/e2e-dashboard.png
+
