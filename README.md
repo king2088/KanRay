@@ -68,6 +68,10 @@ front-end/                  Vue 3 前端
 # 后端集成测试（需后端已启动）
 cd backend && node scripts/integration-test.js
 
+# 端到端浏览器冒烟测试（需前后端均已启动，自动调用本机 Chrome）
+cd front-end && npm run dev   # 另一个终端：npm run dev（后端）
+cd front-end && node scripts/e2e-smoke.cjs
+
 # 前端生产构建
 cd front-end && npm run build
 ```
