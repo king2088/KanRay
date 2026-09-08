@@ -74,7 +74,7 @@ onMounted(load)
 
 .view-bar {
   height: var(--app-header-height);
-  background: #fff;
+  background: var(--app-card);
   border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;

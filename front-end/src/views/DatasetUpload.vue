@@ -211,7 +211,7 @@ async function doCreate() {
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   padding: 14px 16px;
-  background: #fff;
+  background: var(--app-card);
 }
 
 .file-panel__info {

@@ -243,3 +243,31 @@ body {
   font-size: 13px;
   color: var(--app-text-secondary);
 }
+
+/* ============================================================
+   暗黑模式（Element Plus 提供 --el-*，这里覆盖应用自定义 token）
+   ============================================================ */
+
+html.dark {
+  --app-bg: #121212;
+  --app-card: #1e1e1e;
+  --app-text-primary: #e5eaf3;
+  --app-text-regular: #cfd3dc;
+  --app-text-secondary: #a3a6ad;
+  --app-border: #4c4d4f;
+  --app-border-light: #363637;
+  --app-hover: #2a2a2b;
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: var(--app-bg);
+  color: var(--app-text-primary);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #4c4d4f;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #606266;
+}

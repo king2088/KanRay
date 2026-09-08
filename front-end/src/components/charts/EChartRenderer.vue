@@ -20,6 +20,7 @@ let resizeObserver = null
 function render() {
   if (!chart || !props.data) return
   const opt = toEChartsOption(props.chartType, props.data, props.options)
+  if (!opt.backgroundColor) opt.backgroundColor = 'transparent'
   if (opt._table || opt._stat) {
     chart.clear()
     return

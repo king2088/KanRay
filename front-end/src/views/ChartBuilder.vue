@@ -397,7 +397,7 @@ onMounted(async () => {
 
 .builder-toolbar {
   height: var(--app-header-height);
-  background: #fff;
+  background: var(--app-card);
   border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
@@ -427,7 +427,7 @@ onMounted(async () => {
 .builder-config {
   width: 360px;
   overflow-y: auto;
-  background: #fff;
+  background: var(--app-card);
   border-right: 1px solid var(--app-border-light);
   padding: 4px 16px 16px;
   flex-shrink: 0;
@@ -437,7 +437,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--app-card);
   margin: 16px;
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
@@ -516,7 +516,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
+  background: var(--app-card);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   padding: 6px 10px;
