@@ -3,6 +3,7 @@ import {
   GRID_COLS, ROW_H, GAP,
   clamp, intersects, nextFreeCell, findFreeCell,
   normalizeLayout, flattenItems, clampChildren, resolveDrop, applyDrop, cellFromPointer,
+  cardHeightPx, rowsForHeight,
 } from '../src/utils/grid-layout.js'
 
 let passed = 0
@@ -178,6 +179,32 @@ t('常量: GRID_COLS=12, ROW_H=150, GAP=12', () => {
   assert.equal(GRID_COLS, 12)
   assert.equal(ROW_H, 150)
   assert.equal(GAP, 12)
+})
+
+// ---- 像素高度 ----
+t('cardHeightPx: hPx 优先，否则按行', () => {
+  assert.equal(cardHeightPx({ hPx: 35, h: 3 }), 35)
+  assert.equal(cardHeightPx({ h: 2 }), 2 * 150 + 12)
+  assert.equal(cardHeightPx({ h: 2, hPx: 0 }), 2 * 150 + 12)
+})
+
+t('rowsForHeight: 35px→1 行，600px→4 行', () => {
+  assert.equal(rowsForHeight(35), 1)
+  assert.equal(rowsForHeight(150), 1)
+  assert.equal(rowsForHeight(300), 2)
+  assert.equal(rowsForHeight(600), 4)
+  assert.equal(rowsForHeight(0), 1)
+})
+
+t('normalize: hPx 同步 h', () => {
+  const out = normalizeLayout([{ id: 'a', type: 'chart', chartId: 1, hPx: 35, h: 3 }])
+  assert.equal(out[0].h, 1)
+  assert.equal(out[0].hPx, 35)
+})
+
+t('normalize: hideTitle 字段保留', () => {
+  const out = normalizeLayout([{ id: 'a', type: 'text', content: '', hideTitle: true }])
+  assert.equal(out[0].hideTitle, true)
 })
 
 console.log(`grid-layout 测试：${passed} 项通过`)

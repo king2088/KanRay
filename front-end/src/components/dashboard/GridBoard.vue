@@ -1,5 +1,5 @@
 <template>
-  <div class="grid-board" :data-board="boardKey" :class="{ 'grid-board--editable': editable }">
+  <div ref="boardEl" class="grid-board" :data-board="boardKey" :class="{ 'grid-board--editable': editable }">
     <div
       ref="bodyEl"
       class="grid-body"
@@ -21,18 +21,17 @@
           :style="itemStyle(item)"
           @mousedown="editable && select(item.id)"
         >
-          <!-- 组件头部 -->
+          <!-- 组件头部（可作拖拽手柄；隐藏标题时变细条 + 选中浮出操作条） -->
           <div
             class="item-header"
-            :class="{ editable }"
+            :class="{
+              editable,
+              'item-header--min': item.hideTitle,
+              'item-header--sel': state.selectedId === item.id,
+            }"
             @mousedown.stop="editable && beginDrag($event, item)"
           >
-            <el-tooltip v-if="editable" content="按住头部拖动调整位置" placement="top" :show-after="600">
-              <span class="item-grip">
-                <el-icon :size="16"><Rank /></el-icon>
-              </span>
-            </el-tooltip>
-            <span class="item-title">{{ itemTitle(item) }}</span>
+            <span v-if="!item.hideTitle" class="item-title">{{ itemTitle(item) }}</span>
             <span v-if="editable" class="item-actions">
               <el-icon class="act-btn" size="15" @click.stop="nudge(item, -1)"><ArrowUp /></el-icon>
               <el-icon class="act-btn" size="15" @click.stop="nudge(item, 1)"><ArrowDown /></el-icon>
@@ -46,11 +45,31 @@
                       :command="w"
                       :disabled="item.w === w"
                     >
-                      占 {{ w }} 列
+                      宽 {{ w }} 列
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
+              <el-dropdown trigger="click" size="small" @command="(cmd) => setHeight(item, cmd)">
+                <el-icon class="act-btn" size="15"><Expand /></el-icon>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                      v-for="v in HEIGHT_OPTIONS"
+                      :key="v"
+                      :command="v"
+                      :disabled="cardHeightPx(item) === v"
+                    >
+                      高 {{ v }}px
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              <el-tooltip :content="item.hideTitle ? '显示标题' : '隐藏标题'" placement="top" :show-after="500">
+                <el-icon class="act-btn" size="15" @click.stop="toggleTitle(item)">
+                  <component :is="item.hideTitle ? 'View' : 'Hide'" />
+                </el-icon>
+              </el-tooltip>
               <el-icon class="act-btn act-btn--danger" size="15" @click.stop="remove(item.id)"><Delete /></el-icon>
             </span>
           </div>
@@ -117,12 +136,16 @@
 
 <script setup>
 import { computed, defineOptions, inject, onBeforeUnmount, onMounted, ref } from 'vue'
-import { ArrowUp, ArrowDown, Operation, Delete, Rank } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/icons-vue'
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
-import { applyDrop, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, ROW_H } from '@/utils/grid-layout'
+import {
+  applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, ROW_H, rowsForHeight,
+} from '@/utils/grid-layout'
 
 defineOptions({ name: 'GridBoard' })
+
+const HEIGHT_OPTIONS = [35, 70, 150, 300, 600]
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -139,13 +162,24 @@ const chartLoaded = inject('chartLoaded', ref({}))
 const filterValues = inject('filterValues', ref({}))
 const externalFilters = inject('externalFilters', null)
 
+const boardEl = ref(null)
 const bodyEl = ref(null)
 
-const bodyStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${Math.max(1, props.columns)}, 1fr)`,
-}))
+const cols = computed(() => Math.max(1, props.columns))
 
-const widthOptions = computed(() => [4, 6, 8, 10, 12].filter((w) => w <= Math.max(1, props.columns)))
+/** 供调色板/子组件引用的当前棋盘高度逻辑 */
+const bodyStyle = computed(() => {
+  let bottom = 0
+  props.items.forEach((it) => {
+    const px = cardHeightPx(it)
+    const rows = Math.max(1, rowsForHeight(px))
+    const b = (Math.max(1, Math.round(it.row || 1)) - 1) * (ROW_H + GAP) + rows * ROW_H + (rows - 1) * GAP
+    if (b > bottom) bottom = b
+  })
+  return { height: `${bottom}px`, minHeight: '100%' }
+})
+
+const widthOptions = computed(() => [4, 6, 8, 10, 12].filter((w) => w <= cols.value))
 
 function itemTitle(item) {
   if (item.type === 'chart') return chartMap.value?.[item.chartId]?.name || '图表'
@@ -154,10 +188,15 @@ function itemTitle(item) {
   return '容器'
 }
 
+/** 显式像素定位（自由摆放网格） */
 function itemStyle(item) {
+  const c = cols.value
+  const cellW = `((100% - ${(c - 1) * GAP}px) / ${c})`
   return {
-    gridColumn: `${item.col || 1} / span ${Math.min(item.w || 6, Math.max(1, props.columns))}`,
-    gridRow: `${item.row || 1} / span ${Math.max(1, item.h || 1)}`,
+    left: `calc(${Math.max(0, item.col - 1)} * (${cellW} + ${GAP}px))`,
+    top: `calc(${Math.max(0, Math.round((item.row || 1) - 1))} * ${ROW_H + GAP}px)`,
+    width: `calc(${Math.max(1, item.w)} * ${cellW} + ${Math.max(0, item.w - 1) * GAP}px)`,
+    height: `${cardHeightPx(item)}px`,
   }
 }
 
@@ -173,18 +212,31 @@ function notify() {
 function nudge(item, dir) {
   const piece = { id: item.id, col: item.col, row: item.row + dir, w: item.w, h: item.h }
   if (piece.row < 1) return
-  applyDrop(props.items, piece, props.columns)
+  applyDrop(props.items, piece, cols.value)
   notify()
 }
 
 /* ---- 宽度调整 ---- */
 function setWidth(item, w) {
-  const maxW = Math.max(1, props.columns)
+  const maxW = cols.value
   const nw = Math.min(w, maxW)
   const col = Math.min(item.col, Math.max(1, maxW - nw + 1))
-  item.col = col
-  item.w = nw
+  applyDrop(props.items, { id: item.id, col, row: item.row, w: nw, h: item.h }, cols.value)
   if (item.type === 'container') clampChildren(item.children || [], nw)
+  notify()
+}
+
+/* ---- 高度调整 ---- */
+function setHeight(item, px) {
+  item.hPx = px
+  item.h = rowsForHeight(px)
+  applyDrop(props.items, { id: item.id, col: item.col, row: item.row, w: item.w, h: item.h }, cols.value)
+  notify()
+}
+
+/* ---- 标题显隐 ---- */
+function toggleTitle(item) {
+  item.hideTitle = !item.hideTitle
   notify()
 }
 
@@ -202,7 +254,7 @@ function onBoardHtmlDrop(e) {
     if (data.type === 'chart') {
       const chart = props.charts?.find?.((c) => c.id === data.chartId) || chartMap.value[data.chartId]
       if (!chart) return
-      const cell = findFreeCell(props.items, 6, 2, props.columns)
+      const cell = findFreeCell(props.items, 6, 2, cols.value)
       const item = { id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, type: 'chart', chartId: chart.id, w: 6, h: 2, col: cell.col, row: cell.row }
       props.items.push(item)
       select(item.id)
@@ -215,9 +267,15 @@ function onBoardHtmlDrop(e) {
 
 /* ---- 头部拖动（显式网格：跟手落点 + 自动让位；悬停其它棋盘时移交） ---- */
 let ghostEl = null
-let ghostMoved = false
 let pendingBoardKey = null
 let lastPiece = null
+
+function scrollNearEdges(ev) {
+  const scroller = boardEl.value?.closest?.('.dash-canvas')
+  if (!scroller) return
+  if (ev.clientY > window.innerHeight - 60) scroller.scrollTop += 24
+  else if (ev.clientY < 100) scroller.scrollTop -= 24
+}
 
 function buildGhost(item) {
   const g = document.createElement('div')
@@ -255,22 +313,21 @@ function beginDrag(e, item) {
     }
     if (!ghostEl) return
     ghostEl.style.transform = `translate3d(${ev.clientX - 14}px, ${ev.clientY - 8}px, 0)`
+    scrollNearEdges(ev)
 
-    const hoverEl = document.elementFromPoint(ev.clientX, ev.clientY)
-    const hoverKey = hoverEl?.closest?.('[data-board]')?.getAttribute('data-board') || null
-    if (hoverKey && hoverKey !== props.boardKey) {
-      pendingBoardKey = hoverKey
+    // 几何判定目标棋盘：命中容器等其它板时不再实时让位（避免目标被顶走），等待 mouseup 重挂
+    const targetKey = api?.pickTarget ? api.pickTarget(ev.clientX, ev.clientY, props.boardKey) : null
+    if (targetKey) {
+      pendingBoardKey = targetKey
       return
     }
     pendingBoardKey = null
 
     const r = rect()
     if (!r) return
-    const cell = cellFromPointer(ev.clientX, ev.clientY, r, item.w, props.columns)
+    const cell = cellFromPointer(ev.clientX, ev.clientY, r, item.w, cols.value)
     if (lastPiece && cell.col === lastPiece.col && cell.row === lastPiece.row) return
     lastPiece = cell
-    applyDrop(props.items, { id: item.id, col: cell.col, row: cell.row, w: item.w, h: item.h }, props.columns)
-    notify()
   }
 
   const onUp = (upEv) => {
@@ -284,6 +341,10 @@ function beginDrag(e, item) {
     document.body.classList.remove('is-dragging-card')
     if (pendingBoardKey && api) {
       api.reparent(props.boardKey, pendingBoardKey, { ...item }, upEv.clientX, upEv.clientY)
+    } else if (lastPiece) {
+      // 板内一次性落位：只在这里让位，目标卡不会被拖拽过程顶走
+      applyDrop(props.items, { id: item.id, col: lastPiece.col, row: lastPiece.row, w: item.w, h: item.h }, cols.value)
+      notify()
     }
     pendingBoardKey = null
     lastPiece = null
@@ -293,30 +354,40 @@ function beginDrag(e, item) {
   document.addEventListener('mouseup', onUp)
 }
 
-/* ---- 边缘缩放（e/s/se，按列/行取整） ---- */
+/* ---- 边缘缩放（e/s/se；宽按列、高按像素，最小 35px，冲突自动让位） ---- */
 function beginResize(e, item, dir) {
   const startX = e.clientX
   const startY = e.clientY
-  const w0 = item.w
-  const h0 = item.h
-  const maxCols = Math.max(1, props.columns)
+  const origin = props.items.find((i) => i.id === item.id) || item
+  const w0 = origin.w
+  const px0 = cardHeightPx(origin)
+  const maxCols = cols.value
   const rect = bodyEl.value?.getBoundingClientRect()
   const colWidth = rect ? (rect.width - GAP * (maxCols - 1)) / maxCols : 1
-  const maxW = maxCols - (item.col || 1) + 1
-  const minH = 1
+  const maxW = maxCols - (origin.col || 1) + 1
 
   const onMove = (ev) => {
+    scrollNearEdges(ev)
+    const cur = props.items.find((i) => i.id === origin.id)
+    if (!cur) return
     const dx = ev.clientX - startX
     const dy = ev.clientY - startY
+    let changed = false
     if (dir === 'e' || dir === 'se') {
       const w = Math.max(1, Math.min(maxW, w0 + Math.round(dx / (colWidth + GAP))))
-      if (w !== item.w) item.w = w
+      if (w !== cur.w) { cur.w = w; changed = true }
     }
     if (dir === 's' || dir === 'se') {
-      const h = Math.max(minH, h0 + Math.round(dy / (ROW_H + GAP)))
-      if (h !== item.h) item.h = h
+      const px = Math.max(35, px0 + Math.round(dy / 1.5))
+      if (px !== cur.hPx) {
+        cur.hPx = px
+        cur.h = rowsForHeight(px)
+        changed = true
+      }
     }
-    if (item.type === 'container') clampChildren(item.children || [], item.w)
+    if (!changed) return
+    if (item.type === 'container') clampChildren(item.children || [], cur.w)
+    applyDrop(props.items, { id: cur.id, col: cur.col, row: cur.row, w: cur.w, h: cur.h }, cols.value)
     notify()
   }
 
@@ -330,10 +401,12 @@ function beginResize(e, item, dir) {
 }
 
 onMounted(() => {
+  const parentBoard = boardEl.value?.parentElement?.closest?.('[data-board]')
   api?.register(props.boardKey, {
     getItems: () => props.items,
     getEl: () => bodyEl.value,
-    getColumns: () => Math.max(1, props.columns),
+    getColumns: () => cols.value,
+    parentKey: parentBoard?.getAttribute('data-board') || null,
   })
 })
 
@@ -351,29 +424,20 @@ onBeforeUnmount(() => {
 .grid-board {
   width: 100%;
   height: 100%;
-  min-height: 0;
-}
-
-.grid-board--editable {
-  background: none;
+  min-height: 100%;
+  min-width: 0;
 }
 
 .grid-body {
-  height: 100%;
-  display: grid;
-  grid-template-rows: repeat(60, 150px);
-  grid-auto-rows: 150px;
-  gap: 12px;
-  align-content: start;
+  position: relative;
 }
 
 .grid-item {
-  position: relative;
+  position: absolute;
   background: var(--app-card);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   overflow: hidden;
-  min-height: 0;
   min-width: 0;
 }
 
@@ -389,6 +453,7 @@ onBeforeUnmount(() => {
 .grid-item--selected {
   border-color: var(--app-primary);
   box-shadow: 0 0 0 1px var(--app-primary);
+  z-index: 2;
 }
 
 .grid-item--dragging {
@@ -397,11 +462,13 @@ onBeforeUnmount(() => {
   border-style: dashed;
 }
 
+/* ---- 头部 ---- */
 .item-header {
+  --hh: 34px;
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
+  height: var(--hh);
   padding: 0 10px;
   background: var(--app-card);
   border-bottom: 1px solid var(--app-border-light);
@@ -420,15 +487,30 @@ onBeforeUnmount(() => {
   background: var(--app-hover);
 }
 
-.item-header .item-actions {
-  z-index: 2;
+.item-header.item-header--min {
+  --hh: 10px;
+  padding: 0;
+  border-bottom: none;
+  position: relative;
 }
 
-.item-grip {
-  color: var(--app-text-secondary);
-  display: inline-flex;
-  align-items: center;
-  user-select: none;
+.item-header.item-header--min .item-actions {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  padding: 1px 6px;
+  background: var(--app-card);
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.item-header.item-header--min.item-header--sel .item-actions {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 5;
 }
 
 .item-title {
@@ -460,8 +542,9 @@ onBeforeUnmount(() => {
   color: var(--app-danger);
 }
 
+/* ---- 内容区 ---- */
 .item-body {
-  height: calc(100% - 34px);
+  height: calc(100% - var(--hh, 34px));
   overflow: auto;
 }
 
@@ -477,8 +560,8 @@ onBeforeUnmount(() => {
 }
 
 .grid-empty {
-  grid-column: span 12;
-  padding-top: 24px;
+  padding: 40px 0;
+  width: 100%;
 }
 
 /* ---- 缩放手柄 ---- */

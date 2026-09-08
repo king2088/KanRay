@@ -6,6 +6,21 @@ export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n))
 }
 
+/** 卡片渲染高度（px）：显式 hPx 优先，否则按行计算 */
+export function cardHeightPx(item) {
+  const hpx = Number(item.hPx)
+  if (Number.isFinite(hpx) && hpx > 0) return Math.max(1, hpx)
+  const h = Math.max(1, Math.round(Number(item.h) || 1))
+  return h * ROW_H + (h - 1) * GAP
+}
+
+/** 像素高度 → 占用的行数（用于碰撞/铺位） */
+export function rowsForHeight(px) {
+  const v = Number(px)
+  if (!Number.isFinite(v) || v <= 0) return 1
+  return Math.max(1, Math.round((v + GAP) / (ROW_H + GAP)))
+}
+
 function regionKey(r, c) {
   return `${r}_${c}`
 }
@@ -60,7 +75,9 @@ export function normalizeLayout(items, columns = GRID_COLS) {
   const occupied = new Set()
   return items.map((it) => {
     const w = clamp(Math.round(Number(it.w) || (it.type === 'chart' || it.type === 'container' ? 6 : 12)), 1, cols)
-    const h = Math.max(1, Math.round(Number(it.h) || (it.type === 'chart' ? 2 : it.type === 'container' ? 3 : 1)))
+    let h = Math.max(1, Math.round(Number(it.h) || (it.type === 'chart' ? 2 : it.type === 'container' ? 3 : 1)))
+    const hPx = Number(it.hPx)
+    if (Number.isFinite(hPx) && hPx > 0) h = rowsForHeight(hPx)
     const hasCol = Number.isFinite(Number(it.col)) && Math.round(Number(it.col)) >= 1
     const hasRow = Number.isFinite(Number(it.row)) && Math.round(Number(it.row)) >= 1
     let col, row

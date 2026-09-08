@@ -110,6 +110,53 @@ function notify() {
 /* ---- 棋盘注册表 + 跨层拖拽移交 ---- */
 const registry = new Map()
 
+function isAncestorBoard(anc, src) {
+  let cur = src
+  for (;;) {
+    const entry = registry.get(cur)
+    if (!entry) return false
+    cur = entry.parentKey
+    if (!cur) return false
+    if (cur === anc) return true
+  }
+}
+
+function rectContains(r, x, y) {
+  return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+}
+
+/** 几何判定鼠标下的目标棋盘：取包含指针的最小面积候选，排除源的祖先（待在源内/拖到外层） */
+function pickTarget(clientX, clientY, sourceKey) {
+  const srcEntry = registry.get(sourceKey)
+  const srcRect = srcEntry?.getEl()?.getBoundingClientRect()
+  const insideSource = rectContains(srcRect, clientX, clientY)
+
+  let best = null
+  let bestArea = Infinity
+  registry.forEach((entry, key) => {
+    if (key === sourceKey) return
+    const el = entry.getEl()
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    if (!r.width || !r.height || !rectContains(r, clientX, clientY)) return
+    const area = r.width * r.height
+    if (area < bestArea) {
+      bestArea = area
+      best = key
+    }
+  })
+
+  if (best) {
+    if (insideSource && isAncestorBoard(best, sourceKey)) return null
+    return best
+  }
+  if (!insideSource) {
+    const hit = document.elementFromPoint(clientX, clientY)?.closest?.('[data-board]')?.getAttribute('data-board')
+    if (hit && hit !== sourceKey && isAncestorBoard(hit, sourceKey)) return hit
+  }
+  return null
+}
+
 provide('gridBoardApi', {
   register(key, entry) {
     registry.set(key, entry)
@@ -118,6 +165,7 @@ provide('gridBoardApi', {
     registry.delete(key)
   },
   notify,
+  pickTarget,
   removeItem(id) {
     const { arr, idx } = findItemRef(id)
     if (idx === -1) return
@@ -235,5 +283,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

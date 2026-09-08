@@ -155,29 +155,29 @@ async function pickSelect(page, selectLocator, optionIndex) {
   log('   PAGE ERRORS SO FAR =', errors.length ? errors.join(' | ') : '无');
 
   // 9b. 空间移动：下移第一个组件（冲突自动让位）再还原
-  const rowBefore = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
+  const rowBefore = (await page.locator('.grid-item').nth(0).boundingBox()).y;
   await page.locator('.grid-item').nth(0).locator('.item-actions .act-btn').nth(1).click(); // ArrowDown
   await sleep(400);
-  const rowAfter = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
-  log('12b 下移前 row =', rowBefore, '| 下移后 row =', rowAfter);
+  const rowAfter = (await page.locator('.grid-item').nth(0).boundingBox()).y;
+  log('12b 下移前 top =', rowBefore.toFixed(0), '| 下移后 top =', rowAfter.toFixed(0));
   if (rowAfter <= rowBefore) throw new Error('空间移动未生效');
   await page.locator('.grid-item').nth(0).locator('.item-actions .act-btn').nth(0).click(); // ArrowUp 还原
   await sleep(400);
-  const rowRestored = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
+  const rowRestored = (await page.locator('.grid-item').nth(0).boundingBox()).y;
   if (rowRestored >= rowAfter) throw new Error('上移还原失败');
 
   // 9c. 拖拽到底部空白区：卡片应跟手落位到更下方
   const chartItem = page.locator('.grid-item').nth(0);
   const headerBox = await chartItem.locator('.item-header').boundingBox();
   const rootGridBox = await page.locator('.grid-body').first().boundingBox();
-  const startRow = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
+  const startRow = (await page.locator('.grid-item').nth(0).boundingBox()).y;
   await page.mouse.move(headerBox.x + headerBox.width / 2, headerBox.y + headerBox.height / 2);
   await page.mouse.down();
   await page.mouse.move(rootGridBox.x + rootGridBox.width / 2, rootGridBox.y + rootGridBox.height - 30, { steps: 30 });
   await page.mouse.up();
   await sleep(600);
-  const endRow = await chartItem.evaluate((el) => Number(getComputedStyle(el).gridRowStart));
-  log('12c 拖到空白区：row', startRow, '→', endRow);
+  const endRow = (await chartItem.boundingBox()).y;
+  log('12c 拖到空白区：top', startRow.toFixed(0), '→', endRow.toFixed(0));
   if (endRow <= startRow) throw new Error('拖到空白区未落位');
 
   // 9d. 全板无重叠不变式
@@ -215,14 +215,51 @@ async function pickSelect(page, selectLocator, optionIndex) {
   if (!containerBox) throw new Error('添加容器未生效');
   await page.locator('.grid-item--container').first().click();
   await sleep(300);
-  await page
-    .locator('.chart-palette-item')
-    .first()
-    .dragTo(page.locator('.grid-item--selected .grid-body').first(), { force: true });
+  // 容器可能落在可视区外：直接派发与浏览器一致的原生 drop 事件（绕过 Playwright 视口限制）
+  const chartRes = await page.evaluate(async () => (await fetch('/api/charts')).json());
+  const dropChartId = chartRes.data[0].id;
+  await page.evaluate(
+    ({ chartId }) => {
+      const body = document.querySelector('.grid-item--selected .grid-body');
+      if (!body) throw new Error('目标容器 grid-body 不存在');
+      const dt = new DataTransfer();
+      dt.setData('text/plain', JSON.stringify({ type: 'chart', chartId }));
+      body.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    },
+    { chartId: dropChartId },
+  );
   await sleep(1200);
   const nested = await page.locator('.grid-item--container .grid-item').count();
   log('12g 容器内子卡 =', nested);
   if (nested === 0) throw new Error('拖入容器失败');
+
+  // 9h. 标题隐藏/恢复（第一个根卡片）
+  const firstCard = page.locator('.grid-item').nth(0);
+  await firstCard.click();
+  await sleep(200);
+  await firstCard.locator('.item-actions .act-btn').nth(4).click(); // Hide 标题
+  await sleep(300);
+  const hiddenHeader = await firstCard.locator('.item-header--min').count();
+  const hiddenTitle = await firstCard.locator('.item-title').count();
+  log('12h 隐藏标题：header-min =', hiddenHeader, '| title =', hiddenTitle);
+  if (hiddenHeader !== 1 || hiddenTitle !== 0) throw new Error('隐藏标题未生效');
+  await firstCard.locator('.item-header--min .item-actions .act-btn').nth(4).click(); // 恢复标题
+  await sleep(300);
+  const titleBack = await firstCard.locator('.item-title').count();
+  if (titleBack !== 1) throw new Error('恢复标题失败');
+
+  // 9i. 最小高度：设为 35px
+  await firstCard.locator('.item-actions .act-btn').nth(3).click(); // 高度下拉
+  await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
+  await page.click('text=高 35px');
+  await sleep(500);
+  const hSmall = (await firstCard.boundingBox()).height;
+  log('12i 最小高度 =', hSmall.toFixed(1), 'px');
+  if (hSmall > 45) throw new Error('高度未被压缩到 ~35px');
+  await firstCard.locator('.item-actions .act-btn').nth(3).click(); // 重新打开高度下拉
+  await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
+  await page.click('text=高 300px'); // 再拉回常用高度，避免矮卡影响后续
+  await sleep(400);
 
   // 10. 触发筛选联动（选择区域=华东）
   const filterSel = page.locator('.filter-component .el-select').first();

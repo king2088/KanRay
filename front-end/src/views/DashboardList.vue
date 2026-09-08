@@ -14,7 +14,7 @@
           clearable
           @keyup.enter="create"
         />
-        <el-button type="primary" :disabled="!newName.trim()" @click="create">
+        <el-button type="primary" @click="create">
           <el-icon style="margin-right: 4px"><Plus /></el-icon>新建看板
         </el-button>
       </div>
@@ -114,8 +114,7 @@ function onSizeChange(size) {
 }
 
 async function create() {
-  const name = newName.value.trim()
-  if (!name) return
+  const name = newName.value.trim() || '未命名看板'
   const d = await dashboardApi.create(name)
   ElMessage.success('看板创建成功')
   newName.value = ''
