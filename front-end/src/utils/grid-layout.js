@@ -2,23 +2,35 @@ export const GRID_COLS = 12
 export const ROW_H = 150
 export const GAP = 12
 
+const DEFAULT_GAP = { x: GAP, y: GAP }
+
+/** 规范化 gap；两个方向分别为水平（x）与垂直（y）间距 */
+export function normGap(gap) {
+  return {
+    x: Number(gap?.x) > 0 ? Number(gap.x) : GAP,
+    y: Number(gap?.y) > 0 ? Number(gap.y) : GAP,
+  }
+}
+
 export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n))
 }
 
 /** 卡片渲染高度（px）：显式 hPx 优先，否则按行计算 */
-export function cardHeightPx(item) {
+export function cardHeightPx(item, gap = DEFAULT_GAP) {
+  const g = normGap(gap)
   const hpx = Number(item.hPx)
   if (Number.isFinite(hpx) && hpx > 0) return Math.max(1, hpx)
   const h = Math.max(1, Math.round(Number(item.h) || 1))
-  return h * ROW_H + (h - 1) * GAP
+  return h * ROW_H + (h - 1) * g.y
 }
 
 /** 像素高度 → 占用的行数（用于碰撞/铺位） */
-export function rowsForHeight(px) {
+export function rowsForHeight(px, gap = DEFAULT_GAP) {
+  const g = normGap(gap)
   const v = Number(px)
   if (!Number.isFinite(v) || v <= 0) return 1
-  return Math.max(1, Math.round((v + GAP) / (ROW_H + GAP)))
+  return Math.max(1, Math.round((v + g.y) / (ROW_H + g.y)))
 }
 
 function regionKey(r, c) {
@@ -70,14 +82,15 @@ export function findFreeCell(items, w, h, columns = GRID_COLS) {
 }
 
 /** 递归铺位/矫正：旧数据（无 col/row）按顺序铺入，越界裁剪，children 以父容器 w 为列数 */
-export function normalizeLayout(items, columns = GRID_COLS) {
+export function normalizeLayout(items, columns = GRID_COLS, gap = DEFAULT_GAP) {
+  const g = normGap(gap)
   const cols = Math.max(1, columns)
   const occupied = new Set()
   return items.map((it) => {
     const w = clamp(Math.round(Number(it.w) || (it.type === 'chart' || it.type === 'container' ? 6 : 12)), 1, cols)
     let h = Math.max(1, Math.round(Number(it.h) || (it.type === 'chart' ? 2 : it.type === 'container' ? 3 : 1)))
     const hPx = Number(it.hPx)
-    if (Number.isFinite(hPx) && hPx > 0) h = rowsForHeight(hPx)
+    if (Number.isFinite(hPx) && hPx > 0) h = rowsForHeight(hPx, g)
     const hasCol = Number.isFinite(Number(it.col)) && Math.round(Number(it.col)) >= 1
     const hasRow = Number.isFinite(Number(it.row)) && Math.round(Number(it.row)) >= 1
     let col, row
@@ -90,7 +103,7 @@ export function normalizeLayout(items, columns = GRID_COLS) {
       row = cell.row
     }
     occupy(occupied, col, row, w, h)
-    const children = Array.isArray(it.children) ? normalizeLayout(it.children, w) : (it.children || [])
+    const children = Array.isArray(it.children) ? normalizeLayout(it.children, w, g) : (it.children || [])
     return { ...it, w, h, col, row, children }
   })
 }
@@ -161,11 +174,12 @@ export function applyDrop(items, piece, columns = GRID_COLS) {
 }
 
 /** 指针坐标 → 网格行列（列按 w 与 columns 裁剪），rect 为网格容器 getBoundingClientRect() */
-export function cellFromPointer(clientX, clientY, rect, w, columns = GRID_COLS) {
+export function cellFromPointer(clientX, clientY, rect, w, columns = GRID_COLS, gap = DEFAULT_GAP) {
+  const g = normGap(gap)
   const cols = Math.max(1, columns)
-  const colWidth = (rect.width - GAP * (cols - 1)) / cols
-  const rawCol = Math.floor((clientX - rect.left) / (colWidth + GAP)) + 1
-  const rawRow = Math.floor((clientY - rect.top) / (ROW_H + GAP)) + 1
+  const colWidth = (rect.width - g.x * (cols - 1)) / cols
+  const rawCol = Math.floor((clientX - rect.left) / (colWidth + g.x)) + 1
+  const rawRow = Math.floor((clientY - rect.top) / (ROW_H + g.y)) + 1
   return {
     col: clamp(rawCol, 1, Math.max(1, cols - w + 1)),
     row: Math.max(1, rawRow),

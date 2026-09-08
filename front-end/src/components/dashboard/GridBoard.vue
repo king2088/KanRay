@@ -8,6 +8,7 @@
       @drop="onBoardHtmlDrop"
     >
       <template v-if="items.length">
+        <div v-if="previewStyle" class="drop-preview" :style="previewStyle"></div>
         <div
           v-for="(item, idx) in items"
           :key="item.id"
@@ -58,7 +59,7 @@
                       v-for="v in HEIGHT_OPTIONS"
                       :key="v"
                       :command="v"
-                      :disabled="cardHeightPx(item) === v"
+                      :disabled="cardHeightPx(item, gapValue) === v"
                     >
                       高 {{ v }}px
                     </el-dropdown-item>
@@ -106,6 +107,7 @@
               :editable="editable"
               :board-key="item.id"
               :columns="Math.max(1, item.w || 6)"
+              :gap="gap"
             />
             <el-empty
               v-else-if="item.type === 'container'"
@@ -140,7 +142,7 @@ import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/ico
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
 import {
-  applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, ROW_H, rowsForHeight,
+  applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normGap, ROW_H, rowsForHeight,
 } from '@/utils/grid-layout'
 
 defineOptions({ name: 'GridBoard' })
@@ -153,6 +155,7 @@ const props = defineProps({
   editable: { type: Boolean, default: false },
   boardKey: { type: String, required: true },
   columns: { type: Number, default: GRID_COLS },
+  gap: { type: Object, default: () => ({ x: GAP, y: GAP }) },
 })
 
 const state = inject('boardState', null)
@@ -166,14 +169,16 @@ const boardEl = ref(null)
 const bodyEl = ref(null)
 
 const cols = computed(() => Math.max(1, props.columns))
+const gapValue = computed(() => normGap(props.gap))
 
 /** 供调色板/子组件引用的当前棋盘高度逻辑 */
 const bodyStyle = computed(() => {
+  const g = gapValue.value
   let bottom = 0
   props.items.forEach((it) => {
-    const px = cardHeightPx(it)
-    const rows = Math.max(1, rowsForHeight(px))
-    const b = (Math.max(1, Math.round(it.row || 1)) - 1) * (ROW_H + GAP) + rows * ROW_H + (rows - 1) * GAP
+    const px = cardHeightPx(it, g)
+    const rows = Math.max(1, rowsForHeight(px, g))
+    const b = (Math.max(1, Math.round(it.row || 1)) - 1) * (ROW_H + g.y) + rows * ROW_H + (rows - 1) * g.y
     if (b > bottom) bottom = b
   })
   return { height: `${bottom}px`, minHeight: '100%' }
@@ -188,17 +193,30 @@ function itemTitle(item) {
   return '容器'
 }
 
-/** 显式像素定位（自由摆放网格） */
-function itemStyle(item) {
+/** 单元格矩形（px 计算） */
+function cellRectStyle(col, row, w, heightPx) {
   const c = cols.value
-  const cellW = `((100% - ${(c - 1) * GAP}px) / ${c})`
+  const g = gapValue.value
+  const cellW = `((100% - ${(c - 1) * g.x}px) / ${c})`
   return {
-    left: `calc(${Math.max(0, item.col - 1)} * (${cellW} + ${GAP}px))`,
-    top: `calc(${Math.max(0, Math.round((item.row || 1) - 1))} * ${ROW_H + GAP}px)`,
-    width: `calc(${Math.max(1, item.w)} * ${cellW} + ${Math.max(0, item.w - 1) * GAP}px)`,
-    height: `${cardHeightPx(item)}px`,
+    left: `calc(${Math.max(0, col - 1)} * (${cellW} + ${g.x}px))`,
+    top: `calc(${Math.max(0, Math.round((row || 1) - 1))} * ${ROW_H + g.y}px)`,
+    width: `calc(${Math.max(1, w)} * ${cellW} + ${Math.max(0, w - 1) * g.x}px)`,
+    height: `${heightPx}px`,
   }
 }
+
+/** 显式像素定位（自由摆放网格） */
+function itemStyle(item) {
+  return cellRectStyle(item.col, item.row, item.w, cardHeightPx(item, gapValue.value))
+}
+
+/** 拖动落位参考框 */
+const previewStyle = computed(() => {
+  const p = state?.dropPreview
+  if (!p || p.boardKey !== props.boardKey) return null
+  return cellRectStyle(p.col, p.row, p.w, p.height)
+})
 
 function select(id) {
   if (state) state.selectedId = id
@@ -229,7 +247,7 @@ function setWidth(item, w) {
 /* ---- 高度调整 ---- */
 function setHeight(item, px) {
   item.hPx = px
-  item.h = rowsForHeight(px)
+  item.h = rowsForHeight(px, gapValue.value)
   applyDrop(props.items, { id: item.id, col: item.col, row: item.row, w: item.w, h: item.h }, cols.value)
   notify()
 }
@@ -304,6 +322,10 @@ function beginDrag(e, item) {
   pendingBoardKey = null
   lastPiece = null
 
+  const setPreview = (boardKey, col, row) => {
+    if (state) state.dropPreview = { boardKey, col, row, w: item.w, height: cardHeightPx(item, gapValue.value) }
+  }
+
   const onMove = (ev) => {
     if (!started) {
       if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return
@@ -319,14 +341,16 @@ function beginDrag(e, item) {
     const targetKey = api?.pickTarget ? api.pickTarget(ev.clientX, ev.clientY, props.boardKey) : null
     if (targetKey) {
       pendingBoardKey = targetKey
+      const c = api.cellIn(targetKey, ev.clientX, ev.clientY, item.w, item.h)
+      setPreview(targetKey, c.col, c.row)
       return
     }
     pendingBoardKey = null
 
     const r = rect()
     if (!r) return
-    const cell = cellFromPointer(ev.clientX, ev.clientY, r, item.w, cols.value)
-    if (lastPiece && cell.col === lastPiece.col && cell.row === lastPiece.row) return
+    const cell = cellFromPointer(ev.clientX, ev.clientY, r, item.w, cols.value, gapValue.value)
+    setPreview(props.boardKey, cell.col, cell.row)
     lastPiece = cell
   }
 
@@ -334,6 +358,7 @@ function beginDrag(e, item) {
     document.removeEventListener('mousemove', onMove)
     document.removeEventListener('mouseup', onUp)
     if (state) state.draggingId = null
+    if (state) state.dropPreview = null
     if (ghostEl) {
       ghostEl.remove()
       ghostEl = null
@@ -360,10 +385,11 @@ function beginResize(e, item, dir) {
   const startY = e.clientY
   const origin = props.items.find((i) => i.id === item.id) || item
   const w0 = origin.w
-  const px0 = cardHeightPx(origin)
+  const px0 = cardHeightPx(origin, gapValue.value)
   const maxCols = cols.value
   const rect = bodyEl.value?.getBoundingClientRect()
-  const colWidth = rect ? (rect.width - GAP * (maxCols - 1)) / maxCols : 1
+  const g = gapValue.value
+  const colWidth = rect ? (rect.width - g.x * (maxCols - 1)) / maxCols : 1
   const maxW = maxCols - (origin.col || 1) + 1
 
   const onMove = (ev) => {
@@ -374,14 +400,14 @@ function beginResize(e, item, dir) {
     const dy = ev.clientY - startY
     let changed = false
     if (dir === 'e' || dir === 'se') {
-      const w = Math.max(1, Math.min(maxW, w0 + Math.round(dx / (colWidth + GAP))))
+      const w = Math.max(1, Math.min(maxW, w0 + Math.round(dx / (colWidth + g.x))))
       if (w !== cur.w) { cur.w = w; changed = true }
     }
     if (dir === 's' || dir === 'se') {
       const px = Math.max(35, px0 + Math.round(dy / 1.5))
       if (px !== cur.hPx) {
         cur.hPx = px
-        cur.h = rowsForHeight(px)
+        cur.h = rowsForHeight(px, g)
         changed = true
       }
     }
@@ -430,6 +456,16 @@ onBeforeUnmount(() => {
 
 .grid-body {
   position: relative;
+}
+
+.drop-preview {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(64, 158, 255, 0.16);
+  border: 2px dashed var(--app-primary);
+  border-radius: var(--app-radius);
+  box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.25);
 }
 
 .grid-item {

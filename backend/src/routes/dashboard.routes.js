@@ -27,11 +27,17 @@ router.post('/', (req, res) => {
   ok(res, dashboardService.createDashboard(parsed.data.name), '看板创建成功');
 });
 
-// PATCH /api/dashboards/:id  { name?, layout? }
+// PATCH /api/dashboards/:id  { name?, layout?, gap? }
 router.patch('/:id', (req, res) => {
   const schema = z.object({
     name: z.string().trim().min(1).max(100).optional(),
     layout: z.array(z.any()).optional(),
+    gap: z
+      .object({
+        x: z.number().min(0).max(96).optional(),
+        y: z.number().min(0).max(96).optional(),
+      })
+      .optional(),
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '看板参数不正确', parsed.error.flatten());

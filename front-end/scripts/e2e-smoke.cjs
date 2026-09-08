@@ -132,7 +132,9 @@ async function pickSelect(page, selectLocator, optionIndex) {
   const gridCount = await page.$$('.grid-item').then((els) => els.length);
   log('11 拖入后 grid-item =', gridCount);
 
-  // 9. 添加筛选
+  // 9. 添加筛选（通过工具栏组件下拉）
+  await page.click('text=组件');
+  await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 5000 });
   await page.click('text=添加筛选');
   await page.waitForSelector('.el-dialog', { timeout: 10000 });
   const dlgSelects = page.locator('.el-dialog .el-select');
@@ -207,7 +209,9 @@ async function pickSelect(page, selectLocator, optionIndex) {
   log('12e 缩放前宽 =', wBefore, '| 缩放后宽 =', wAfter);
   if (wAfter <= wBefore) throw new Error('边缘缩放未生效');
 
-  // 9f. 添加容器并拖入子卡片（父子嵌套）
+  // 9f. 添加容器（通过工具栏组件下拉）并拖入子卡片（父子嵌套）
+  await page.click('text=组件');
+  await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 5000 });
   await page.click('text=添加容器');
   await sleep(800);
   const containerBox = await page.locator('.grid-item--container').first().boundingBox();
@@ -251,14 +255,14 @@ async function pickSelect(page, selectLocator, optionIndex) {
   // 9i. 最小高度：设为 35px
   await firstCard.locator('.item-actions .act-btn').nth(3).click(); // 高度下拉
   await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
-  await page.click('text=高 35px');
+  await page.locator('.el-dropdown-menu__item:visible').filter({ hasText: '35px' }).click();
   await sleep(500);
   const hSmall = (await firstCard.boundingBox()).height;
   log('12i 最小高度 =', hSmall.toFixed(1), 'px');
   if (hSmall > 45) throw new Error('高度未被压缩到 ~35px');
   await firstCard.locator('.item-actions .act-btn').nth(3).click(); // 重新打开高度下拉
   await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
-  await page.click('text=高 300px'); // 再拉回常用高度，避免矮卡影响后续
+  await page.locator('.el-dropdown-menu__item:visible').filter({ hasText: '300px' }).click();
   await sleep(400);
 
   // 10. 触发筛选联动（选择区域=华东）

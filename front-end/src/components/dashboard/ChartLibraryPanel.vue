@@ -28,30 +28,12 @@
         </div>
       </div>
     </div>
-
-    <div class="clp-section">
-      <div class="clp-title"><el-icon :size="15"><Grid /></el-icon> 组件</div>
-      <div class="clp-list">
-        <div class="clp-action" @click="$emit('add-text')">
-          <el-icon :size="15"><EditPen /></el-icon>
-          <span>添加文本</span>
-        </div>
-        <div class="clp-action" @click="$emit('add-filter')">
-          <el-icon :size="15"><Filter /></el-icon>
-          <span>添加筛选</span>
-        </div>
-        <div class="clp-action" @click="$emit('add-container')">
-          <el-icon :size="15"><Grid /></el-icon>
-          <span>添加容器</span>
-        </div>
-      </div>
-    </div>
   </aside>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { PieChart, Grid, EditPen, Filter } from '@element-plus/icons-vue'
+import { PieChart } from '@element-plus/icons-vue'
 import { flattenItems } from '@/utils/grid-layout'
 
 const props = defineProps({
@@ -59,7 +41,7 @@ const props = defineProps({
   items: { type: Array, required: true },
 })
 
-defineEmits(['add-chart', 'add-text', 'add-filter', 'add-container'])
+defineEmits(['add-chart'])
 
 function usedChartIds() {
   return new Set(flattenItems(props.items).filter((i) => i.type === 'chart').map((i) => i.chartId))
@@ -157,24 +139,5 @@ function onPaletteDrag(e, chart) {
 .clp-empty {
   color: var(--app-text-secondary);
   font-size: 12px;
-}
-
-.clp-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px dashed var(--app-border);
-  border-radius: var(--app-radius);
-  padding: 7px 10px;
-  font-size: 12px;
-  color: var(--app-text-regular);
-  cursor: pointer;
-  user-select: none;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.clp-action:hover {
-  border-color: var(--app-primary);
-  color: var(--app-primary);
 }
 </style>

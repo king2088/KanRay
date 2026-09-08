@@ -3,7 +3,7 @@ import {
   GRID_COLS, ROW_H, GAP,
   clamp, intersects, nextFreeCell, findFreeCell,
   normalizeLayout, flattenItems, clampChildren, resolveDrop, applyDrop, cellFromPointer,
-  cardHeightPx, rowsForHeight,
+  cardHeightPx, rowsForHeight, normGap,
 } from '../src/utils/grid-layout.js'
 
 let passed = 0
@@ -205,6 +205,30 @@ t('normalize: hPx 同步 h', () => {
 t('normalize: hideTitle 字段保留', () => {
   const out = normalizeLayout([{ id: 'a', type: 'text', content: '', hideTitle: true }])
   assert.equal(out[0].hideTitle, true)
+})
+
+t('normGap: 默认与异常回退', () => {
+  assert.deepEqual(normGap(undefined), { x: GAP, y: GAP })
+  assert.deepEqual(normGap({ x: 20, y: 8 }), { x: 20, y: 8 })
+  assert.deepEqual(normGap({ x: 0, y: 0 }), { x: GAP, y: GAP })
+  assert.deepEqual(normGap({ x: 20 }), { x: 20, y: GAP })
+})
+
+t('cardHeightPx/rowsForHeight 尊重 gap-y', () => {
+  const g = { x: 12, y: 32 }
+  assert.equal(cardHeightPx({ h: 2 }, g), 2 * ROW_H + 32)
+  assert.equal(rowsForHeight(182, g), 1)
+  assert.equal(rowsForHeight(332, g), 2)
+})
+
+t('normalizeLayout 用 gap-y 推导 h', () => {
+  const g8 = { x: 12, y: 8 }
+  const o8 = normalizeLayout([{ id: 'a', type: 'chart', chartId: 1, hPx: 158 }], 12, g8)
+  assert.equal(o8[0].h, 1)
+  const g48 = { x: 12, y: 48 }
+  // (some + 48) / 198，要让 round=2 需 some >= 297
+  const o48 = normalizeLayout([{ id: 'a', type: 'chart', chartId: 1, hPx: 300 }], 12, g48)
+  assert.equal(o48[0].h, 2)
 })
 
 console.log(`grid-layout 测试：${passed} 项通过`)

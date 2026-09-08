@@ -7,6 +7,23 @@
         <el-tag v-if="dashId" type="warning" effect="light">编辑中</el-tag>
       </div>
       <div class="et-right">
+        <span class="et-gap-label">左右</span>
+        <el-input-number v-model="gap.x" :min="4" :max="96" size="small" controls-position="right" style="width: 86px" />
+        <span class="et-gap-label">上下</span>
+        <el-input-number v-model="gap.y" :min="4" :max="96" size="small" controls-position="right" style="width: 86px" />
+        <el-dropdown trigger="click" @command="onAddComponent">
+          <el-button>
+            <el-icon style="margin-right: 4px"><Plus /></el-icon>组件
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="text">添加文本</el-dropdown-item>
+              <el-dropdown-item command="filter">添加筛选</el-dropdown-item>
+              <el-dropdown-item command="container">添加容器</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-button @click="$router.push(`/dashboards/${dashId}`)">
           <el-icon style="margin-right: 4px"><View /></el-icon>预览
         </el-button>
@@ -22,16 +39,10 @@
         :items="items"
         :charts="charts"
         editable
+        :gap="gap"
         @update:items="items = $event"
       />
-      <ChartLibraryPanel
-        :charts="charts"
-        :items="items"
-        @add-chart="onAddChart"
-        @add-text="addTextDialog = true"
-        @add-filter="openFilterDialog"
-        @add-container="canvasRef.addContainer()"
-      />
+      <ChartLibraryPanel :charts="charts" :items="items" @add-chart="onAddChart" />
     </div>
 
     <!-- 添加文本 -->
@@ -77,9 +88,9 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, View, Check } from '@element-plus/icons-vue'
+import { ArrowLeft, View, Check, Plus, ArrowDown } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi, datasetApi } from '@/api'
-import { normalizeLayout } from '@/utils/grid-layout'
+import { normalizeLayout, normGap } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 import ChartLibraryPanel from '@/components/dashboard/ChartLibraryPanel.vue'
 
@@ -93,6 +104,7 @@ const items = ref([])
 const charts = ref([])
 const datasets = ref([])
 const saving = ref(false)
+const gap = ref({ x: 12, y: 12 })
 
 const addTextDialog = ref(false)
 const textContent = ref('')
@@ -103,7 +115,8 @@ const filterFields = ref([])
 async function load() {
   const dash = await dashboardApi.get(dashId)
   dashName.value = dash.name
-  items.value = normalizeLayout(dash.layout || [])
+  gap.value = normGap(dash.gap)
+  items.value = normalizeLayout(dash.layout || [], 12, gap.value)
   charts.value = await chartApi.list()
   datasets.value = await datasetApi.list()
 }
@@ -116,6 +129,12 @@ async function onNameChange() {
 
 function onAddChart(chart) {
   canvasRef.value.addChart(chart)
+}
+
+function onAddComponent(cmd) {
+  if (cmd === 'text') addTextDialog.value = true
+  else if (cmd === 'filter') openFilterDialog()
+  else if (cmd === 'container') canvasRef.value.addContainer()
 }
 
 async function confirmAddText() {
@@ -151,7 +170,7 @@ async function save() {
   if (!dashName.value.trim()) return ElMessage.warning('看板名称不能为空')
   saving.value = true
   try {
-    await dashboardApi.update(dashId, { name: dashName.value.trim(), layout: items.value })
+    await dashboardApi.update(dashId, { name: dashName.value.trim(), layout: items.value, gap: gap.value })
     ElMessage.success('看板已保存')
   } finally {
     saving.value = false
@@ -184,6 +203,12 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.et-gap-label {
+  font-size: 12px;
+  color: var(--app-text-secondary);
+  white-space: nowrap;
 }
 
 .editor-body {

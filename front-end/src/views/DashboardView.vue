@@ -21,6 +21,7 @@
       <DashboardCanvas
         :items="items"
         :charts="charts"
+        :gap="gap"
       />
     </div>
   </div>
@@ -32,7 +33,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi } from '@/api'
-import { normalizeLayout } from '@/utils/grid-layout'
+import { normalizeLayout, normGap } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 
 const route = useRoute()
@@ -43,11 +44,13 @@ const items = ref([])
 const charts = ref([])
 const fullscreen = ref(false)
 const refreshKey = ref(0)
+const gap = ref({ x: 12, y: 12 })
 
 async function load() {
   const dash = await dashboardApi.get(dashId)
   dashName.value = dash.name
-  items.value = normalizeLayout(dash.layout || [])
+  gap.value = normGap(dash.gap)
+  items.value = normalizeLayout(dash.layout || [], 12, gap.value)
   charts.value = await chartApi.list()
 }
 

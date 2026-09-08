@@ -7,6 +7,7 @@
       :editable="editable"
       :board-key="'root'"
       :columns="12"
+      :gap="gap"
     />
   </div>
 </template>
@@ -15,12 +16,13 @@
 import { computed, onBeforeUnmount, provide, reactive, ref, watch } from 'vue'
 import { chartApi } from '@/api'
 import GridBoard from './GridBoard.vue'
-import { applyDrop, cellFromPointer, clampChildren, findFreeCell, flattenItems } from '@/utils/grid-layout'
+import { applyDrop, cellFromPointer, clampChildren, findFreeCell, flattenItems, GAP, normGap } from '@/utils/grid-layout'
 
 const props = defineProps({
   items: { type: Array, required: true },
   charts: { type: Array, required: true },
   editable: { type: Boolean, default: false },
+  gap: { type: Object, default: () => ({ x: GAP, y: GAP }) },
 })
 
 const emit = defineEmits(['update:items'])
@@ -38,9 +40,11 @@ watch(
   { immediate: true },
 )
 
-/* ---- 棋盘状态注入（选择/拖动高亮、选中数据） ---- */
-const boardState = reactive({ selectedId: null, draggingId: null })
+/* ---- 棋盘状态注入（选择/拖动高亮、落位预览、选中数据） ---- */
+const boardState = reactive({ selectedId: null, draggingId: null, dropPreview: null })
 provide('boardState', boardState)
+
+const gapValue = computed(() => normGap(props.gap))
 
 /* ---- 图表数据（懒加载） ---- */
 const chartMap = ref({})
@@ -166,6 +170,13 @@ provide('gridBoardApi', {
   },
   notify,
   pickTarget,
+  cellIn(boardKey, clientX, clientY, w, h) {
+    const entry = registry.get(boardKey)
+    if (!entry) return { col: 1, row: 1 }
+    const rect = entry.getEl()?.getBoundingClientRect()
+    if (!rect) return { col: 1, row: 1 }
+    return cellFromPointer(clientX, clientY, rect, w, entry.getColumns(), gapValue.value)
+  },
   removeItem(id) {
     const { arr, idx } = findItemRef(id)
     if (idx === -1) return
@@ -186,7 +197,7 @@ provide('gridBoardApi', {
       srcItems.push(it)
       return
     }
-    const cell = cellFromPointer(clientX, clientY, rect, it.w, dst.getColumns())
+    const cell = cellFromPointer(clientX, clientY, rect, it.w, dst.getColumns(), gapValue.value)
     dst.getItems().push({ ...it, col: cell.col, row: cell.row })
     applyDrop(dst.getItems(), { id: it.id, col: cell.col, row: cell.row, w: it.w, h: it.h }, dst.getColumns())
     boardState.selectedId = it.id
