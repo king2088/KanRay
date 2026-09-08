@@ -253,6 +253,49 @@ body {
   color: var(--app-text-secondary);
 }
 
+/* 看板编辑器拖动排序的幽灵卡片 */
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 280px;
+  padding: 8px 12px;
+  background: var(--app-card);
+  border: 1px solid var(--app-primary);
+  border-radius: var(--app-radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  pointer-events: none;
+  z-index: 3000;
+  will-change: transform;
+}
+
+.drag-ghost__grip {
+  width: 12px;
+  height: 16px;
+  border-left: 3px solid var(--app-primary);
+  border-right: 3px solid var(--app-primary);
+  border-radius: 2px;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.drag-ghost__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.is-dragging-card {
+  cursor: grabbing;
+  user-select: none;
+}
+
 /* ============================================================
    暗黑模式（Element Plus 提供 --el-*，这里覆盖应用自定义 token）
    ============================================================ */

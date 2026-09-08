@@ -15,7 +15,6 @@
             'grid-item--editable': editable,
             'grid-item--selected': selectedId === item.id,
             'grid-item--dragging': draggingId === item.id,
-            'grid-item--drop-target': dragOverIdx === idx,
           }"
           :style="itemStyle(item)"
           @click="editable && (selectedId = item.id)"
@@ -27,6 +26,11 @@
             :class="{ editable }"
             @mousedown="editable && beginDrag($event, idx)"
           >
+            <el-tooltip v-if="editable" content="按住拖动调整顺序" placement="top" :show-after="600">
+              <span class="item-grip">
+                <el-icon :size="16"><Rank /></el-icon>
+              </span>
+            </el-tooltip>
             <span class="item-title">{{ itemTitle(item) }}</span>
             <span v-if="editable" class="item-actions">
               <el-icon class="act-btn" size="15" @click.stop="moveItem(idx, -1)"><ArrowUp /></el-icon>
@@ -77,8 +81,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
-import { ArrowUp, ArrowDown, Operation, Delete } from '@element-plus/icons-vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { ArrowUp, ArrowDown, Operation, Delete, Rank } from '@element-plus/icons-vue'
 import { chartApi, datasetApi } from '@/api'
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
@@ -95,7 +99,6 @@ const GRID_COLS = 12
 const gridItems = ref([])
 const selectedId = ref(null)
 const draggingId = ref(null)
-const dragOverIdx = ref(null)
 const chartMap = ref({})
 const chartLoaded = ref({})
 
@@ -178,7 +181,7 @@ function addFilter(opts) {
 
 defineExpose({ addText, addFilter, addChart })
 
-/* ---- 拖动排序（整头部为手柄，松开时一次性定插入位） ---- */
+/* ---- 移动排序（整头部为手柄 + 上移/下移按钮） ---- */
 function moveItem(idx, dir) {
   const arr = [...props.items]
   const j = idx + dir
@@ -188,48 +191,92 @@ function moveItem(idx, dir) {
   emit('update:items', arr)
 }
 
-function beginDrag(e, startIdx) {
+/* ---- 拖动排序（实时重排 + 跟随指针的幽灵卡片） ---- */
+let ghostEl = null
+let ghostMoved = false
+
+function buildGhost(item) {
+  const g = document.createElement('div')
+  g.className = 'drag-ghost'
+  g.innerHTML = '<span class="drag-ghost__grip"></span><span class="drag-ghost__title"></span>'
+  g.querySelector('.drag-ghost__title').textContent = itemTitle(item)
+  g.querySelector('.drag-ghost__title').title = itemTitle(item)
+  document.body.appendChild(g)
+  return g
+}
+
+function moveGhost(ev) {
+  if (!ghostEl) return
+  ghostEl.style.transform = `translate3d(${ev.clientX - 14}px, ${ev.clientY - 8}px, 0)`
+}
+
+function targetIndexAt(ev) {
+  const el = document.elementFromPoint(ev.clientX, ev.clientY)
+  const cardEl = el ? el.closest('.grid-item') : null
+  if (!cardEl) return null
+  const ti = gridItems.value.findIndex((n) => n === cardEl || n?.$el === cardEl)
+  if (ti === -1) return null
+  const rect = cardEl.getBoundingClientRect()
+  return ev.clientY < rect.top + rect.height / 2 ? ti : ti + 1
+}
+
+function beginDrag(e, idx) {
   if (!props.editable) return
   if (e.target.closest && e.target.closest('.item-actions')) return
+  if (e.button !== 0) return
   e.preventDefault()
-  const item = props.items[startIdx]
+
+  const item = props.items[idx]
+  if (!item) return
+  selectedId.value = item.id
   draggingId.value = item.id
-  let lastOverIdx = null
+
+  const startX = e.clientX
+  const startY = e.clientY
+  let started = false
+  ghostEl = null
 
   const onMove = (ev) => {
-    const el = document.elementFromPoint(ev.clientX, ev.clientY)
-    const card = el ? el.closest('.grid-item') : null
-    if (!card) {
-      dragOverIdx.value = null
-      lastOverIdx = null
-      return
+    if (!started) {
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return
+      started = true
+      ghostEl = buildGhost(item)
+      document.body.classList.add('is-dragging-card')
     }
-    const ti = gridItems.value.findIndex((n) => n === card || n?.$el === card)
-    lastOverIdx = ti === -1 ? null : ti
-    dragOverIdx.value = lastOverIdx
+    moveGhost(ev)
+    const ti = targetIndexAt(ev)
+    if (ti === null) return
+    const cur = props.items.findIndex((i) => i.id === item.id)
+    if (cur === -1) return
+    let insert = ti
+    if (cur < insert) insert -= 1
+    if (insert === cur) return
+    const arr = [...props.items]
+    const [moved] = arr.splice(cur, 1)
+    arr.splice(insert, 0, moved)
+    emit('update:items', arr)
   }
 
-  const onUp = (ev) => {
+  const onUp = () => {
     document.removeEventListener('mousemove', onMove)
     document.removeEventListener('mouseup', onUp)
     draggingId.value = null
-    dragOverIdx.value = null
-    const curIdx = props.items.findIndex((i) => i.id === item.id)
-    if (curIdx === -1 || lastOverIdx === null || lastOverIdx === curIdx) return
-    const card = gridItems.value[lastOverIdx]
-    const rect = card ? card.getBoundingClientRect() : null
-    let insertAt = lastOverIdx
-    if (!rect || ev.clientY >= rect.top + rect.height / 2) insertAt = lastOverIdx + 1
-    if (curIdx < insertAt) insertAt -= 1
-    const arr = [...props.items]
-    const [dragged] = arr.splice(curIdx, 1)
-    arr.splice(insertAt, 0, dragged)
-    emit('update:items', arr)
+    if (ghostEl) {
+      ghostEl.remove()
+      ghostEl = null
+    }
+    document.body.classList.remove('is-dragging-card')
+    ghostMoved = false
   }
 
   document.addEventListener('mousemove', onMove)
   document.addEventListener('mouseup', onUp)
 }
+
+onBeforeUnmount(() => {
+  if (ghostEl) ghostEl.remove()
+  document.body.classList.remove('is-dragging-card')
+})
 
 /* ---- 加载图表定义 ---- */
 function loadCharts() {
@@ -309,12 +356,9 @@ watch(() => props.charts.length, loadCharts)
 }
 
 .grid-item--dragging {
-  opacity: 0.8;
+  opacity: 0.45;
   border-color: var(--app-primary);
-}
-
-.grid-item--drop-target {
-  box-shadow: 0 0 0 2px var(--app-primary);
+  border-style: dashed;
 }
 
 .item-header {
@@ -332,8 +376,19 @@ watch(() => props.charts.length, loadCharts)
   cursor: grab;
 }
 
+.item-header.editable:active {
+  cursor: grabbing;
+}
+
 .item-header.editable:hover {
   background: var(--app-hover);
+}
+
+.item-grip {
+  color: var(--app-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
 }
 
 .item-title {
