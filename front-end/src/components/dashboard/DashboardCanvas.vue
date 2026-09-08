@@ -73,7 +73,7 @@
           <div class="item-body">
             <template v-if="item.type === 'chart'">
               <ChartTile
-                v-if="chartLoaded[item.id]"
+                v-if="chartLoaded[item.chartId]"
                 :chart="chartMap[item.chartId]"
                 :external-filters="filtersArray"
                 :height-scale="item.h"
@@ -213,14 +213,16 @@ function addFilter(opts) {
 defineExpose({ addText, addFilter })
 
 /* ---- 拖动排序（基于 flow 数组顺序） ---- */
-function startReorder(e, idx) {
+function startReorder(e, startIdx) {
   if (!props.editable) return
   e.preventDefault()
   const startX = e.clientX
   const startY = e.clientY
-  const item = props.items[idx]
+  const item = props.items[startIdx]
   draggingId.value = item.id
   let moved = false
+
+  const currentIndex = () => props.items.findIndex((it) => it.id === item.id)
 
   const onMove = (ev) => {
     const dx = Math.abs(ev.clientX - startX)
@@ -230,11 +232,12 @@ function startReorder(e, idx) {
     const el = document.elementFromPoint(ev.clientX, ev.clientY)
     const targetEl = el ? el.closest('.grid-item') : null
     if (!targetEl) return
-    const targetIdx = gridItems.value.findIndex((n) => n === targetEl || n.$el === targetEl)
-    if (targetIdx === -1 || targetIdx === idx) return
-    // 移动到新位置
+    const targetIdx = gridItems.value.findIndex((n) => n === targetEl || n?.$el === targetEl)
+    if (targetIdx === -1) return
+    const curIdx = currentIndex()
+    if (curIdx === targetIdx) return
     const arr = [...props.items]
-    const [dragged] = arr.splice(idx, 1)
+    const [dragged] = arr.splice(curIdx, 1)
     arr.splice(targetIdx, 0, dragged)
     emit('update:items', arr)
   }
@@ -271,6 +274,17 @@ function loadCharts() {
     chartLoaded.value[cid] = true
   })
 }
+
+// 看板中出现的图表随 items 变化即时点亮
+watch(
+  () => props.items.filter((i) => i.type === 'chart').map((i) => i.chartId).join(','),
+  () => {
+    props.items.forEach((item) => {
+      if (item.type !== 'chart') return
+      if (chartMap.value[item.chartId]) chartLoaded.value[item.chartId] = true
+    })
+  },
+)
 
 // 监听外部筛选：透传给 ChartTile
 // chartTile 内部调用 chartApi.data 时合并 externalFilters
