@@ -145,6 +145,17 @@ function renameDataset(id, name) {
   return getDataset(id);
 }
 
+function updateFieldLabel(datasetId, fieldId, label) {
+  getDatasetOrThrow(datasetId);
+  if (!label || !String(label).trim()) throw new HttpError(400, '字段别名不能为空');
+  const field = db
+    .prepare('SELECT id, dataset_id FROM dataset_fields WHERE id = ? AND dataset_id = ?')
+    .get(fieldId, datasetId);
+  if (!field) throw new HttpError(404, '字段不存在');
+  db.prepare('UPDATE dataset_fields SET label = ? WHERE id = ?').run(String(label).trim().slice(0, 100), fieldId);
+  return db.prepare('SELECT id, dataset_id AS datasetId, name, label, type, position FROM dataset_fields WHERE id = ?').get(fieldId);
+}
+
 function paginateRows(id, page, pageSize) {
   const ds = getDatasetOrThrow(id);
   const fields = getFieldsOrThrow(id);
@@ -171,5 +182,6 @@ module.exports = {
   parseAndCreate,
   deleteDataset,
   renameDataset,
+  updateFieldLabel,
   paginateRows,
 };

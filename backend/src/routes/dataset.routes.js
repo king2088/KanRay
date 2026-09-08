@@ -96,6 +96,15 @@ router.get('/:id/rows', (req, res) => {
   ok(res, datasetService.paginateRows(id, page, pageSize));
 });
 
+// PATCH /api/datasets/:id/fields/:fieldId  (更新字段别名)
+router.patch('/:id/fields/:fieldId', (req, res) => {
+  const schema = z.object({ label: z.string().trim().min(1).max(100) }).strict();
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) throw new HttpError(400, '字段别名不能为空且不超过 100 字符');
+  const field = datasetService.updateFieldLabel(Number(req.params.id), Number(req.params.fieldId), parsed.data.label);
+  ok(res, field, '字段更新成功');
+});
+
 // POST /api/datasets/:id/query  (聚合查询 -> 图表数据)
 const querySchema = z.object({
   dimensions: z.array(z.object({
