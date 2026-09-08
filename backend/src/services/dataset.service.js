@@ -1,0 +1,175 @@
+const db = require('../db');
+const config = require('../config');
+const HttpError = require('../utils/http-error');
+const { parseExcelFile, TYPE_MAP } = require('../services/excel.service');
+
+/**
+ * 把解析到的列 SQL 类型映射为建表类型
+ */
+function sqlType(field) {
+  return TYPE_MAP[field.type] || 'TEXT';
+}
+
+/** 把值转换为可安全入库的 SQLite 值 */
+function convertValue(value, type) {
+  if (value === null || value === undefined || value === '') return null;
+  if (type === 'date') {
+    if (value instanceof Date) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    const s = String(value).trim();
+    // 保留 YYYY-MM-DD 或 YYYY/MM/DD
+    return s.slice(0, 10);
+  }
+  if (type === 'integer') {
+    const n = Number(value);
+    return Number.isNaN(n) ? null : Math.trunc(n);
+  }
+  if (type === 'number') {
+    const n = Number(value);
+    return Number.isNaN(n) ? null : n;
+  }
+  if (type === 'boolean') {
+    if (value === true || value === 1 || value === '1' || value === 'true' || value === 'TRUE') return 1;
+    if (value === false || value === 0 || value === '0' || value === 'false' || value === 'FALSE') return 0;
+    return null;
+  }
+  return String(value);
+}
+
+/** 生成唯一的数据表名 */
+function nextTableName() {
+  return `ds_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+}
+
+function listDatasets() {
+  return db.prepare('SELECT * FROM datasets ORDER BY created_at DESC, id DESC').all();
+}
+
+function getDataset(id) {
+  const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(id);
+  if (!ds) return null;
+  ds.fields = db.prepare('SELECT id, name, label, type, position FROM dataset_fields WHERE dataset_id = ? ORDER BY position').all(id);
+  return ds;
+}
+
+function getDatasetOrThrow(id) {
+  const ds = getDataset(id);
+  if (!ds) throw new HttpError(404, `数据集不存在: id=${id}`);
+  return ds;
+}
+
+function getFieldsOrThrow(datasetId) {
+  const fields = db.prepare('SELECT name, label, type FROM dataset_fields WHERE dataset_id = ? ORDER BY position').all(datasetId);
+  if (fields.length === 0) throw new HttpError(400, '数据集字段为空');
+  return fields;
+}
+
+/**
+ * 创建数据集：调用方传入已解析好的 { name, header, rows }
+ */
+function createDataset(name, header, rows) {
+  const tableName = nextTableName();
+  const fields = header.map((h, i) => ({ ...h, position: i }));
+  const sqlTypes = fields.map((f) => sqlType(f));
+
+  // 建表
+  const cols = fields.map((f, i) => `"${f.key}" ${sqlTypes[i]}`).join(', ');
+  db.exec(`CREATE TABLE ${tableName} (${cols})`);
+
+  // 批量写入
+  const placeholders = fields.map(() => '?').join(', ');
+  const insert = db.prepare(`INSERT INTO ${tableName} VALUES (${placeholders})`);
+  const insertMany = db.transaction((batch) => {
+    for (const row of batch) {
+      const values = fields.map((f, i) => convertValue(row[f.key], f.type));
+      insert.run(...values);
+    }
+  });
+  insertMany(rows);
+
+  // 记录数据集
+  const info = db
+    .prepare('INSERT INTO datasets (name, original_file, row_count, column_count, table_name) VALUES (?, ?, ?, ?, ?)')
+    .run(name, name, rows.length, fields.length, tableName);
+  const datasetId = info.lastInsertRowid;
+
+  // 字段元数据
+  const insField = db.prepare(
+    'INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)'
+  );
+  const insFields = db.transaction((fs) => {
+    for (const f of fs) insField.run(datasetId, f.key, f.label, f.type, f.position);
+  });
+  insFields(fields);
+
+  return getDataset(datasetId);
+}
+
+/**
+ * 上传 Excel 并创建数据集；若已有同名文件且仅预览（不落库）走 preview 流程
+ */
+function previewExcel(filePath) {
+  const { header, rows } = parseExcelFile(filePath);
+  return {
+    header,
+    previewRows: rows.slice(0, config.upload.previewRows),
+    rowCount: rows.length,
+  };
+}
+
+/**
+ * 全量导入（用于真正创建数据集），返回预览信息 + 可随后调用 create
+ */
+function parseAndCreate(name, filePath) {
+  const { header, rows } = parseExcelFile(filePath);
+  const ds = createDataset(name, header, rows);
+  ds.previewRows = rows.slice(0, config.upload.previewRows);
+  return ds;
+}
+
+function deleteDataset(id) {
+  const ds = getDatasetOrThrow(id);
+  db.prepare('DELETE FROM datasets WHERE id = ?').run(id);
+  db.exec(`DROP TABLE IF EXISTS ${ds.table_name}`);
+  return true;
+}
+
+function renameDataset(id, name) {
+  getDatasetOrThrow(id);
+  if (!name || !String(name).trim()) throw new HttpError(400, '数据集名称不能为空');
+  db.prepare('UPDATE datasets SET name = ? WHERE id = ?').run(String(name).trim(), id);
+  return getDataset(id);
+}
+
+function paginateRows(id, page, pageSize) {
+  const ds = getDatasetOrThrow(id);
+  const fields = getFieldsOrThrow(id);
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM ${ds.table_name}`).get().c;
+  const rows = db
+    .prepare(`SELECT * FROM ${ds.table_name} LIMIT ? OFFSET ?`)
+    .all(pageSize, (page - 1) * pageSize);
+  return {
+    total,
+    page,
+    pageSize,
+    fields: fields.map((f) => ({ name: f.name, label: f.label, type: f.type })),
+    rows,
+  };
+}
+
+module.exports = {
+  listDatasets,
+  getDataset,
+  getDatasetOrThrow,
+  getFieldsOrThrow,
+  createDataset,
+  previewExcel,
+  parseAndCreate,
+  deleteDataset,
+  renameDataset,
+  paginateRows,
+};
