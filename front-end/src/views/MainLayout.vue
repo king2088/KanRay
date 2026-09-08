@@ -15,7 +15,7 @@
         <el-header class="app-header">
           <div class="app-header__left">
             <el-tooltip content="折叠 / 展开侧栏" placement="bottom">
-              <el-icon class="collapse-btn" :size="20" @click="store.toggleCollapsed()">
+              <el-icon class="collapse-btn" @click="store.toggleCollapsed()">
                 <component :is="store.collapsed ? 'Expand' : 'Fold'" />
               </el-icon>
             </el-tooltip>
@@ -24,7 +24,7 @@
               <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
             </el-breadcrumb>
           </div>
-          <HeaderBar />
+          <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
         </el-header>
         <el-main class="app-main">
           <router-view />
@@ -44,7 +44,7 @@
           <div class="app-header__left">
             <TopMenu :active-menu="activeMenu" />
           </div>
-          <HeaderBar />
+          <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
         </el-header>
         <el-main class="app-main">
           <router-view />
@@ -60,7 +60,7 @@
             <AppLogo :collapsed="true" />
             <TopMenu :active-menu="activeMenu" />
           </div>
-          <HeaderBar />
+          <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
         </el-header>
         <el-main class="app-main">
           <router-view />
@@ -68,10 +68,12 @@
       </el-container>
     </template>
   </el-container>
+
+  <AppSettingsDrawer v-model="settingsOpen" />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { activeMenuOf } from '@/router/menu'
@@ -79,9 +81,11 @@ import AppLogo from '@/components/layout/AppLogo.vue'
 import SideMenu from '@/components/layout/SideMenu.vue'
 import TopMenu from '@/components/layout/TopMenu.vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
+import AppSettingsDrawer from '@/components/layout/AppSettingsDrawer.vue'
 
 const route = useRoute()
 const store = useAppStore()
+const settingsOpen = ref(false)
 
 const activeMenu = computed(() => activeMenuOf(route.path))
 const currentTitle = computed(() => route.meta.title || '看板低代码平台')
@@ -143,9 +147,8 @@ const currentTitle = computed(() => route.meta.title || '看板低代码平台')
 .collapse-btn {
   cursor: pointer;
   color: var(--app-text-regular);
-  padding: 6px;
   border-radius: var(--app-radius);
-  font-size: 20px;
+  font-size: 14px;
 }
 .collapse-btn:hover {
   background: var(--app-hover);

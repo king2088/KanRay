@@ -1,10 +1,16 @@
 <template>
-  <el-menu :default-active="activeMenu" mode="horizontal" router class="top-menu">
-    <el-menu-item v-for="item in MENU_ITEMS" :key="item.path" :index="item.path">
-      <el-icon><component :is="item.icon" /></el-icon>
+  <nav class="top-menu">
+    <router-link
+      v-for="item in MENU_ITEMS"
+      :key="item.path"
+      :to="item.path"
+      class="top-nav-item"
+      :class="{ 'is-active': activeMenu === item.path }"
+    >
+      <el-icon :size="15"><component :is="item.icon" /></el-icon>
       <span>{{ item.title }}</span>
-    </el-menu-item>
-  </el-menu>
+    </router-link>
+  </nav>
 </template>
 
 <script setup>
@@ -15,16 +21,38 @@ defineProps({ activeMenu: { type: String, required: true } })
 
 <style scoped>
 .top-menu {
-  border-bottom: none !important;
+  display: flex;
+  align-items: center;
   height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
 
-.top-menu :deep(.el-menu-item) {
-  height: var(--app-header-height);
+.top-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--app-text-regular);
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
 }
 
-.top-menu :deep(.el-menu-item.is-active) {
-  font-weight: 500;
+.top-nav-item:hover {
+  color: var(--app-primary);
+  background: var(--app-hover);
+}
+
+.top-nav-item.is-active {
+  color: var(--app-primary);
+  font-weight: 600;
+  border-bottom-color: var(--app-primary);
 }
 </style>

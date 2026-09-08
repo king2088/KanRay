@@ -1,7 +1,7 @@
 <template>
   <div class="header-bar">
     <el-tooltip content="系统设置" placement="bottom">
-      <el-icon :size="18" class="header-icon" @click="settingsOpen = true">
+      <el-icon :size="18" class="header-icon" @click="emit('update:settingsOpen', true)">
         <Setting />
       </el-icon>
     </el-tooltip>
@@ -9,16 +9,12 @@
       <div class="user-chip__avatar">管</div>
       <span class="user-chip__name">管理员</span>
     </div>
-
-    <AppSettingsDrawer v-model="settingsOpen" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import AppSettingsDrawer from './AppSettingsDrawer.vue'
-
-const settingsOpen = ref(false)
+defineProps({ settingsOpen: { type: Boolean, default: false } })
+const emit = defineEmits(['update:settingsOpen'])
 </script>
 
 <style scoped>
