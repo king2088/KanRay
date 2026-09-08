@@ -1,0 +1,25 @@
+{
+  "name": "kanban-backend",
+  "version": "1.0.0",
+  "description": "看板管理低代码系统 - 第一阶段后端 (ExpressJS 5)",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true
+  }
+}
