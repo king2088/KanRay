@@ -122,7 +122,7 @@ function onPaletteDrag(e, chart) {
   align-items: center;
   gap: 6px;
   background: var(--app-primary-light);
-  border: 1px solid #d9ecff;
+  border: 1px solid var(--app-primary);
   color: var(--app-primary);
   border-radius: var(--app-radius);
   padding: 6px 10px;
@@ -130,6 +130,7 @@ function onPaletteDrag(e, chart) {
   cursor: grab;
   user-select: none;
   max-width: 100%;
+  opacity: 0.92;
 }
 
 .chart-palette-item:hover {

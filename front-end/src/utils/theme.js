@@ -19,16 +19,19 @@ export function applyTheme(settings = {}) {
   const root = document.documentElement
   root.classList.toggle('dark', !!settings.dark)
   const p = settings.primaryColor || '#409eff'
+  const dark = !!settings.dark
+  // 暗黑模式下浅色/选中态应按"掺黑"生成，避免出现白色底色
+  const mix = (fraction) => mixColor(p, dark ? '#000' : '#fff', fraction)
   const vars = {
     '--el-color-primary': p,
-    '--el-color-primary-light-3': mixColor(p, '#fff', 0.3),
-    '--el-color-primary-light-5': mixColor(p, '#fff', 0.5),
-    '--el-color-primary-light-7': mixColor(p, '#fff', 0.7),
-    '--el-color-primary-light-8': mixColor(p, '#fff', 0.8),
-    '--el-color-primary-light-9': mixColor(p, '#fff', 0.9),
+    '--el-color-primary-light-3': mix(0.3),
+    '--el-color-primary-light-5': mix(0.5),
+    '--el-color-primary-light-7': mix(0.7),
+    '--el-color-primary-light-8': mix(0.8),
+    '--el-color-primary-light-9': mix(0.9),
     '--el-color-primary-dark-2': mixColor(p, '#000', 0.2),
     '--app-primary': p,
-    '--app-primary-light': mixColor(p, '#fff', 0.9),
+    '--app-primary-light': dark ? mixColor(p, '#000', 0.85) : mixColor(p, '#fff', 0.9),
     '--app-primary-darker': mixColor(p, '#000', 0.1),
   }
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))

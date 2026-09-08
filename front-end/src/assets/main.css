@@ -310,7 +310,41 @@ html.dark {
   --app-border-light: #363637;
   --app-hover: #2a2a2b;
   color-scheme: dark;
+
+  /* 表格：表头 / 行 hover / 单元格底色与边框 */
+  --el-fill-color-lighter: #2a2a2b;
+  --el-fill-color-blank: var(--app-card);
+  --el-table-header-bg-color: #262727;
+  --el-table-row-hover-bg-color: #262727;
+  --el-table-bg-color: var(--app-card);
+  --el-table-tr-bg-color: var(--app-card);
+  --el-table-header-text-color: var(--app-text-primary);
+  --el-table-text-color: var(--app-text-regular);
+  --el-table-border-color: var(--app-border-light);
+
+  /* 图表类型彩色图标底色：暗黑下用低透明度替代浅粉彩 */
+  --app-tint-green: rgba(103, 194, 58, 0.18);
+  --app-tint-orange: rgba(230, 162, 60, 0.18);
+  --app-tint-purple: rgba(138, 92, 246, 0.2);
+  --app-tint-red: rgba(245, 108, 108, 0.18);
+  --app-tint-gray: rgba(163, 166, 173, 0.16);
+
+  /* Element Plus 表格组件自带一套 .el-table 级变量，需在此层级再压一次 */
 }
+
+html.dark .el-table {
+  --el-table-header-bg-color: #262727;
+  --el-table-row-hover-bg-color: #262727;
+  --el-table-bg-color: var(--app-card);
+  --el-table-tr-bg-color: var(--app-card);
+  --el-table-border-color: var(--app-border);
+}
+
+html.dark .cell-name__icon--green { background: var(--app-tint-green); }
+html.dark .cell-name__icon--orange { background: var(--app-tint-orange); }
+html.dark .cell-name__icon--purple { background: var(--app-tint-purple); }
+html.dark .cell-name__icon--red { background: var(--app-tint-red); }
+html.dark .cell-name__icon--gray { background: var(--app-tint-gray); }
 
 html.dark body {
   background: var(--app-bg);
