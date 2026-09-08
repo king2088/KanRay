@@ -27,7 +27,6 @@ const emit = defineEmits(['update:settingsOpen'])
 .header-icon {
   cursor: pointer;
   color: var(--app-text-regular);
-  padding: 6px;
   border-radius: var(--app-radius);
   transition: color 0.15s, background 0.15s;
 }
