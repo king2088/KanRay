@@ -40,6 +40,10 @@
           <el-icon :size="15"><Filter /></el-icon>
           <span>添加筛选</span>
         </div>
+        <div class="clp-action" @click="$emit('add-container')">
+          <el-icon :size="15"><Grid /></el-icon>
+          <span>添加容器</span>
+        </div>
       </div>
     </div>
   </aside>
@@ -48,21 +52,26 @@
 <script setup>
 import { computed } from 'vue'
 import { PieChart, Grid, EditPen, Filter } from '@element-plus/icons-vue'
+import { flattenItems } from '@/utils/grid-layout'
 
 const props = defineProps({
   charts: { type: Array, required: true },
   items: { type: Array, required: true },
 })
 
-defineEmits(['add-chart', 'add-text', 'add-filter'])
+defineEmits(['add-chart', 'add-text', 'add-filter', 'add-container'])
+
+function usedChartIds() {
+  return new Set(flattenItems(props.items).filter((i) => i.type === 'chart').map((i) => i.chartId))
+}
 
 const used = computed(() => {
-  const ids = new Set(props.items.filter((i) => i.type === 'chart').map((i) => i.chartId))
+  const ids = usedChartIds()
   return props.charts.filter((c) => ids.has(c.id))
 })
 
 const available = computed(() => {
-  const ids = new Set(props.items.filter((i) => i.type === 'chart').map((i) => i.chartId))
+  const ids = usedChartIds()
   return props.charts.filter((c) => !ids.has(c.id))
 })
 

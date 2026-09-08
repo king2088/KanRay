@@ -32,6 +32,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi } from '@/api'
+import { normalizeLayout } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 
 const route = useRoute()
@@ -46,7 +47,7 @@ const refreshKey = ref(0)
 async function load() {
   const dash = await dashboardApi.get(dashId)
   dashName.value = dash.name
-  items.value = dash.layout
+  items.value = normalizeLayout(dash.layout || [])
   charts.value = await chartApi.list()
 }
 

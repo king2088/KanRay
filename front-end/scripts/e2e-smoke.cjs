@@ -154,15 +154,75 @@ async function pickSelect(page, selectLocator, optionIndex) {
   log('   DOM: item-body canvas =', await page.$$('.item-body canvas').then((els) => els.length));
   log('   PAGE ERRORS SO FAR =', errors.length ? errors.join(' | ') : '无');
 
-  // 9b. 移动排序：下移第一个组件再还原
-  const firstItemBefore = (await page.locator('.grid-item').nth(0).locator('.item-title').textContent()).trim();
+  // 9b. 空间移动：下移第一个组件（冲突自动让位）再还原
+  const rowBefore = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
   await page.locator('.grid-item').nth(0).locator('.item-actions .act-btn').nth(1).click(); // ArrowDown
   await sleep(400);
-  const firstItemAfter = (await page.locator('.grid-item').nth(0).locator('.item-title').textContent()).trim();
-  log('12b 排序前第一个 =', firstItemBefore, '| 排序后第一个 =', firstItemAfter);
-  if (firstItemAfter === firstItemBefore) throw new Error('移动排序未生效');
+  const rowAfter = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
+  log('12b 下移前 row =', rowBefore, '| 下移后 row =', rowAfter);
+  if (rowAfter <= rowBefore) throw new Error('空间移动未生效');
   await page.locator('.grid-item').nth(0).locator('.item-actions .act-btn').nth(0).click(); // ArrowUp 还原
   await sleep(400);
+  const rowRestored = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
+  if (rowRestored >= rowAfter) throw new Error('上移还原失败');
+
+  // 9c. 拖拽到底部空白区：卡片应跟手落位到更下方
+  const chartItem = page.locator('.grid-item').nth(0);
+  const headerBox = await chartItem.locator('.item-header').boundingBox();
+  const rootGridBox = await page.locator('.grid-body').first().boundingBox();
+  const startRow = await page.$eval('.grid-item', (el) => Number(getComputedStyle(el).gridRowStart));
+  await page.mouse.move(headerBox.x + headerBox.width / 2, headerBox.y + headerBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(rootGridBox.x + rootGridBox.width / 2, rootGridBox.y + rootGridBox.height - 30, { steps: 30 });
+  await page.mouse.up();
+  await sleep(600);
+  const endRow = await chartItem.evaluate((el) => Number(getComputedStyle(el).gridRowStart));
+  log('12c 拖到空白区：row', startRow, '→', endRow);
+  if (endRow <= startRow) throw new Error('拖到空白区未落位');
+
+  // 9d. 全板无重叠不变式
+  const items = await page.$$('.grid-item');
+  const boxes = [];
+  for (const it of items) boxes.push(await it.boundingBox());
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i]; const b = boxes[j];
+      const overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      if (overlap) throw new Error(`卡片重叠：no${i} 与 no${j}`);
+    }
+  }
+  log('12d 无重叠 =', boxes.length, '张卡片');
+
+  // 9e. 右缘/右下角缩放：选中卡片后拉伸右下角，宽度应增大
+  await chartItem.click();
+  await sleep(300);
+  const wBefore = (await chartItem.boundingBox()).width;
+  const seBox = await chartItem.locator('.resize-se').boundingBox();
+  await page.mouse.move(seBox.x + seBox.width / 2, seBox.y + seBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(seBox.x + seBox.width / 2 + 130, seBox.y + seBox.height / 2 + 130, { steps: 15 });
+  await page.mouse.up();
+  await sleep(500);
+  const wAfter = (await chartItem.boundingBox()).width;
+  log('12e 缩放前宽 =', wBefore, '| 缩放后宽 =', wAfter);
+  if (wAfter <= wBefore) throw new Error('边缘缩放未生效');
+
+  // 9f. 添加容器并拖入子卡片（父子嵌套）
+  await page.click('text=添加容器');
+  await sleep(800);
+  const containerBox = await page.locator('.grid-item--container').first().boundingBox();
+  log('12f 容器已添加，body =', containerBox ? '有' : '无');
+  if (!containerBox) throw new Error('添加容器未生效');
+  await page.locator('.grid-item--container').first().click();
+  await sleep(300);
+  await page
+    .locator('.chart-palette-item')
+    .first()
+    .dragTo(page.locator('.grid-item--selected .grid-body').first(), { force: true });
+  await sleep(1200);
+  const nested = await page.locator('.grid-item--container .grid-item').count();
+  log('12g 容器内子卡 =', nested);
+  if (nested === 0) throw new Error('拖入容器失败');
 
   // 10. 触发筛选联动（选择区域=华东）
   const filterSel = page.locator('.filter-component .el-select').first();

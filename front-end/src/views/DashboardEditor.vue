@@ -23,8 +23,6 @@
         :charts="charts"
         editable
         @update:items="items = $event"
-        @add-item="onAddItem"
-        @remove-item="onRemoveItem"
       />
       <ChartLibraryPanel
         :charts="charts"
@@ -32,6 +30,7 @@
         @add-chart="onAddChart"
         @add-text="addTextDialog = true"
         @add-filter="openFilterDialog"
+        @add-container="canvasRef.addContainer()"
       />
     </div>
 
@@ -80,6 +79,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, View, Check } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi, datasetApi } from '@/api'
+import { normalizeLayout } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 import ChartLibraryPanel from '@/components/dashboard/ChartLibraryPanel.vue'
 
@@ -103,7 +103,7 @@ const filterFields = ref([])
 async function load() {
   const dash = await dashboardApi.get(dashId)
   dashName.value = dash.name
-  items.value = dash.layout
+  items.value = normalizeLayout(dash.layout || [])
   charts.value = await chartApi.list()
   datasets.value = await datasetApi.list()
 }
@@ -114,16 +114,8 @@ async function onNameChange() {
   ElMessage.success('名称已更新')
 }
 
-function onAddItem(item) {
-  items.value.push(item)
-}
-
 function onAddChart(chart) {
   canvasRef.value.addChart(chart)
-}
-
-function onRemoveItem(id) {
-  items.value = items.value.filter((i) => i.id !== id)
 }
 
 async function confirmAddText() {
