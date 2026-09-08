@@ -1,29 +1,53 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2 class="page-title">看板中心</h2>
-      <div>
-        <el-input v-model="newName" placeholder="新看板名称" style="width: 200px; margin-right: 8px" maxlength="100" @keyup.enter="create" />
+      <div class="page-header__main">
+        <h2 class="page-title">看板中心</h2>
+        <div class="page-desc">将已建图表编排到看板中，通过筛选组件逐张联动</div>
+      </div>
+      <div class="page-header__actions">
+        <el-input
+          v-model="newName"
+          placeholder="新看板名称"
+          style="width: 200px"
+          maxlength="100"
+          clearable
+          @keyup.enter="create"
+        />
         <el-button type="primary" :disabled="!newName.trim()" @click="create">
           <el-icon style="margin-right: 4px"><Plus /></el-icon>新建看板
         </el-button>
       </div>
     </div>
 
-    <el-card shadow="never">
-      <el-table :data="dashboards" v-loading="loading" empty-text="还没有看板，输入名称创建一个">
-        <el-table-column prop="name" label="名称" min-width="200">
+    <div class="page-card">
+      <div class="page-card__header">
+        <div class="page-card__header-title">看板列表</div>
+        <div class="page-card__header-right">
+          <el-tag type="info" effect="plain">{{ dashboards.length }} 个看板</el-tag>
+        </div>
+      </div>
+
+      <el-table :data="dashboards" v-loading="loading" height="calc(100vh - 220px)" empty-text="还没有看板，输入名称创建一个">
+        <el-table-column prop="name" label="名称" min-width="220">
           <template #default="{ row }">
-            <el-link type="primary" @click="$router.push(`/dashboards/${row.id}`)">{{ row.name }}</el-link>
+            <div class="cell-name">
+              <div class="cell-name__icon"><el-icon><Odometer /></el-icon></div>
+              <el-link type="primary" @click="$router.push(`/dashboards/${row.id}`)">{{ row.name }}</el-link>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="组件数" width="120">
-          <template #default="{ row }">{{ row.layout.length }}</template>
+        <el-table-column label="组件数" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">{{ row.layout.length }}</el-tag>
+          </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="200">
-          <template #default="{ row }">{{ formatDate(row.updatedAt) }}</template>
+        <el-table-column prop="updatedAt" label="更新时间" width="190">
+          <template #default="{ row }">
+            <span class="cell-muted">{{ formatDate(row.updatedAt) }}</span>
+          </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="$router.push(`/dashboards/${row.id}`)">查看</el-button>
             <el-button link type="primary" size="small" @click="$router.push(`/dashboards/${row.id}/edit`)">编辑</el-button>
@@ -31,7 +55,7 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -82,3 +106,28 @@ async function remove(row) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.cell-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cell-name__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--app-radius);
+  background: var(--app-primary-light);
+  color: var(--app-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cell-muted {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+</style>

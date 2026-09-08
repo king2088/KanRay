@@ -3,8 +3,8 @@
     <div class="view-bar">
       <div class="vb-left">
         <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
-        <h3 style="margin: 0">{{ dashName }}</h3>
-        <el-tag size="small" type="warning">预览模式</el-tag>
+        <h3 class="vb-title">{{ dashName }}</h3>
+        <el-tag size="small" type="warning" effect="light">预览模式</el-tag>
       </div>
       <div class="vb-right">
         <el-button size="small" @click="refresh">刷新数据</el-button>
@@ -30,7 +30,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, FullScreen, Close } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi } from '@/api'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 
@@ -69,24 +69,32 @@ onMounted(load)
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: #f4f6f9;
+  background: #f0f2f5;
 }
 
 .view-bar {
-  height: 56px;
+  height: var(--app-header-height);
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
+  flex-shrink: 0;
 }
 
 .vb-left,
 .vb-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.vb-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-text-primary);
 }
 
 .view-body {

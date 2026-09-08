@@ -1,50 +1,93 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2 class="page-title">数据管理</h2>
-      <el-button type="primary" @click="$router.push('/datasets/new')">
-        <el-icon style="margin-right: 4px"><Upload /></el-icon>上传数据
-      </el-button>
+      <div class="page-header__main">
+        <h2 class="page-title">数据管理</h2>
+        <div class="page-desc">上传 Excel / CSV 数据集，作为图表与看板的数据基础</div>
+      </div>
+      <div class="page-header__actions">
+        <el-button type="primary" @click="$router.push('/datasets/new')">
+          <el-icon style="margin-right: 6px"><Upload /></el-icon>上传数据
+        </el-button>
+      </div>
     </div>
 
-    <el-card shadow="never">
-      <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+    <div class="stat-strip">
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><FolderOpened /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ datasets.length }}</div>
+          <div class="stat-item__label">数据集总数</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><DataAnalysis /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ totalRows.toLocaleString('zh-CN') }}</div>
+          <div class="stat-item__label">累计数据行</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><Files /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ totalCols }}</div>
+          <div class="stat-item__label">字段总数</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <div class="page-card__header">
+        <div class="page-card__header-title">数据集列表</div>
+        <div class="page-card__header-right">
           <el-input
             v-model="search"
             placeholder="搜索数据集名称"
             clearable
-            style="width: 260px"
+            style="width: 240px"
             :prefix-icon="Search"
           />
-          <span>共 {{ datasets.length }} 个数据集</span>
+          <el-tag type="info" effect="plain">{{ filtered.length }} / {{ datasets.length }}</el-tag>
         </div>
-      </template>
+      </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有数据集，点击右上角「上传数据」开始">
-        <el-table-column prop="name" label="名称" min-width="160">
+      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 320px)" empty-text="还没有数据集，点击右上角「上传数据」开始">
+        <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
-            <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
+            <div class="cell-name">
+              <div class="cell-name__icon"><el-icon><Files /></el-icon></div>
+              <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="row_count" label="行数" width="120" />
-        <el-table-column prop="column_count" label="列数" width="100" />
-        <el-table-column prop="original_file" label="来源文件" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="created_at" label="创建时间" width="180">
-          <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="row_count" label="行数" width="130" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openRename(row)">重命名</el-button>
+            <span class="cell-num">{{ (row.row_count || 0).toLocaleString('zh-CN') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="column_count" label="列数" width="90" align="center" />
+        <el-table-column prop="original_file" label="来源文件" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="cell-muted">{{ row.original_file || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="创建时间" width="180">
+          <template #default="{ row }">
+            <span class="cell-muted">{{ formatDate(row.created_at) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right" align="center">
+          <template #default="{ row }">
             <el-button link type="primary" size="small" @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
+            <el-button link type="primary" size="small" @click="openRename(row)">重命名</el-button>
             <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
-    <el-dialog v-model="renameVisible" title="重命名数据集" width="420px">
-      <el-input v-model="renameName" placeholder="请输入新的数据集名称" maxlength="100" />
+    <el-dialog v-model="renameVisible" title="重命名数据集" width="440px">
+      <el-input v-model="renameName" placeholder="请输入新的数据集名称" maxlength="100" @keyup.enter="confirmRename" />
       <template #footer>
         <el-button @click="renameVisible = false">取消</el-button>
         <el-button type="primary" :loading="renaming" @click="confirmRename">确定</el-button>
@@ -72,6 +115,9 @@ const filtered = computed(() => {
   if (!kw) return datasets.value
   return datasets.value.filter((d) => d.name.toLowerCase().includes(kw))
 })
+
+const totalRows = computed(() => datasets.value.reduce((s, d) => s + (d.row_count || 0), 0))
+const totalCols = computed(() => datasets.value.reduce((s, d) => s + (d.column_count || 0), 0))
 
 function formatDate(s) {
   return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
@@ -118,3 +164,32 @@ async function remove(row) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.cell-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cell-name__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--app-primary-light);
+  color: var(--app-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-num {
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.cell-muted {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+</style>

@@ -396,19 +396,26 @@ onMounted(async () => {
 }
 
 .builder-toolbar {
-  height: 56px;
+  height: var(--app-header-height);
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
+  flex-shrink: 0;
 }
 
 .tb-left {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.tb-left :deep(.el-input__wrapper) {
+  box-shadow: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
 }
 
 .builder-body {
@@ -418,11 +425,11 @@ onMounted(async () => {
 }
 
 .builder-config {
-  width: 380px;
+  width: 360px;
   overflow-y: auto;
   background: #fff;
-  border-right: 1px solid #e4e7ed;
-  padding: 8px 16px 16px;
+  border-right: 1px solid var(--app-border-light);
+  padding: 4px 16px 16px;
   flex-shrink: 0;
 }
 
@@ -432,19 +439,20 @@ onMounted(async () => {
   flex-direction: column;
   background: #fff;
   margin: 16px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
   overflow: hidden;
 }
 
 .preview-toolbar {
   height: 44px;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 16px;
   font-weight: 600;
+  font-size: 14px;
 }
 
 .preview-area {
@@ -466,65 +474,67 @@ onMounted(async () => {
 }
 
 .chart-type-item {
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  padding: 10px 6px;
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
+  padding: 12px 6px;
   text-align: center;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 12px;
-  color: #606266;
+  color: var(--app-text-regular);
 }
 
 .chart-type-item:hover {
-  border-color: #409eff;
-  color: #409eff;
+  border-color: var(--app-primary);
+  color: var(--app-primary);
 }
 
 .chart-type-item.active {
-  border-color: #409eff;
-  background: #ecf5ff;
-  color: #409eff;
+  border-color: var(--app-primary);
+  background: var(--app-primary-light);
+  color: var(--app-primary);
 }
 
 .field-palette {
-  background: #f5f7fa;
-  border-radius: 6px;
+  background: var(--app-hover);
+  border-radius: var(--app-radius);
   padding: 10px;
   margin-bottom: 12px;
 }
 
 .palette-title {
   font-size: 12px;
-  color: #909399;
+  color: var(--app-text-secondary);
   margin-bottom: 8px;
 }
 
 .field-chip {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  padding: 5px 8px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  padding: 6px 10px;
   margin-bottom: 6px;
   cursor: grab;
   font-size: 13px;
   user-select: none;
+  color: var(--app-text-primary);
 }
 
 .field-chip:hover {
-  border-color: #409eff;
+  border-color: var(--app-primary);
+  color: var(--app-primary);
 }
 
 .drop-zone {
-  border: 1px dashed #dcdfe6;
-  border-radius: 6px;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
   padding: 10px;
   margin-bottom: 12px;
   min-height: 70px;
@@ -533,7 +543,7 @@ onMounted(async () => {
 .drop-zone-title {
   font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: var(--app-text-primary);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -541,13 +551,13 @@ onMounted(async () => {
 }
 
 .add-icon {
-  color: #409eff;
+  color: var(--app-primary);
   cursor: pointer;
 }
 
 .drop-hint {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--app-text-secondary);
   text-align: center;
   padding: 8px 0;
 }
@@ -560,7 +570,7 @@ onMounted(async () => {
 }
 
 .remove-icon {
-  color: #f56c6c;
+  color: var(--app-danger);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -571,13 +581,13 @@ onMounted(async () => {
 }
 
 .stat-value {
-  font-size: 48px;
-  font-weight: 700;
-  color: #409eff;
+  font-size: 44px;
+  font-weight: 600;
+  color: var(--app-primary);
 }
 
 .stat-label {
   margin-top: 8px;
-  color: #606266;
+  color: var(--app-text-regular);
 }
 </style>

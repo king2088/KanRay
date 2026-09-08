@@ -303,8 +303,8 @@ watch(() => props.charts.length, loadCharts)
 
 .canvas-toolbar {
   background: #fff;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
   padding: 10px 14px;
   margin-bottom: 12px;
   display: flex;
@@ -322,23 +322,23 @@ watch(() => props.charts.length, loadCharts)
 
 .tool-label {
   font-size: 13px;
-  color: #606266;
+  color: var(--app-text-regular);
   font-weight: 600;
 }
 
 .tool-hint {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--app-text-secondary);
 }
 
 .chart-palette-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: #ecf5ff;
-  border: 1px solid #b3d8ff;
-  color: #409eff;
-  border-radius: 4px;
+  gap: 6px;
+  background: var(--app-primary-light);
+  border: 1px solid #d9ecff;
+  color: var(--app-primary);
+  border-radius: var(--app-radius);
   padding: 4px 10px;
   font-size: 12px;
   cursor: grab;
@@ -346,7 +346,7 @@ watch(() => props.charts.length, loadCharts)
 }
 
 .chart-palette-item:hover {
-  background: #d9ecff;
+  border-color: var(--app-primary);
 }
 
 .grid-body {
@@ -362,8 +362,8 @@ watch(() => props.charts.length, loadCharts)
 
 .grid-item {
   background: #fff;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
   overflow: hidden;
   min-height: 0;
   min-width: 0;
@@ -374,15 +374,13 @@ watch(() => props.charts.length, loadCharts)
 }
 
 .grid-item--selected {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  border-color: var(--app-primary);
+  box-shadow: 0 0 0 1px var(--app-primary);
 }
 
 .grid-item--dragging {
-  opacity: 0.85;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-  transform: scale(1.02);
+  opacity: 0.8;
+  border-color: var(--app-primary);
 }
 
 .item-header {
@@ -391,24 +389,24 @@ watch(() => props.charts.length, loadCharts)
   gap: 6px;
   height: 34px;
   padding: 0 10px;
-  background: #f8f9fc;
-  border-bottom: 1px solid #eee;
+  background: #fff;
+  border-bottom: 1px solid var(--app-border-light);
   font-size: 13px;
 }
 
 .item-header.editable:hover {
-  background: #eef3ff;
+  background: var(--app-hover);
 }
 
 .drag-handle {
-  color: #909399;
+  color: var(--app-text-secondary);
   cursor: grab;
   display: inline-flex;
 }
 
 .item-title {
   font-weight: 600;
-  color: #303133;
+  color: var(--app-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -419,12 +417,12 @@ watch(() => props.charts.length, loadCharts)
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #909399;
+  color: var(--app-text-secondary);
 }
 
 .act-btn {
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .act-btn:hover {
@@ -432,7 +430,7 @@ watch(() => props.charts.length, loadCharts)
 }
 
 .act-btn--danger:hover {
-  color: #f56c6c;
+  color: var(--app-danger);
 }
 
 .item-body {
@@ -444,7 +442,7 @@ watch(() => props.charts.length, loadCharts)
   padding: 12px;
   font-size: 14px;
   line-height: 1.6;
-  color: #1f2d3d;
+  color: var(--app-text-primary);
 }
 
 .grid-empty {

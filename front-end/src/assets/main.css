@@ -1,4 +1,29 @@
-/* 全局基础样式：干净、克制的看板工作台风格 */
+/* ============================================================
+   看板低代码平台 · 全局基础样式（扁平化后台风格）
+   参照 vue-element-plus-admin：白卡片 + 细边框 + 单一主色
+   ============================================================ */
+
+:root {
+  --app-primary: #409eff;
+  --app-primary-light: #ecf5ff;
+  --app-primary-darker: #337ecc;
+
+  --app-bg: #f0f2f5;
+  --app-card: #ffffff;
+
+  --app-text-primary: #303133;
+  --app-text-regular: #606266;
+  --app-text-secondary: #909399;
+
+  --app-border: #dcdfe6;
+  --app-border-light: #ebeef5;
+  --app-hover: #f5f7fa;
+
+  --app-radius: 4px;
+  --app-header-height: 52px;
+  --app-sidebar-width: 220px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -12,32 +37,209 @@ body,
 }
 
 body {
-  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
-  background: #f4f6f9;
-  color: #1f2d3d;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  background: var(--app-bg);
+  color: var(--app-text-primary);
   font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
+/* 细滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #909399;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================
+   页面骨架
+   ============================================================ */
+
 .page-container {
-  padding: 20px;
+  padding: 16px;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
+}
+
+.page-header__main {
+  min-width: 0;
 }
 
 .page-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2d3d;
+  color: var(--app-text-primary);
   margin: 0;
+  line-height: 1.4;
 }
 
+.page-desc {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  margin-top: 2px;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* 白卡片容器 */
+.page-card {
+  background: var(--app-card);
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
+  overflow: hidden;
+}
+
+.page-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--app-border-light);
+}
+
+.page-card__header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.page-card__header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-card__body {
+  padding: 16px;
+}
+
+/* 横向统计条（白卡片内分割） */
+.stat-strip {
+  display: flex;
+  align-items: stretch;
+  background: var(--app-card);
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.stat-item {
+  flex: 1;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-item + .stat-item {
+  border-left: 1px solid var(--app-border-light);
+}
+
+.stat-item__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--app-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--app-primary);
+  background: var(--app-primary-light);
+  flex-shrink: 0;
+}
+
+.stat-item__value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  line-height: 1.2;
+}
+
+.stat-item__label {
+  font-size: 12px;
+  color: var(--app-text-secondary);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   Element Plus 细节（扁平化）
+   ============================================================ */
+
 .el-card {
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  border-radius: var(--app-radius) !important;
+}
+
+.el-table {
+  --el-table-header-bg-color: #fafafa;
+  --el-table-header-text-color: var(--app-text-regular);
+  --el-table-border-color: var(--app-border-light);
+  --el-table-row-hover-bg-color: #f5f7fa;
+}
+.el-table th.el-table__cell {
+  font-weight: 600;
+}
+
+.el-button {
+  font-weight: 400;
+}
+
+.el-dialog {
+  border-radius: var(--app-radius);
+}
+
+.el-message {
+  border-radius: var(--app-radius);
+}
+
+.el-input__wrapper,
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+}
+.el-input.is-focus .el-input__wrapper,
+.el-select .el-input.is-focus .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--app-primary) inset !important;
+}
+
+.el-tabs__nav-wrap::after {
+  height: 1px !important;
+  background-color: var(--app-border-light) !important;
+}
+
+.el-collapse {
+  border: none !important;
+}
+.el-collapse-item__wrap {
+  border-bottom: none !important;
+}
+
+.el-pagination.is-background .el-pager li {
+  border-radius: var(--app-radius);
+}
+
+.el-empty__description p {
+  font-size: 13px;
+  color: var(--app-text-secondary);
 }

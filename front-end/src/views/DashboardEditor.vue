@@ -4,7 +4,7 @@
       <div class="et-left">
         <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
         <el-input v-model="dashName" placeholder="看板名称" style="width: 220px" maxlength="100" @change="onNameChange" />
-        <el-tag v-if="dashId" type="info">编辑中</el-tag>
+        <el-tag v-if="dashId" type="warning" effect="light">编辑中</el-tag>
       </div>
       <div class="et-right">
         <el-button @click="addTextDialog = true">
@@ -171,20 +171,21 @@ onMounted(load)
 }
 
 .editor-toolbar {
-  height: 56px;
+  height: var(--app-header-height);
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
+  flex-shrink: 0;
 }
 
 .et-left,
 .et-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .editor-body {
