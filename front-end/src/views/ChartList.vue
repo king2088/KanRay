@@ -117,7 +117,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
 import { chartApi, dashboardApi } from '@/api'
-import { CHART_TYPES } from '@/utils/chart-utils'
+import { CHART_TYPES, getChartType } from '@/config/chart-types'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
 
 const charts = ref([])
@@ -140,10 +140,20 @@ const typeCount = computed(() => new Set(charts.value.map((c) => c.chartType)).s
 const usedIds = new Set()
 const usedCount = computed(() => charts.value.filter((c) => usedIds.has(c.id)).length)
 
-const typeLabel = (v) => CHART_TYPES.find((t) => t.value === v)?.label || v
-const typeIcon = (v) => CHART_TYPES.find((t) => t.value === v)?.icon || 'PieChart'
-const typeTag = (v) => ({ bar: '', line: 'success', pie: 'warning', doughnut: 'warning', horizontalBar: '', table: 'info', stat: 'danger' })[v] || 'info'
-const typeTone = (v) => ({ bar: 'blue', line: 'green', pie: 'orange', doughnut: 'orange', horizontalBar: 'purple', table: 'gray', stat: 'red' })[v] || 'blue'
+const typeLabel = (v) => getChartType(v)?.label || v
+const typeIcon = (v) => getChartType(v)?.icon || 'PieChart'
+const typeTag = (v) => {
+  const t = getChartType(v)
+  if (!t) return 'info'
+  const cat = t.category
+  return { bar: '', line: 'success', pie: 'warning', horizontalBar: '', table: 'info', stat: 'danger', indicator: 'danger', scatter: 'success', map: 'info', other: 'info' }[cat] || 'info'
+}
+const typeTone = (v) => {
+  const t = getChartType(v)
+  if (!t) return 'blue'
+  const cat = t.category
+  return { bar: 'blue', line: 'green', pie: 'orange', horizontalBar: 'purple', table: 'gray', stat: 'red', indicator: 'red', scatter: 'green', map: 'blue', other: 'blue' }[cat] || 'blue'
+}
 
 function formatDate(s) {
   return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
