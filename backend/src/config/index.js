@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(__dirname, '..', '..'); // backend/
 const dataDir = process.env.DATA_DIR || path.join(root, 'data');
 const uploadDir = process.env.UPLOAD_DIR || path.join(root, 'uploads');
 
