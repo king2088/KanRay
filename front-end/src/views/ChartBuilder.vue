@@ -15,129 +15,50 @@
     </div>
 
     <div class="builder-body">
-      <!-- 左侧配置 -->
-      <div class="builder-config">
-        <!-- 第一步：选择数据 -->
-        <el-collapse v-model="activePanels" class="config-collapse">
-          <el-collapse-item title="数据源" name="dataset">
-            <el-select v-model="datasetId" placeholder="选择一个数据集" style="width: 100%" @change="onDatasetChange">
-              <el-option v-for="d in datasets" :key="d.id" :label="`${d.name} (${d.row_count} 行)`" :value="d.id" />
-            </el-select>
-            <div v-if="!datasets.length" style="margin-top: 8px; color: #909399; font-size: 12px">
-              还没有数据集，<el-link type="primary" @click="$router.push('/datasets/new')">去上传数据</el-link>
-            </div>
-          </el-collapse-item>
-
-          <el-collapse-item title="图表类型" name="chartType">
-            <div class="chart-type-grid">
-              <div
-                v-for="t in CHART_TYPES"
-                :key="t.value"
-                class="chart-type-item"
-                :class="{ active: chartType === t.value }"
-                @click="chartType = t.value"
-              >
-                <el-icon :size="22"><component :is="t.icon" /></el-icon>
-                <span>{{ t.label }}</span>
-              </div>
-            </div>
-          </el-collapse-item>
-
-          <!-- 字段配置 -->
-          <el-collapse-item :title="`字段配置`" name="fields">
-            <div class="field-palette">
-              <div class="palette-title">可用字段（拖拽或点击添加）</div>
-              <div
-                v-for="f in fields"
-                :key="f.name"
-                class="field-chip"
-                draggable="true"
-                @dragstart="onFieldDragStart($event, f)"
-              >
-                <el-icon :size="14" style="margin-right: 6px"><DataLine /></el-icon>
-                <span>{{ f.label || f.name }}</span>
-                <el-tag size="small" type="info" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
-              </div>
-            </div>
-
-            <!-- 维度 -->
-            <div
-              class="drop-zone"
-              @dragover.prevent
-              @drop="onDrop($event, 'dimensions')"
-            >
-              <div class="drop-zone-title">
-                维度（分类 / X 轴）
-                <el-icon class="add-icon" @click="addBlank('dimensions')"><Plus /></el-icon>
-              </div>
-              <div v-if="!dims.length" class="drop-hint">拖入字段作为维度</div>
-              <div v-for="(d, di) in dims" :key="di" class="slot-row">
-                <el-select v-model="d.field" placeholder="选择字段" size="small" style="flex: 1">
-                  <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-                </el-select>
-                <el-select v-if="isDateField(d.field)" v-model="d.granularity" size="small" style="width: 90px" placeholder="粒度">
-                  <el-option label="日" value="day" />
-                  <el-option label="月" value="month" />
-                  <el-option label="年" value="year" />
-                </el-select>
-                <el-icon class="remove-icon" @click="removeItem(dims, di)"><Delete /></el-icon>
-              </div>
-            </div>
-
-            <!-- 指标 -->
-            <div
-              class="drop-zone"
-              @dragover.prevent
-              @drop="onDrop($event, 'metrics')"
-            >
-              <div class="drop-zone-title">
-                指标（数值 / Y 轴）
-                <el-icon class="add-icon" @click="addBlank('metrics')"><Plus /></el-icon>
-              </div>
-              <div v-if="!metrics.length" class="drop-hint">拖入字段作为指标</div>
-              <div v-for="(m, mi) in metrics" :key="mi" class="slot-row">
-                <el-select v-model="m.field" placeholder="选择字段" size="small" style="flex: 1.4">
-                  <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-                </el-select>
-                <el-select v-model="m.agg" size="small" style="width: 110px">
-                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
-                </el-select>
-                <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>
-              </div>
-            </div>
-
-            <!-- 高级选项 -->
-            <el-collapse>
-              <el-collapse-item title="显示选项" name="display">
-                <el-form label-width="90px" size="small">
-                  <el-form-item label="图表标题">
-                    <el-input v-model="showOptions.title" placeholder="留空则不显示" />
-                  </el-form-item>
-                  <el-form-item label="显示数量">
-                    <el-input-number v-model="showOptions.groupLimit" :min="1" :max="500" />
-                  </el-form-item>
-                  <el-form-item label="排序">
-                    <el-select v-model="sortConfig.field" style="width: 45%">
-                      <el-option label="不排序" value="" />
-                      <el-option label="按指标" value="metric" />
-                      <el-option label="按维度" value="dim" />
-                    </el-select>
-                    <el-select v-model="sortConfig.order" style="width: 45%; margin-left: 8px">
-                      <el-option label="升序" value="asc" />
-                      <el-option label="降序" value="desc" />
-                    </el-select>
-                  </el-form-item>
-                </el-form>
-              </el-collapse-item>
-            </el-collapse>
-          </el-collapse-item>
-        </el-collapse>
+      <!-- 左侧：数据源 + 字段-->
+      <div class="builder-left">
+        <DataSourcePanel
+          :datasets="datasets"
+          :datasetId="datasetId"
+          @update:datasetId="datasetId = $event"
+          @datasetChange="onDatasetChange"
+        />
+        <el-divider style="margin: 8px 0" />
+        <FieldConfigPanel
+          :fields="fields"
+          :dims="dims"
+          :metrics="metrics"
+          :chart-type="chartType"
+        />
+        <!-- 显示选项（排序等） -->
+        <div class="left-extra">
+          <div class="panel-title">显示选项</div>
+          <el-form label-width="70px" size="small">
+            <el-form-item label="显示数量">
+              <el-input-number v-model="showOptions.groupLimit" :min="1" :max="500" style="width: 120px" />
+            </el-form-item>
+            <el-form-item label="排序方式">
+              <el-select v-model="sortConfig.field" style="width: 45%">
+                <el-option label="不排序" value="" />
+                <el-option label="按指标" value="metric" />
+                <el-option label="按维度" value="dim" />
+              </el-select>
+              <el-select v-model="sortConfig.order" style="width: 45%; margin-left: 8px">
+                <el-option label="升序" value="asc" />
+                <el-option label="降序" value="desc" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
       </div>
 
-      <!-- 右侧预览 -->
+      <!-- 中间：图表预览 -->
       <div class="builder-preview">
         <div class="preview-toolbar">
-          <span>实时预览</span>
+          <span>
+            <el-icon style="margin-right: 6px; vertical-align: middle"><TrendCharts />
+            </el-icon>{{ currentChartLabel }} - 实时预览
+          </span>
           <el-button size="small" :loading="previewLoading" @click="loadPreview">刷新</el-button>
         </div>
         <div class="preview-area">
@@ -152,11 +73,68 @@
               </el-table-column>
             </el-table>
           </template>
+          <template v-else-if="isProgressType">
+            <!-- 进度组件 -->
+            <div class="progress-container">
+              <template v-if="chartType === 'progressBar'">
+                <div class="prog-stat-value">{{ fmtNumber(progressValue) }}%</div>
+                <el-progress
+                  :percentage="progressValue"
+                  :stroke-width="displayConfig.progressBarMax ? 16 : 20"
+                  :show-text="false"
+                  :color="displayConfig.progressColor || undefined"
+                  style="width: 70%"
+                />
+              </template>
+              <template v-else-if="chartType === 'circularProgress'">
+                <el-progress
+                  type="dashboard"
+                  :percentage="progressValue"
+                  :stroke-width="displayConfig.lineWidth || 10"
+                  :color="displayConfig.progressColor || undefined"
+                  width="180"
+                />
+              </template>
+              <template v-else-if="chartType === 'multiRingProgress'">
+                <div class="multi-ring">
+                  <el-progress
+                    v-for="(m, mi) in metrics"
+                    :key="mi"
+                    type="circle"
+                    :percentage="calcMultiRing(m)?.pct || 0"
+                    :stroke-width="displayConfig.lineWidth || 8"
+                    :color="displayConfig.progressColor || undefined"
+                    width="100"
+                  >
+                    <template #default>
+                      <div style="text-align: center">
+                        <div style="font-size: 12px">{{ metricLabel(m) }}</div>
+                        <div style="font-size: 14px; font-weight: 600">{{ fmtNumber(calcMultiRing(m)?.val) }}</div>
+                      </div>
+                    </template>
+                  </el-progress>
+                </div>
+              </template>
+              <template v-else-if="chartType === 'fluidProgress'">
+                <div class="fluid-progress">
+                  <div class="fluid-value">{{ progressValue }}%</div>
+                  <div class="fluid-wave" :style="{ background: `linear-gradient(180deg, ${displayConfig.progressColor || '#409EFF'} 0%, ${displayConfig.progressColor || '#409EFF'} 100%)`, transform: `translateY(${100 - progressValue}%)` }"></div>
+                </div>
+              </template>
+            </div>
+          </template>
           <template v-else-if="chartType === 'stat'">
             <el-empty v-if="!statData" description="暂无指标" />
             <div v-else class="stat-card">
+              <div class="stat-label" style="font-size:14px;color:var(--app-text-secondary)">{{ statData.label }}</div>
               <div class="stat-value">{{ fmtNumber(statData.value) }}</div>
-              <div class="stat-label">{{ statData.label }}</div>
+            </div>
+          </template>
+          <template v-else-if="chartType === 'statTrend'">
+            <div v-if="!statData" class="stat-card"><el-empty description="暂无指标" /></div>
+            <div v-else class="stat-card stat-trend-card">
+              <div class="stat-label" style="font-size:14px;color:var(--app-text-secondary)">{{ statData.label }}</div>
+              <div class="stat-value">{{ fmtNumber(statData.value) }}</div>
             </div>
           </template>
           <template v-else>
@@ -165,9 +143,22 @@
               v-else
               :chart-type="chartType"
               :data="previewData"
-              :options="showOptions"
+              :options="finalOptions"
             />
           </template>
+        </div>
+      </div>
+
+      <!-- 右侧：图表类型 + 配置 -->
+      <div class="builder-right">
+        <div class="right-section right-types">
+          <div class="right-section-title">图表类型</div>
+          <ChartTypePanel :chart-type="chartType" @update:chartType="chartType = $event" />
+        </div>
+        <el-divider style="margin: 8px 0" />
+        <div class="right-section right-config">
+          <div class="right-section-title">显示配置</div>
+          <ChartConfigPanel :chart-type="chartType" :config="displayConfig" @update:config="displayConfig = $event" />
         </div>
       </div>
     </div>
@@ -175,13 +166,28 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Check, Plus, Delete, DataLine } from '@element-plus/icons-vue'
+import { ArrowLeft, Check, Delete, DataLine, TrendCharts, Plus } from '@element-plus/icons-vue'
 import { datasetApi, chartApi } from '@/api'
-import { CHART_TYPES, AGG_OPTIONS } from '@/utils/chart-utils'
+import { CHART_TYPES, getChartType } from '@/config/chart-types'
+import { getPalette, DEFAULT_PALETTE_INDEX } from '@/config/color-palettes'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
+import DataSourcePanel from '@/components/charts/DataSourcePanel.vue'
+import FieldConfigPanel from '@/components/charts/FieldConfigPanel.vue'
+import ChartTypePanel from '@/components/charts/ChartTypePanel.vue'
+import ChartConfigPanel from '@/components/charts/ChartConfigPanel.vue'
+
+// Use AGG_OPTIONS from chart-utils for aggregation options (chart-configs doesn't export it)
+const AGGS = [
+  { value: 'sum', label: '求和' },
+  { value: 'avg', label: '平均值' },
+  { value: 'count', label: '计数' },
+  { value: 'count_distinct', label: '去重计数' },
+  { value: 'max', label: '最大值' },
+  { value: 'min', label: '最小值' },
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -192,17 +198,27 @@ const datasetId = ref(null)
 const datasetName = ref('')
 const chartName = ref('')
 const chartType = ref('bar')
-const activePanels = ref(['dataset', 'chartType', 'fields'])
 const dims = ref([])
 const metrics = ref([])
-const showOptions = reactive({ title: '', groupLimit: 20 })
+const showOptions = reactive({ groupLimit: 20 })
 const sortConfig = reactive({ field: '', order: 'desc' })
+const displayConfig = ref({})
 const previewData = ref(null)
 const previewRows = ref([])
 const statData = ref(null)
+const progressValue = ref(0)
 const previewLoading = ref(false)
 const saving = ref(false)
 let editingId = null
+
+const currentChartLabel = computed(() => getChartType(chartType.value)?.label || chartType.value)
+
+const finalOptions = computed(() => ({
+  ...displayConfig.value,
+  _palette: getPalette(displayConfig.value.colorPalette),
+}))
+
+const isProgressType = computed(() => ['progressBar', 'circularProgress', 'multiRingProgress', 'fluidProgress'].includes(chartType.value))
 
 const typeLabel = (t) => ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t)
 
@@ -215,9 +231,10 @@ function dimLabel(d) {
   const f = fields.value.find((x) => x.name === d.field)
   return f ? f.label || f.name : d.field
 }
+
 function metricLabel(m) {
   const f = fields.value.find((x) => x.name === m.field)
-  const agg = AGG_OPTIONS.find((x) => x.value === m.agg)?.label || m.agg
+  const agg = AGGS.find((x) => x.value === m.agg)?.label || m.agg
   return `${f ? f.label || f.name : m.field} (${agg})`
 }
 
@@ -225,6 +242,12 @@ function fmtNumber(n) {
   if (n === null || n === undefined) return '-'
   if (typeof n !== 'number') return String(n)
   return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+}
+
+function calcMultiRing(m) {
+  const val = previewData.value?.rows?.[0]?.[`metric:${m.field}`]?.value
+  const max = displayConfig.value.max || 100
+  return { val, pct: max > 0 ? Math.min(100, Math.round((val || 0) / max * 100)) : 0 }
 }
 
 async function loadDatasets() {
@@ -242,7 +265,6 @@ async function onDatasetChange(id) {
   const ds = await datasetApi.get(id)
   datasetName.value = ds.name
   fields.value = (ds.fields || []).map((f) => ({ name: f.name, label: f.label, type: f.type }))
-  // 清空字段配置
   dims.value = []
   metrics.value = []
 }
@@ -296,8 +318,12 @@ async function loadPreview() {
     const res = await datasetApi.query(datasetId.value, buildQuery())
     previewData.value = res
     previewRows.value = res.rows
-    if (chartType.value === 'stat') {
+    if (chartType.value === 'stat' || chartType.value === 'statTrend') {
       statData.value = { value: res.rows[0]?.[`metric:${metrics.value[0].field}`]?.value, label: metricLabel(metrics.value[0]) }
+    } else if (isProgressType.value) {
+      const val = res.rows[0]?.[`metric:${metrics.value[0].field}`]?.value || 0
+      const max = displayConfig.value.max || 100
+      progressValue.value = max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0
     }
   } finally {
     previewLoading.value = false
@@ -320,7 +346,7 @@ async function save() {
         groupLimit: showOptions.groupLimit || undefined,
         sortBy: sortConfig.field === 'metric' ? 0 : sortConfig.field === 'dim' ? 'dim' : undefined,
         sortOrder: sortConfig.order,
-        options: { ...showOptions },
+        options: { ...displayConfig.value },
       },
     }
     if (editingId) {
@@ -341,7 +367,6 @@ function back() {
   else router.push(route.query.dataset ? '/datasets' : '/charts')
 }
 
-// 编辑模式加载
 async function loadEditing() {
   const id = Number(route.params.id)
   if (!id) return
@@ -357,15 +382,13 @@ async function loadEditing() {
   dims.value = (cfg.dimensions || []).map((d) => ({ field: d.field, granularity: d.granularity }))
   metrics.value = (cfg.metrics || []).map((m) => ({ field: m.field, agg: m.agg }))
   if (cfg.options) {
-    showOptions.title = cfg.options.title || ''
-    showOptions.groupLimit = cfg.options.groupLimit || 20
+    displayConfig.value = { ...cfg.options }
   }
   if (cfg.sortBy === 0) sortConfig.field = 'metric'
   else if (cfg.sortBy === 'dim') sortConfig.field = 'dim'
   sortConfig.order = cfg.sortOrder || 'desc'
 }
 
-// 配置变化自动预览（防抖）
 const debounce = (fn, ms) => {
   let t = null
   return (...args) => {
@@ -375,7 +398,7 @@ const debounce = (fn, ms) => {
 }
 const debouncedPreview = debounce(loadPreview, 350)
 
-watch([dims, metrics, chartType, showOptions, sortConfig], debouncedPreview, { deep: true })
+watch([dims, metrics, chartType, showOptions, sortConfig, displayConfig], debouncedPreview, { deep: true })
 
 onMounted(async () => {
   await loadDatasets()
@@ -418,19 +441,37 @@ onMounted(async () => {
   border-radius: 0;
 }
 
+.tb-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .builder-body {
   flex: 1;
   display: flex;
   min-height: 0;
 }
 
-.builder-config {
-  width: 360px;
+.builder-left {
+  width: 300px;
   overflow-y: auto;
   background: var(--app-card);
   border-right: 1px solid var(--app-border-light);
   padding: 4px 16px 16px;
   flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  margin-bottom: 8px;
+  margin-top: 8px;
+}
+
+.left-extra {
+  margin-top: 8px;
 }
 
 .builder-preview {
@@ -442,6 +483,7 @@ onMounted(async () => {
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   overflow: hidden;
+  min-width: 200px;
 }
 
 .preview-toolbar {
@@ -460,6 +502,7 @@ onMounted(async () => {
   padding: 16px;
   position: relative;
   min-height: 0;
+  overflow: auto;
 }
 
 .preview-area > :deep(.ec-chart) {
@@ -467,24 +510,127 @@ onMounted(async () => {
   inset: 16px;
 }
 
+.stat-card {
+  text-align: center;
+  padding: 60px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.stat-trend-card {
+  padding: 30px 0;
+}
+
+.stat-value {
+  font-size: 44px;
+  font-weight: 600;
+  color: var(--app-primary);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--app-text-regular);
+}
+
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  padding: 20px 0;
+}
+
+.prog-stat-value {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--app-primary);
+}
+
+.multi-ring {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.fluid-progress {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 3px solid var(--app-border-light);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.fluid-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  font-weight: 600;
+  z-index: 2;
+  color: var(--app-text-primary);
+}
+
+.fluid-wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  opacity: 0.85;
+  transition: transform 0.5s ease;
+}
+
+.builder-right {
+  width: 340px;
+  overflow-y: auto;
+  background: var(--app-card);
+  border-left: 1px solid var(--app-border-light);
+  padding: 4px 16px 16px;
+  flex-shrink: 0;
+}
+
+.right-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  margin-bottom: 8px;
+  margin-top: 8px;
+}
+
+.right-section {
+  margin-bottom: 4px;
+}
+
 .chart-type-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .chart-type-item {
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
-  padding: 12px 6px;
+  padding: 8px 4px;
   text-align: center;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   color: var(--app-text-regular);
 }
 
@@ -497,97 +643,5 @@ onMounted(async () => {
   border-color: var(--app-primary);
   background: var(--app-primary-light);
   color: var(--app-primary);
-}
-
-.field-palette {
-  background: var(--app-hover);
-  border-radius: var(--app-radius);
-  padding: 10px;
-  margin-bottom: 12px;
-}
-
-.palette-title {
-  font-size: 12px;
-  color: var(--app-text-secondary);
-  margin-bottom: 8px;
-}
-
-.field-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--app-card);
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
-  padding: 6px 10px;
-  margin-bottom: 6px;
-  cursor: grab;
-  font-size: 13px;
-  user-select: none;
-  color: var(--app-text-primary);
-}
-
-.field-chip:hover {
-  border-color: var(--app-primary);
-  color: var(--app-primary);
-}
-
-.drop-zone {
-  border: 1px dashed var(--app-border);
-  border-radius: var(--app-radius);
-  padding: 10px;
-  margin-bottom: 12px;
-  min-height: 70px;
-}
-
-.drop-zone-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--app-text-primary);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.add-icon {
-  color: var(--app-primary);
-  cursor: pointer;
-}
-
-.drop-hint {
-  font-size: 12px;
-  color: var(--app-text-secondary);
-  text-align: center;
-  padding: 8px 0;
-}
-
-.slot-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.remove-icon {
-  color: var(--app-danger);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 60px 0;
-}
-
-.stat-value {
-  font-size: 44px;
-  font-weight: 600;
-  color: var(--app-primary);
-}
-
-.stat-label {
-  margin-top: 8px;
-  color: var(--app-text-regular);
 }
 </style>
