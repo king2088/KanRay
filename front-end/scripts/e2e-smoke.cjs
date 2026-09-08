@@ -34,6 +34,20 @@ async function pickSelect(page, selectLocator, optionIndex) {
   await page.goto(BASE + '/datasets', { waitUntil: 'networkidle' });
   log('1 title =', await page.title());
   await page.waitForSelector('text=上传数据', { timeout: 10000 });
+  await page.waitForSelector('.el-pagination', { timeout: 10000 });
+  log('1a 列表分页渲染 =', await page.$$('.el-pagination').then((els) => els.length));
+
+  // 1b. 系统设置抽屉：暗黑模式切换
+  await page.click('.header-icon');
+  await page.waitForSelector('.el-drawer', { timeout: 10000 });
+  await page.click('.el-drawer .el-switch >> nth=0');
+  await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
+  log('1c 暗黑模式已开启');
+  await page.click('.el-drawer .el-switch >> nth=0');
+  await page.waitForFunction(() => !document.documentElement.classList.contains('dark'));
+  log('1d 暗黑模式已恢复');
+  await page.click('.el-drawer__close-btn');
+  await page.waitForSelector('.el-drawer', { state: 'hidden', timeout: 10000 });
 
   // 2. 上传
   await page.click('text=上传数据');
@@ -97,6 +111,12 @@ async function pickSelect(page, selectLocator, optionIndex) {
   await page.waitForSelector('text=编辑中', { timeout: 20000 });
   log('10 看板编辑器打开');
 
+  // 8a. 右侧图表库面板
+  await page.waitForSelector('.chart-library-panel', { timeout: 10000 });
+  const panelItems = await page.$$('.chart-palette-item').then((els) => els.length);
+  log('10a 图表库面板 items =', panelItems);
+  if (panelItems === 0) throw new Error('图表库面板为空');
+
   // 8. 拖入图表
   const palette = await page.$$('.chart-palette-item');
   if (palette.length === 0) throw new Error('图谱列表为空');
@@ -133,6 +153,16 @@ async function pickSelect(page, selectLocator, optionIndex) {
   log('   DOM: filter select =', await page.$$('.filter-component .el-select').then((els) => els.length));
   log('   DOM: item-body canvas =', await page.$$('.item-body canvas').then((els) => els.length));
   log('   PAGE ERRORS SO FAR =', errors.length ? errors.join(' | ') : '无');
+
+  // 9b. 移动排序：下移第一个组件再还原
+  const firstItemBefore = (await page.locator('.grid-item').nth(0).locator('.item-title').textContent()).trim();
+  await page.locator('.grid-item').nth(0).locator('.item-actions .act-btn').nth(1).click(); // ArrowDown
+  await sleep(400);
+  const firstItemAfter = (await page.locator('.grid-item').nth(0).locator('.item-title').textContent()).trim();
+  log('12b 排序前第一个 =', firstItemBefore, '| 排序后第一个 =', firstItemAfter);
+  if (firstItemAfter === firstItemBefore) throw new Error('移动排序未生效');
+  await page.locator('.grid-item').nth(0).locator('.item-actions .act-btn').nth(0).click(); // ArrowUp 还原
+  await sleep(400);
 
   // 10. 触发筛选联动（选择区域=华东）
   const filterSel = page.locator('.filter-component .el-select').first();

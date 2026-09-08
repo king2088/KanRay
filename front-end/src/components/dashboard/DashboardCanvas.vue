@@ -1,28 +1,5 @@
 <template>
   <div class="dash-canvas">
-    <!-- 编辑模式：底部工具条 -->
-    <div v-if="editable" class="canvas-toolbar">
-      <div class="tool-group">
-        <span class="tool-label">添加图表：</span>
-        <div
-          v-for="c in availableCharts"
-          :key="c.id"
-          class="chart-palette-item"
-          draggable="true"
-          @dragstart="onPaletteDrag($event, c)"
-          @click="addChart(c)"
-        >
-          <el-icon :size="14"><PieChart /></el-icon>
-          <span>{{ c.name }}</span>
-        </div>
-        <span v-if="!availableCharts.length" class="tool-hint">请先在「图表中心」创建图表</span>
-      </div>
-      <div class="tool-group">
-        <span class="tool-label">单元格宽/高：</span>
-        <el-tag size="small" type="info">{{ GRID_COLS }} 列网格</el-tag>
-      </div>
-    </div>
-
     <!-- 网格主体 -->
     <div
       class="grid-body"
@@ -38,22 +15,22 @@
             'grid-item--editable': editable,
             'grid-item--selected': selectedId === item.id,
             'grid-item--dragging': draggingId === item.id,
+            'grid-item--drop-target': dragOverIdx === idx,
           }"
           :style="itemStyle(item)"
           @click="editable && (selectedId = item.id)"
           ref="gridItems"
         >
           <!-- 组件头部 -->
-          <div class="item-header" :class="{ editable }">
-            <span
-              v-if="editable"
-              class="drag-handle"
-              @mousedown="startReorder($event, idx)"
-            >
-              <el-icon size="14"><Rank /></el-icon>
-            </span>
+          <div
+            class="item-header"
+            :class="{ editable }"
+            @mousedown="editable && beginDrag($event, idx)"
+          >
             <span class="item-title">{{ itemTitle(item) }}</span>
             <span v-if="editable" class="item-actions">
+              <el-icon class="act-btn" size="15" @click.stop="moveItem(idx, -1)"><ArrowUp /></el-icon>
+              <el-icon class="act-btn" size="15" @click.stop="moveItem(idx, 1)"><ArrowDown /></el-icon>
               <!-- 宽度调整 -->
               <el-dropdown trigger="click" size="small" @command="(cmd) => setWidth(item, cmd)">
                 <el-icon class="act-btn" size="15"><Operation /></el-icon>
@@ -94,15 +71,14 @@
           </div>
         </div>
       </template>
-      <el-empty v-else class="grid-empty" description="从上方拖拽图表到此处" />
+      <el-empty v-else class="grid-empty" description="从右侧图表库点击或拖拽图表到此处" />
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Rank, Operation, Delete, PieChart } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Operation, Delete } from '@element-plus/icons-vue'
 import { chartApi, datasetApi } from '@/api'
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
@@ -119,14 +95,9 @@ const GRID_COLS = 12
 const gridItems = ref([])
 const selectedId = ref(null)
 const draggingId = ref(null)
+const dragOverIdx = ref(null)
 const chartMap = ref({})
 const chartLoaded = ref({})
-
-// 可用图表 = 全部图表中尚未放到看板上的
-const availableCharts = computed(() => {
-  const used = new Set(props.items.filter((i) => i.type === 'chart').map((i) => i.chartId))
-  return props.charts.filter((c) => !used.has(c.id))
-})
 
 const filterValues = ref({})
 
@@ -163,11 +134,6 @@ function computeLayout() {
 
 function renderText(content) {
   return content || ''
-}
-
-function onPaletteDrag(e, chart) {
-  e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'chart', chartId: chart.id }))
-  e.dataTransfer.effectAllowed = 'copy'
 }
 
 function addChart(chart) {
@@ -210,43 +176,55 @@ function addFilter(opts) {
   emit('add-item', { id, type: 'filter', ...opts, w: 12, h: 1 })
 }
 
-defineExpose({ addText, addFilter })
+defineExpose({ addText, addFilter, addChart })
 
-/* ---- 拖动排序（基于 flow 数组顺序） ---- */
-function startReorder(e, startIdx) {
+/* ---- 拖动排序（整头部为手柄，松开时一次性定插入位） ---- */
+function moveItem(idx, dir) {
+  const arr = [...props.items]
+  const j = idx + dir
+  if (j < 0 || j >= arr.length) return
+  const [it] = arr.splice(idx, 1)
+  arr.splice(j, 0, it)
+  emit('update:items', arr)
+}
+
+function beginDrag(e, startIdx) {
   if (!props.editable) return
+  if (e.target.closest && e.target.closest('.item-actions')) return
   e.preventDefault()
-  const startX = e.clientX
-  const startY = e.clientY
   const item = props.items[startIdx]
   draggingId.value = item.id
-  let moved = false
-
-  const currentIndex = () => props.items.findIndex((it) => it.id === item.id)
+  let lastOverIdx = null
 
   const onMove = (ev) => {
-    const dx = Math.abs(ev.clientX - startX)
-    const dy = Math.abs(ev.clientY - startY)
-    if (dx < 5 && dy < 5) return
-    moved = true
     const el = document.elementFromPoint(ev.clientX, ev.clientY)
-    const targetEl = el ? el.closest('.grid-item') : null
-    if (!targetEl) return
-    const targetIdx = gridItems.value.findIndex((n) => n === targetEl || n?.$el === targetEl)
-    if (targetIdx === -1) return
-    const curIdx = currentIndex()
-    if (curIdx === targetIdx) return
-    const arr = [...props.items]
-    const [dragged] = arr.splice(curIdx, 1)
-    arr.splice(targetIdx, 0, dragged)
-    emit('update:items', arr)
+    const card = el ? el.closest('.grid-item') : null
+    if (!card) {
+      dragOverIdx.value = null
+      lastOverIdx = null
+      return
+    }
+    const ti = gridItems.value.findIndex((n) => n === card || n?.$el === card)
+    lastOverIdx = ti === -1 ? null : ti
+    dragOverIdx.value = lastOverIdx
   }
 
-  const onUp = () => {
+  const onUp = (ev) => {
     document.removeEventListener('mousemove', onMove)
     document.removeEventListener('mouseup', onUp)
     draggingId.value = null
-    if (moved) ElMessage.success('已调整位置')
+    dragOverIdx.value = null
+    const curIdx = props.items.findIndex((i) => i.id === item.id)
+    if (curIdx === -1 || lastOverIdx === null || lastOverIdx === curIdx) return
+    const card = gridItems.value[lastOverIdx]
+    const rect = card ? card.getBoundingClientRect() : null
+    let insertAt = lastOverIdx
+    if (!rect || ev.clientY >= rect.top + rect.height / 2) insertAt = lastOverIdx + 1
+    if (curIdx < insertAt) insertAt -= 1
+    const arr = [...props.items]
+    const [dragged] = arr.splice(curIdx, 1)
+    arr.splice(insertAt, 0, dragged)
+    emit('update:items', arr)
   }
 
   document.addEventListener('mousemove', onMove)
@@ -301,54 +279,6 @@ watch(() => props.charts.length, loadCharts)
   height: 100%;
 }
 
-.canvas-toolbar {
-  background: #fff;
-  border: 1px solid var(--app-border-light);
-  border-radius: var(--app-radius);
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.tool-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tool-label {
-  font-size: 13px;
-  color: var(--app-text-regular);
-  font-weight: 600;
-}
-
-.tool-hint {
-  font-size: 12px;
-  color: var(--app-text-secondary);
-}
-
-.chart-palette-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--app-primary-light);
-  border: 1px solid #d9ecff;
-  color: var(--app-primary);
-  border-radius: var(--app-radius);
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: grab;
-  user-select: none;
-}
-
-.chart-palette-item:hover {
-  border-color: var(--app-primary);
-}
-
 .grid-body {
   flex: 1;
   overflow-y: auto;
@@ -361,7 +291,7 @@ watch(() => props.charts.length, loadCharts)
 }
 
 .grid-item {
-  background: #fff;
+  background: var(--app-card);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   overflow: hidden;
@@ -370,7 +300,7 @@ watch(() => props.charts.length, loadCharts)
 }
 
 .grid-item--editable {
-  cursor: move;
+  user-select: none;
 }
 
 .grid-item--selected {
@@ -383,25 +313,27 @@ watch(() => props.charts.length, loadCharts)
   border-color: var(--app-primary);
 }
 
+.grid-item--drop-target {
+  box-shadow: 0 0 0 2px var(--app-primary);
+}
+
 .item-header {
   display: flex;
   align-items: center;
   gap: 6px;
   height: 34px;
   padding: 0 10px;
-  background: #fff;
+  background: var(--app-card);
   border-bottom: 1px solid var(--app-border-light);
   font-size: 13px;
 }
 
-.item-header.editable:hover {
-  background: var(--app-hover);
+.item-header.editable {
+  cursor: grab;
 }
 
-.drag-handle {
-  color: var(--app-text-secondary);
-  cursor: grab;
-  display: inline-flex;
+.item-header.editable:hover {
+  background: var(--app-hover);
 }
 
 .item-title {

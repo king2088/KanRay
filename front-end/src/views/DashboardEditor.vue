@@ -7,12 +7,6 @@
         <el-tag v-if="dashId" type="warning" effect="light">编辑中</el-tag>
       </div>
       <div class="et-right">
-        <el-button @click="addTextDialog = true">
-          <el-icon style="margin-right: 4px"><EditPen /></el-icon>添加文本
-        </el-button>
-        <el-button @click="openFilterDialog">
-          <el-icon style="margin-right: 4px"><Filter /></el-icon>添加筛选
-        </el-button>
         <el-button @click="$router.push(`/dashboards/${dashId}`)">
           <el-icon style="margin-right: 4px"><View /></el-icon>预览
         </el-button>
@@ -31,6 +25,13 @@
         @update:items="items = $event"
         @add-item="onAddItem"
         @remove-item="onRemoveItem"
+      />
+      <ChartLibraryPanel
+        :charts="charts"
+        :items="items"
+        @add-chart="onAddChart"
+        @add-text="addTextDialog = true"
+        @add-filter="openFilterDialog"
       />
     </div>
 
@@ -77,9 +78,10 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, EditPen, Filter, View, Check } from '@element-plus/icons-vue'
+import { ArrowLeft, View, Check } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi, datasetApi } from '@/api'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
+import ChartLibraryPanel from '@/components/dashboard/ChartLibraryPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,6 +116,10 @@ async function onNameChange() {
 
 function onAddItem(item) {
   items.value.push(item)
+}
+
+function onAddChart(chart) {
+  canvasRef.value.addChart(chart)
 }
 
 function onRemoveItem(id) {
@@ -172,7 +178,7 @@ onMounted(load)
 
 .editor-toolbar {
   height: var(--app-header-height);
-  background: #fff;
+  background: var(--app-card);
   border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
@@ -192,6 +198,13 @@ onMounted(load)
   flex: 1;
   min-height: 0;
   padding: 16px;
+  display: flex;
+  gap: 12px;
   overflow: hidden;
+}
+
+.editor-body :deep(.dash-canvas) {
+  flex: 1;
+  min-width: 0;
 }
 </style>

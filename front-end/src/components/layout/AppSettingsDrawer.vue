@@ -37,7 +37,7 @@
       <div class="settings__switches">
         <div class="settings__switch-row">
           <span class="settings__switch-text">暗黑模式</span>
-          <el-switch v-model="store.dark" @change="store.toggleDark()" />
+          <el-switch :model-value="store.dark" @change="store.toggleDark()" />
         </div>
         <div v-if="store.layout === 'vertical'" class="settings__switch-row">
           <span class="settings__switch-text">折叠侧栏</span>
