@@ -22,10 +22,12 @@ const TIME_GRANULARITY = {
  * 校验一个指标配置
  */
 function normalizeMetric(metric, fieldsByName) {
-  const field = fieldsByName[metric.field];
-  if (!field) throw new HttpError(400, `指标字段不存在: ${metric.field}`);
   const agg = metric.agg || 'count';
   if (!AGG_FUNCS[agg]) throw new HttpError(400, `不支持的聚合: ${agg}`);
+  const field = metric.field === '*' && agg === 'count'
+    ? { name: '*', label: '数据行数' }
+    : fieldsByName[metric.field];
+  if (!field) throw new HttpError(400, `指标字段不存在: ${metric.field}`);
   return { field: field.name, label: metric.label || `${field.label}(${agg})`, agg };
 }
 
