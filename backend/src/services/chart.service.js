@@ -2,7 +2,30 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow } = require('../services/dataset.service');
 
-const CHART_TYPES = ['bar', 'line', 'pie', 'doughnut', 'horizontalBar', 'table', 'gauge', 'stat', 'radar', 'funnel'];
+const CHART_TYPES = [
+  // 柱形图
+  'bar', 'barClustered', 'barStacked', 'barLine', 'barPictorial',
+  'barPercentStacked', 'barGroupStacked', 'barStackedLine', 'barStackedPictorial',
+  'bullet', 'waterfall', 'pareto',
+  // 条形图
+  'horizontalBar', 'horizontalBarClustered', 'horizontalBarStacked',
+  'horizontalBarPercentStacked', 'horizontalBarGroupStacked', 'horizontalBullet', 'butterfly',
+  // 折线图与面积图
+  'line', 'lineMulti', 'areaStacked', 'areaPercentStacked',
+  // 饼图与漏斗图
+  'pie', 'doughnut', 'sunburst', 'nightingale', 'funnel', 'funnelHorizontal',
+  // 散点图与气泡图
+  'scatter', 'bubble',
+  // 指标与进度
+  'stat', 'progressBar', 'circularProgress', 'multiRingProgress', 'fluidProgress', 'gauge', 'statTrend',
+  // 地图
+  'mapChina', 'mapChinaBubble', 'mapChinaSymbol', 'mapWorld',
+  // 表格
+  'table',
+  // 其他
+  'heatmap', 'boxplot', 'radar', 'polarBar', 'barBreakAxis', 'calendar',
+  'candlestick', 'treemap', 'sankey', 'chord',
+];
 
 function listCharts() {
   return db
