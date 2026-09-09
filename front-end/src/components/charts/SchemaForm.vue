@@ -1,8 +1,23 @@
 <template>
-  <el-form label-width="100px" size="small" :inline="false">
+  <el-form label-width="90px" size="small" :inline="false" class="schema-form">
     <template v-for="(field, key) in schema" :key="key">
+      <!-- Inline text-style toolbar group (no labels, one wrapping row) -->
+      <div
+        v-if="field.type === 'group' && field.inline && field.children"
+        class="inline-group"
+      >
+        <span class="inline-group-label">{{ field.label }}</span>
+        <SchemaForm
+          class="inline-sub"
+          :schema="field.children"
+          :model="getNestedModel(key)"
+          @update="onNestedUpdate(key)"
+          inline
+        />
+      </div>
+
       <el-form-item
-        v-if="!field.type || field.type === 'group'"
+        v-else-if="!field.type || field.type === 'group'"
         :label="field.label"
       >
         <SchemaForm
@@ -14,125 +29,44 @@
         <el-alert v-else title="Group needs children schema" type="warning" :show-icon="false" style="font-size: 12px" />
       </el-form-item>
 
-      <el-form-item v-else :label="field.label">
-        <el-switch
-          v-if="field.type === 'switch'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :disabled="field.disabled"
+      <!-- Scalar fields rendered as compact inline controls when parent is inline -->
+      <el-form-item
+        v-else-if="!isInline"
+        :label="field.label"
+      >
+        <Control
+          :field="field"
+          :value="getModelValue(key)"
+          @change="(v) => setModelValue(key, v)"
         />
-
-        <el-input
-          v-else-if="field.type === 'input'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :placeholder="field.placeholder"
-          :disabled="field.disabled"
-          style="width: 100%"
-        />
-
-        <el-input
-          v-else-if="field.type === 'textarea'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :placeholder="field.placeholder"
-          :disabled="field.disabled"
-          :rows="4"
-          style="width: 100%"
-        />
-
-        <el-input-number
-          v-else-if="field.type === 'number'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :min="field.min"
-          :max="field.max"
-          :step="field.step || 1"
-          :placeholder="field.placeholder"
-          :disabled="field.disabled"
-          :controls-position="field.controlsPosition || 'right'"
-          style="width: 140px"
-        />
-
-        <el-slider
-          v-else-if="field.type === 'slider'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :min="field.min ?? 0"
-          :max="field.max ?? 100"
-          :step="field.step ?? 1"
-          :disabled="field.disabled"
-          style="width: 140px"
-        />
-
-        <el-select
-          v-else-if="field.type === 'select'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :placeholder="field.placeholder || '请选择'"
-          :disabled="field.disabled"
-          style="width: 100%"
-          clearable
-        >
-          <el-option
-            v-for="opt in field.options || []"
-            :key="opt.value"
-            :label="opt.label"
-            :value="opt.value"
-          />
-        </el-select>
-
-        <el-color-picker
-          v-else-if="field.type === 'color'"
-          :model-value="getModelValue(key)"
-          @update:model-value="val => setModelValue(key, val)"
-          :disabled="field.disabled"
-          :predefine="[]"
-          style="width: 100%"
-        />
-
-        <el-button
-          v-else-if="field.type === 'toggle'"
-          :type="getModelValue(key) === field.activeValue ? 'primary' : 'default'"
-          size="small"
-          @click="toggleValue(key, field)"
-          :title="field.label"
-          style="min-width: 36px"
-        >
-          <span :style="getToggleStyle(key, field)">{{ field.icon || field.label }}</span>
-        </el-button>
-
-        <el-button-group v-else-if="field.type === 'buttonGroup'">
-          <el-button
-            v-for="opt in field.options || []"
-            :key="opt.value"
-            :type="getModelValue(key) === opt.value ? 'primary' : 'default'"
-            size="small"
-            @click="setModelValue(key, opt.value)"
-            :title="opt.label"
-            style="min-width: 32px"
-          >
-            <span :style="opt.value === 'underline' ? { textDecoration: 'underline' } : opt.value === 'line-through' ? { textDecoration: 'line-through' } : {}" v-html="opt.icon || opt.label"></span>
-          </el-button>
-        </el-button-group>
-
-        <el-alert v-else title="Unsupported field type" type="warning" :show-icon="false" style="font-size: 12px" />
       </el-form-item>
+
+      <!-- Inline mode: render compact control without label -->
+      <span v-else class="ctrl">
+        <Control
+          :field="field"
+          :value="getModelValue(key)"
+          :compact="true"
+          @change="(v) => setModelValue(key, v)"
+        />
+      </span>
     </template>
   </el-form>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
+import Control from './SchemaControl.vue'
 
 const props = defineProps({
   schema: { type: Object, required: true },
   model: { type: Object, default: () => ({}) },
+  inline: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update'])
 
-// Local reactive copy of model with defaults applied
+const isInline = computed(() => props.inline)
 const localModel = ref({})
 
 function getDefaultValue(field) {
@@ -148,8 +82,8 @@ function getDefaultValue(field) {
   return field.default ?? null
 }
 
-function initLocalModel() {
-  const result = { ...(props.model || {}) }
+function buildModel(source) {
+  const result = { ...(source || {}) }
   for (const key of Object.keys(props.schema)) {
     const field = props.schema[key]
     if (!(key in result)) {
@@ -159,34 +93,27 @@ function initLocalModel() {
       result[key] = {}
     }
   }
-  localModel.value = result
+  return result
 }
 
-// Initialize
+function initLocalModel() {
+  localModel.value = buildModel(props.model)
+}
+
 initLocalModel()
 
-// Watch parent model changes
+function sameContent(a, b) {
+  try { return JSON.stringify(a) === JSON.stringify(b) } catch { return false }
+}
+
 watch(() => props.model, (newVal) => {
-  const result = { ...(newVal || {}) }
-  for (const key of Object.keys(props.schema)) {
-    const field = props.schema[key]
-    if (!(key in result)) {
-      result[key] = getDefaultValue(field)
-    }
-    if (field.type === 'group' && field.children && (!result[key] || typeof result[key] !== 'object')) {
-      result[key] = {}
-    }
+  if (newVal && !sameContent(localModel.value, newVal)) {
+    localModel.value = buildModel(newVal)
   }
-  localModel.value = result
 }, { deep: true, immediate: false })
 
-// Emit updates with debounce to avoid excessive updates
-let emitTimer = null
 function emitUpdate() {
-  if (emitTimer) clearTimeout(emitTimer)
-  emitTimer = setTimeout(() => {
-    emit('update', { ...localModel.value })
-  }, 50)
+  emit('update', { ...localModel.value })
 }
 
 function getModelValue(key) {
@@ -194,24 +121,10 @@ function getModelValue(key) {
 }
 
 function setModelValue(key, val) {
-  // Only emit if value actually changed
   if (localModel.value[key] !== val) {
     localModel.value[key] = val
     emitUpdate()
   }
-}
-
-function toggleValue(key, field) {
-  const current = localModel.value[key]
-  const next = current === field.activeValue ? field.inactiveValue : field.activeValue
-  setModelValue(key, next)
-}
-
-function getToggleStyle(key, field) {
-  const val = localModel.value[key]
-  if (field.icon === 'B') return val === field.activeValue ? { fontWeight: 'bold' } : {}
-  if (field.icon === 'I') return val === field.activeValue ? { fontStyle: 'italic' } : {}
-  return {}
 }
 
 function getNestedModel(key) {
@@ -230,7 +143,34 @@ function onNestedUpdate(key) {
 </script>
 
 <style scoped>
-.config-form-item {
+.schema-form {
+  width: 100%;
+}
+:deep(.schema-form .el-form-item) {
   margin-bottom: 8px;
+}
+.inline-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+.inline-group-label {
+  font-size: 12px;
+  color: var(--app-text-secondary, #888);
+  width: 74px;
+  flex-shrink: 0;
+}
+:deep(.inline-sub) {
+  flex: 1;
+  min-width: 0;
+}
+:deep(.inline-sub .el-form-item) {
+  margin-bottom: 0;
+}
+.ctrl {
+  display: inline-flex;
+  align-items: center;
 }
 </style>
