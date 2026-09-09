@@ -174,14 +174,11 @@ const bodyEl = ref(null)
 const cols = computed(() => Math.max(1, props.columns))
 const gapValue = computed(() => normGap(props.gap))
 
-/** 供调色板/子组件引用的当前棋盘高度逻辑 */
+/** 供调色板/子组件引用的当前棋盘高度逻辑（像素纵向） */
 const bodyStyle = computed(() => {
-  const g = gapValue.value
   let bottom = 0
   props.items.forEach((it) => {
-    const px = cardHeightPx(it, g)
-    const rows = Math.max(1, rowsForHeight(px, g))
-    const b = (Math.max(1, Math.round(it.row || 1)) - 1) * (ROW_H + g.y) + rows * ROW_H + (rows - 1) * g.y
+    const b = (Number(it.top) >= 0 ? Number(it.top) : 0) + cardHeightPx(it, gapValue.value)
     if (b > bottom) bottom = b
   })
   return { height: `${bottom}px`, minHeight: '100%' }
@@ -196,14 +193,14 @@ function itemTitle(item) {
   return '容器'
 }
 
-/** 单元格矩形（px 计算） */
-function cellRectStyle(col, row, w, heightPx) {
+/** 单元格矩形（px 计算；横向按列、纵向按像素 top） */
+function cellRectStyle(col, top, w, heightPx) {
   const c = cols.value
   const g = gapValue.value
   const cellW = `((100% - ${(c - 1) * g.x}px) / ${c})`
   return {
     left: `calc(${Math.max(0, col - 1)} * (${cellW} + ${g.x}px))`,
-    top: `calc(${Math.max(0, Math.round((row || 1) - 1))} * ${ROW_H + g.y}px)`,
+    top: `${Math.max(0, top) || 0}px`,
     width: `calc(${Math.max(1, w)} * ${cellW} + ${Math.max(0, w - 1) * g.x}px)`,
     height: `${heightPx}px`,
   }
@@ -219,7 +216,7 @@ function itemInnerStyle(item) {
   const h = cardHeightPx(item, gapValue.value)
   const hh = headerHeight(h)
   return {
-    ...cellRectStyle(item.col, item.row, item.w, h),
+    ...cellRectStyle(item.col, item.top, item.w, h),
     '--hh': hh + 'px',
     padding: h <= 35 ? '4px' : '0',
   }
@@ -234,7 +231,7 @@ function itemStyle(item) {
 const previewStyle = computed(() => {
   const p = state?.dropPreview
   if (!p || p.boardKey !== props.boardKey) return null
-  return cellRectStyle(p.col, p.row, p.w, p.height)
+  return cellRectStyle(p.col, p.top, p.w, p.height)
 })
 
 function select(id) {
@@ -252,11 +249,13 @@ function pullUp(id) {
   notify()
 }
 
-/* ---- 上移/下移（空间语义：行号 ±1，自动让位） ---- */
+/* ---- 上移/下移（像素纵向：按一个行高步进，冲突自动让位） ---- */
 function nudge(item, dir) {
-  const piece = { id: item.id, col: item.col, row: item.row + dir, w: item.w, h: item.h }
-  if (piece.row < 1) return
-  applyDrop(props.items, piece, cols.value)
+  const g = gapValue.value
+  const cur = Number(item.top) || 0
+  const top = Math.max(0, cur + dir * (ROW_H + g.y))
+  if (top === cur) return
+  applyDrop(props.items, { id: item.id, col: item.col, top, w: item.w, hPx: cardHeightPx(item, g) }, cols.value, g)
   notify()
 }
 
@@ -265,7 +264,7 @@ function setWidth(item, w) {
   const maxW = cols.value
   const nw = Math.min(w, maxW)
   const col = Math.min(item.col, Math.max(1, maxW - nw + 1))
-  applyDrop(props.items, { id: item.id, col, row: item.row, w: nw, h: item.h }, cols.value)
+  applyDrop(props.items, { id: item.id, col, top: Number(item.top) || 0, w: nw, hPx: cardHeightPx(item, gapValue.value) }, cols.value, gapValue.value)
   if (item.type === 'container') clampChildren(item.children || [], nw)
   notify()
 }
@@ -274,7 +273,7 @@ function setWidth(item, w) {
 function setHeight(item, px) {
   item.hPx = px
   item.h = rowsForHeight(px, gapValue.value)
-  applyDrop(props.items, { id: item.id, col: item.col, row: item.row, w: item.w, h: item.h }, cols.value)
+  applyDrop(props.items, { id: item.id, col: item.col, top: Number(item.top) || 0, w: item.w, hPx: px }, cols.value, gapValue.value)
   pullUp(item.id)
 }
 
@@ -298,8 +297,12 @@ function onBoardHtmlDrop(e) {
     if (data.type === 'chart') {
       const chart = props.charts?.find?.((c) => c.id === data.chartId) || chartMap.value[data.chartId]
       if (!chart) return
-      const cell = findFreeCell(props.items, 6, 2, cols.value)
-      const item = { id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, type: 'chart', chartId: chart.id, w: 6, h: 2, col: cell.col, row: cell.row }
+      const g = gapValue.value
+      const cell = findFreeCell(props.items, 6, cardHeightPx({ h: 2 }, g), cols.value, g)
+      const item = {
+        id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, type: 'chart', chartId: chart.id,
+        w: 6, h: 2, hPx: cardHeightPx({ h: 2 }, g), col: cell.col, top: cell.top,
+      }
       props.items.push(item)
       select(item.id)
       notify()
@@ -348,8 +351,8 @@ function beginDrag(e, item) {
   pendingBoardKey = null
   lastPiece = null
 
-  const setPreview = (boardKey, col, row) => {
-    if (state) state.dropPreview = { boardKey, col, row, w: item.w, height: cardHeightPx(item, gapValue.value) }
+  const setPreview = (boardKey, col, top) => {
+    if (state) state.dropPreview = { boardKey, col, top, w: item.w, height: cardHeightPx(item, gapValue.value) }
   }
 
   const onMove = (ev) => {
@@ -367,8 +370,8 @@ function beginDrag(e, item) {
     const targetKey = api?.pickTarget ? api.pickTarget(ev.clientX, ev.clientY, props.boardKey) : null
     if (targetKey) {
       pendingBoardKey = targetKey
-      const c = api.cellIn(targetKey, ev.clientX, ev.clientY, item.w, item.h)
-      setPreview(targetKey, c.col, c.row)
+      const c = api.cellIn(targetKey, ev.clientX, ev.clientY, item.w)
+      setPreview(targetKey, c.col, c.top)
       return
     }
     pendingBoardKey = null
@@ -376,7 +379,7 @@ function beginDrag(e, item) {
     const r = rect()
     if (!r) return
     const cell = cellFromPointer(ev.clientX, ev.clientY, r, item.w, cols.value, gapValue.value)
-    setPreview(props.boardKey, cell.col, cell.row)
+    setPreview(props.boardKey, cell.col, cell.top)
     lastPiece = cell
   }
 
@@ -394,7 +397,8 @@ function beginDrag(e, item) {
       api.reparent(props.boardKey, pendingBoardKey, { ...item }, upEv.clientX, upEv.clientY)
     } else if (lastPiece) {
       // 板内一次性落位：只在这里让位，目标卡不会被拖拽过程顶走
-      applyDrop(props.items, { id: item.id, col: lastPiece.col, row: lastPiece.row, w: item.w, h: item.h }, cols.value)
+      const g = gapValue.value
+      applyDrop(props.items, { id: item.id, col: lastPiece.col, top: lastPiece.top, w: item.w, hPx: cardHeightPx(item, g) }, cols.value, g)
       notify()
     }
     pendingBoardKey = null
@@ -439,7 +443,7 @@ function beginResize(e, item, dir) {
     }
     if (!changed) return
     if (item.type === 'container') clampChildren(item.children || [], cur.w)
-    applyDrop(props.items, { id: cur.id, col: cur.col, row: cur.row, w: cur.w, h: cur.h }, cols.value)
+    applyDrop(props.items, { id: cur.id, col: cur.col, top: Number(cur.top) || 0, w: cur.w, hPx: cardHeightPx(cur, g) }, cols.value, g)
     notify()
   }
 

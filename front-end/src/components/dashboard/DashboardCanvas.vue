@@ -16,7 +16,7 @@
 import { computed, onBeforeUnmount, provide, reactive, ref, watch } from 'vue'
 import { chartApi } from '@/api'
 import GridBoard from './GridBoard.vue'
-import { applyDrop, cellFromPointer, clampChildren, findFreeCell, flattenItems, GAP, normGap } from '@/utils/grid-layout'
+import { applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, flattenItems, GAP, normGap, rowsForHeight } from '@/utils/grid-layout'
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -170,11 +170,11 @@ provide('gridBoardApi', {
   },
   notify,
   pickTarget,
-  cellIn(boardKey, clientX, clientY, w, h) {
+  cellIn(boardKey, clientX, clientY, w) {
     const entry = registry.get(boardKey)
-    if (!entry) return { col: 1, row: 1 }
+    if (!entry) return { col: 1, top: 0 }
     const rect = entry.getEl()?.getBoundingClientRect()
-    if (!rect) return { col: 1, row: 1 }
+    if (!rect) return { col: 1, top: 0 }
     return cellFromPointer(clientX, clientY, rect, w, entry.getColumns(), gapValue.value)
   },
   removeItem(id) {
@@ -198,8 +198,9 @@ provide('gridBoardApi', {
       return
     }
     const cell = cellFromPointer(clientX, clientY, rect, it.w, dst.getColumns(), gapValue.value)
-    dst.getItems().push({ ...it, col: cell.col, row: cell.row })
-    applyDrop(dst.getItems(), { id: it.id, col: cell.col, row: cell.row, w: it.w, h: it.h }, dst.getColumns())
+    const g = gapValue.value
+    dst.getItems().push({ ...it, col: cell.col, top: cell.top })
+    applyDrop(dst.getItems(), { id: it.id, col: cell.col, top: cell.top, w: it.w, hPx: cardHeightPx(it, g) }, dst.getColumns(), g)
     boardState.selectedId = it.id
     notify()
   },
@@ -232,52 +233,60 @@ function targetContainer() {
 }
 
 function addChart(chart) {
+  const g = gapValue.value
+  const hPx = cardHeightPx({ h: 2 }, g)
   const container = targetContainer()
   if (container) {
-    const cell = findFreeCell(container.children || [], 6, 2, Math.max(1, container.w))
+    const cell = findFreeCell(container.children || [], 6, hPx, Math.max(1, container.w), g)
     container.children = container.children || []
-    container.children.push({ id: newId('c'), type: 'chart', chartId: chart.id, w: 6, h: 2, col: cell.col, row: cell.row })
+    container.children.push({ id: newId('c'), type: 'chart', chartId: chart.id, w: 6, h: 2, hPx, col: cell.col, top: cell.top })
   } else {
-    const cell = findFreeCell(rootItems.value, 6, 2)
-    rootItems.value.push({ id: newId('c'), type: 'chart', chartId: chart.id, w: 6, h: 2, col: cell.col, row: cell.row })
+    const cell = findFreeCell(rootItems.value, 6, hPx, 12, g)
+    rootItems.value.push({ id: newId('c'), type: 'chart', chartId: chart.id, w: 6, h: 2, hPx, col: cell.col, top: cell.top })
   }
   notify()
 }
 
 function addText(content) {
+  const g = gapValue.value
+  const hPx = cardHeightPx({ h: 1 }, g)
   const container = targetContainer()
   const cols = container ? Math.max(1, container.w) : 12
-  const item = { id: newId('t'), type: 'text', content: content || '', w: Math.min(12, cols), h: 1 }
+  const item = { id: newId('t'), type: 'text', content: content || '', w: Math.min(12, cols), h: 1, hPx }
   if (container) {
     container.children = container.children || []
-    const cell = findFreeCell(container.children, item.w, 1, cols)
-    container.children.push({ ...item, col: cell.col, row: cell.row })
+    const cell = findFreeCell(container.children, item.w, hPx, cols, g)
+    container.children.push({ ...item, col: cell.col, top: cell.top })
   } else {
-    const cell = findFreeCell(rootItems.value, item.w, 1)
-    rootItems.value.push({ ...item, col: cell.col, row: cell.row })
+    const cell = findFreeCell(rootItems.value, item.w, hPx, 12, g)
+    rootItems.value.push({ ...item, col: cell.col, top: cell.top })
   }
   notify()
 }
 
 function addFilter(opts) {
+  const g = gapValue.value
+  const hPx = cardHeightPx({ h: 1 }, g)
   const container = targetContainer()
   const cols = container ? Math.max(1, container.w) : 12
-  const item = { id: newId('f'), type: 'filter', ...opts, w: Math.min(12, cols), h: 1 }
+  const item = { id: newId('f'), type: 'filter', ...opts, w: Math.min(12, cols), h: 1, hPx }
   if (container) {
     container.children = container.children || []
-    const cell = findFreeCell(container.children, item.w, 1, cols)
-    container.children.push({ ...item, col: cell.col, row: cell.row })
+    const cell = findFreeCell(container.children, item.w, hPx, cols, g)
+    container.children.push({ ...item, col: cell.col, top: cell.top })
   } else {
-    const cell = findFreeCell(rootItems.value, item.w, 1)
-    rootItems.value.push({ ...item, col: cell.col, row: cell.row })
+    const cell = findFreeCell(rootItems.value, item.w, hPx, 12, g)
+    rootItems.value.push({ ...item, col: cell.col, top: cell.top })
   }
   notify()
 }
 
 function addContainer() {
-  const item = { id: newId('con'), type: 'container', w: 6, h: 3, children: [] }
-  const cell = findFreeCell(rootItems.value, 6, 3)
-  rootItems.value.push({ ...item, col: cell.col, row: cell.row })
+  const g = gapValue.value
+  const hPx = cardHeightPx({ h: 3 }, g)
+  const item = { id: newId('con'), type: 'container', w: 6, h: 3, hPx, children: [] }
+  const cell = findFreeCell(rootItems.value, 6, hPx, 12, g)
+  rootItems.value.push({ ...item, col: cell.col, top: cell.top })
   boardState.selectedId = item.id
   notify()
 }

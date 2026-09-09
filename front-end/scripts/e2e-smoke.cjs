@@ -194,6 +194,12 @@ async function pickSelect(page, selectLocator, optionIndex) {
   log('12b2 最小高度 =', h35.toFixed(1), 'px | header-hidden =', hidden35);
   if (h35 > 45) throw new Error('高度未被压缩到 ~35px');
   if (hidden35 !== 1) throw new Error('35px 时 header 未隐藏');
+  // 核心：缩卡后，同列下方卡应紧贴 35px 底 + gap（12），不再停在 150px 行边界
+  const aBox35 = await cardA.boundingBox();
+  const bBox35 = await cardB.boundingBox();
+  const gapDist = bBox35.y - (aBox35.y + aBox35.height);
+  log('12b2 35px 后 下方卡间距 =', gapDist.toFixed(1), 'px（期望 12）');
+  if (Math.abs(gapDist - 12) > 1) throw new Error(`缩卡后间距异常：实际 ${gapDist.toFixed(1)}px，期望 12px±1`);
   await cardA.click();
   await sleep(200);
   const sHandle = await cardA.locator('.resize-s').boundingBox();
