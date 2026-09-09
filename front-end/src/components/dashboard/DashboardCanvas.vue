@@ -16,7 +16,7 @@
 import { computed, onBeforeUnmount, provide, reactive, ref, watch } from 'vue'
 import { chartApi } from '@/api'
 import GridBoard from './GridBoard.vue'
-import { applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, flattenItems, GAP, normGap, rowsForHeight } from '@/utils/grid-layout'
+import { alignRows, applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, flattenItems, GAP, normGap, rowsForHeight } from '@/utils/grid-layout'
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -111,6 +111,16 @@ function notify() {
   emit('update:items', rootItems.value)
 }
 
+/* ---- 自动对齐：根层 + 各容器 children 递归（子列数 = 容器 w） ---- */
+function alignLevel(arr, cols) {
+  alignRows(arr, cols, gapValue.value)
+  arr.forEach((it) => {
+    if (it.type === 'container' && Array.isArray(it.children) && it.children.length) {
+      alignLevel(it.children, Math.max(1, Math.round(it.w) || 6))
+    }
+  })
+}
+
 /* ---- 棋盘注册表 + 跨层拖拽移交 ---- */
 const registry = new Map()
 
@@ -201,6 +211,7 @@ provide('gridBoardApi', {
     const g = gapValue.value
     dst.getItems().push({ ...it, col: cell.col, top: cell.top })
     applyDrop(dst.getItems(), { id: it.id, col: cell.col, top: cell.top, w: it.w, hPx: cardHeightPx(it, g) }, dst.getColumns(), g)
+    alignRows(dst.getItems(), dst.getColumns(), g)
     boardState.selectedId = it.id
     notify()
   },
@@ -244,6 +255,7 @@ function addChart(chart) {
     const cell = findFreeCell(rootItems.value, 6, hPx, 12, g)
     rootItems.value.push({ id: newId('c'), type: 'chart', chartId: chart.id, w: 6, h: 2, hPx, col: cell.col, top: cell.top })
   }
+  alignLevel(rootItems.value, 12)
   notify()
 }
 
@@ -261,6 +273,7 @@ function addText(content) {
     const cell = findFreeCell(rootItems.value, item.w, hPx, 12, g)
     rootItems.value.push({ ...item, col: cell.col, top: cell.top })
   }
+  alignLevel(rootItems.value, 12)
   notify()
 }
 
@@ -278,6 +291,7 @@ function addFilter(opts) {
     const cell = findFreeCell(rootItems.value, item.w, hPx, 12, g)
     rootItems.value.push({ ...item, col: cell.col, top: cell.top })
   }
+  alignLevel(rootItems.value, 12)
   notify()
 }
 
@@ -288,6 +302,7 @@ function addContainer() {
   const cell = findFreeCell(rootItems.value, 6, hPx, 12, g)
   rootItems.value.push({ ...item, col: cell.col, top: cell.top })
   boardState.selectedId = item.id
+  alignLevel(rootItems.value, 12)
   notify()
 }
 

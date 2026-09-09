@@ -145,7 +145,7 @@ import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/ico
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
 import {
-  applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normGap, pullUpBelow, ROW_H, rowsForHeight,
+  alignRows, applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normGap, ROW_H, rowsForHeight,
 } from '@/utils/grid-layout'
 
 defineOptions({ name: 'GridBoard' })
@@ -242,10 +242,10 @@ function notify() {
   api?.notify?.()
 }
 
-/* ---- 定向上移：卡片高度变化后，把其下方（同列范围）的卡片拉上来填洞 ---- */
-function pullUp(id) {
+/* ---- 自动对齐：origin 传入 → 整条同列链重排（缩卡上移/加高下推）；否则仅做同行吸附对齐 ---- */
+function alignBoard(originId) {
   if (!props.items.length) return
-  pullUpBelow(props.items, id, cols.value)
+  alignRows(props.items, cols.value, gapValue.value, originId != null ? { originId } : undefined)
   notify()
 }
 
@@ -256,7 +256,7 @@ function nudge(item, dir) {
   const top = Math.max(0, cur + dir * (ROW_H + g.y))
   if (top === cur) return
   applyDrop(props.items, { id: item.id, col: item.col, top, w: item.w, hPx: cardHeightPx(item, g) }, cols.value, g)
-  notify()
+  alignBoard()
 }
 
 /* ---- 宽度调整 ---- */
@@ -266,15 +266,15 @@ function setWidth(item, w) {
   const col = Math.min(item.col, Math.max(1, maxW - nw + 1))
   applyDrop(props.items, { id: item.id, col, top: Number(item.top) || 0, w: nw, hPx: cardHeightPx(item, gapValue.value) }, cols.value, gapValue.value)
   if (item.type === 'container') clampChildren(item.children || [], nw)
-  notify()
+  alignBoard()
 }
 
-/* ---- 高度调整（下拉选值）：先让位，再把下方卡片拉起填洞 ---- */
+/* ---- 高度调整（下拉选值）：先让位，再整条同列链重排 ---- */
 function setHeight(item, px) {
   item.hPx = px
   item.h = rowsForHeight(px, gapValue.value)
   applyDrop(props.items, { id: item.id, col: item.col, top: Number(item.top) || 0, w: item.w, hPx: px }, cols.value, gapValue.value)
-  pullUp(item.id)
+  alignBoard(item.id)
 }
 
 /* ---- 标题显隐 ---- */
@@ -305,7 +305,7 @@ function onBoardHtmlDrop(e) {
       }
       props.items.push(item)
       select(item.id)
-      notify()
+      alignBoard()
     }
   } catch (err) {
     /* ignore */
@@ -399,7 +399,7 @@ function beginDrag(e, item) {
       // 板内一次性落位：只在这里让位，目标卡不会被拖拽过程顶走
       const g = gapValue.value
       applyDrop(props.items, { id: item.id, col: lastPiece.col, top: lastPiece.top, w: item.w, hPx: cardHeightPx(item, g) }, cols.value, g)
-      notify()
+      alignBoard()
     }
     pendingBoardKey = null
     lastPiece = null
@@ -450,7 +450,7 @@ function beginResize(e, item, dir) {
   const onUp = () => {
     document.removeEventListener('mousemove', onMove)
     document.removeEventListener('mouseup', onUp)
-    pullUp(origin.id)
+    alignBoard(origin.id)
   }
 
   document.addEventListener('mousemove', onMove)

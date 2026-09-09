@@ -4,7 +4,7 @@ import {
   clamp, intersects,
   findFreeCell,
   normalizeLayout, flattenItems, clampChildren, resolveDrop, applyDrop, cellFromPointer,
-  cardHeightPx, rowsForHeight, normGap, pullUpBelow,
+  cardHeightPx, rowsForHeight, normGap, pullUpBelow, alignRows, alignTree,
 } from '../src/utils/grid-layout.js'
 
 let passed = 0
@@ -288,6 +288,149 @@ t('pullUpBelow: 尊重自定义 gap-y（>=16 的语义按 y 收紧）', () => {
   pullUpBelow(items, 'a', 12, g)
   assert.equal(items[1].top, 182, '150 + gap.y(32)')
   noOverlap(items)
+})
+
+// ---- alignRows：同行顶对齐 + 行高跟随最高卡 + 同列链联动 ----
+t('alignRows: 容差内同行顶对齐（TOL=9 默认）', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'b', col: 7, top: 9, w: 6, hPx: 150 },
+  ]
+  alignRows(items, 12)
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 0, '9 ≤ TOL 吸附到同行顶')
+  noOverlap(items)
+})
+
+t('alignRows: 容差外不强对齐', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'b', col: 7, top: 20, w: 6, hPx: 150 },
+  ]
+  alignRows(items, 12)
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 20, '20 > TOL，不吸附')
+})
+
+t('alignRows: 行高跟随最高卡，下排整行下移到最高卡底 + gap', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 3, hPx: 150 },
+    { id: 'b', col: 4, top: 0, w: 3, hPx: 300 },
+    { id: 'c', col: 1, top: 162, w: 3, hPx: 150 },
+  ]
+  alignRows(items, 12)
+  assert.equal(items[2].top, 312, 'c 被推到最高卡底 300+12，不贴矮卡 a')
+  noOverlap(items)
+})
+
+t('alignRows: 缩卡上移（origin）→ 同列下卡紧贴新底 + gap', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 600 },
+    { id: 'b', col: 1, top: 612, w: 6, hPx: 150 },
+  ]
+  items[0].hPx = 35
+  alignRows(items, 12, GAP, { originId: 'a' })
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 47, '35 + 12，间距精确 = gap.y')
+  noOverlap(items)
+})
+
+t('alignRows: 无 origin 孤立卡保持原位（12c 拖到空白区）', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'x', col: 7, top: 854, w: 6, hPx: 300 },
+  ]
+  alignRows(items, 12)
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 854, '非受影响带不吸附回顶')
+})
+
+t('alignRows: 缩卡只拉同列链，不共享列的卡保持原位', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 600 },
+    { id: 'b', col: 7, top: 612, w: 6, hPx: 150 },
+  ]
+  items[0].hPx = 35
+  alignRows(items, 12, GAP, { originId: 'a' })
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 612, 'b 列 7-12 与 a 不共享，不拉')
+  noOverlap(items)
+})
+
+t('alignRows: 缩卡沿同列链级联上移', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 600 },
+    { id: 'b', col: 1, top: 612, w: 6, hPx: 150 },
+    { id: 'c', col: 1, top: 774, w: 6, hPx: 150 },
+  ]
+  items[0].hPx = 35
+  alignRows(items, 12, GAP, { originId: 'a' })
+  assert.equal(items[1].top, 47)
+  assert.equal(items[2].top, 209, '47+150+12 逐级传递')
+  noOverlap(items)
+})
+
+t('alignRows: 加高推下同列下卡（12b1）', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'b', col: 1, top: 162, w: 6, hPx: 150 },
+  ]
+  items[0].hPx = 600
+  alignRows(items, 12, GAP, { originId: 'a' })
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 612, '600 + 12')
+  noOverlap(items)
+})
+
+t('alignRows: 同行最高卡决定行底，缩卡不越过它', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 3, hPx: 150 },
+    { id: 'b', col: 4, top: 0, w: 3, hPx: 300 },
+    { id: 'c', col: 1, top: 312, w: 3, hPx: 150 },
+  ]
+  items[0].hPx = 35
+  alignRows(items, 12, GAP, { originId: 'a' })
+  assert.equal(items[0].top, 0)
+  assert.equal(items[2].top, 312, '行底仍是最高卡 b 的 300，c 不动')
+  noOverlap(items)
+})
+
+t('alignRows: 带吸附上移产生 seed，下排随之补齐到行底 + gap', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'b', col: 7, top: 8, w: 6, hPx: 150 },
+    { id: 'c', col: 1, top: 170, w: 6, hPx: 150 },
+  ]
+  alignRows(items, 12)
+  assert.equal(items[1].top, 0, '8 ≤ TOL 吸附')
+  assert.equal(items[2].top, 162, '行底 150+12，对比原 170 上移')
+  noOverlap(items)
+})
+
+t('alignRows: 尊重自定义 gap-y 的容差与拉紧', () => {
+  const g = { x: 12, y: 32 } // TOL = 24
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'b', col: 7, top: 20, w: 6, hPx: 150 },
+    { id: 'c', col: 1, top: 300, w: 6, hPx: 150 },
+  ]
+  alignRows(items, 12, g)
+  assert.equal(items[1].top, 0, '20 ≤ TOL(24) 吸附')
+  assert.equal(items[2].top, 182, '150 + gap(32)')
+  noOverlap(items)
+})
+
+t('alignTree: 递归对齐容器 children', () => {
+  const tree = [
+    { id: 'ct', type: 'container', col: 1, top: 0, w: 12, hPx: 312, children: [
+      { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+      { id: 'b', col: 7, top: 9, w: 6, hPx: 150 },
+    ] },
+  ]
+  alignTree(tree, 12)
+  assert.equal(tree[0].children[0].top, 0)
+  assert.equal(tree[0].children[1].top, 0)
+  noOverlap(tree[0].children)
 })
 
 console.log(`grid-layout 测试：${passed} 项通过`)

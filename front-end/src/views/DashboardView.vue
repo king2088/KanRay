@@ -33,7 +33,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { dashboardApi, chartApi } from '@/api'
-import { normalizeLayout, normGap } from '@/utils/grid-layout'
+import { alignTree, normalizeLayout, normGap } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 
 const route = useRoute()
@@ -51,6 +51,7 @@ async function load() {
   dashName.value = dash.name
   gap.value = normGap(dash.gap)
   items.value = normalizeLayout(dash.layout || [], 12, gap.value)
+  alignTree(items.value, 12, gap.value)
   charts.value = await chartApi.list()
 }
 
