@@ -48,8 +48,13 @@ const emit = defineEmits(['update:config'])
 const openPanels = ref(['title'])
 
 const commonSchemaGroups = computed(() => {
-  // Filter out colorPalette from common groups, handle it separately
-  const groups = { ...COMMON_CONFIG_SCHEMA }
+  // Only include groups with children (type === 'group' && children exists)
+  const groups = {}
+  for (const [key, schema] of Object.entries(COMMON_CONFIG_SCHEMA)) {
+    if (schema.type === 'group' && schema.children) {
+      groups[key] = schema
+    }
+  }
   return groups
 })
 

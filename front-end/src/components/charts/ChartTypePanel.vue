@@ -9,7 +9,7 @@
         clearable
         @change="onCategoryChange"
       >
-        <el-option label="全部分类" :value="null" />
+        <el-option label="全部分类" :value="''" />
         <el-option
           v-for="cat in CHART_CATEGORIES"
           :key="cat.key"
@@ -50,10 +50,10 @@ defineProps({
 
 defineEmits(['update:chartType'])
 
-const activeCategory = ref(null)
+const activeCategory = ref('')
 
 const filteredTypes = computed(() => {
-  if (activeCategory.value === null) return CHART_TYPES
+  if (activeCategory.value === '') return CHART_TYPES
   return CHART_TYPES.filter((t) => t.category === activeCategory.value)
 })
 
