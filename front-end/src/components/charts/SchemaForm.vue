@@ -87,7 +87,7 @@
           :model-value="getModelValue(key)"
           @update:model-value="val => setModelValue(key, val)"
           :disabled="field.disabled"
-          predefine
+          :predefine="[]"
           style="width: 100%"
         />
 
@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
 const props = defineProps({
   schema: { type: Object, required: true },
@@ -107,17 +107,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update'])
 
-// Ensure model has all keys from schema with defaults
-const modelWithDefaults = computed(() => {
-  const result = { ...props.model }
-  for (const key of Object.keys(props.schema)) {
-    const field = props.schema[key]
-    if (!(key in result)) {
-      result[key] = getDefaultValue(field)
-    }
-  }
-  return result
-})
+// Local reactive copy of model with defaults applied
+const localModel = ref({})
 
 function getDefaultValue(field) {
   if (!field.type || field.type === 'group') return {}
@@ -131,35 +122,71 @@ function getDefaultValue(field) {
   return field.default ?? null
 }
 
+function initLocalModel() {
+  const result = { ...props.model }
+  for (const key of Object.keys(props.schema)) {
+    const field = props.schema[key]
+    if (!(key in result)) {
+      result[key] = getDefaultValue(field)
+    }
+  }
+  localModel.value = result
+}
+
+// Initialize
+initLocalModel()
+
+// Watch parent model changes
+watch(() => props.model, (newVal) => {
+  if (newVal) {
+    const result = { ...newVal }
+    for (const key of Object.keys(props.schema)) {
+      const field = props.schema[key]
+      if (!(key in result)) {
+        result[key] = getDefaultValue(field)
+      }
+    }
+    localModel.value = result
+  }
+}, { deep: true, immediate: false })
+
+// Emit updates with debounce to avoid excessive updates
+let emitTimer = null
+function emitUpdate() {
+  if (emitTimer) clearTimeout(emitTimer)
+  emitTimer = setTimeout(() => {
+    emit('update', { ...localModel.value })
+  }, 50)
+}
+
 function getModelValue(key) {
-  return modelWithDefaults.value[key]
+  return localModel.value[key]
 }
 
 function setModelValue(key, val) {
-  modelWithDefaults.value[key] = val
-  emit('update', modelWithDefaults.value)
+  // Only emit if value actually changed
+  if (localModel.value[key] !== val) {
+    localModel.value[key] = val
+    emitUpdate()
+  }
 }
 
 function getNestedModel(key) {
   return {
-    get: () => modelWithDefaults.value[key] || {},
+    get: () => localModel.value[key] || {},
     set: (val) => {
-      modelWithDefaults.value[key] = val
-      emit('update', modelWithDefaults.value)
+      localModel.value[key] = val
+      emitUpdate()
     },
   }
 }
 
 function onNestedUpdate(key) {
   return (newVal) => {
-    modelWithDefaults.value[key] = newVal
-    emit('update', modelWithDefaults.value)
+    localModel.value[key] = newVal
+    emitUpdate()
   }
 }
-
-watch(() => props.model, (newVal) => {
-  // External model changes will be merged in modelWithDefaults computed
-}, { deep: true, immediate: false })
 </script>
 
 <style scoped>
