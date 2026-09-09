@@ -3,7 +3,7 @@ import {
   GRID_COLS, ROW_H, GAP,
   clamp, intersects, nextFreeCell, findFreeCell,
   normalizeLayout, flattenItems, clampChildren, resolveDrop, applyDrop, cellFromPointer,
-  cardHeightPx, rowsForHeight, normGap,
+  cardHeightPx, rowsForHeight, normGap, pullUpBelow,
 } from '../src/utils/grid-layout.js'
 
 let passed = 0
@@ -229,6 +229,59 @@ t('normalizeLayout 用 gap-y 推导 h', () => {
   // (some + 48) / 198，要让 round=2 需 some >= 297
   const o48 = normalizeLayout([{ id: 'a', type: 'chart', chartId: 1, hPx: 300 }], 12, g48)
   assert.equal(o48[0].h, 2)
+})
+
+t('pullUpBelow: 卡片缩短后下方卡（同列）上移填洞', () => {
+  // 大卡 A（row1, h3）+ 下方 B、C（同列 w12 / w6）
+  const items = [
+    { id: 'a', col: 1, row: 1, w: 6, h: 3 },
+    { id: 'b', col: 1, row: 4, w: 6, h: 1 },
+    { id: 'c', col: 7, row: 5, w: 6, h: 1 },
+  ]
+  items[0].h = 1 // 用户缩 A 高度
+  pullUpBelow(items, 'a', 12)
+  assert.equal(items[0].row, 1)  // A 不动
+  assert.equal(items[1].row, 2)  // B（同列）从 row4 上移到 row2 贴住 A
+  assert.equal(items[2].row, 5)  // C（列 7-12 不相交）保持不动
+  noOverlap(items)
+})
+
+t('pullUpBelow: 下方卡被其它卡挡住时不跳过，落在可放的最靠上位置', () => {
+  const items = [
+    { id: 'a', col: 1, row: 1, w: 6, h: 1 },
+    { id: 'wall', col: 4, row: 2, w: 6, h: 2 }, // 卡住 B 的上移路线
+    { id: 'b', col: 1, row: 5, w: 3, h: 1 },
+  ]
+  pullUpBelow(items, 'a', 12)
+  // wall 占 row2-3 的列 4-9，B(col1-3) 可上移到 row2（不与 wall 相交）
+  assert.equal(items[2].row, 2)
+  noOverlap(items)
+})
+
+t('pullUpBelow: 反向加高被推下的卡片也会被拉回', () => {
+  // A 先加高到 h4 把 B 推到 row5，再缩回 h1 后 B 应该回到贴住 A
+  const items = [
+    { id: 'a', col: 1, row: 1, w: 6, h: 4 },
+    { id: 'b', col: 1, row: 5, w: 6, h: 1 },
+  ]
+  pullUpBelow(items, 'a', 12) // 加高状态：B 在 row5，无可拉空间
+  assert.equal(items[1].row, 5)
+  items[0].h = 1 // 缩回
+  pullUpBelow(items, 'a', 12)
+  assert.equal(items[1].row, 2)
+  noOverlap(items)
+})
+
+t('pullUpBelow: 无 origin 或空下方时不产生任何移动', () => {
+  const items = [
+    { id: 'a', col: 1, row: 1, w: 12, h: 2 },
+    { id: 'b', col: 1, row: 3, w: 12, h: 1 },
+  ]
+  pullUpBelow(items, 'zzz', 12) // 不存在的 origin
+  assert.equal(items[0].row, 1)
+  assert.equal(items[1].row, 3)
+  pullUpBelow(items, 'b', 12)   // B 已是最后一个，没有下方卡
+  assert.equal(items[1].row, 3)
 })
 
 console.log(`grid-layout 测试：${passed} 项通过`)

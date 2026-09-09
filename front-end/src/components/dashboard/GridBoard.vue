@@ -13,6 +13,7 @@
           v-for="(item, idx) in items"
           :key="item.id"
           class="grid-item"
+          :data-item-id="item.id"
           :class="{
             'grid-item--editable': editable,
             'grid-item--container': item.type === 'container',
@@ -28,6 +29,8 @@
             :class="{
               editable,
               'item-header--min': item.hideTitle,
+              'item-header--hidden': cardHeightPx(item, gapValue) <= 35,
+              'item-header--compact': !item.hideTitle && cardHeightPx(item, gapValue) > 35 && cardHeightPx(item, gapValue) <= 80,
               'item-header--sel': state.selectedId === item.id,
             }"
             @mousedown.stop="editable && beginDrag($event, item)"
@@ -142,7 +145,7 @@ import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/ico
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
 import {
-  applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normGap, ROW_H, rowsForHeight,
+  applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normGap, pullUpBelow, ROW_H, rowsForHeight,
 } from '@/utils/grid-layout'
 
 defineOptions({ name: 'GridBoard' })
@@ -206,9 +209,25 @@ function cellRectStyle(col, row, w, heightPx) {
   }
 }
 
+function headerHeight(heightPx) {
+  if (heightPx <= 35) return 0
+  if (heightPx <= 80) return 22
+  return 34
+}
+
+function itemInnerStyle(item) {
+  const h = cardHeightPx(item, gapValue.value)
+  const hh = headerHeight(h)
+  return {
+    ...cellRectStyle(item.col, item.row, item.w, h),
+    '--hh': hh + 'px',
+    padding: h <= 35 ? '4px' : '0',
+  }
+}
+
 /** 显式像素定位（自由摆放网格） */
 function itemStyle(item) {
-  return cellRectStyle(item.col, item.row, item.w, cardHeightPx(item, gapValue.value))
+  return itemInnerStyle(item)
 }
 
 /** 拖动落位参考框 */
@@ -224,6 +243,13 @@ function select(id) {
 
 function notify() {
   api?.notify?.()
+}
+
+/* ---- 定向上移：卡片高度变化后，把其下方（同列范围）的卡片拉上来填洞 ---- */
+function pullUp(id) {
+  if (!props.items.length) return
+  pullUpBelow(props.items, id, cols.value)
+  notify()
 }
 
 /* ---- 上移/下移（空间语义：行号 ±1，自动让位） ---- */
@@ -244,12 +270,12 @@ function setWidth(item, w) {
   notify()
 }
 
-/* ---- 高度调整 ---- */
+/* ---- 高度调整（下拉选值）：先让位，再把下方卡片拉起填洞 ---- */
 function setHeight(item, px) {
   item.hPx = px
   item.h = rowsForHeight(px, gapValue.value)
   applyDrop(props.items, { id: item.id, col: item.col, row: item.row, w: item.w, h: item.h }, cols.value)
-  notify()
+  pullUp(item.id)
 }
 
 /* ---- 标题显隐 ---- */
@@ -420,6 +446,7 @@ function beginResize(e, item, dir) {
   const onUp = () => {
     document.removeEventListener('mousemove', onMove)
     document.removeEventListener('mouseup', onUp)
+    pullUp(origin.id)
   }
 
   document.addEventListener('mousemove', onMove)
@@ -528,6 +555,23 @@ onBeforeUnmount(() => {
   padding: 0;
   border-bottom: none;
   position: relative;
+}
+
+.item-header.item-header--compact {
+  --hh: 22px;
+  padding: 0 8px;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.item-header.item-header--hidden {
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.item-header.item-header--hidden .item-actions {
+  display: none;
 }
 
 .item-header.item-header--min .item-actions {

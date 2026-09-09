@@ -165,7 +165,63 @@ export function resolveDrop(items, piece, columns = GRID_COLS) {
 }
 
 /**
- * 原地版 resolveDrop：result = resolveDrop(...) 后整组 replace。
+ * 定向上移：卡片 origin 高度变化后，仅把"列范围重叠且位于其下方"的卡片尽量上移
+ * 填补其下方空洞。其它列保持不动，不破坏用户手动摆放的留白。原地修改 items。
+ * originId 对应被缩小的卡片；返回 items（引用不变）。
+ */
+export function pullUpBelow(items, originId, columns = GRID_COLS) {
+  const cols = Math.max(1, columns)
+  const origin = items.find((it) => it.id === originId)
+  if (!origin) return items
+  const oCol = Math.max(1, Math.round(origin.col) || 1)
+  const oRow = Math.max(1, Math.round(origin.row) || 1)
+  const oW = Math.max(1, Math.round(origin.w) || 1)
+  const oH = Math.max(1, Math.round(origin.h) || 1)
+  const oBottom = oRow + oH
+  const oColEnd = oCol + oW
+
+  const movable = items.filter((it) => {
+    if (it.id === originId) return false
+    const c = Math.round(it.col) || 1
+    const r = Math.round(it.row) || 1
+    const w = Math.max(1, Math.round(it.w) || 1)
+    const colOverlap = c < oColEnd && c + w > oCol
+    const below = r >= oBottom
+    return colOverlap && below
+  })
+  if (!movable.length) return items
+
+  const staticItems = items.filter((it) => it !== origin && !movable.includes(it))
+  const occupied = new Set()
+  staticItems.forEach((it) => {
+    occupy(occupied, Math.round(it.col) || 1, Math.round(it.row) || 1, Math.max(1, Math.round(it.w) || 1), Math.max(1, Math.round(it.h) || 1))
+  })
+  occupy(occupied, oCol, oRow, oW, oH)
+
+  const sorted = [...movable].sort(
+    (a, b) => (Math.round(a.row) || 1) - (Math.round(b.row) || 1) || (Math.round(a.col) || 1) - (Math.round(b.col) || 1)
+  )
+  const placed = new Map()
+  sorted.forEach((it) => {
+    const w = Math.max(1, Math.round(it.w) || 1)
+    const h = Math.max(1, Math.round(it.h) || 1)
+    const baseCol = clamp(Math.round(it.col) || 1, 1, Math.max(1, cols - w + 1))
+    let row = oBottom
+    while (!regionFree(occupied, baseCol, row, w, h)) row++
+    occupy(occupied, baseCol, row, w, h)
+    placed.set(it.id, { col: baseCol, row })
+  })
+  items.forEach((it) => {
+    const p = placed.get(it.id)
+    if (p) {
+      it.col = p.col
+      it.row = p.row
+    }
+  })
+  return items
+}
+
+/** 原地版 resolveDrop：result = resolveDrop(...) 后整组 replace。
  * 数组引用（含父容器 children 引用）保持不变，子网格递归时安全。
  */
 export function applyDrop(items, piece, columns = GRID_COLS) {

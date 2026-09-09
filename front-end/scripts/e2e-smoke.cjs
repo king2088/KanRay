@@ -65,9 +65,9 @@ async function pickSelect(page, selectLocator, optionIndex) {
   await page.waitForSelector('text=实时预览', { timeout: 20000 });
   log('4 跳转到图表构建器');
 
-  // 3. 选择数据集（第一下拉）
+  // 3. 选择数据集（数据源面板第一个下拉）
   await page.waitForSelector('.el-select', { timeout: 10000 });
-  const datasetSelect = page.locator('.config-collapse .el-select').first();
+  const datasetSelect = page.locator('.data-source-panel .el-select').first();
   await pickSelect(page, datasetSelect, 0);
   // 等待字段出现
   await page.waitForSelector('.field-chip', { timeout: 10000 });
@@ -168,6 +168,44 @@ async function pickSelect(page, selectLocator, optionIndex) {
   const rowRestored = (await page.locator('.grid-item').nth(0).boundingBox()).y;
   if (rowRestored >= rowAfter) throw new Error('上移还原失败');
 
+  // 9b1. 高度联动：加高推下下方卡 + 减高拉回（真 UI 操作）
+  const cardA = page.locator('.grid-item').nth(0);   // 图表（上方）
+  const cardB = page.locator('.grid-item').nth(1);   // 筛选（下方）
+  const selectHeightOf = async (card, text) => {
+    await card.locator('.item-actions .act-btn').nth(3).click(); // 高度下拉
+    await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
+    await page.locator('.el-dropdown-menu__item:visible').filter({ hasText: text }).click();
+    await sleep(700);
+  };
+  const bY0 = (await cardB.boundingBox()).y;
+  await selectHeightOf(cardA, '600px');
+  const bYBig = (await cardB.boundingBox()).y;
+  log('12b1 加高 600px：下方卡 top', bY0.toFixed(0), '→', bYBig.toFixed(0));
+  if (bYBig <= bY0) throw new Error('加高未将下方卡推下');
+  await selectHeightOf(cardA, '150px');
+  const bYSmall = (await cardB.boundingBox()).y;
+  log('12b1 减高 150px：下方卡 top', bYBig.toFixed(0), '→', bYSmall.toFixed(0));
+  if (bYSmall >= bYBig) throw new Error('减高后下方卡未上移');
+
+  // 9b2. 最小高度 35px：header 自动隐藏（内容区独占高度），再用边缘手柄拉回
+  await selectHeightOf(cardA, '35px');
+  const h35 = (await cardA.boundingBox()).height;
+  const hidden35 = await cardA.locator('.item-header--hidden').count();
+  log('12b2 最小高度 =', h35.toFixed(1), 'px | header-hidden =', hidden35);
+  if (h35 > 45) throw new Error('高度未被压缩到 ~35px');
+  if (hidden35 !== 1) throw new Error('35px 时 header 未隐藏');
+  await cardA.click();
+  await sleep(200);
+  const sHandle = await cardA.locator('.resize-s').boundingBox();
+  await page.mouse.move(sHandle.x + 40, sHandle.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(sHandle.x + 40, sHandle.y + 4 + 140, { steps: 10 });
+  await page.mouse.up();
+  await sleep(600);
+  const hRestored = (await cardA.boundingBox()).height;
+  log('12b2 恢复高度 =', hRestored.toFixed(1), 'px');
+  if (hRestored < 120) throw new Error('resize-s 恢复高度失败');
+
   // 9c. 拖拽到底部空白区：卡片应跟手落位到更下方
   const chartItem = page.locator('.grid-item').nth(0);
   const headerBox = await chartItem.locator('.item-header').boundingBox();
@@ -251,19 +289,6 @@ async function pickSelect(page, selectLocator, optionIndex) {
   await sleep(300);
   const titleBack = await firstCard.locator('.item-title').count();
   if (titleBack !== 1) throw new Error('恢复标题失败');
-
-  // 9i. 最小高度：设为 35px
-  await firstCard.locator('.item-actions .act-btn').nth(3).click(); // 高度下拉
-  await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
-  await page.locator('.el-dropdown-menu__item:visible').filter({ hasText: '35px' }).click();
-  await sleep(500);
-  const hSmall = (await firstCard.boundingBox()).height;
-  log('12i 最小高度 =', hSmall.toFixed(1), 'px');
-  if (hSmall > 45) throw new Error('高度未被压缩到 ~35px');
-  await firstCard.locator('.item-actions .act-btn').nth(3).click(); // 重新打开高度下拉
-  await page.waitForSelector('.el-dropdown-menu__item:visible', { timeout: 10000 });
-  await page.locator('.el-dropdown-menu__item:visible').filter({ hasText: '300px' }).click();
-  await sleep(400);
 
   // 10. 触发筛选联动（选择区域=华东）
   const filterSel = page.locator('.filter-component .el-select').first();
