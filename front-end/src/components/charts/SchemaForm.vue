@@ -1,48 +1,35 @@
 <template>
-  <el-form label-width="90px" size="small" :inline="false" class="schema-form">
+  <div class="schema-form" :class="{ 'is-inline': isInline }">
     <template v-for="(field, key) in schema" :key="key">
-      <!-- Inline text-style toolbar group (no labels, one wrapping row) -->
-      <div
-        v-if="field.type === 'group' && field.inline && field.children"
-        class="inline-group"
-      >
+      <!-- Inline toolbar group (text style) -->
+      <div v-if="field.type === 'group' && field.inline && field.children" class="inline-group">
         <span class="inline-group-label">{{ field.label }}</span>
-        <SchemaForm
-          class="inline-sub"
-          :schema="field.children"
-          :model="getNestedModel(key)"
-          @update="onNestedUpdate(key)"
-          inline
-        />
+        <span class="inline-sub">
+          <SchemaForm
+            :schema="field.children"
+            :model="getNestedModel(key)"
+            @update="onNestedUpdate(key)"
+            inline
+          />
+        </span>
       </div>
 
-      <el-form-item
-        v-else-if="!field.type || field.type === 'group'"
-        :label="field.label"
-      >
-        <SchemaForm
-          v-if="field.children"
-          :schema="field.children"
-          :model="getNestedModel(key)"
-          @update="onNestedUpdate(key)"
-        />
-        <el-alert v-else title="Group needs children schema" type="warning" :show-icon="false" style="font-size: 12px" />
-      </el-form-item>
+      <!-- Nested group: render as a sub-block -->
+      <div v-else-if="!field.type || field.type === 'group'" class="field-row group-child">
+        <div class="field-label sub">{{ field.label }}</div>
+        <div class="field-control">
+          <SchemaForm
+            v-if="field.children"
+            :schema="field.children"
+            :model="getNestedModel(key)"
+            @update="onNestedUpdate(key)"
+          />
+          <span v-else class="hint">配置缺失</span>
+        </div>
+      </div>
 
-      <!-- Scalar fields rendered as compact inline controls when parent is inline -->
-      <el-form-item
-        v-else-if="!isInline"
-        :label="field.label"
-      >
-        <Control
-          :field="field"
-          :value="getModelValue(key)"
-          @change="(v) => setModelValue(key, v)"
-        />
-      </el-form-item>
-
-      <!-- Inline mode: render compact control without label -->
-      <span v-else class="ctrl">
+      <!-- Inline (toolbar) mode: bare compact control, no label -->
+      <span v-else-if="isInline" class="ctrl">
         <Control
           :field="field"
           :value="getModelValue(key)"
@@ -50,8 +37,20 @@
           @change="(v) => setModelValue(key, v)"
         />
       </span>
+
+      <!-- Normal row: label left, control right -->
+      <div v-else class="field-row">
+        <div class="field-label">{{ field.label }}</div>
+        <div class="field-control">
+          <Control
+            :field="field"
+            :value="getModelValue(key)"
+            @change="(v) => setModelValue(key, v)"
+          />
+        </div>
+      </div>
     </template>
-  </el-form>
+  </div>
 </template>
 
 <script setup>
@@ -146,8 +145,38 @@ function onNestedUpdate(key) {
 .schema-form {
   width: 100%;
 }
-:deep(.schema-form .el-form-item) {
-  margin-bottom: 8px;
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 2px 0;
+  gap: 8px;
+}
+.field-row.group-child {
+  align-items: flex-start;
+}
+.field-label {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--app-text-secondary, #6b7280);
+  min-width: 72px;
+}
+.field-label.sub {
+  padding-top: 6px;
+  color: var(--app-text, #333);
+  font-weight: 500;
+}
+.field-control {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.hint {
+  font-size: 12px;
+  color: #c0c4cc;
 }
 .inline-group {
   display: flex;
@@ -159,18 +188,31 @@ function onNestedUpdate(key) {
 .inline-group-label {
   font-size: 12px;
   color: var(--app-text-secondary, #888);
-  width: 74px;
+  min-width: 62px;
   flex-shrink: 0;
 }
-:deep(.inline-sub) {
+.inline-sub {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
   flex: 1;
   min-width: 0;
-}
-:deep(.inline-sub .el-form-item) {
-  margin-bottom: 0;
+  gap: 6px;
 }
 .ctrl {
   display: inline-flex;
   align-items: center;
+}
+:deep(.field-control .el-input-number),
+:deep(.field-control .el-slider) {
+  width: 130px;
+}
+:deep(.field-control > .el-switch) {
+  margin-right: 4px;
+}
+:deep(.field-control > .el-select),
+:deep(.field-control > .el-input),
+:deep(.field-control > .el-color-picker) {
+  width: 100%;
 }
 </style>

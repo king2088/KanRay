@@ -18,12 +18,17 @@ const el = ref(null)
 let chart = null
 let resizeObserver = null
 
+function resolveConfig(options = {}) {
+  const { typeSpecific, ...rest } = options
+  return { ...rest, ...(typeSpecific || {}) }
+}
+
 const isEChartsType = computed(() => {
   if (!props.data) return true
   const builder = OPTION_BUILDERS[props.chartType]
   if (!builder) return false
   const palette = props.options._palette || getPalette(props.options.colorPalette)
-  const opt = builder(props.data, props.options, palette)
+  const opt = builder(props.data, resolveConfig(props.options), palette)
   return !opt._table && !opt._stat && !opt._progress && !opt._statTrend && !opt._map
 })
 
@@ -41,7 +46,7 @@ function render() {
   if (!builder) return
 
   const palette = props.options._palette || getPalette(props.options.colorPalette)
-  const opt = builder(props.data, props.options, palette)
+  const opt = builder(props.data, resolveConfig(props.options), palette)
 
   // Handle non-ECharts returns
   if (opt._table || opt._stat || opt._progress || opt._statTrend || opt._map) {

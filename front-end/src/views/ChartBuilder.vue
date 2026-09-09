@@ -173,6 +173,7 @@ import { ArrowLeft, Check, Delete, DataLine, TrendCharts, Plus } from '@element-
 import { datasetApi, chartApi } from '@/api'
 import { CHART_TYPES, getChartType } from '@/config/chart-types'
 import { getPalette, DEFAULT_PALETTE_INDEX } from '@/config/color-palettes'
+import { getDefaultConfig } from '@/config/chart-configs'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
 import DataSourcePanel from '@/components/charts/DataSourcePanel.vue'
 import FieldConfigPanel from '@/components/charts/FieldConfigPanel.vue'
@@ -217,6 +218,19 @@ const finalOptions = computed(() => ({
   ...displayConfig.value,
   _palette: getPalette(displayConfig.value.colorPalette),
 }))
+
+// 用 schema 默认值兜底，确保缺失字段也有默认值，避免配置面板显示空白
+function mergeWithDefaults(saved = {}, type = chartType.value) {
+  const defaults = getDefaultConfig(type)
+  const merged = { ...defaults, ...saved }
+  const savedType = saved.typeSpecific
+  if (savedType && typeof savedType === 'object') {
+    merged.typeSpecific = { ...(defaults.typeSpecific || {}), ...savedType }
+  } else {
+    merged.typeSpecific = defaults.typeSpecific
+  }
+  return merged
+}
 
 const isProgressType = computed(() => ['progressBar', 'circularProgress', 'multiRingProgress', 'fluidProgress'].includes(chartType.value))
 
@@ -382,7 +396,7 @@ async function loadEditing() {
   dims.value = (cfg.dimensions || []).map((d) => ({ field: d.field, granularity: d.granularity }))
   metrics.value = (cfg.metrics || []).map((m) => ({ field: m.field, agg: m.agg }))
   if (cfg.options) {
-    displayConfig.value = { ...cfg.options }
+    displayConfig.value = mergeWithDefaults({ ...cfg.options }, chartType.value)
   }
   if (cfg.sortBy === 0) sortConfig.field = 'metric'
   else if (cfg.sortBy === 'dim') sortConfig.field = 'dim'
@@ -405,11 +419,23 @@ const debouncedConfigChange = debounce(() => {
 
 // 仅数据相关变更触发 loadPreview
 watch([dims, metrics, chartType, showOptions, sortConfig], debouncedPreview, { deep: true })
+// 切换图表类型时重置类型专属配置（保持公共配置不变）
+watch(chartType, (newType, oldType) => {
+  if (!oldType || newType === oldType) return
+  const defaults = getDefaultConfig(newType)
+  const saved = displayConfig.value
+  displayConfig.value = {
+    ...saved,
+    ...(defaults.typeSpecific ? { typeSpecific: defaults.typeSpecific } : {}),
+    colorPalette: saved.colorPalette ?? defaults.colorPalette,
+  }
+})
 // 配置变更仅更新 finalOptions（通过 computed 自动响应），不需要额外 watch
 
 onMounted(async () => {
   await loadDatasets()
   await loadEditing()
+  if (!editingId) displayConfig.value = getDefaultConfig(chartType.value)
   if (datasetId.value && metrics.value.length) {
     const ds = await datasetApi.get(datasetId.value)
     datasetName.value = ds.name
