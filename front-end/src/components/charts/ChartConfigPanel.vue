@@ -10,7 +10,7 @@
       >
         <SchemaForm
           :schema="schema.children"
-          :model="config[key]"
+          :model="localConfig[key]"
           @update="onConfigUpdate(key)"
         />
       </el-collapse-item>
@@ -23,7 +23,7 @@
       >
         <SchemaForm
           :schema="typeSchema"
-          :model="typeSpecific"
+          :model="localTypeSpecific"
           @update="onTypeSpecificUpdate"
         />
       </el-collapse-item>
@@ -32,9 +32,8 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { COMMON_CONFIG_SCHEMA, TYPE_CONFIG_SCHEMAS } from '@/config/chart-configs'
-import { COLOR_PALETTES, DEFAULT_PALETTE_INDEX } from '@/config/color-palettes'
 import { getChartType } from '@/config/chart-types'
 import SchemaForm from './SchemaForm.vue'
 
@@ -48,7 +47,6 @@ const emit = defineEmits(['update:config'])
 const openPanels = ref(['title'])
 
 const commonSchemaGroups = computed(() => {
-  // Only include groups with children (type === 'group' && children exists)
   const groups = {}
   for (const [key, schema] of Object.entries(COMMON_CONFIG_SCHEMA)) {
     if (schema.type === 'group' && schema.children) {
@@ -58,39 +56,64 @@ const commonSchemaGroups = computed(() => {
   return groups
 })
 
-const config = computed(() => props.config)
-const update = () => emit('update:config', JSON.parse(JSON.stringify(config.value)))
+// Local reactive copy to avoid mutating props directly
+const localConfig = ref({})
+const localTypeSpecific = ref({})
 
-function onConfigUpdate(key) {
-  return (newVal) => {
-    config.value[key] = newVal
-    update()
+// Sync from props to local
+function syncFromProps() {
+  localConfig.value = { ...props.config }
+  // Remove colorPalette from localConfig since it's handled separately
+  if (localConfig.value.colorPalette) {
+    delete localConfig.value.colorPalette
   }
+  localTypeSpecific.value = { ...(props.config.typeSpecific || {}) }
 }
+
+// Initial sync
+syncFromProps()
+
+// Sync back to props when local changes
+let emitTimer = null
+function emitUpdate() {
+  if (emitTimer) clearTimeout(emitTimer)
+  emitTimer = setTimeout(() => {
+    const merged = { ...localConfig.value }
+    if (Object.keys(localTypeSpecific.value).length > 0) {
+      merged.typeSpecific = { ...localTypeSpecific.value }
+    }
+    emit('update:config', JSON.parse(JSON.stringify(merged)))
+  }, 100)
+}
+
+// Watch for prop changes
+watch(() => props.config, (newVal) => {
+  if (newVal) {
+    syncFromProps()
+  }
+}, { deep: true, immediate: false })
 
 const typeSchema = computed(() => TYPE_CONFIG_SCHEMAS[props.chartType] || {})
 const typeSchemaKeys = computed(() => Object.keys(typeSchema.value))
 
-const typeSpecific = computed({
-  get: () => (config.value.typeSpecific = config.value.typeSpecific || {}),
-  set: () => update(),
-})
+function onConfigUpdate(key) {
+  return (newVal) => {
+    localConfig.value[key] = newVal
+    emitUpdate()
+  }
+}
 
 function onTypeSpecificUpdate(newVal) {
-  config.value.typeSpecific = newVal
-  update()
+  localTypeSpecific.value = newVal
+  emitUpdate()
 }
 
 watch(() => props.chartType, () => {
   openPanels.value = ['title']
+  nextTick(() => {
+    localTypeSpecific.value = {}
+  })
 }, { immediate: false })
-
-watch(typeSpecific, update, { deep: true })
-
-// Color palette quick selector - add as a separate panel
-const colorPaletteSchema = computed(() => ({
-  colorPalette: COMMON_CONFIG_SCHEMA.colorPalette,
-}))
 </script>
 
 <style scoped>
