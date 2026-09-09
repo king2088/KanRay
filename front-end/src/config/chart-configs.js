@@ -1,69 +1,483 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
 
+// 文本样式配置工厂
+const createTextStyleConfig = (prefix, defaults = {}) => ({
+  color: { type: 'color', label: '颜色', default: defaults.color || '#333333' },
+  fontSize: { type: 'number', label: '字号', default: defaults.fontSize || 12, min: 8, max: 40 },
+  fontWeight: {
+    type: 'select', label: '粗细', default: defaults.fontWeight || 'normal',
+    options: [
+      { label: '正常', value: 'normal' }, { label: '加粗', value: 'bold' },
+      { label: '更粗', value: 'bolder' }, { label: '更细', value: 'lighter' },
+      { label: '100', value: 100 }, { label: '200', value: 200 },
+      { label: '300', value: 300 }, { label: '400', value: 400 },
+      { label: '500', value: 500 }, { label: '600', value: 600 },
+      { label: '700', value: 700 }, { label: '800', value: 800 },
+      { label: '900', value: 900 },
+    ],
+  },
+  fontStyle: {
+    type: 'select', label: '斜体', default: defaults.fontStyle || 'normal',
+    options: [
+      { label: '正常', value: 'normal' }, { label: '斜体', value: 'italic' },
+      { label: '倾斜', value: 'oblique' },
+    ],
+  },
+  fontFamily: {
+    type: 'input', label: '字体', default: defaults.fontFamily || 'inherit',
+    placeholder: '如: Microsoft YaHei, PingFang SC',
+  },
+  textDecoration: {
+    type: 'select', label: '下划线/删除线', default: defaults.textDecoration || 'none',
+    options: [
+      { label: '无', value: 'none' }, { label: '下划线', value: 'underline' },
+      { label: '删除线', value: 'line-through' }, { label: '上划线', value: 'overline' },
+    ],
+  },
+  textAlign: {
+    type: 'select', label: '对齐', default: defaults.textAlign || 'auto',
+    options: [
+      { label: '自动', value: 'auto' }, { label: '左', value: 'left' },
+      { label: '中', value: 'center' }, { label: '右', value: 'right' },
+    ],
+  },
+  lineHeight: { type: 'number', label: '行高', default: defaults.lineHeight || 1.2, min: 0.5, max: 3, step: 0.1 },
+  rich: { type: 'switch', label: '富文本', default: false },
+})
+
 // ---- 公共配置schema（所有图表共享） ----
 export const COMMON_CONFIG_SCHEMA = {
   title: {
     type: 'group', label: '标题', children: {
       show: { type: 'switch', label: '显示', default: true },
-      text: { type: 'input', label: '标题文本', default: '' },
-      subtext: { type: 'input', label: '副标题', default: '' },
-      position: {
-        type: 'select', label: '位置', default: 'center', options: [
+      text: { type: 'input', label: '主标题', default: '', placeholder: '图表标题' },
+      subtext: { type: 'input', label: '副标题', default: '', placeholder: '副标题(可选)' },
+      left: {
+        type: 'select', label: '水平位置', default: 'center', options: [
           { label: '左', value: 'left' }, { label: '居中', value: 'center' }, { label: '右', value: 'right' },
+          { label: '左侧10%', value: '10%' }, { label: '右侧10%', value: '90%' },
         ],
       },
-      fontSize: { type: 'number', label: '标题字号', default: 16, min: 10, max: 40 },
-      subFontSize: { type: 'number', label: '副标题字号', default: 12, min: 8, max: 30 },
+      top: {
+        type: 'select', label: '垂直位置', default: 'top', options: [
+          { label: '顶部', value: 'top' }, { label: '中部', value: 'middle' }, { label: '底部', value: 'bottom' },
+          { label: '顶部10%', value: '10%' }, { label: '底部10%', value: '90%' },
+        ],
+      },
+      textAlign: {
+        type: 'select', label: '对齐', default: 'auto', options: [
+          { label: '自动', value: 'auto' }, { label: '左', value: 'left' }, { label: '中', value: 'center' }, { label: '右', value: 'right' },
+        ],
+      },
+      textStyle: { type: 'group', label: '主标题样式', children: createTextStyleConfig('title', { fontSize: 16, fontWeight: 'bold', color: '#333333' }) },
+      subtextStyle: { type: 'group', label: '副标题样式', children: createTextStyleConfig('subtext', { fontSize: 12, color: '#999999' }) },
+      padding: { type: 'number', label: '内边距', default: 0, min: 0, max: 50 },
+      itemGap: { type: 'number', label: '主副间距', default: 10, min: 0, max: 30 },
+      backgroundColor: { type: 'color', label: '背景色', default: 'transparent' },
+      borderColor: { type: 'color', label: '边框色', default: 'transparent' },
+      borderWidth: { type: 'number', label: '边框宽', default: 0, min: 0, max: 10 },
+      borderRadius: { type: 'number', label: '圆角', default: 0, min: 0, max: 20 },
+      shadowColor: { type: 'color', label: '阴影色', default: 'transparent' },
+      shadowBlur: { type: 'number', label: '阴影模糊', default: 0, min: 0, max: 30 },
+      shadowOffsetX: { type: 'number', label: '阴影X', default: 0, min: -20, max: 20 },
+      shadowOffsetY: { type: 'number', label: '阴影Y', default: 0, min: -20, max: 20 },
     },
   },
   legend: {
     type: 'group', label: '图例', children: {
       show: { type: 'switch', label: '显示', default: true },
-      position: {
-        type: 'select', label: '位置', default: 'bottom', options: [
-          { label: '上', value: 'top' }, { label: '下', value: 'bottom' },
-          { label: '左', value: 'left' }, { label: '右', value: 'right' },
+      orient: {
+        type: 'select', label: '布局方向', default: 'horizontal', options: [
+          { label: '水平', value: 'horizontal' }, { label: '垂直', value: 'vertical' },
         ],
       },
+      left: {
+        type: 'select', label: '水平位置', default: 'center', options: [
+          { label: '左', value: 'left' }, { label: '居中', value: 'center' }, { label: '右', value: 'right' },
+          { label: '左侧5%', value: '5%' }, { label: '右侧5%', value: '95%' },
+        ],
+      },
+      top: {
+        type: 'select', label: '垂直位置', default: 'bottom', options: [
+          { label: '顶部', value: 'top' }, { label: '中部', value: 'middle' }, { label: '底部', value: 'bottom' },
+          { label: '顶部5%', value: '5%' }, { label: '底部5%', value: '95%' },
+        ],
+      },
+      align: {
+        type: 'select', label: '图例项对齐', default: 'auto', options: [
+          { label: '自动', value: 'auto' }, { label: '左', value: 'left' }, { label: '右', value: 'right' },
+        ],
+      },
+      itemWidth: { type: 'number', label: '图例标记宽', default: 25, min: 10, max: 50 },
+      itemHeight: { type: 'number', label: '图例标记高', default: 14, min: 8, max: 30 },
+      itemGap: { type: 'number', label: '图例项间距', default: 10, min: 0, max: 50 },
+      padding: { type: 'number', label: '内边距', default: 5, min: 0, max: 30 },
+      textStyle: { type: 'group', label: '图例文字样式', children: createTextStyleConfig('legend', { fontSize: 12, color: '#333333' }) },
+      selectedMode: { type: 'switch', label: '点击选择', default: true },
+      inactiveColor: { type: 'color', label: '禁用颜色', default: '#ccc' },
+      backgroundColor: { type: 'color', label: '背景色', default: 'transparent' },
+      borderColor: { type: 'color', label: '边框色', default: 'transparent' },
+      borderWidth: { type: 'number', label: '边框宽', default: 0, min: 0, max: 10 },
+      borderRadius: { type: 'number', label: '圆角', default: 0, min: 0, max: 20 },
+      shadowColor: { type: 'color', label: '阴影色', default: 'transparent' },
+      shadowBlur: { type: 'number', label: '阴影模糊', default: 0, min: 0, max: 30 },
+      shadowOffsetX: { type: 'number', label: '阴影X', default: 0, min: -20, max: 20 },
+      shadowOffsetY: { type: 'number', label: '阴影Y', default: 0, min: -20, max: 20 },
+      pageButtonItemGap: { type: 'number', label: '翻页按钮间距', default: 5, min: 0, max: 20 },
+      pageButtonPosition: {
+        type: 'select', label: '翻页位置', default: 'end', options: [
+          { label: '末尾', value: 'end' }, { label: '开头', value: 'start' }, { label: '两端', value: 'both' },
+        ],
+      },
+      pageTextStyle: { type: 'group', label: '页码文字', children: createTextStyleConfig('pageText', { fontSize: 12, color: '#333333' }) },
+      pageIconColor: { type: 'color', label: '翻页图标色', default: '#333333' },
+      pageIconInactiveColor: { type: 'color', label: '翻页禁用色', default: '#aaa' },
+      pageIconSize: { type: 'number', label: '翻页图标大小', default: 15, min: 8, max: 30 },
     },
   },
   tooltip: {
-    type: 'group', label: '提示', children: {
+    type: 'group', label: '提示框', children: {
       show: { type: 'switch', label: '显示', default: true },
       trigger: {
         type: 'select', label: '触发方式', default: 'axis', options: [
           { label: '坐标轴', value: 'axis' }, { label: '数据项', value: 'item' }, { label: '不触发', value: 'none' },
         ],
       },
+      triggerOn: {
+        type: 'select', label: '触发条件', default: 'mousemove|click', options: [
+          { label: '移动/点击', value: 'mousemove|click' }, { label: '仅移动', value: 'mousemove' }, { label: '仅点击', value: 'click' },
+        ],
+      },
+      axisPointer: {
+        type: 'group', label: '坐标轴指示器', children: {
+          type: {
+            type: 'select', label: '类型', default: 'line', options: [
+              { label: '直线', value: 'line' }, { label: '阴影', value: 'shadow' }, { label: '十字', value: 'cross' }, { label: '无', value: 'none' },
+            ],
+          },
+          lineStyle: { type: 'group', label: '线条样式', children: {
+            color: { type: 'color', label: '颜色', default: '#aaa' },
+            width: { type: 'number', label: '宽度', default: 1, min: 0, max: 10 },
+            type: { type: 'select', label: '类型', default: 'solid', options: [{ label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' }] },
+          }},
+          shadowStyle: { type: 'group', label: '阴影样式', children: {
+            color: { type: 'color', label: '颜色', default: 'rgba(150,150,150,0.3)' },
+          }},
+          crossStyle: { type: 'group', label: '十字样式', children: {
+            color: { type: 'color', label: '颜色', default: '#aaa' },
+            width: { type: 'number', label: '宽度', default: 1, min: 0, max: 10 },
+            type: { type: 'select', label: '类型', default: 'dashed', options: [{ label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }] },
+          }},
+          label: { type: 'group', label: '指示器标签', children: {
+            show: { type: 'switch', label: '显示', default: false },
+            backgroundColor: { type: 'color', label: '背景色', default: '#6a7985' },
+            textStyle: { type: 'group', label: '文字样式', children: createTextStyleConfig('axisLabel', { fontSize: 12, color: '#fff' }) },
+          }},
+        },
+      },
+      textStyle: { type: 'group', label: '提示文字样式', children: createTextStyleConfig('tooltip', { fontSize: 12, color: '#fff' }) },
+      backgroundColor: { type: 'color', label: '背景色', default: 'rgba(50,50,50,0.9)' },
+      borderColor: { type: 'color', label: '边框色', default: 'transparent' },
+      borderWidth: { type: 'number', label: '边框宽', default: 0, min: 0, max: 10 },
+      borderRadius: { type: 'number', label: '圆角', default: 4, min: 0, max: 20 },
+      padding: { type: 'number', label: '内边距', default: 10, min: 0, max: 30 },
+      extraCssText: { type: 'input', label: '额外CSS', default: '', placeholder: '如: box-shadow: 0 0 10px rgba(0,0,0,0.3)' },
+      formatter: { type: 'textarea', label: '格式化函数(JS)', default: '', placeholder: 'function(params){ return params.name + ": " + params.value }' },
+      valueFormatter: { type: 'input', label: '数值格式', default: '', placeholder: '如: {c} 或 {c}%' },
+      position: {
+        type: 'select', label: '固定位置', default: 'auto', options: [
+          { label: '自动', value: 'auto' }, { label: '顶部', value: 'top' }, { label: '左', value: 'left' },
+          { label: '右', value: 'right' }, { label: '底部', value: 'bottom' }, { label: '鼠标旁', value: 'inside' },
+        ],
+      },
+      confine: { type: 'switch', label: '限制在图表内', default: false },
+      transitionDuration: { type: 'number', label: '动画时长(ms)', default: 0.4, min: 0, max: 1, step: 0.1 },
+      displayTransition: { type: 'switch', label: '显示过渡', default: true },
+      enterable: { type: 'switch', label: '鼠标可进入', default: true },
     },
   },
   label: {
-    type: 'group', label: '标签', children: {
+    type: 'group', label: '数据标签', children: {
       show: { type: 'switch', label: '显示', default: false },
       position: {
         type: 'select', label: '位置', default: 'top', options: [
           { label: '上', value: 'top' }, { label: '下', value: 'bottom' },
           { label: '左', value: 'left' }, { label: '右', value: 'right' },
           { label: '内', value: 'inside' }, { label: '内上', value: 'insideTop' },
+          { label: '内下', value: 'insideBottom' }, { label: '内左', value: 'insideLeft' },
+          { label: '内右', value: 'insideRight' }, { label: '内上左', value: 'insideTopLeft' },
+          { label: '内上右', value: 'insideTopRight' }, { label: '内下左', value: 'insideBottomLeft' },
+          { label: '内下右', value: 'insideBottomRight' },
         ],
       },
       formatter: {
         type: 'select', label: '格式', default: '', options: [
-          { label: '默认', value: '' }, { label: '数值', value: '{c}' }, { label: '百分比', value: '{d}%' },
+          { label: '默认', value: '' }, { label: '数值', value: '{c}' }, { label: '名称', value: '{b}' },
+          { label: '百分比', value: '{d}%' }, { label: '系列名', value: '{a}' },
         ],
       },
+      color: { type: 'color', label: '文字颜色', default: 'inherit' },
+      fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 30 },
+      fontWeight: {
+        type: 'select', label: '粗细', default: 'normal', options: [
+          { label: '正常', value: 'normal' }, { label: '加粗', value: 'bold' }, { label: '更粗', value: 'bolder' }, { label: '更细', value: 'lighter' },
+        ],
+      },
+      fontStyle: {
+        type: 'select', label: '斜体', default: 'normal', options: [
+          { label: '正常', value: 'normal' }, { label: '斜体', value: 'italic' }, { label: '倾斜', value: 'oblique' },
+        ],
+      },
+      fontFamily: { type: 'input', label: '字体', default: 'inherit', placeholder: '如: Microsoft YaHei' },
+      textDecoration: {
+        type: 'select', label: '下划线/删除线', default: 'none', options: [
+          { label: '无', value: 'none' }, { label: '下划线', value: 'underline' }, { label: '删除线', value: 'line-through' }, { label: '上划线', value: 'overline' },
+        ],
+      },
+      align: { type: 'select', label: '对齐', default: 'auto', options: [{ label: '自动', value: 'auto' }, { label: '左', value: 'left' }, { label: '中', value: 'center' }, { label: '右', value: 'right' }] },
+      verticalAlign: { type: 'select', label: '垂直对齐', default: 'auto', options: [{ label: '自动', value: 'auto' }, { label: '上', value: 'top' }, { label: '中', value: 'middle' }, { label: '下', value: 'bottom' }] },
+      lineHeight: { type: 'number', label: '行高', default: 1.2, min: 0.5, max: 3, step: 0.1 },
+      rich: { type: 'switch', label: '富文本', default: false },
+      rotate: { type: 'number', label: '旋转角度', default: 0, min: -90, max: 90 },
+      overflow: {
+        type: 'select', label: '溢出处理', default: 'none', options: [
+          { label: '无', value: 'none' }, { label: '截断', value: 'truncate' }, { label: '换行', value: 'break' }, { label: '缩放', value: 'breakAll' },
+        ],
+      },
+      width: { type: 'number', label: '最大宽度', default: 0, min: 0, max: 300, placeholder: '0为自动' },
+      height: { type: 'number', label: '最大高度', default: 0, min: 0, max: 200, placeholder: '0为自动' },
+      borderColor: { type: 'color', label: '边框色', default: 'transparent' },
+      borderWidth: { type: 'number', label: '边框宽', default: 0, min: 0, max: 10 },
+      borderRadius: { type: 'number', label: '圆角', default: 0, min: 0, max: 20 },
+      backgroundColor: { type: 'color', label: '背景色', default: 'transparent' },
+      padding: { type: 'number', label: '内边距', default: 0, min: 0, max: 20 },
+      shadowColor: { type: 'color', label: '阴影色', default: 'transparent' },
+      shadowBlur: { type: 'number', label: '阴影模糊', default: 0, min: 0, max: 30 },
+      shadowOffsetX: { type: 'number', label: '阴影X', default: 0, min: -20, max: 20 },
+      shadowOffsetY: { type: 'number', label: '阴影Y', default: 0, min: -20, max: 20 },
+      distance: { type: 'number', label: '距离图形', default: 5, min: 0, max: 50 },
+      offset: { type: 'input', label: '偏移[x,y]', default: '', placeholder: '[10, -5]' },
+      bleedMargin: { type: 'number', label: '溢出容差', default: 10, min: 0, max: 100 },
     },
   },
   markLine: {
-    type: 'group', label: '辅助线', children: {
+    type: 'group', label: '标记线', children: {
       show: { type: 'switch', label: '显示', default: false },
       type: {
         type: 'select', label: '类型', default: 'average', options: [
           { label: '平均值', value: 'average' }, { label: '最大值', value: 'max' },
-          { label: '最小值', value: 'min' }, { label: '自定义', value: 'custom' },
+          { label: '最小值', value: 'min' }, { label: '中位数', value: 'median' },
+          { label: '自定义', value: 'custom' },
         ],
       },
       customValue: { type: 'number', label: '自定义值', default: 0 },
+      symbol: { type: 'select', label: '端点符号', default: 'none', options: [
+        { label: '无', value: 'none' }, { label: '圆', value: 'circle' }, { label: '箭头', value: 'arrow' },
+      ]},
+      lineStyle: { type: 'group', label: '线条样式', children: {
+        color: { type: 'color', label: '颜色', default: '#E63946' },
+        width: { type: 'number', label: '宽度', default: 1.5, min: 0.5, max: 10 },
+        type: { type: 'select', label: '类型', default: 'dashed', options: [
+          { label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' },
+        ]},
+      }},
+      label: { type: 'group', label: '标签', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        position: { type: 'select', label: '位置', default: 'end', options: [
+          { label: '开始', value: 'start' }, { label: '中间', value: 'middle' }, { label: '结束', value: 'end' },
+        ]},
+        formatter: { type: 'input', label: '格式', default: '{b}: {c}', placeholder: '如: {b}: {c}' },
+        textStyle: { type: 'group', label: '文字样式', children: createTextStyleConfig('markLineLabel', { fontSize: 11, color: '#E63946' }) },
+      }},
+    },
+  },
+  markPoint: {
+    type: 'group', label: '标记点', children: {
+      show: { type: 'switch', label: '显示', default: false },
+      type: {
+        type: 'select', label: '类型', default: 'max', options: [
+          { label: '最大值', value: 'max' }, { label: '最小值', value: 'min' }, { label: '平均值', value: 'average' },
+        ],
+      },
+      symbol: { type: 'select', label: '标记形状', default: 'pin', options: [
+        { label: '图钉', value: 'pin' }, { label: '圆', value: 'circle' }, { label: '矩形', value: 'rect' },
+        { label: '三角', value: 'triangle' }, { label: '菱形', value: 'diamond' }, { label: '箭头', value: 'arrow' },
+      ]},
+      symbolSize: { type: 'number', label: '标记大小', default: 30, min: 10, max: 100 },
+      itemStyle: { type: 'group', label: '样式', children: {
+        color: { type: 'color', label: '颜色', default: '#E63946' },
+        borderColor: { type: 'color', label: '边框色', default: '#fff' },
+        borderWidth: { type: 'number', label: '边框宽', default: 2, min: 0, max: 10 },
+      }},
+      label: { type: 'group', label: '标签', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        formatter: { type: 'input', label: '格式', default: '{c}', placeholder: '如: {c}' },
+        textStyle: { type: 'group', label: '文字样式', children: createTextStyleConfig('markPointLabel', { fontSize: 12, color: '#fff', fontWeight: 'bold' }) },
+      }},
+    },
+  },
+  markArea: {
+    type: 'group', label: '标记区域', children: {
+      show: { type: 'switch', label: '显示', default: false },
+      data: { type: 'textarea', label: '区域数据(JSON)', default: '', placeholder: '[{xAxis: "0", xAxis2: "10"}, ...]' },
+      itemStyle: { type: 'group', label: '样式', children: {
+        color: { type: 'color', label: '颜色', default: 'rgba(230,57,70,0.2)' },
+        borderColor: { type: 'color', label: '边框色', default: 'rgba(230,57,70,0.5)' },
+        borderWidth: { type: 'number', label: '边框宽', default: 1, min: 0, max: 10 },
+      }},
+      label: { type: 'group', label: '标签', children: {
+        show: { type: 'switch', label: '显示', default: false },
+        textStyle: { type: 'group', label: '文字样式', children: createTextStyleConfig('markAreaLabel', { fontSize: 12, color: '#E63946' }) },
+      }},
+    },
+  },
+  grid: {
+    type: 'group', label: '网格区域', children: {
+      show: { type: 'switch', label: '显示边框', default: false },
+      left: { type: 'input', label: '左距离', default: '60', placeholder: '如: 60, 10%, auto' },
+      right: { type: 'input', label: '右距离', default: '30', placeholder: '如: 30, 10%, auto' },
+      top: { type: 'input', label: '上距离', default: '40', placeholder: '如: 40, 10%, auto' },
+      bottom: { type: 'input', label: '下距离', default: '40', placeholder: '如: 40, 10%, auto' },
+      width: { type: 'input', label: '宽度', default: 'auto', placeholder: '如: 80%, 400px, auto' },
+      height: { type: 'input', label: '高度', default: 'auto', placeholder: '如: 80%, 300px, auto' },
+      containLabel: { type: 'switch', label: '防止标签溢出', default: true },
+      backgroundColor: { type: 'color', label: '背景色', default: 'transparent' },
+      borderColor: { type: 'color', label: '边框色', default: '#eee' },
+      borderWidth: { type: 'number', label: '边框宽', default: 1, min: 0, max: 10 },
+    },
+  },
+  xAxis: {
+    type: 'group', label: 'X轴', children: {
+      show: { type: 'switch', label: '显示', default: true },
+      type: { type: 'select', label: '类型', default: 'category', options: [
+        { label: '类目', value: 'category' }, { label: '数值', value: 'value' }, { label: '时间', value: 'time' }, { label: '对数', value: 'log' },
+      ]},
+      position: { type: 'select', label: '位置', default: 'bottom', options: [
+        { label: '底部', value: 'bottom' }, { label: '顶部', value: 'top' },
+      ]},
+      name: { type: 'input', label: '轴名称', default: '', placeholder: '轴标题' },
+      nameLocation: { type: 'select', label: '名称位置', default: 'middle', options: [
+        { label: '中间', value: 'middle' }, { label: '开始', value: 'start' }, { label: '结束', value: 'end' },
+      ]},
+      nameGap: { type: 'number', label: '名称间距', default: 15, min: 0, max: 50 },
+      nameRotate: { type: 'number', label: '名称旋转', default: 0, min: -90, max: 90 },
+      inverse: { type: 'switch', label: '反向', default: false },
+      boundaryGap: { type: 'switch', label: '留白', default: true },
+      min: { type: 'input', label: '最小值', default: '', placeholder: '自动或数值' },
+      max: { type: 'input', label: '最大值', default: '', placeholder: '自动或数值' },
+      scale: { type: 'switch', label: '强制从0开始', default: false },
+      splitNumber: { type: 'number', label: '分割段数', default: 5, min: 1, max: 20 },
+      interval: { type: 'input', label: '间隔', default: 'auto', placeholder: 'auto 或 数值' },
+      axisLine: { type: 'group', label: '轴线', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        onZero: { type: 'switch', label: '在零刻度', default: true },
+        lineStyle: { type: 'group', label: '线条', children: {
+          color: { type: 'color', label: '颜色', default: '#ddd' },
+          width: { type: 'number', label: '宽度', default: 1, min: 0, max: 10 },
+          type: { type: 'select', label: '类型', default: 'solid', options: [{ label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }] },
+        }},
+      }},
+      axisTick: { type: 'group', label: '刻度', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        inside: { type: 'switch', label: '内侧', default: false },
+        length: { type: 'number', label: '长度', default: 5, min: 0, max: 20 },
+        lineStyle: { type: 'group', label: '线条', children: {
+          color: { type: 'color', label: '颜色', default: '#ddd' },
+          width: { type: 'number', label: '宽度', default: 1, min: 0, max: 5 },
+        }},
+      }},
+      axisLabel: { type: 'group', label: '刻度标签', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        inside: { type: 'switch', label: '内侧', default: false },
+        rotate: { type: 'number', label: '旋转', default: 0, min: -90, max: 90 },
+        margin: { type: 'number', label: '边距', default: 8, min: 0, max: 50 },
+        formatter: { type: 'input', label: '格式化', default: '', placeholder: '函数或 {value}' },
+        textStyle: { type: 'group', label: '文字样式', children: createTextStyleConfig('xAxisLabel', { fontSize: 11, color: '#666' }) },
+      }},
+      splitLine: { type: 'group', label: '分割线', children: {
+        show: { type: 'switch', label: '显示', default: false },
+        lineStyle: { type: 'group', label: '线条', children: {
+          color: { type: 'color', label: '颜色', default: '#eee' },
+          width: { type: 'number', label: '宽度', default: 1, min: 0, max: 5 },
+          type: { type: 'select', label: '类型', default: 'solid', options: [{ label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }] },
+        }},
+      }},
+      splitArea: { type: 'group', label: '分割区域', children: {
+        show: { type: 'switch', label: '显示', default: false },
+        areaStyle: { type: 'group', label: '区域', children: {
+          color: { type: 'input', label: '颜色', default: 'rgba(250,250,250,0.3)', placeholder: '数组或单色' },
+        }},
+      }},
+      data: { type: 'textarea', label: '类目数据(JSON)', default: '', placeholder: '["Mon","Tue",...] 或自动从数据获取' },
+      z: { type: 'number', label: '层级', default: 0, min: -10, max: 10 },
+      zlevel: { type: 'number', label: 'Canvas层级', default: 0, min: -10, max: 10 },
+    },
+  },
+  yAxis: {
+    type: 'group', label: 'Y轴', children: {
+      show: { type: 'switch', label: '显示', default: true },
+      type: { type: 'select', label: '类型', default: 'value', options: [
+        { label: '数值', value: 'value' }, { label: '类目', value: 'category' }, { label: '时间', value: 'time' }, { label: '对数', value: 'log' },
+      ]},
+      position: { type: 'select', label: '位置', default: 'left', options: [
+        { label: '左侧', value: 'left' }, { label: '右侧', value: 'right' },
+      ]},
+      name: { type: 'input', label: '轴名称', default: '', placeholder: '轴标题' },
+      nameLocation: { type: 'select', label: '名称位置', default: 'middle', options: [
+        { label: '中间', value: 'middle' }, { label: '开始', value: 'start' }, { label: '结束', value: 'end' },
+      ]},
+      nameGap: { type: 'number', label: '名称间距', default: 15, min: 0, max: 50 },
+      nameRotate: { type: 'number', label: '名称旋转', default: 0, min: -90, max: 90 },
+      inverse: { type: 'switch', label: '反向', default: false },
+      boundaryGap: { type: 'switch', label: '留白', default: false },
+      min: { type: 'input', label: '最小值', default: '', placeholder: '自动或数值' },
+      max: { type: 'input', label: '最大值', default: '', placeholder: '自动或数值' },
+      scale: { type: 'switch', label: '强制从0开始', default: false },
+      splitNumber: { type: 'number', label: '分割段数', default: 5, min: 1, max: 20 },
+      interval: { type: 'input', label: '间隔', default: 'auto', placeholder: 'auto 或 数值' },
+      axisLine: { type: 'group', label: '轴线', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        onZero: { type: 'switch', label: '在零刻度', default: true },
+        lineStyle: { type: 'group', label: '线条', children: {
+          color: { type: 'color', label: '颜色', default: '#ddd' },
+          width: { type: 'number', label: '宽度', default: 1, min: 0, max: 10 },
+          type: { type: 'select', label: '类型', default: 'solid', options: [{ label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }] },
+        }},
+      }},
+      axisTick: { type: 'group', label: '刻度', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        inside: { type: 'switch', label: '内侧', default: false },
+        length: { type: 'number', label: '长度', default: 5, min: 0, max: 20 },
+        lineStyle: { type: 'group', label: '线条', children: {
+          color: { type: 'color', label: '颜色', default: '#ddd' },
+          width: { type: 'number', label: '宽度', default: 1, min: 0, max: 5 },
+        }},
+      }},
+      axisLabel: { type: 'group', label: '刻度标签', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        inside: { type: 'switch', label: '内侧', default: false },
+        rotate: { type: 'number', label: '旋转', default: 0, min: -90, max: 90 },
+        margin: { type: 'number', label: '边距', default: 8, min: 0, max: 50 },
+        formatter: { type: 'input', label: '格式化', default: '', placeholder: '函数或 {value}' },
+        textStyle: { type: 'group', label: '文字样式', children: createTextStyleConfig('yAxisLabel', { fontSize: 11, color: '#666' }) },
+      }},
+      splitLine: { type: 'group', label: '分割线', children: {
+        show: { type: 'switch', label: '显示', default: true },
+        lineStyle: { type: 'group', label: '线条', children: {
+          color: { type: 'color', label: '颜色', default: '#eee' },
+          width: { type: 'number', label: '宽度', default: 1, min: 0, max: 5 },
+          type: { type: 'select', label: '类型', default: 'solid', options: [{ label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }] },
+        }},
+      }},
+      splitArea: { type: 'group', label: '分割区域', children: {
+        show: { type: 'switch', label: '显示', default: false },
+        areaStyle: { type: 'group', label: '区域', children: {
+          color: { type: 'input', label: '颜色', default: 'rgba(250,250,250,0.3)', placeholder: '数组或单色' },
+        }},
+      }},
+      data: { type: 'textarea', label: '类目数据(JSON)', default: '', placeholder: '["Low","Medium",...] 或自动' },
+      z: { type: 'number', label: '层级', default: 0, min: -10, max: 10 },
+      zlevel: { type: 'number', label: 'Canvas层级', default: 0, min: -10, max: 10 },
     },
   },
   colorPalette: {
@@ -332,30 +746,279 @@ export const TYPE_CONFIG_SCHEMAS = {
 }
 
 // ---- 辅助函数 ----
+function buildTextStyle(cfg, prefix = '') {
+  if (!cfg) return {}
+  const style = {}
+  if (cfg.color) style.color = cfg.color
+  if (cfg.fontSize) style.fontSize = cfg.fontSize
+  if (cfg.fontWeight) style.fontWeight = cfg.fontWeight
+  if (cfg.fontStyle) style.fontStyle = cfg.fontStyle
+  if (cfg.fontFamily && cfg.fontFamily !== 'inherit') style.fontFamily = cfg.fontFamily
+  if (cfg.textDecoration && cfg.textDecoration !== 'none') style.textDecoration = cfg.textDecoration
+  if (cfg.lineHeight) style.lineHeight = cfg.lineHeight
+  if (cfg.textAlign && cfg.textAlign !== 'auto') style.align = cfg.textAlign
+  if (cfg.rich) style.rich = {}
+  return style
+}
+
 function buildCommonOption(config, palette) {
   const opt = {}
+
+  // Title
   if (config.title?.show !== false && config.title?.text) {
+    const t = config.title
     opt.title = {
-      text: config.title.text,
-      subtext: config.title.subtext || '',
-      left: config.title.position || 'center',
-      textStyle: { fontSize: config.title.fontSize || 16 },
-      subtextStyle: { fontSize: config.title.subFontSize || 12 },
+      text: t.text,
+      subtext: t.subtext || '',
+      left: t.left || 'center',
+      top: t.top || 'top',
+      textAlign: t.textAlign || 'auto',
+      padding: t.padding || 0,
+      itemGap: t.itemGap || 10,
+      backgroundColor: t.backgroundColor || 'transparent',
+      borderColor: t.borderColor || 'transparent',
+      borderWidth: t.borderWidth || 0,
+      borderRadius: t.borderRadius || 0,
+      shadowColor: t.shadowColor || 'transparent',
+      shadowBlur: t.shadowBlur || 0,
+      shadowOffsetX: t.shadowOffsetX || 0,
+      shadowOffsetY: t.shadowOffsetY || 0,
+      textStyle: buildTextStyle(t.textStyle, 'title'),
+      subtextStyle: buildTextStyle(t.subtextStyle, 'subtext'),
     }
   }
-  if (config.tooltip?.show !== false) {
-    const trigger = config.tooltip?.trigger || 'axis'
-    opt.tooltip = trigger === 'none' ? { show: false } : { trigger }
-  }
-  const legPos = config.legend?.position || 'bottom'
-  if (config.legend?.show !== false) {
-    const legCfg = {}
-    if (legPos === 'top') legCfg.top = 0
-    else if (legPos === 'bottom') legCfg.bottom = 0
-    else if (legPos === 'left') legCfg.left = 0
-    else if (legPos === 'right') legCfg.right = 0
+
+  // Legend
+  if (config.legend && config.legend.show !== false) {
+    const l = config.legend
+    const legCfg = {
+      show: true,
+      orient: l.orient || 'horizontal',
+      left: l.left || 'center',
+      top: l.top || 'bottom',
+      align: l.align || 'auto',
+      itemWidth: l.itemWidth || 25,
+      itemHeight: l.itemHeight || 14,
+      itemGap: l.itemGap || 10,
+      padding: l.padding || 5,
+      selectedMode: l.selectedMode !== false,
+      inactiveColor: l.inactiveColor || '#ccc',
+      backgroundColor: l.backgroundColor || 'transparent',
+      borderColor: l.borderColor || 'transparent',
+      borderWidth: l.borderWidth || 0,
+      borderRadius: l.borderRadius || 0,
+      shadowColor: l.shadowColor || 'transparent',
+      shadowBlur: l.shadowBlur || 0,
+      shadowOffsetX: l.shadowOffsetX || 0,
+      shadowOffsetY: l.shadowOffsetY || 0,
+      pageButtonItemGap: l.pageButtonItemGap || 5,
+      pageButtonPosition: l.pageButtonPosition || 'end',
+      pageTextStyle: buildTextStyle(l.pageTextStyle, 'pageText'),
+      pageIconColor: l.pageIconColor || '#333333',
+      pageIconInactiveColor: l.pageIconInactiveColor || '#aaa',
+      pageIconSize: l.pageIconSize || 15,
+      textStyle: buildTextStyle(l.textStyle, 'legend'),
+    }
     opt.legend = legCfg
   }
+
+  // Tooltip
+  if (config.tooltip && config.tooltip.show !== false) {
+    const tt = config.tooltip
+    const trigger = tt.trigger || 'axis'
+    if (trigger === 'none') {
+      opt.tooltip = { show: false }
+    } else {
+      opt.tooltip = {
+        trigger,
+        triggerOn: tt.triggerOn || 'mousemove|click',
+        axisPointer: {
+          type: tt.axisPointer?.type || 'line',
+          lineStyle: tt.axisPointer?.lineStyle ? {
+            color: tt.axisPointer.lineStyle.color || '#aaa',
+            width: tt.axisPointer.lineStyle.width || 1,
+            type: tt.axisPointer.lineStyle.type || 'solid',
+          } : {},
+          shadowStyle: tt.axisPointer?.shadowStyle ? {
+            color: tt.axisPointer.shadowStyle.color || 'rgba(150,150,150,0.3)',
+          } : {},
+          crossStyle: tt.axisPointer?.crossStyle ? {
+            color: tt.axisPointer.crossStyle.color || '#aaa',
+            width: tt.axisPointer.crossStyle.width || 1,
+            type: tt.axisPointer.crossStyle.type || 'dashed',
+          } : {},
+          label: tt.axisPointer?.label ? {
+            show: tt.axisPointer.label.show || false,
+            backgroundColor: tt.axisPointer.label.backgroundColor || '#6a7985',
+            textStyle: buildTextStyle(tt.axisPointer.label.textStyle, 'axisLabel'),
+          } : {},
+        },
+        textStyle: buildTextStyle(tt.textStyle, 'tooltip'),
+        backgroundColor: tt.backgroundColor || 'rgba(50,50,50,0.9)',
+        borderColor: tt.borderColor || 'transparent',
+        borderWidth: tt.borderWidth || 0,
+        borderRadius: tt.borderRadius || 4,
+        padding: tt.padding || 10,
+        extraCssText: tt.extraCssText || '',
+        formatter: tt.formatter || undefined,
+        valueFormatter: tt.valueFormatter || undefined,
+        position: tt.position || 'auto',
+        confine: tt.confine || false,
+        transitionDuration: tt.transitionDuration || 0.4,
+        displayTransition: tt.displayTransition !== false,
+        enterable: tt.enterable !== false,
+      }
+    }
+  }
+
+  // Grid
+  if (config.grid) {
+    const g = config.grid
+    opt.grid = {
+      show: g.show || false,
+      left: g.left || '60',
+      right: g.right || '30',
+      top: g.top || '40',
+      bottom: g.bottom || '40',
+      width: g.width || 'auto',
+      height: g.height || 'auto',
+      containLabel: g.containLabel !== false,
+      backgroundColor: g.backgroundColor || 'transparent',
+      borderColor: g.borderColor || '#eee',
+      borderWidth: g.borderWidth || 1,
+    }
+  }
+
+  // X Axis
+  if (config.xAxis) {
+    const xa = config.xAxis
+    const axisCfg = {
+      show: xa.show !== false,
+      type: xa.type || 'category',
+      position: xa.position || 'bottom',
+      name: xa.name || '',
+      nameLocation: xa.nameLocation || 'middle',
+      nameGap: xa.nameGap || 15,
+      nameRotate: xa.nameRotate || 0,
+      inverse: xa.inverse || false,
+      boundaryGap: xa.boundaryGap !== false,
+      min: xa.min || undefined,
+      max: xa.max || undefined,
+      scale: xa.scale || false,
+      splitNumber: xa.splitNumber || 5,
+      interval: xa.interval || 'auto',
+      axisLine: {
+        show: xa.axisLine?.show !== false,
+        onZero: xa.axisLine?.onZero !== false,
+        lineStyle: {
+          color: xa.axisLine?.lineStyle?.color || '#ddd',
+          width: xa.axisLine?.lineStyle?.width || 1,
+          type: xa.axisLine?.lineStyle?.type || 'solid',
+        },
+      },
+      axisTick: {
+        show: xa.axisTick?.show !== false,
+        inside: xa.axisTick?.inside || false,
+        length: xa.axisTick?.length || 5,
+        lineStyle: {
+          color: xa.axisTick?.lineStyle?.color || '#ddd',
+          width: xa.axisTick?.lineStyle?.width || 1,
+        },
+      },
+      axisLabel: {
+        show: xa.axisLabel?.show !== false,
+        inside: xa.axisLabel?.inside || false,
+        rotate: xa.axisLabel?.rotate || 0,
+        margin: xa.axisLabel?.margin || 8,
+        formatter: xa.axisLabel?.formatter || undefined,
+        textStyle: buildTextStyle(xa.axisLabel?.textStyle, 'xAxisLabel'),
+      },
+      splitLine: {
+        show: xa.splitLine?.show || false,
+        lineStyle: {
+          color: xa.splitLine?.lineStyle?.color || '#eee',
+          width: xa.splitLine?.lineStyle?.width || 1,
+          type: xa.splitLine?.lineStyle?.type || 'solid',
+        },
+      },
+      splitArea: {
+        show: xa.splitArea?.show || false,
+        areaStyle: {
+          color: xa.splitArea?.areaStyle?.color || 'rgba(250,250,250,0.3)',
+        },
+      },
+      data: xa.data ? JSON.parse(xa.data) : undefined,
+      z: xa.z || 0,
+      zlevel: xa.zlevel || 0,
+    }
+    opt.xAxis = axisCfg
+  }
+
+  // Y Axis
+  if (config.yAxis) {
+    const ya = config.yAxis
+    const axisCfg = {
+      show: ya.show !== false,
+      type: ya.type || 'value',
+      position: ya.position || 'left',
+      name: ya.name || '',
+      nameLocation: ya.nameLocation || 'middle',
+      nameGap: ya.nameGap || 15,
+      nameRotate: ya.nameRotate || 0,
+      inverse: ya.inverse || false,
+      boundaryGap: ya.boundaryGap || false,
+      min: ya.min || undefined,
+      max: ya.max || undefined,
+      scale: ya.scale || false,
+      splitNumber: ya.splitNumber || 5,
+      interval: ya.interval || 'auto',
+      axisLine: {
+        show: ya.axisLine?.show !== false,
+        onZero: ya.axisLine?.onZero !== false,
+        lineStyle: {
+          color: ya.axisLine?.lineStyle?.color || '#ddd',
+          width: ya.axisLine?.lineStyle?.width || 1,
+          type: ya.axisLine?.lineStyle?.type || 'solid',
+        },
+      },
+      axisTick: {
+        show: ya.axisTick?.show !== false,
+        inside: ya.axisTick?.inside || false,
+        length: ya.axisTick?.length || 5,
+        lineStyle: {
+          color: ya.axisTick?.lineStyle?.color || '#ddd',
+          width: ya.axisTick?.lineStyle?.width || 1,
+        },
+      },
+      axisLabel: {
+        show: ya.axisLabel?.show !== false,
+        inside: ya.axisLabel?.inside || false,
+        rotate: ya.axisLabel?.rotate || 0,
+        margin: ya.axisLabel?.margin || 8,
+        formatter: ya.axisLabel?.formatter || undefined,
+        textStyle: buildTextStyle(ya.axisLabel?.textStyle, 'yAxisLabel'),
+      },
+      splitLine: {
+        show: ya.splitLine?.show !== false,
+        lineStyle: {
+          color: ya.splitLine?.lineStyle?.color || '#eee',
+          width: ya.splitLine?.lineStyle?.width || 1,
+          type: ya.splitLine?.lineStyle?.type || 'solid',
+        },
+      },
+      splitArea: {
+        show: ya.splitArea?.show || false,
+        areaStyle: {
+          color: ya.splitArea?.areaStyle?.color || 'rgba(250,250,250,0.3)',
+        },
+      },
+      data: ya.data ? JSON.parse(ya.data) : undefined,
+      z: ya.z || 0,
+      zlevel: ya.zlevel || 0,
+    }
+    opt.yAxis = axisCfg
+  }
+
   opt.color = palette
   return opt
 }
