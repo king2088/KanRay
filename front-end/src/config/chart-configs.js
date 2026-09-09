@@ -119,7 +119,6 @@ export const COMMON_CONFIG_SCHEMA = {
       right: { type: 'number', label: '右边距', default: 30, min: 0, max: 200 },
       top: { type: 'number', label: '上边距', default: 40, min: 0, max: 200 },
       bottom: { type: 'number', label: '下边距', default: 40, min: 0, max: 200 },
-      containLabel: { type: 'switch', label: '防止标签溢出', default: true },
     },
   },
   xAxis: {
@@ -572,7 +571,6 @@ function buildCommonOption(config, palette) {
       bottom: g.bottom || '40',
       width: g.width || 'auto',
       height: g.height || 'auto',
-      containLabel: g.containLabel !== false,
       backgroundColor: g.backgroundColor || 'transparent',
       borderColor: g.borderColor || '#eee',
       borderWidth: g.borderWidth || 1,
@@ -596,7 +594,7 @@ function buildCommonOption(config, palette) {
       max: xa.max || undefined,
       scale: xa.scale || false,
       splitNumber: xa.splitNumber || 5,
-      interval: xa.interval || 'auto',
+      interval: xa.interval || undefined,
       axisLine: {
         show: xa.axisLine?.show !== false,
         onZero: xa.axisLine?.onZero !== false,
@@ -621,7 +619,7 @@ function buildCommonOption(config, palette) {
         rotate: xa.labelRotate ?? xa.axisLabel?.rotate ?? 0,
         margin: xa.axisLabel?.margin || 8,
         formatter: xa.axisLabel?.formatter || undefined,
-        textStyle: buildTextStyle(xa.axisLabel?.textStyle, 'xAxisLabel'),
+        ...buildTextStyle(xa.axisLabel?.textStyle, 'xAxisLabel'),
       },
       splitLine: {
         show: typeof xa.splitLine === 'boolean' ? xa.splitLine : xa.splitLine?.show || false,
@@ -661,7 +659,7 @@ function buildCommonOption(config, palette) {
       max: ya.max || undefined,
       scale: ya.scale || false,
       splitNumber: ya.splitNumber || 5,
-      interval: ya.interval || 'auto',
+      interval: ya.interval || undefined,
       axisLine: {
         show: ya.axisLine?.show !== false,
         onZero: ya.axisLine?.onZero !== false,
@@ -686,7 +684,7 @@ function buildCommonOption(config, palette) {
         rotate: ya.axisLabel?.rotate || 0,
         margin: ya.axisLabel?.margin || 8,
         formatter: ya.axisLabel?.formatter || undefined,
-        textStyle: buildTextStyle(ya.axisLabel?.textStyle, 'yAxisLabel'),
+        ...buildTextStyle(ya.axisLabel?.textStyle, 'yAxisLabel'),
       },
       splitLine: {
         show: typeof ya.splitLine === 'boolean' ? ya.splitLine : ya.splitLine?.show !== false,
