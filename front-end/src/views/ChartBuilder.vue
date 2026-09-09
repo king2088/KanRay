@@ -393,12 +393,19 @@ const debounce = (fn, ms) => {
   let t = null
   return (...args) => {
     clearTimeout(t)
-    t = setTimeout(() => fn(...args), 350)
+    t = setTimeout(() => fn(...args), 500)
   }
 }
-const debouncedPreview = debounce(loadPreview, 350)
+// 数据变更防抖（维度/指标/图表类型/显示数量/排序）
+const debouncedPreview = debounce(loadPreview, 500)
+// 配置变更防抖（仅触发图表重渲染，不重载数据）
+const debouncedConfigChange = debounce(() => {
+  // 触发 finalOptions 更新，EChartRenderer 会自动重渲染
+}, 200)
 
-watch([dims, metrics, chartType, showOptions, sortConfig, displayConfig], debouncedPreview, { deep: true })
+// 仅数据相关变更触发 loadPreview
+watch([dims, metrics, chartType, showOptions, sortConfig], debouncedPreview, { deep: true })
+// 配置变更仅更新 finalOptions（通过 computed 自动响应），不需要额外 watch
 
 onMounted(async () => {
   await loadDatasets()

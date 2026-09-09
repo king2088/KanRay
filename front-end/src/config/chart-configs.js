@@ -1033,10 +1033,19 @@ function addMarkLine(series, config) {
       data.push({ type: mlType, name: mlType })
     }
     series.markLine = {
-      symbol: 'none',
+      symbol: config.markLine.symbol || 'none',
       data,
-      lineStyle: { type: 'dashed', color: '#E63946', width: 1.5 },
-      label: { formatter: '{b}', position: 'end' },
+      lineStyle: {
+        color: config.markLine.lineStyle?.color || '#E63946',
+        width: config.markLine.lineStyle?.width || 1.5,
+        type: config.markLine.lineStyle?.type || 'dashed',
+      },
+      label: {
+        show: config.markLine.label?.show !== false,
+        position: config.markLine.label?.position || 'end',
+        formatter: config.markLine.label?.formatter || '{b}',
+        ...buildTextStyle(config.markLine.label?.textStyle, 'markLineLabel'),
+      },
     }
   }
   return series
@@ -1095,11 +1104,13 @@ function buildBar(data, config, palette, horizontal = false) {
     Object.entries(groups).forEach(([g, rws]) => {
       const s = { name: g, type: 'bar', data: rws.map((r) => r[metric.field]), ...barStyle }
       addMarkLine(s, config)
+      applyLabelConfig(s, config)
       series.push(s)
     })
   } else {
     const s = { name: metric.label, type: 'bar', data: rows.map((r) => r[metric.field]), ...barStyle }
     addMarkLine(s, config)
+    applyLabelConfig(s, config)
     series.push(s)
   }
 
@@ -1116,6 +1127,44 @@ function buildBar(data, config, palette, horizontal = false) {
   return opt
 }
 
+function applyLabelConfig(series, config) {
+  if (config.label?.show) {
+    const l = config.label
+    series.label = {
+      show: true,
+      position: l.position || 'top',
+      formatter: l.formatter || undefined,
+      color: l.color || 'inherit',
+      fontSize: l.fontSize || 12,
+      fontWeight: l.fontWeight || 'normal',
+      fontStyle: l.fontStyle || 'normal',
+      fontFamily: l.fontFamily !== 'inherit' ? l.fontFamily : undefined,
+      textDecoration: l.textDecoration !== 'none' ? l.textDecoration : undefined,
+      align: l.align || 'auto',
+      verticalAlign: l.verticalAlign || 'auto',
+      lineHeight: l.lineHeight || 1.2,
+      rich: l.rich ? {} : undefined,
+      rotate: l.rotate || 0,
+      overflow: l.overflow || 'none',
+      width: l.width || undefined,
+      height: l.height || undefined,
+      borderColor: l.borderColor || 'transparent',
+      borderWidth: l.borderWidth || 0,
+      borderRadius: l.borderRadius || 0,
+      backgroundColor: l.backgroundColor || 'transparent',
+      padding: l.padding || 0,
+      shadowColor: l.shadowColor || 'transparent',
+      shadowBlur: l.shadowBlur || 0,
+      shadowOffsetX: l.shadowOffsetX || 0,
+      shadowOffsetY: l.shadowOffsetY || 0,
+      distance: l.distance || 5,
+      offset: l.offset ? JSON.parse(l.offset) : undefined,
+      bleedMargin: l.bleedMargin || 10,
+    }
+  }
+  return series
+}
+
 function buildStackedBar(data, config, palette, horizontal = false) {
   const opt = buildBar(data, config, palette, horizontal)
   if (opt.series) opt.series.forEach((s) => { s.stack = 'total' })
@@ -1125,7 +1174,7 @@ function buildStackedBar(data, config, palette, horizontal = false) {
 function buildPercentStackedBar(data, config, palette, horizontal = false) {
   const opt = buildStackedBar(data, config, palette, horizontal)
   if (config.showPercentLabel !== false) {
-    opt.series.forEach((s) => { s.label = { show: true, formatter: '{d}%' } })
+    opt.series.forEach((s) => applyLabelConfig(s, { ...config, label: { show: true, formatter: '{d}%' } }))
   }
   if (horizontal) {
     opt.xAxis.max = 100

@@ -1,23 +1,23 @@
 <template>
   <div class="chart-type-panel">
-    <!-- 分类筛选 tabs -->
-    <div class="category-tabs">
-      <div
-        class="cat-tab"
-        :class="{ active: activeCategory === null }"
-        @click="activeCategory = null"
-      >全部</div>
-      <div
-        v-for="cat in CHART_CATEGORIES"
-        :key="cat.key"
-        class="cat-tab"
-        :class="{ active: activeCategory === cat.key }"
-        @click="activeCategory = cat.key"
-      >{{ cat.label }}</div>
+    <!-- 分类筛选下拉 -->
+    <div class="category-select">
+      <el-select
+        v-model="activeCategory"
+        placeholder="全部分类"
+        style="width: 100%"
+        clearable
+        @change="onCategoryChange"
+      >
+        <el-option label="全部分类" :value="null" />
+        <el-option
+          v-for="cat in CHART_CATEGORIES"
+          :key="cat.key"
+          :label="cat.label"
+          :value="cat.key"
+        />
+      </el-select>
     </div>
-
-    <!-- 空状态 -->
-    <el-empty v-if="filteredTypes.length === 0" description="该分类暂无图表类型" :image-size="60" />
 
     <!-- 图表类型网格 -->
     <div class="chart-type-grid">
@@ -27,10 +27,15 @@
         class="chart-type-item"
         :class="{ active: chartType === t.value }"
         @click="$emit('update:chartType', t.value)"
+        :title="t.label"
       >
         <el-icon :size="20"><component :is="t.icon" /></el-icon>
         <span>{{ t.label }}</span>
       </div>
+    </div>
+
+    <div v-if="filteredTypes.length === 0" class="empty-hint">
+      该分类暂无图表类型
     </div>
   </div>
 </template>
@@ -51,6 +56,10 @@ const filteredTypes = computed(() => {
   if (activeCategory.value === null) return CHART_TYPES
   return CHART_TYPES.filter((t) => t.category === activeCategory.value)
 })
+
+function onCategoryChange(val) {
+  // val is already set by v-model
+}
 </script>
 
 <style scoped>
@@ -58,31 +67,8 @@ const filteredTypes = computed(() => {
   padding-bottom: 12px;
 }
 
-.category-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.category-select {
   margin-bottom: 10px;
-}
-
-.cat-tab {
-  padding: 3px 10px;
-  font-size: 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  background: var(--app-hover);
-  color: var(--app-text-regular);
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.cat-tab:hover {
-  color: var(--app-primary);
-}
-
-.cat-tab.active {
-  background: var(--app-primary);
-  color: #fff;
 }
 
 .chart-type-grid {
@@ -104,6 +90,7 @@ const filteredTypes = computed(() => {
   gap: 4px;
   font-size: 11px;
   color: var(--app-text-regular);
+  min-height: 60px;
 }
 
 .chart-type-item:hover {
@@ -115,5 +102,12 @@ const filteredTypes = computed(() => {
   border-color: var(--app-primary);
   background: var(--app-primary-light);
   color: var(--app-primary);
+}
+
+.empty-hint {
+  text-align: center;
+  color: var(--app-text-secondary);
+  font-size: 12px;
+  padding: 20px 0;
 }
 </style>

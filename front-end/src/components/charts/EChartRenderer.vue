@@ -1,12 +1,9 @@
 <template>
-  <div class="ec-chart" ref="el" v-if="isEChartsType"></div>
-  <div v-else class="ec-chart-native">
-    <slot name="fallback"></slot>
-  </div>
+  <div class="ec-chart" ref="el"></div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch, computed } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch, computed, nextTick } from 'vue'
 import echarts from '@/utils/echarts'
 import { OPTION_BUILDERS } from '@/config/chart-configs'
 import { getPalette } from '@/config/color-palettes'
@@ -30,6 +27,14 @@ const isEChartsType = computed(() => {
   return !opt._table && !opt._stat && !opt._progress && !opt._statTrend && !opt._map
 })
 
+function initChart() {
+  if (!el.value || chart) return
+  chart = echarts.init(el.value)
+  resizeObserver = new ResizeObserver(() => chart && chart.resize())
+  resizeObserver.observe(el.value)
+  render()
+}
+
 function render() {
   if (!chart || !props.data) return
   const builder = OPTION_BUILDERS[props.chartType]
@@ -38,9 +43,9 @@ function render() {
   const palette = props.options._palette || getPalette(props.options.colorPalette)
   const opt = builder(props.data, props.options, palette)
 
-  // Handle non-ECharts returns - these are rendered natively by parent component
+  // Handle non-ECharts returns
   if (opt._table || opt._stat || opt._progress || opt._statTrend || opt._map) {
-    chart.clear()
+    if (chart) chart.clear()
     return
   }
 
@@ -48,13 +53,26 @@ function render() {
   chart.setOption(opt, true)
 }
 
-onMounted(() => {
-  chart = echarts.init(el.value)
-  resizeObserver = new ResizeObserver(() => chart && chart.resize())
-  resizeObserver.observe(el.value)
+async function handleChartTypeChange() {
+  await nextTick()
+  if (isEChartsType.value && !chart) {
+    initChart()
+  } else if (!isEChartsType.value && chart) {
+    chart.dispose()
+    chart = null
+    resizeObserver && resizeObserver.disconnect()
+    resizeObserver = null
+  }
   render()
+}
+
+onMounted(() => {
+  if (isEChartsType.value) {
+    initChart()
+  }
 })
 
+watch(isEChartsType, handleChartTypeChange)
 watch(() => [props.chartType, props.data, props.options?.title, props.options?.colorPalette], render, { deep: false })
 
 onBeforeUnmount(() => {
@@ -69,13 +87,5 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-height: 160px;
-}
-.ec-chart-native {
-  width: 100%;
-  height: 100%;
-  min-height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>
