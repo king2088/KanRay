@@ -278,13 +278,14 @@ function rectLike(it, top, g) {
 }
 
 /**
- * 自动对齐（原地修改 items）：
- *  1. 按 top 邻近度（≤ TOL）聚合成"行带"；
- *  2. 带内所有卡对齐到带最顶（防重叠守卫，冲突成员保持原位）；
- *  3. seed = 含 originId 的带，或带内成员因吸附而上移的带；
- *  4. 按带上界升序重排：受影响带"拉紧"到上方共享列带底 + gap.y；
- *     非受影响带仅做安全下推（max(带顶, 需求位)）。
- * 受影响范围经 sharesCol 仅沿同列链扩散；其它带 / 拖到底部的孤立卡保持原位。
+ * 自动对齐（原地修改 items）——瀑布流语义：
+ *  1. 按 top 邻近度（≤ TOL）聚成"行带"，带内顶对齐（仅为视觉对齐，不做高度约束）；
+ *  2. seed = originId 卡，或吸附上移的卡；
+ *  3. 每张卡按其"列范围"进行独立重排（瀑布流）：
+ *     - required = 上方所有共享列的卡底 + gap.y 的最大值；
+ *     - seed 卡与其共享列的后继卡"拉紧"到 required（缩卡上移）；
+ *     - 其余卡仅安全下推（max(吸附顶, required)）。
+ * 受影响范围仅沿共享列链扩散；无关列 / 拖到底部的孤立卡保持原位。
  * opts：{ originId }（高度变更等定向操作传入）。返回 items（引用不变）。
  */
 export function alignRows(items, columns = GRID_COLS, gap = DEFAULT_GAP, opts = {}) {
@@ -296,72 +297,58 @@ export function alignRows(items, columns = GRID_COLS, gap = DEFAULT_GAP, opts = 
   const origTop = new Map()
   items.forEach((it) => origTop.set(it, pxTop(it, g)))
 
+  /* 1) 顶对齐：邻近 top 吸附到带最顶（防重叠；仅视觉，不参与行高） */
   const sorted = items.slice().sort((a, b) => pxTop(a, g) - pxTop(b, g))
   const bands = []
   for (const it of sorted) {
     const last = bands[bands.length - 1]
     const t = pxTop(it, g)
-    if (!last || t - last.minTop > TOL) bands.push({ members: [it], minTop: t, origMinTop: t })
+    if (!last || t - last.minTop > TOL) bands.push({ members: [it], minTop: t })
     else last.members.push(it)
   }
-
   const bandOf = new Map()
   bands.forEach((b) => b.members.forEach((it) => bandOf.set(it, b)))
-
-  /* 带内对齐到带顶（只会上移 ≤ TOL）；冲突则保持原位 */
   for (const band of bands) {
     const others = items.filter((it) => bandOf.get(it) !== band)
-    let bottom = 0
     for (const it of band.members) {
       const t = band.minTop
       const cur = pxTop(it, g)
       if (t < cur && others.some((o) => intersects(rectLike(it, t, g), o))) it.top = cur
       else it.top = t
-      bottom = Math.max(bottom, pxTop(it, g) + cardHeightPx(it, g))
     }
-    band.bottom = bottom
   }
 
-  /* seed：origin 所在带 / 上移吸附带 */
+  /* 2) seed：origin 卡 / 吸附上移的卡 */
   const seeds = new Set()
-  bands.forEach((band) => {
-    const hasOrigin = originId != null && band.members.some((it) => it.id === originId)
-    const snappedUp = band.members.some((it) => pxTop(it, g) < origTop.get(it))
-    if (hasOrigin || snappedUp) seeds.add(band)
+  items.forEach((it) => {
+    if (it.id === originId) seeds.add(it)
+    else if (pxTop(it, g) < origTop.get(it)) seeds.add(it)
   })
 
-  /* 升序重排（原地写回 top）；受影响沿 sharesCol 同列链向下传递 */
-  const finalized = new Map()
-  bands.forEach((band) => {
+  /* 3) 瀑布重排（每卡级）：required = 上方共享列卡底 + gap；受影响拉紧，其余仅安全下推 */
+  const order = items.slice().sort((a, b) => origTop.get(a) - origTop.get(b))
+  const fin = new Map() // item -> { finalBottom, affected }
+  for (const it of order) {
     let required = 0
     let hasSharingAbove = false
     let affectedAbove = false
-    for (const [P, rec] of finalized) {
-      if (P.origMinTop >= band.origMinTop) break
-      if (sharesCol(P, band)) {
-        hasSharingAbove = true
-        required = Math.max(required, rec.finalBottom + g.y)
-        if (rec.affected) affectedAbove = true
-      }
+    for (const [Y, rec] of fin) {
+      if (!colOverlap(Y, it)) continue
+      hasSharingAbove = true
+      required = Math.max(required, rec.finalBottom + g.y)
+      if (rec.affected) affectedAbove = true
     }
-    const affected = seeds.has(band) || affectedAbove
+    const affected = seeds.has(it) || affectedAbove
+    const snappedTop = pxTop(it, g)
     let finalTop
     if (affected && hasSharingAbove) finalTop = required
-    else if (affected) finalTop = band.minTop
-    else finalTop = Math.max(band.minTop, required)
+    else if (affected) finalTop = snappedTop
+    else finalTop = Math.max(snappedTop, required)
     finalTop = Math.max(0, Math.round(finalTop))
 
-    const shift = finalTop - band.minTop
-    if (shift !== 0) {
-      band.members.forEach((it) => { it.top += shift })
-      band.minTop = finalTop
-    }
-    let bottom = 0
-    band.members.forEach((it) => {
-      bottom = Math.max(bottom, pxTop(it, g) + cardHeightPx(it, g))
-    })
-    finalized.set(band, { finalBottom: bottom, affected })
-  })
+    it.top = finalTop
+    fin.set(it, { finalBottom: finalTop + cardHeightPx(it, g), affected })
+  }
   return items
 }
 

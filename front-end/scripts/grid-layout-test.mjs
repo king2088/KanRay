@@ -312,14 +312,25 @@ t('alignRows: 容差外不强对齐', () => {
   assert.equal(items[1].top, 20, '20 > TOL，不吸附')
 })
 
-t('alignRows: 行高跟随最高卡，下排整行下移到最高卡底 + gap', () => {
+t('alignRows: 瀑布流：下排卡只被本列上卡约束（不被同行更高卡推下）', () => {
   const items = [
     { id: 'a', col: 1, top: 0, w: 3, hPx: 150 },
     { id: 'b', col: 4, top: 0, w: 3, hPx: 300 },
     { id: 'c', col: 1, top: 162, w: 3, hPx: 150 },
   ]
   alignRows(items, 12)
-  assert.equal(items[2].top, 312, 'c 被推到最高卡底 300+12，不贴矮卡 a')
+  assert.equal(items[2].top, 162, 'c 贴 a 底 150+12，不受同行 b(300) 影响')
+  noOverlap(items)
+})
+
+t('alignRows: 瀑布流占位：第一行 70/150 双卡，新卡可贴 70px 卡下方（82）', () => {
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 70 },
+    { id: 'b', col: 7, top: 0, w: 6, hPx: 150 },
+    { id: 'c', col: 1, top: 82, w: 6, hPx: 150 },
+  ]
+  alignRows(items, 12)
+  assert.equal(items[2].top, 82, 'c 停留在 a 底 70+12，不再被推到 b 底 162')
   noOverlap(items)
 })
 
@@ -382,7 +393,7 @@ t('alignRows: 加高推下同列下卡（12b1）', () => {
   noOverlap(items)
 })
 
-t('alignRows: 同行最高卡决定行底，缩卡不越过它', () => {
+t('alignRows: 瀑布流：缩卡后同列下卡紧贴本列新底（不受同行高卡约束）', () => {
   const items = [
     { id: 'a', col: 1, top: 0, w: 3, hPx: 150 },
     { id: 'b', col: 4, top: 0, w: 3, hPx: 300 },
@@ -391,11 +402,11 @@ t('alignRows: 同行最高卡决定行底，缩卡不越过它', () => {
   items[0].hPx = 35
   alignRows(items, 12, GAP, { originId: 'a' })
   assert.equal(items[0].top, 0)
-  assert.equal(items[2].top, 312, '行底仍是最高卡 b 的 300，c 不动')
+  assert.equal(items[2].top, 47, 'c 贴 a 新底 35+12，b(300) 不拦住 c')
   noOverlap(items)
 })
 
-t('alignRows: 带吸附上移产生 seed，下排随之补齐到行底 + gap', () => {
+t('alignRows: 吸附上移仅对本列链重排，异列卡不动', () => {
   const items = [
     { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
     { id: 'b', col: 7, top: 8, w: 6, hPx: 150 },
@@ -403,7 +414,7 @@ t('alignRows: 带吸附上移产生 seed，下排随之补齐到行底 + gap', (
   ]
   alignRows(items, 12)
   assert.equal(items[1].top, 0, '8 ≤ TOL 吸附')
-  assert.equal(items[2].top, 162, '行底 150+12，对比原 170 上移')
+  assert.equal(items[2].top, 170, 'a 未动，c 保持原留白（不因 b 吸附被拉）')
   noOverlap(items)
 })
 
@@ -416,7 +427,20 @@ t('alignRows: 尊重自定义 gap-y 的容差与拉紧', () => {
   ]
   alignRows(items, 12, g)
   assert.equal(items[1].top, 0, '20 ≤ TOL(24) 吸附')
-  assert.equal(items[2].top, 182, '150 + gap(32)')
+  assert.equal(items[2].top, 300, 'a 未动，c 保持原留白（不受 b 吸附影响）')
+  noOverlap(items)
+})
+
+t('alignRows: 自定义 gap-y 参与 required（origin 拉紧按 32）', () => {
+  const g = { x: 12, y: 32 }
+  const items = [
+    { id: 'a', col: 1, top: 0, w: 6, hPx: 150 },
+    { id: 'b', col: 1, top: 300, w: 6, hPx: 150 },
+  ]
+  items[0].hPx = 35
+  alignRows(items, 12, g, { originId: 'a' })
+  assert.equal(items[0].top, 0)
+  assert.equal(items[1].top, 67, '35 + gap(32)')
   noOverlap(items)
 })
 
