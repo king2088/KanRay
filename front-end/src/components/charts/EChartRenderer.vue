@@ -73,7 +73,7 @@ onMounted(() => {
 })
 
 watch(isEChartsType, handleChartTypeChange)
-watch(() => [props.chartType, props.data, props.options?.title, props.options?.colorPalette], render, { deep: false })
+watch([() => props.chartType, () => props.data, () => props.options], render, { deep: true })
 
 onBeforeUnmount(() => {
   resizeObserver && resizeObserver.disconnect()

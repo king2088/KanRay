@@ -32,8 +32,8 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
-import { COMMON_CONFIG_SCHEMA, TYPE_CONFIG_SCHEMAS } from '@/config/chart-configs'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { COMMON_CONFIG_SCHEMA, TYPE_CONFIG_SCHEMAS, getDefaultConfig } from '@/config/chart-configs'
 import { getChartType } from '@/config/chart-types'
 import SchemaForm from './SchemaForm.vue'
 
@@ -72,6 +72,16 @@ function syncFromProps() {
 
 // Initial sync
 syncFromProps()
+
+// Emit defaults on mount so parent has a complete initial config
+onMounted(() => {
+  const defaults = getDefaultConfig(props.chartType)
+  const merged = { ...defaults, ...localConfig.value }
+  if (Object.keys(localTypeSpecific.value).length > 0) {
+    merged.typeSpecific = { ...localTypeSpecific.value }
+  }
+  emit('update:config', JSON.parse(JSON.stringify(merged)))
+})
 
 // Sync back to props when local changes
 let emitTimer = null

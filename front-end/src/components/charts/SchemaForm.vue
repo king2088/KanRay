@@ -91,6 +91,31 @@
           style="width: 100%"
         />
 
+        <el-button
+          v-else-if="field.type === 'toggle'"
+          :type="getModelValue(key) === field.activeValue ? 'primary' : 'default'"
+          size="small"
+          @click="toggleValue(key, field)"
+          :title="field.label"
+          style="min-width: 36px"
+        >
+          <span :style="getToggleStyle(key, field)">{{ field.icon || field.label }}</span>
+        </el-button>
+
+        <el-button-group v-else-if="field.type === 'buttonGroup'">
+          <el-button
+            v-for="opt in field.options || []"
+            :key="opt.value"
+            :type="getModelValue(key) === opt.value ? 'primary' : 'default'"
+            size="small"
+            @click="setModelValue(key, opt.value)"
+            :title="opt.label"
+            style="min-width: 32px"
+          >
+            <span :style="opt.value === 'underline' ? { textDecoration: 'underline' } : opt.value === 'line-through' ? { textDecoration: 'line-through' } : {}" v-html="opt.icon || opt.label"></span>
+          </el-button>
+        </el-button-group>
+
         <el-alert v-else title="Unsupported field type" type="warning" :show-icon="false" style="font-size: 12px" />
       </el-form-item>
     </template>
@@ -115,7 +140,8 @@ function getDefaultValue(field) {
   if (field.type === 'switch') return field.default ?? false
   if (field.type === 'number') return field.default ?? field.min ?? 0
   if (field.type === 'slider') return field.default ?? field.min ?? 0
-  if (field.type === 'select') return field.default ?? (field.options?.[0]?.value ?? '')
+  if (field.type === 'select' || field.type === 'buttonGroup') return field.default ?? (field.options?.[0]?.value ?? '')
+  if (field.type === 'toggle') return field.default ?? field.inactiveValue ?? ''
   if (field.type === 'color') return field.default ?? '#409EFF'
   if (field.type === 'input') return field.default ?? ''
   if (field.type === 'textarea') return field.default ?? ''
@@ -123,11 +149,14 @@ function getDefaultValue(field) {
 }
 
 function initLocalModel() {
-  const result = { ...props.model }
+  const result = { ...(props.model || {}) }
   for (const key of Object.keys(props.schema)) {
     const field = props.schema[key]
     if (!(key in result)) {
       result[key] = getDefaultValue(field)
+    }
+    if (field.type === 'group' && field.children && (!result[key] || typeof result[key] !== 'object')) {
+      result[key] = {}
     }
   }
   localModel.value = result
@@ -138,16 +167,17 @@ initLocalModel()
 
 // Watch parent model changes
 watch(() => props.model, (newVal) => {
-  if (newVal) {
-    const result = { ...newVal }
-    for (const key of Object.keys(props.schema)) {
-      const field = props.schema[key]
-      if (!(key in result)) {
-        result[key] = getDefaultValue(field)
-      }
+  const result = { ...(newVal || {}) }
+  for (const key of Object.keys(props.schema)) {
+    const field = props.schema[key]
+    if (!(key in result)) {
+      result[key] = getDefaultValue(field)
     }
-    localModel.value = result
+    if (field.type === 'group' && field.children && (!result[key] || typeof result[key] !== 'object')) {
+      result[key] = {}
+    }
   }
+  localModel.value = result
 }, { deep: true, immediate: false })
 
 // Emit updates with debounce to avoid excessive updates
@@ -171,14 +201,24 @@ function setModelValue(key, val) {
   }
 }
 
+function toggleValue(key, field) {
+  const current = localModel.value[key]
+  const next = current === field.activeValue ? field.inactiveValue : field.activeValue
+  setModelValue(key, next)
+}
+
+function getToggleStyle(key, field) {
+  const val = localModel.value[key]
+  if (field.icon === 'B') return val === field.activeValue ? { fontWeight: 'bold' } : {}
+  if (field.icon === 'I') return val === field.activeValue ? { fontStyle: 'italic' } : {}
+  return {}
+}
+
 function getNestedModel(key) {
-  return {
-    get: () => localModel.value[key] || {},
-    set: (val) => {
-      localModel.value[key] = val
-      emitUpdate()
-    },
+  if (!localModel.value[key] || typeof localModel.value[key] !== 'object') {
+    localModel.value[key] = {}
   }
+  return localModel.value[key]
 }
 
 function onNestedUpdate(key) {

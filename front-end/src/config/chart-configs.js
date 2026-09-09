@@ -5,41 +5,33 @@ const createTextStyleConfig = (prefix, defaults = {}) => ({
   color: { type: 'color', label: '颜色', default: defaults.color || '#333333' },
   fontSize: { type: 'number', label: '字号', default: defaults.fontSize || 12, min: 8, max: 40 },
   fontWeight: {
-    type: 'select', label: '粗细', default: defaults.fontWeight || 'normal',
-    options: [
-      { label: '正常', value: 'normal' }, { label: '加粗', value: 'bold' },
-      { label: '更粗', value: 'bolder' }, { label: '更细', value: 'lighter' },
-      { label: '100', value: 100 }, { label: '200', value: 200 },
-      { label: '300', value: 300 }, { label: '400', value: 400 },
-      { label: '500', value: 500 }, { label: '600', value: 600 },
-      { label: '700', value: 700 }, { label: '800', value: 800 },
-      { label: '900', value: 900 },
-    ],
+    type: 'toggle', label: '加粗', default: defaults.fontWeight || 'normal',
+    activeValue: 'bold', inactiveValue: 'normal', icon: 'B',
   },
   fontStyle: {
-    type: 'select', label: '斜体', default: defaults.fontStyle || 'normal',
+    type: 'toggle', label: '斜体', default: defaults.fontStyle || 'normal',
+    activeValue: 'italic', inactiveValue: 'normal', icon: 'I',
+  },
+  textDecoration: {
+    type: 'buttonGroup', label: '装饰线', default: defaults.textDecoration || 'none',
     options: [
-      { label: '正常', value: 'normal' }, { label: '斜体', value: 'italic' },
-      { label: '倾斜', value: 'oblique' },
+      { label: '无', value: 'none' },
+      { label: '下划线', value: 'underline', icon: 'U' },
+      { label: '删除线', value: 'line-through', icon: 'S' },
+    ],
+  },
+  textAlign: {
+    type: 'buttonGroup', label: '对齐', default: defaults.textAlign || 'auto',
+    options: [
+      { label: '自动', value: 'auto' },
+      { label: '左', value: 'left', icon: '⇤' },
+      { label: '中', value: 'center', icon: '≡' },
+      { label: '右', value: 'right', icon: '⇥' },
     ],
   },
   fontFamily: {
     type: 'input', label: '字体', default: defaults.fontFamily || 'inherit',
     placeholder: '如: Microsoft YaHei, PingFang SC',
-  },
-  textDecoration: {
-    type: 'select', label: '下划线/删除线', default: defaults.textDecoration || 'none',
-    options: [
-      { label: '无', value: 'none' }, { label: '下划线', value: 'underline' },
-      { label: '删除线', value: 'line-through' }, { label: '上划线', value: 'overline' },
-    ],
-  },
-  textAlign: {
-    type: 'select', label: '对齐', default: defaults.textAlign || 'auto',
-    options: [
-      { label: '自动', value: 'auto' }, { label: '左', value: 'left' },
-      { label: '中', value: 'center' }, { label: '右', value: 'right' },
-    ],
   },
   lineHeight: { type: 'number', label: '行高', default: defaults.lineHeight || 1.2, min: 0.5, max: 3, step: 0.1 },
   rich: { type: 'switch', label: '富文本', default: false },
@@ -219,21 +211,20 @@ export const COMMON_CONFIG_SCHEMA = {
       color: { type: 'color', label: '文字颜色', default: 'inherit' },
       fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 30 },
       fontWeight: {
-        type: 'select', label: '粗细', default: 'normal', options: [
-          { label: '正常', value: 'normal' }, { label: '加粗', value: 'bold' }, { label: '更粗', value: 'bolder' }, { label: '更细', value: 'lighter' },
-        ],
+        type: 'toggle', label: '加粗', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B',
       },
       fontStyle: {
-        type: 'select', label: '斜体', default: 'normal', options: [
-          { label: '正常', value: 'normal' }, { label: '斜体', value: 'italic' }, { label: '倾斜', value: 'oblique' },
+        type: 'toggle', label: '斜体', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I',
+      },
+      textDecoration: {
+        type: 'buttonGroup', label: '装饰线', default: 'none',
+        options: [
+          { label: '无', value: 'none' },
+          { label: '下划线', value: 'underline', icon: 'U' },
+          { label: '删除线', value: 'line-through', icon: 'S' },
         ],
       },
       fontFamily: { type: 'input', label: '字体', default: 'inherit', placeholder: '如: Microsoft YaHei' },
-      textDecoration: {
-        type: 'select', label: '下划线/删除线', default: 'none', options: [
-          { label: '无', value: 'none' }, { label: '下划线', value: 'underline' }, { label: '删除线', value: 'line-through' }, { label: '上划线', value: 'overline' },
-        ],
-      },
       align: { type: 'select', label: '对齐', default: 'auto', options: [{ label: '自动', value: 'auto' }, { label: '左', value: 'left' }, { label: '中', value: 'center' }, { label: '右', value: 'right' }] },
       verticalAlign: { type: 'select', label: '垂直对齐', default: 'auto', options: [{ label: '自动', value: 'auto' }, { label: '上', value: 'top' }, { label: '中', value: 'middle' }, { label: '下', value: 'bottom' }] },
       lineHeight: { type: 'number', label: '行高', default: 1.2, min: 0.5, max: 3, step: 0.1 },
@@ -743,6 +734,29 @@ export const TYPE_CONFIG_SCHEMAS = {
     nodeWidth: { type: 'number', label: '节点宽度', default: 20, min: 5, max: 50 },
     nodeGap: { type: 'number', label: '节点间距', default: 8, min: 2, max: 30 },
   },
+}
+
+// Extract default config object from a schema
+function getDefaultsFromSchema(schema) {
+  const result = {}
+  for (const [key, field] of Object.entries(schema || {})) {
+    if (field.type === 'group' && field.children) {
+      result[key] = getDefaultsFromSchema(field.children)
+    } else if ('default' in field) {
+      result[key] = field.default
+    }
+  }
+  return result
+}
+
+export function getDefaultConfig(chartType) {
+  const commonDefaults = getDefaultsFromSchema(COMMON_CONFIG_SCHEMA)
+  const typeDefaults = getDefaultsFromSchema(TYPE_CONFIG_SCHEMAS[chartType] || {})
+  return {
+    ...commonDefaults,
+    colorPalette: DEFAULT_PALETTE_INDEX,
+    ...(Object.keys(typeDefaults).length ? { typeSpecific: typeDefaults } : {}),
+  }
 }
 
 // ---- 辅助函数 ----
