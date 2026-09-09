@@ -8,7 +8,7 @@
         <SchemaForm
           v-if="field.children"
           :schema="field.children"
-          :model="model[key]"
+          :model="getNestedModel(key)"
           @update="onNestedUpdate(key)"
         />
         <el-alert v-else title="Group needs children schema" type="warning" :show-icon="false" style="font-size: 12px" />
@@ -17,13 +17,15 @@
       <el-form-item v-else :label="field.label">
         <el-switch
           v-if="field.type === 'switch'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :disabled="field.disabled"
         />
 
         <el-input
           v-else-if="field.type === 'input'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :placeholder="field.placeholder"
           :disabled="field.disabled"
           style="width: 100%"
@@ -31,7 +33,8 @@
 
         <el-input
           v-else-if="field.type === 'textarea'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :placeholder="field.placeholder"
           :disabled="field.disabled"
           :rows="4"
@@ -40,7 +43,8 @@
 
         <el-input-number
           v-else-if="field.type === 'number'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :min="field.min"
           :max="field.max"
           :step="field.step || 1"
@@ -52,7 +56,8 @@
 
         <el-slider
           v-else-if="field.type === 'slider'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :min="field.min ?? 0"
           :max="field.max ?? 100"
           :step="field.step ?? 1"
@@ -62,7 +67,8 @@
 
         <el-select
           v-else-if="field.type === 'select'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :placeholder="field.placeholder || '请选择'"
           :disabled="field.disabled"
           style="width: 100%"
@@ -78,7 +84,8 @@
 
         <el-color-picker
           v-else-if="field.type === 'color'"
-          v-model="model[key]"
+          :model-value="getModelValue(key)"
+          @update:model-value="val => setModelValue(key, val)"
           :disabled="field.disabled"
           predefine
           style="width: 100%"
@@ -91,24 +98,68 @@
 </template>
 
 <script setup>
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 
 const props = defineProps({
   schema: { type: Object, required: true },
-  model: { type: Object, required: true },
+  model: { type: Object, default: () => ({}) },
 })
 
 const emit = defineEmits(['update'])
 
+// Ensure model has all keys from schema with defaults
+const modelWithDefaults = computed(() => {
+  const result = { ...props.model }
+  for (const key of Object.keys(props.schema)) {
+    const field = props.schema[key]
+    if (!(key in result)) {
+      result[key] = getDefaultValue(field)
+    }
+  }
+  return result
+})
+
+function getDefaultValue(field) {
+  if (!field.type || field.type === 'group') return {}
+  if (field.type === 'switch') return field.default ?? false
+  if (field.type === 'number') return field.default ?? field.min ?? 0
+  if (field.type === 'slider') return field.default ?? field.min ?? 0
+  if (field.type === 'select') return field.default ?? (field.options?.[0]?.value ?? '')
+  if (field.type === 'color') return field.default ?? '#409EFF'
+  if (field.type === 'input') return field.default ?? ''
+  if (field.type === 'textarea') return field.default ?? ''
+  return field.default ?? null
+}
+
+function getModelValue(key) {
+  return modelWithDefaults.value[key]
+}
+
+function setModelValue(key, val) {
+  modelWithDefaults.value[key] = val
+  emit('update', modelWithDefaults.value)
+}
+
+function getNestedModel(key) {
+  return {
+    get: () => modelWithDefaults.value[key] || {},
+    set: (val) => {
+      modelWithDefaults.value[key] = val
+      emit('update', modelWithDefaults.value)
+    },
+  }
+}
+
 function onNestedUpdate(key) {
   return (newVal) => {
-    emit('update', { ...props.model, [key]: newVal })
+    modelWithDefaults.value[key] = newVal
+    emit('update', modelWithDefaults.value)
   }
 }
 
 watch(() => props.model, (newVal) => {
-  emit('update', newVal)
-}, { deep: true })
+  // External model changes will be merged in modelWithDefaults computed
+}, { deep: true, immediate: false })
 </script>
 
 <style scoped>
