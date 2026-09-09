@@ -746,6 +746,31 @@ export const TYPE_CONFIG_SCHEMAS = {
 }
 
 // ---- 辅助函数 ----
+// Deep merge helper - merges source into target, preserving target's objects unless source has values
+function mergeConfig(target, source) {
+  if (!source || typeof source !== 'object') return target
+  if (Array.isArray(source)) return source // arrays: replace entirely
+  
+  const result = { ...target }
+  for (const key of Object.keys(source)) {
+    const sourceVal = source[key]
+    const targetVal = target[key]
+    
+    if (sourceVal === undefined || sourceVal === null || sourceVal === '') {
+      continue // skip empty values
+    }
+    
+    if (sourceVal && typeof sourceVal === 'object' && !Array.isArray(sourceVal) && targetVal && typeof targetVal === 'object') {
+      // Both are objects: deep merge
+      result[key] = mergeConfig(targetVal, sourceVal)
+    } else {
+      // Primitive or array: use source value
+      result[key] = sourceVal
+    }
+  }
+  return result
+}
+
 function buildTextStyle(cfg, prefix = '') {
   if (!cfg) return {}
   const style = {}
@@ -1114,15 +1139,20 @@ function buildBar(data, config, palette, horizontal = false) {
     series.push(s)
   }
 
-  if (horizontal) {
-    opt.grid = { left: 100, right: 30, top: groupDim ? 44 : 20, bottom: 30 }
-    opt.xAxis = { type: 'value' }
-    opt.yAxis = { type: 'category', data: cats, axisLabel: { interval: 0 } }
-  } else {
-    opt.grid = { left: 60, right: 30, top: groupDim ? 44 : 30, bottom: 36 }
-    opt.xAxis = { type: 'category', data: cats, axisLabel: { interval: 0, rotate: cats.length > 8 ? 35 : 0, width: cats.length > 8 ? 80 : undefined, overflow: 'truncate' } }
-    opt.yAxis = { type: 'value' }
-  }
+  // Merge common grid/xAxis/yAxis config with chart-specific defaults
+  const defaultGrid = horizontal
+    ? { left: 100, right: 30, top: groupDim ? 44 : 20, bottom: 30 }
+    : { left: 60, right: 30, top: groupDim ? 44 : 30, bottom: 36 }
+  const defaultXAxis = horizontal
+    ? { type: 'value' }
+    : { type: 'category', data: cats, axisLabel: { interval: 0, rotate: cats.length > 8 ? 35 : 0, width: cats.length > 8 ? 80 : undefined, overflow: 'truncate' } }
+  const defaultYAxis = horizontal
+    ? { type: 'category', data: cats, axisLabel: { interval: 0 } }
+    : { type: 'value' }
+
+  opt.grid = mergeConfig(defaultGrid, opt.grid)
+  opt.xAxis = mergeConfig(defaultXAxis, opt.xAxis)
+  opt.yAxis = mergeConfig(defaultYAxis, opt.yAxis)
   opt.series = series
   return opt
 }
@@ -1221,9 +1251,13 @@ function buildLineChart(data, config, palette) {
     series.push(s)
   }
 
-  opt.grid = { left: 60, right: 30, top: groupDim ? 44 : 30, bottom: 36 }
-  opt.xAxis = { type: 'category', data: cats, axisLabel: { interval: 0, rotate: cats.length > 8 ? 35 : 0, width: cats.length > 8 ? 80 : undefined, overflow: 'truncate' } }
-  opt.yAxis = { type: 'value' }
+  const defaultGrid = { left: 60, right: 30, top: groupDim ? 44 : 30, bottom: 36 }
+  const defaultXAxis = { type: 'category', data: cats, axisLabel: { interval: 0, rotate: cats.length > 8 ? 35 : 0, width: cats.length > 8 ? 80 : undefined, overflow: 'truncate' } }
+  const defaultYAxis = { type: 'value' }
+
+  opt.grid = mergeConfig(defaultGrid, opt.grid)
+  opt.xAxis = mergeConfig(defaultXAxis, opt.xAxis)
+  opt.yAxis = mergeConfig(defaultYAxis, opt.yAxis)
   opt.series = series
   return opt
 }
@@ -1324,9 +1358,9 @@ function buildScatter(data, config, palette, isBubble = false) {
     return isBubble ? [x, y, Math.abs(y) || 10] : [x, y]
   })
 
-  opt.grid = { left: 60, right: 30, top: 40, bottom: 40 }
-  opt.xAxis = { type: 'value', name: dim.label || dim.field }
-  opt.yAxis = { type: 'value', name: metric.label }
+  opt.grid = mergeConfig({ left: 60, right: 30, top: 40, bottom: 40 }, opt.grid)
+  opt.xAxis = mergeConfig({ type: 'value', name: dim.label || dim.field }, opt.xAxis)
+  opt.yAxis = mergeConfig({ type: 'value', name: metric.label }, opt.yAxis)
   opt.series = [{
     name: metric.label,
     type: 'scatter',
@@ -1403,9 +1437,9 @@ function buildHeatmap(data, config, palette) {
     yCats.indexOf(String(r[`dim:${dimY.field}`]?.value ?? '')),
     r[metric.field],
   ])
-  opt.grid = { left: 80, right: 80, top: 40, bottom: 60 }
-  opt.xAxis = { type: 'category', data: xCats, splitArea: { show: true } }
-  opt.yAxis = { type: 'category', data: yCats, splitArea: { show: true } }
+  opt.grid = mergeConfig({ left: 80, right: 80, top: 40, bottom: 60 }, opt.grid)
+  opt.xAxis = mergeConfig({ type: 'category', data: xCats, splitArea: { show: true } }, opt.xAxis)
+  opt.yAxis = mergeConfig({ type: 'category', data: yCats, splitArea: { show: true } }, opt.yAxis)
   opt.visualMap = {
     min: Math.min(...heatData.map((d) => d[2])),
     max: Math.max(...heatData.map((d) => d[2])),
@@ -1430,9 +1464,9 @@ function buildWaterfall(data, config, palette) {
   const decreaseColor = config.decreaseColor || '#F56C6C'
 
   const opt = buildCommonOption(config, palette)
-  opt.grid = { left: 60, right: 30, top: 30, bottom: 36 }
-  opt.xAxis = { type: 'category', data: cats }
-  opt.yAxis = { type: 'value' }
+  opt.grid = mergeConfig({ left: 60, right: 30, top: 30, bottom: 36 }, opt.grid)
+  opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
+  opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
   opt.series = [
     { name: '占位', type: 'bar', stack: 'waterfall', itemStyle: { borderColor: 'transparent', color: 'transparent' }, emphasis: { itemStyle: { borderColor: 'transparent', color: 'transparent' } }, data: placeholder },
     { name: metric.label, type: 'bar', stack: 'waterfall', data: values.map((v, i) => ({ value: Math.abs(v), itemStyle: { color: v >= 0 ? increaseColor : decreaseColor } })) },
@@ -1462,9 +1496,9 @@ function buildBoxplot(data, config, palette) {
   })
 
   const opt = buildCommonOption(config, palette)
-  opt.grid = { left: 60, right: 30, top: 40, bottom: 36 }
-  opt.xAxis = { type: 'category', data: cats }
-  opt.yAxis = { type: 'value' }
+  opt.grid = mergeConfig({ left: 60, right: 30, top: 40, bottom: 36 }, opt.grid)
+  opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
+  opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
   opt.series = [{ type: 'boxplot', data: boxData }]
   return opt
 }
@@ -1560,9 +1594,9 @@ function buildCandlestick(data, config, palette) {
   const opt = buildCommonOption(config, palette)
   const cats = rows.map((r) => String(r[`dim:${dim.field}`]?.value ?? ''))
   const ohlc = rows.map((r) => [r[metrics[0].field], r[metrics[1].field], r[metrics[2].field], r[metrics[3].field]])
-  opt.grid = { left: 60, right: 30, top: 30, bottom: 36 }
-  opt.xAxis = { type: 'category', data: cats }
-  opt.yAxis = { type: 'value' }
+  opt.grid = mergeConfig({ left: 60, right: 30, top: 30, bottom: 36 }, opt.grid)
+  opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
+  opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
   opt.series = [{
     type: 'candlestick', data: ohlc,
     itemStyle: {
