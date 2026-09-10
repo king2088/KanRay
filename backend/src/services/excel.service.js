@@ -53,9 +53,8 @@ function inferColumnType(values) {
   }
 
   if (hasString) return 'string';
-  if (hasDate && !allInteger) return 'date';
-  if (allInteger) return 'integer';
   if (hasDate) return 'date';
+  if (allInteger) return 'integer';
   return 'number';
 }
 

@@ -1023,8 +1023,8 @@ function buildScatter(data, config, palette, isBubble = false) {
   })
 
   opt.grid = mergeConfig({ left: 60, right: 30, top: 40, bottom: 40 }, opt.grid)
-  opt.xAxis = mergeConfig({ type: 'value', name: dim.label || dim.field }, opt.xAxis)
-  opt.yAxis = mergeConfig({ type: 'value', name: metric.label }, opt.yAxis)
+  opt.xAxis = mergeConfig(opt.xAxis, { type: 'value', name: dim.label || dim.field, boundaryGap: '0%' })
+  opt.yAxis = mergeConfig(opt.yAxis, { type: 'value', name: metric.label, boundaryGap: '0%' })
   opt.series = [{
     name: metric.label,
     type: 'scatter',
@@ -1102,8 +1102,8 @@ function buildHeatmap(data, config, palette) {
     r[metric.field],
   ])
   opt.grid = mergeConfig({ left: 80, right: 80, top: 40, bottom: 60 }, opt.grid)
-  opt.xAxis = mergeConfig({ type: 'category', data: xCats, splitArea: { show: true } }, opt.xAxis)
-  opt.yAxis = mergeConfig({ type: 'category', data: yCats, splitArea: { show: true } }, opt.yAxis)
+  opt.xAxis = mergeConfig(opt.xAxis, { type: 'category', data: xCats, boundaryGap: true, splitArea: { show: true } })
+  opt.yAxis = mergeConfig(opt.yAxis, { type: 'category', data: yCats, boundaryGap: true, splitArea: { show: true } })
   opt.visualMap = {
     min: Math.min(...heatData.map((d) => d[2])),
     max: Math.max(...heatData.map((d) => d[2])),
