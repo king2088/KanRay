@@ -50,7 +50,7 @@ defineProps({
 
 defineEmits(['update:chartType'])
 
-const activeCategory = ref('')
+const activeCategory = ref('bar')
 
 const filteredTypes = computed(() => {
   if (activeCategory.value === '') return CHART_TYPES
