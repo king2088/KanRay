@@ -75,6 +75,8 @@ function onCategoryChange(val) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .chart-type-item {
