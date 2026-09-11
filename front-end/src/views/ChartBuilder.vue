@@ -1,22 +1,7 @@
 <template>
   <div class="chart-builder">
-    <!-- 工具栏 -->
-    <div class="builder-toolbar">
-      <div class="tb-left">
-        <el-button circle @click="back"><el-icon><ArrowLeft /></el-icon></el-button>
-        <el-input v-model="chartName" placeholder="图表名称" style="width: 220px" maxlength="100" />
-        <el-tag v-if="datasetId" type="info">{{ datasetName }}</el-tag>
-      </div>
-      <div class="tb-right">
-        <el-button :loading="saving" type="primary" @click="save">
-          <el-icon style="margin-right: 4px"><Check /></el-icon>保存图表
-        </el-button>
-      </div>
-    </div>
-
-    <div class="builder-body">
-      <!-- 左侧：数据源 + 字段-->
-      <div class="builder-left">
+    <!-- 左侧：数据源 + 字段-->
+    <div class="builder-left">
         <DataSourcePanel
           :datasets="datasets"
           :datasetId="datasetId"
@@ -52,7 +37,24 @@
         </div>
       </div>
 
-      <!-- 中间：图表预览 -->
+    <!-- 右侧主区：工具栏 + 预览 + 配置 -->
+    <div class="builder-main">
+      <!-- 工具栏 -->
+      <div class="builder-toolbar">
+        <div class="tb-left">
+          <el-button circle @click="back"><el-icon><ArrowLeft /></el-icon></el-button>
+          <el-input v-model="chartName" placeholder="图表名称" style="width: 220px" maxlength="100" />
+          <el-tag v-if="datasetId" type="info">{{ datasetName }}</el-tag>
+        </div>
+        <div class="tb-right">
+          <el-button :loading="saving" type="primary" @click="save">
+            <el-icon style="margin-right: 4px"><Check /></el-icon>保存图表
+          </el-button>
+        </div>
+      </div>
+
+      <div class="builder-workspace">
+        <!-- 中间：图表预览 -->
       <div class="builder-preview">
         <div class="preview-toolbar">
           <span>
@@ -160,6 +162,7 @@
           <div class="right-section-title">显示配置</div>
           <ChartConfigPanel :chart-type="chartType" :config="displayConfig" :series-names="chartSeriesNames" @update:config="displayConfig = $event" />
         </div>
+      </div>
       </div>
     </div>
   </div>
@@ -467,7 +470,6 @@ onMounted(async () => {
 .chart-builder {
   height: 100%;
   display: flex;
-  flex-direction: column;
 }
 
 .builder-toolbar {
@@ -499,7 +501,14 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.builder-body {
+.builder-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-workspace {
   flex: 1;
   display: flex;
   min-height: 0;
