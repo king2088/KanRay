@@ -1,4 +1,8 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
+import {
+  Aim, ArrowDown, ArrowDownBold, ArrowLeft, ArrowLeftBold,
+  ArrowRight, ArrowRightBold, ArrowUp, ArrowUpBold, Expand, Fold, Position,
+} from '@element-plus/icons-vue'
 
 // ---- 公共配置schema（所有图表共享，精简版） ----
 
@@ -16,43 +20,51 @@ const STYLE_TITLE = {
   fontSize: { type: 'number', label: '字号', default: 16, min: 8, max: 40 },
 }
 
+// ---- 图标按钮组共享选项（位置/方向） ----
+const H_POS_OPTIONS = [
+  { label: '左', title: '左', value: 'left', icon: ArrowLeftBold },
+  { label: '中', title: '居中', value: 'center', icon: Aim },
+  { label: '右', title: '右', value: 'right', icon: ArrowRightBold },
+]
+const V_POS_OPTIONS = [
+  { label: '上', title: '顶', value: 'top', icon: ArrowUpBold },
+  { label: '中', title: '中部', value: 'middle', icon: Aim },
+  { label: '下', title: '底', value: 'bottom', icon: ArrowDownBold },
+]
+const ORIENT_OPTIONS = [
+  { label: '水平', title: '水平', value: 'horizontal', icon: ArrowRightBold },
+  { label: '垂直', title: '垂直', value: 'vertical', icon: ArrowDownBold },
+]
+const LABEL_POS_OPTIONS = [
+  { label: '上', title: '上', value: 'top', icon: ArrowUp },
+  { label: '下', title: '下', value: 'bottom', icon: ArrowDown },
+  { label: '左', title: '左', value: 'left', icon: ArrowLeft },
+  { label: '右', title: '右', value: 'right', icon: ArrowRight },
+  { label: '内', title: '内', value: 'inside', icon: Position },
+]
+const PIE_LABEL_POS_OPTIONS = [
+  { label: '外', title: '外', value: 'outside', icon: Expand },
+  { label: '内', title: '内', value: 'inside', icon: Fold },
+  { label: '居中', title: '居中', value: 'center', icon: Aim },
+]
+
 export const COMMON_CONFIG_SCHEMA = {
   title: {
     type: 'group', label: '标题', children: {
       show: { type: 'switch', label: '显示', default: true },
       text: { type: 'input', label: '标题文字', default: '', placeholder: '输入图表标题' },
       subtext: { type: 'input', label: '副标题', default: '', placeholder: '副标题(可选)' },
-      left: {
-        type: 'select', label: '水平位置', default: 'center', options: [
-          { label: '左', value: 'left' }, { label: '居中', value: 'center' }, { label: '右', value: 'right' },
-        ],
-      },
-      top: {
-        type: 'select', label: '垂直位置', default: 'top', options: [
-          { label: '顶部', value: 'top' }, { label: '中部', value: 'middle' }, { label: '底部', value: 'bottom' },
-        ],
-      },
+      left: { type: 'buttonGroup', label: '水平', row: true, default: 'center', options: H_POS_OPTIONS },
+      top: { type: 'buttonGroup', label: '垂直', row: true, separator: true, default: 'top', options: V_POS_OPTIONS },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TITLE },
     },
   },
   legend: {
     type: 'group', label: '图例', children: {
       show: { type: 'switch', label: '显示', default: true },
-      orient: {
-        type: 'select', label: '布局方向', default: 'horizontal', options: [
-          { label: '水平', value: 'horizontal' }, { label: '垂直', value: 'vertical' },
-        ],
-      },
-      left: {
-        type: 'select', label: '水平位置', default: 'center', options: [
-          { label: '左', value: 'left' }, { label: '居中', value: 'center' }, { label: '右', value: 'right' },
-        ],
-      },
-      top: {
-        type: 'select', label: '垂直位置', default: 'bottom', options: [
-          { label: '顶部', value: 'top' }, { label: '中部', value: 'middle' }, { label: '底部', value: 'bottom' },
-        ],
-      },
+      orient: { type: 'buttonGroup', label: '方向', row: true, default: 'horizontal', options: ORIENT_OPTIONS },
+      left: { type: 'buttonGroup', label: '水平', row: true, default: 'center', options: H_POS_OPTIONS },
+      top: { type: 'buttonGroup', label: '垂直', row: true, separator: true, default: 'bottom', options: V_POS_OPTIONS },
       align: {
         type: 'buttonGroup', label: '对齐', default: 'auto',
         options: [
@@ -116,12 +128,7 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '换行', value: '\n' }, { label: '竖线', value: ' | ' },
         ],
       },
-      position: {
-        type: 'select', label: '位置', default: 'top', options: [
-          { label: '上', value: 'top' }, { label: '下', value: 'bottom' },
-          { label: '左', value: 'left' }, { label: '右', value: 'right' }, { label: '内', value: 'inside' },
-        ],
-      },
+      position: { type: 'buttonGroup', label: '位置', default: 'top', options: LABEL_POS_OPTIONS },
       color: { type: 'color', label: '文字颜色', default: 'inherit' },
       fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 30 },
       fontWeight: { type: 'toggle', label: '加粗', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
@@ -307,22 +314,14 @@ export const TYPE_CONFIG_SCHEMAS = {
   pie: {
     radius: { type: 'slider', label: '半径%', default: 65, min: 20, max: 90 },
     startAngle: { type: 'number', label: '起始角度', default: 90, min: 0, max: 360 },
-    labelPosition: {
-      type: 'select', label: '标签位置', default: 'outside', options: [
-        { label: '外', value: 'outside' }, { label: '内', value: 'inside' }, { label: '居中', value: 'center' },
-      ],
-    },
+    labelPosition: { type: 'buttonGroup', label: '标签位置', default: 'outside', options: PIE_LABEL_POS_OPTIONS },
     roseType: { type: 'switch', label: '玫瑰模式', default: false },
   },
   doughnut: {
     radiusInner: { type: 'slider', label: '内径%', default: 40, min: 10, max: 60 },
     radiusOuter: { type: 'slider', label: '外径%', default: 68, min: 30, max: 90 },
     startAngle: { type: 'number', label: '起始角度', default: 90, min: 0, max: 360 },
-    labelPosition: {
-      type: 'select', label: '标签位置', default: 'outside', options: [
-        { label: '外', value: 'outside' }, { label: '内', value: 'inside' }, { label: '居中', value: 'center' },
-      ],
-    },
+    labelPosition: { type: 'buttonGroup', label: '标签位置', default: 'outside', options: PIE_LABEL_POS_OPTIONS },
     showCenter: { type: 'switch', label: '中心文本', default: false },
     centerText: { type: 'input', label: '中心标题', default: '', placeholder: '留空显示数值' },
     centerSubtext: { type: 'input', label: '中心副标题', default: '', placeholder: '可选' },
@@ -441,11 +440,7 @@ export const TYPE_CONFIG_SCHEMAS = {
     downColor: { type: 'color', label: '阴线颜色', default: '#67C23A' },
   },
   treemap: {
-    orient: {
-      type: 'select', label: '方向', default: 'horizontal', options: [
-        { label: '水平', value: 'horizontal' }, { label: '垂直', value: 'vertical' },
-      ],
-    },
+    orient: { type: 'buttonGroup', label: '方向', default: 'horizontal', options: ORIENT_OPTIONS },
   },
   sankey: {
     nodeWidth: { type: 'number', label: '节点宽度', default: 20, min: 5, max: 50 },
