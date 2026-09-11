@@ -25,13 +25,12 @@
       </div>
       <div v-if="!dims.length" class="drop-hint">拖入字段作为维度</div>
       <div v-for="(d, di) in dims" :key="di" class="slot-row">
-        <el-select v-model="d.field" placeholder="选择字段" size="small" style="flex: 1">
+        <el-select v-model="d.field" placeholder="选择字段" style="flex: 1">
           <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
         </el-select>
         <el-select
           v-if="isDateField(d.field)"
           v-model="d.granularity"
-          size="small"
           style="width: 80px"
           placeholder="粒度"
         >
@@ -51,10 +50,10 @@
       </div>
       <div v-if="!metrics.length" class="drop-hint">拖入字段作为指标</div>
       <div v-for="(m, mi) in metrics" :key="mi" class="slot-row">
-        <el-select v-model="m.field" placeholder="选择字段" size="small" style="flex: 1">
+        <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
           <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
         </el-select>
-        <el-select v-model="m.agg" size="small" style="width: 95px">
+        <el-select v-model="m.agg" style="width: 95px">
           <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
         </el-select>
         <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>

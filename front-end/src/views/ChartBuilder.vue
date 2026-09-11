@@ -33,7 +33,7 @@
         <!-- 显示选项（排序等） -->
         <div class="left-extra">
           <div class="panel-title">显示选项</div>
-          <el-form label-width="70px" size="small">
+          <el-form label-width="70px">
             <el-form-item label="显示数量">
               <el-input-number v-model="showOptions.groupLimit" :min="1" :max="500" style="width: 120px" />
             </el-form-item>
@@ -59,7 +59,7 @@
             <el-icon style="margin-right: 6px; vertical-align: middle"><TrendCharts />
             </el-icon>{{ currentChartLabel }} - 实时预览
           </span>
-          <el-button size="small" :loading="previewLoading" @click="loadPreview">刷新</el-button>
+          <el-button :loading="previewLoading" @click="loadPreview">刷新</el-button>
         </div>
         <div class="preview-area">
           <template v-if="chartType === 'table'">

@@ -36,7 +36,6 @@
     :placeholder="field.placeholder"
     :disabled="field.disabled"
     :controls-position="field.controlsPosition || 'right'"
-    :size="compact ? 'small' : undefined"
     :style="fluid ? 'width: 100%' : (compact ? 'width: 86px' : 'width: 140px')"
   />
 
@@ -57,7 +56,6 @@
     @update:model-value="(v) => emit('change', v)"
     :placeholder="field.placeholder || '请选择'"
     :disabled="field.disabled"
-    :size="compact ? 'small' : undefined"
     :multiple="field.multiple"
     :collapse-tags="field.multiple"
     :clearable="!field.multiple"
@@ -76,16 +74,14 @@
     :model-value="value"
     @update:model-value="(v) => emit('change', v)"
     :disabled="field.disabled"
-    :size="compact ? 'small' : undefined"
     style="width: 100%"
   />
 
   <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top" :enterable="false" :show-after="200">
     <el-button
       :type="value === field.activeValue ? 'primary' : 'default'"
-      size="small"
       @click="toggle"
-      style="min-width: 34px; padding: 6px 8px;"
+      style="min-width: 34px; padding: 0 8px;"
     >
       <span :style="getToggleStyle()">{{ field.icon || field.label }}</span>
     </el-button>
@@ -102,7 +98,6 @@
     >
       <el-button
         :type="value === opt.value ? 'primary' : 'default'"
-        size="small"
         @click="emit('change', opt.value)"
         class="glyph-btn"
       >
@@ -213,8 +208,8 @@ watch(() => props.value, () => { hoverLabel.value = activeGridLabel() })
 
 <style scoped>
 .glyph-btn {
-  min-width: 30px;
-  padding: 5px 6px;
+  min-width: 34px;
+  padding: 0 7px;
 }
 .icon-btn-group {
   display: inline-flex;
