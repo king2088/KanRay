@@ -32,6 +32,8 @@ import { onBeforeUnmount, onMounted, ref, watch, computed, nextTick } from 'vue'
 import echarts from '@/utils/echarts'
 import { OPTION_BUILDERS } from '@/config/chart-configs'
 import { getPalette } from '@/config/color-palettes'
+import ZRLine from 'zrender/lib/graphic/shape/Line.js'
+import ZRGroup from 'zrender/lib/graphic/Group.js'
 
 const props = defineProps({
   chartType: { type: String, required: true },
@@ -42,6 +44,8 @@ const props = defineProps({
 const el = ref(null)
 let chart = null
 let resizeObserver = null
+let currentOpt = null
+let ulGroup = null
 
 const geoCache = {}
 const geoLoading = {}
@@ -110,9 +114,108 @@ function fmtNumber(n) {
 function initChart() {
   if (!el.value || chart) return
   chart = echarts.init(el.value)
-  resizeObserver = new ResizeObserver(() => chart && chart.resize())
+  chart.on('finished', buildUnderlines)
+  resizeObserver = new ResizeObserver(() => {
+    if (!chart) return
+    chart.resize()
+    nextTick(() => buildUnderlines())
+  })
   resizeObserver.observe(el.value)
   render()
+}
+
+function underlineIntent(opt) {
+  const tx = (o) => o && o.textDecoration === 'underline'
+  if (opt.title && tx(opt.title.textStyle)) return true
+  if (opt.legend && tx(opt.legend.textStyle)) return true
+  const axes = [opt.xAxis, opt.yAxis]
+  for (const ax of axes) {
+    const arr = Array.isArray(ax) ? ax : ax ? [ax] : []
+    for (const a of arr) if (a && tx(a.nameTextStyle)) return true
+  }
+  if (Array.isArray(opt.series)) {
+    for (const s of opt.series) if (s && s.label && tx(s.label)) return true
+  }
+  return false
+}
+
+function underlineTargets(opt, chart) {
+  const set = new Set()
+  const add = (t) => { if (t != null && String(t).trim() !== '') set.add(String(t)) }
+
+  if (opt.title && opt.title.textStyle && opt.title.textStyle.textDecoration === 'underline') {
+    if (opt.title.text) add(opt.title.text)
+    if (opt.title.subtext) add(opt.title.subtext)
+  }
+  if (opt.legend && opt.legend.textStyle && opt.legend.textStyle.textDecoration === 'underline' && Array.isArray(opt.series)) {
+    opt.series.forEach((s) => add(s.name))
+  }
+  const axes = [opt.xAxis, opt.yAxis]
+  for (const ax of axes) {
+    const arr = Array.isArray(ax) ? ax : ax ? [ax] : []
+    for (const a of arr) {
+      if (a && a.name && a.nameTextStyle && a.nameTextStyle.textDecoration === 'underline') add(a.name)
+    }
+  }
+  if (chart && Array.isArray(opt.series)) {
+    const model = chart.getModel()
+    opt.series.forEach((s, i) => {
+      if (!s.label || s.label.show === false) return
+      if (!s.label.textDecoration || s.label.textDecoration === 'none') return
+      const sm = model.getSeriesByIndex(i)
+      if (!sm || !sm.getData) return
+      const n = sm.getData().count()
+      for (let j = 0; j < n; j++) {
+        try {
+          const t = sm.getFormattedLabel(j, 'normal')
+          if (t) add(t)
+        } catch (e) { /* ignore */ }
+      }
+    })
+  }
+  return set
+}
+
+function buildUnderlines() {
+  if (!chart || !currentOpt) return
+  const zr = chart.getZr()
+  if (ulGroup) {
+    zr.remove(ulGroup)
+    ulGroup = null
+  }
+  if (!underlineIntent(currentOpt)) return
+  const targets = underlineTargets(currentOpt, chart)
+  if (!targets.size) return
+  const group = new ZRGroup()
+  group.z = 1000
+  group.silent = true
+  const list = zr.storage.getDisplayList()
+  for (const e of list) {
+    if (!e || e.type !== 'tspan') continue
+    const text = e.style && e.style.text
+    if (text == null || !targets.has(String(text))) continue
+    const fs = e.style.fontSize || 12
+    const rect = e.getBoundingRect().clone()
+    const m = e.getComputedTransform()
+    if (!m) continue
+    rect.applyTransform(m)
+    const y = rect.y + rect.height + 1
+    const line = new ZRLine({
+      shape: { x1: rect.x, y1: y, x2: rect.x + rect.width, y2: y },
+      style: {
+        stroke: e.style.fill || '#333',
+        lineWidth: Math.max(1, Math.round(fs / 12)),
+        lineCap: 'round',
+      },
+      silent: true,
+      z: 1000,
+    })
+    group.add(line)
+  }
+  if (!group.childCount()) return
+  ulGroup = group
+  zr.add(ulGroup)
+  zr.refresh()
 }
 
 function render() {
@@ -120,14 +223,17 @@ function render() {
   const opt = builtOpt.value
   if (!opt) return
   if (renderMode.value === 'map') {
+    currentOpt = null
     renderMap(opt._map)
     return
   }
   if (renderMode.value !== 'echarts') {
+    currentOpt = null
     chart.clear()
     return
   }
   if (!opt.backgroundColor) opt.backgroundColor = 'transparent'
+  currentOpt = opt
   chart.setOption(opt, true)
 }
 
@@ -309,6 +415,8 @@ watch(isEChartsType, handleChartTypeChange)
 watch([() => props.chartType, () => props.data, () => props.options], render, { deep: true })
 
 onBeforeUnmount(() => {
+  if (chart && ulGroup) chart.getZr().remove(ulGroup)
+  ulGroup = null
   resizeObserver && resizeObserver.disconnect()
   chart && chart.dispose()
   chart = null

@@ -61,7 +61,7 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       icon: {
-        type: 'select', label: '形状', selectWidth: 100, default: '', options: [
+        type: 'select', label: '形状', default: '', options: [
           { label: '自动', value: '' },
           { label: '圆形', value: 'circle' },
           { label: '方形', value: 'rect' },
@@ -71,8 +71,8 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '引脚', value: 'pin' },
         ],
       },
-      itemWidth: { type: 'number', label: '宽', row: true, default: 25, min: 8, max: 100 },
-      itemHeight: { type: 'number', label: '高', row: true, default: 14, min: 8, max: 100 },
+      itemWidth: { type: 'number', label: '形状宽', default: 25, min: 8, max: 100 },
+      itemHeight: { type: 'number', label: '形状高', default: 14, min: 8, max: 100 },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },
@@ -95,8 +95,8 @@ export const COMMON_CONFIG_SCHEMA = {
         },
       },
       formatter: { type: 'input', label: '内容格式', default: '', placeholder: '如 {a}{b}: {c}，留空自动' },
-      backgroundColor: { type: 'color', label: '背景色', row: true, default: 'rgba(255,255,255,0.96)' },
-      borderColor: { type: 'color', label: '边框色', row: true, default: '#DCDFE6' },
+      backgroundColor: { type: 'color', label: '背景色', default: 'rgba(255,255,255,0.96)' },
+      borderColor: { type: 'color', label: '边框色', default: '#DCDFE6' },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },
@@ -128,6 +128,8 @@ export const COMMON_CONFIG_SCHEMA = {
   },
   markLine: {
     type: 'group', label: '标记线', children: {
+      color: { type: 'color', label: '线条颜色', default: '#E63946' },
+      width: { type: 'number', label: '线宽', default: 1.5, min: 0.5, max: 10, step: 0.5 },
       show: { type: 'switch', label: '显示', default: false },
       type: {
         type: 'select', label: '类型', default: 'average', options: [
@@ -136,8 +138,6 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       customValue: { type: 'number', label: '自定义值', default: 0 },
-      color: { type: 'color', label: '线条', row: true, default: '#E63946' },
-      width: { type: 'number', label: '', row: true, default: 1.5, min: 0.5, max: 10, step: 0.5 },
       lineType: {
         type: 'select', label: '线型', default: 'dashed', options: [
           { label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' },
@@ -740,8 +740,8 @@ function buildCommonOption(config, palette, enableZoom = false) {
       show: ya.show !== false,
       type: ya.type || 'value',
       position: ya.position || 'left',
-      name: ya.name || '',
-      nameLocation: ya.nameLocation || 'middle',
+      name: ya.unit ? (ya.name && ya.name.trim() ? `${ya.name} 单位： ${ya.unit}` : `单位： ${ya.unit}`) : (ya.name || ''),
+      nameLocation: ya.unit ? 'end' : (ya.nameLocation || 'middle'),
       nameGap: ya.nameGap || 15,
       nameRotate: ya.nameRotate || 0,
       nameTextStyle: buildTextStyle(ya.nameTextStyle, 'yAxisName'),
@@ -775,7 +775,7 @@ function buildCommonOption(config, palette, enableZoom = false) {
         inside: ya.axisLabel?.inside || false,
         rotate: ya.axisLabel?.rotate || 0,
         margin: ya.axisLabel?.margin || 8,
-        formatter: ya.axisLabel?.formatter || (ya.unit ? `{value} ${ya.unit}` : undefined),
+        formatter: ya.axisLabel?.formatter || undefined,
         ...buildTextStyle(ya.axisLabel?.textStyle, 'yAxisLabel'),
         ...(ya.labelColor ? { color: ya.labelColor } : {}),
       },
