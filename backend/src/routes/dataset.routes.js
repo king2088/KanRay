@@ -52,10 +52,10 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/datasets/preview  (上传并预览，不落库)
-router.post('/preview', upload.single('file'), (req, res) => {
+router.post('/preview', upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, '请上传文件');
   try {
-    const preview = datasetService.previewExcel(req.file.path);
+    const preview = await datasetService.previewExcel(req.file.path);
     ok(res, preview);
   } finally {
     cleanup(req.file.path);
@@ -63,13 +63,13 @@ router.post('/preview', upload.single('file'), (req, res) => {
 });
 
 // POST /api/datasets  (上传并正式创建)
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, '请上传文件');
   const nameSchema = z.string().trim().min(1).max(100);
   const parsed = nameSchema.safeParse(req.body.name);
   try {
     if (!parsed.success) throw new HttpError(400, '数据集名称不能为空且不超过 100 字符');
-    const ds = datasetService.parseAndCreate(parsed.data, req.file.path);
+    const ds = await datasetService.parseAndCreate(parsed.data, req.file.path);
     ok(res, ds, '数据集创建成功');
   } finally {
     cleanup(req.file.path);

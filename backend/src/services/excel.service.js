@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const { readSheet } = require('read-excel-file/node');
 const config = require('../config');
 const HttpError = require('../utils/http-error');
 
@@ -60,16 +60,11 @@ function inferColumnType(values) {
 
 /**
  * 读取 Excel/CSV 文件，第一行作为列名
- * @returns {{ header: Array<{key,label,type}>, rows: Array<object> }}
+ * @returns {Promise<{ header: Array<{key,label,type}>, rows: Array<object> }>}
  */
-function parseExcelFile(filePath) {
-  const workbook = XLSX.readFile(filePath, { cellDates: true });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) throw new HttpError(400, 'Excel 文件中没有工作表');
-  const sheet = workbook.Sheets[sheetName];
-
-  // 先取第一行作为表头
-  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
+async function parseExcelFile(filePath) {
+  // 返回二维数组：每行是数组，值类型为 string | number | boolean | Date | null
+  const matrix = await readSheet(filePath);
   if (!matrix || matrix.length === 0) throw new HttpError(400, '上传的文件没有数据行');
 
   const headerRow = matrix[0];

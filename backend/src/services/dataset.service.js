@@ -112,8 +112,8 @@ function createDataset(name, header, rows) {
 /**
  * 上传 Excel 并创建数据集；若已有同名文件且仅预览（不落库）走 preview 流程
  */
-function previewExcel(filePath) {
-  const { header, rows } = parseExcelFile(filePath);
+async function previewExcel(filePath) {
+  const { header, rows } = await parseExcelFile(filePath);
   return {
     header,
     previewRows: rows.slice(0, config.upload.previewRows),
@@ -124,8 +124,8 @@ function previewExcel(filePath) {
 /**
  * 全量导入（用于真正创建数据集），返回预览信息 + 可随后调用 create
  */
-function parseAndCreate(name, filePath) {
-  const { header, rows } = parseExcelFile(filePath);
+async function parseAndCreate(name, filePath) {
+  const { header, rows } = await parseExcelFile(filePath);
   const ds = createDataset(name, header, rows);
   ds.previewRows = rows.slice(0, config.upload.previewRows);
   return ds;
