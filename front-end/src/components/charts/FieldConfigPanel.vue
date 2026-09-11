@@ -13,7 +13,7 @@
       >
         <el-icon :size="14" style="margin-right: 6px"><DataLine /></el-icon>
         <span>{{ f.label || f.name }}</span>
-        <el-tag size="small" type="info" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
+        <el-tag size="small" effect="light" :style="typeTagStyle(f.type)" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
       </div>
     </div>
 
@@ -78,6 +78,13 @@ const update = () => {
 }
 
 const typeLabel = (t) => ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t)
+
+const NUMERIC_TYPES = ['integer', 'number']
+
+const typeTagStyle = (t) =>
+  NUMERIC_TYPES.includes(t)
+    ? { background: '#E9F7EF', borderColor: '#B8E9CD', color: '#1F8A4C' }
+    : {}
 
 function isDateField(fieldName) {
   const f = props.fields.find((x) => x.name === fieldName)
