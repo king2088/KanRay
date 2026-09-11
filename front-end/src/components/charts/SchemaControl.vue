@@ -117,7 +117,7 @@
   <div v-else-if="field.type === 'positionGrid'" class="pos-grid" @mouseleave="onGridLeave">
     <el-tooltip
       :content="hoverLabel"
-      placement="top"
+      placement="right"
       :enterable="false"
       :show-after="150"
       :hide-after="200"

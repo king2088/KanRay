@@ -129,7 +129,7 @@ left  center  right
 
 9 格各自使用对应的方位偏移点图标 `posTopLeft … posBotRight`（同 ① 节），选中格高亮（蓝边框 + `--el-color-primary-light-9` 底色 + 蓝点）；悬停同款高亮。
 
-**tooltip 交互**：采用**单一容器级 tooltip**（非逐格），挂在 `.pos-grid` wrapper 上，`el-tooltip placement="top" enterable=false show-after=150ms hide-after=200ms`。内容随鼠标实时更新（`hoverLabel`），离开网格时回显当前选中方位。tooltip 弹层固定在整张表上方，不遮挡任何格子。
+**tooltip 交互**：采用**单一容器级 tooltip**（非逐格），挂在 `.pos-grid` wrapper 上，`el-tooltip placement="right" enterable=false show-after=150ms hide-after=200ms`。内容随鼠标实时更新（`hoverLabel`），离开网格时回显当前选中方位。tooltip 弹层固定在网格右侧，不遮挡任何格子。
 
 点击格子触发 `emit('change', { left: colMap[col], top: rowMap[row] })`。
 
