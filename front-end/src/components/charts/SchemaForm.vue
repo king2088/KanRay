@@ -221,6 +221,13 @@ function onNestedUpdate(key, newVal) {
 .schema-form {
   width: 100%;
 }
+.schema-form.is-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 100%;
+}
 .field-row {
   display: flex;
   align-items: center;
