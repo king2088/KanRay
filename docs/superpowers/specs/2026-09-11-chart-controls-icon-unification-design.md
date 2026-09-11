@@ -127,7 +127,9 @@ if (field.type === 'positionGrid' && field.keys) {
 left  center  right
 ```
 
-9 格各自使用对应的方位偏移点图标 `posTopLeft … posBotRight`（同 ① 节），选中格高亮（蓝边框 + `--el-color-primary-light-9` 底色 + 蓝点）；悬停同款高亮。每格外层包 `el-tooltip`（content=方位名）。
+9 格各自使用对应的方位偏移点图标 `posTopLeft … posBotRight`（同 ① 节），选中格高亮（蓝边框 + `--el-color-primary-light-9` 底色 + 蓝点）；悬停同款高亮。
+
+**tooltip 交互**：采用**单一容器级 tooltip**（非逐格），挂在 `.pos-grid` wrapper 上，`el-tooltip placement="top" enterable=false show-after=150ms hide-after=200ms`。内容随鼠标实时更新（`hoverLabel`），离开网格时回显当前选中方位。tooltip 弹层固定在整张表上方，不遮挡任何格子。
 
 点击格子触发 `emit('change', { left: colMap[col], top: rowMap[row] })`。
 
@@ -163,7 +165,7 @@ export const posDotAt = (cx, cy) => () => svg([
 
 这些 Vue 组件通过 `<component :is="opt.icon">` 渲染。图标为 render-function（`typeof opt.icon === 'function'`），SchemaControl 分支同时接受 `object` 与 `function`。
 
-**尺寸与提示**：buttonGroup 按钮 30×24+（图标 18px）、九宫格格子 32×32（图标 20px）；全部图标按钮（buttonGroup、九宫格、toggle B/I）外层包 `el-tooltip`（content = option.title / 方位名），去除对原生 `title` 的依赖。toggle 的 `v-else-if` 指令移至 `el-tooltip` 外层，维持 v-if 链。
+**尺寸与提示**：buttonGroup 按钮 ≥30×24（图标 18px）、九宫格格子 32×32（图标 20px）。全部图标按钮（buttonGroup、toggle B/I）包 `el-tooltip`（`enterable=false`、`show-after=200ms`）；九宫格用单一容器级 tooltip（见九宫格控件节）。
 
 ## 实现触点
 

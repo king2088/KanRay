@@ -80,7 +80,7 @@
     style="width: 100%"
   />
 
-  <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top">
+  <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top" :enterable="false" :show-after="200">
     <el-button
       :type="value === field.activeValue ? 'primary' : 'default'"
       size="small"
@@ -97,6 +97,8 @@
       :key="opt.value"
       :content="opt.title || opt.label"
       placement="top"
+      :enterable="false"
+      :show-after="200"
     >
       <el-button
         :type="value === opt.value ? 'primary' : 'default'"
@@ -112,11 +114,17 @@
     </el-tooltip>
   </div>
 
-  <div v-else-if="field.type === 'positionGrid'" class="pos-grid">
-    <table class="pos-grid-table">
-      <tr v-for="(rowVal, r) in ROW_VALS" :key="rowVal">
-        <td v-for="(colVal, c) in COL_VALS" :key="colVal">
-          <el-tooltip :content="GRID_LABELS[r][c]" placement="top">
+  <div v-else-if="field.type === 'positionGrid'" class="pos-grid" @mouseleave="onGridLeave">
+    <el-tooltip
+      :content="hoverLabel"
+      placement="top"
+      :enterable="false"
+      :show-after="150"
+      :hide-after="200"
+    >
+      <table class="pos-grid-table" @mousemove="onGridMove">
+        <tr v-for="(rowVal, r) in ROW_VALS" :key="rowVal">
+          <td v-for="(colVal, c) in COL_VALS" :key="colVal">
             <button
               type="button"
               class="pos-grid-cell"
@@ -125,16 +133,17 @@
             >
               <el-icon :size="20"><component :is="GRID_ICONS[r][c]" /></el-icon>
             </button>
-          </el-tooltip>
-        </td>
-      </tr>
-    </table>
+          </td>
+        </tr>
+      </table>
+    </el-tooltip>
   </div>
 
   <el-alert v-else title="Unsupported field type" type="warning" :show-icon="false" style="font-size: 12px" />
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import {
   posTopLeft, posTopCenter, posTopRight,
   posMidLeft, posMidCenter, posMidRight,
@@ -181,6 +190,25 @@ function isGridActive(r, c) {
   const v = props.value || {}
   return COL_VALS[c] === v.left && ROW_VALS[r] === v.top
 }
+function activeGridLabel() {
+  const v = props.value || {}
+  const r = ROW_VALS.indexOf(v.top)
+  const c = COL_VALS.indexOf(v.left)
+  if (r < 0 || c < 0) return '居中'
+  return GRID_LABELS[r][c]
+}
+const hoverLabel = ref(activeGridLabel())
+function onGridMove(e) {
+  const cell = e.target.closest('.pos-grid-cell')
+  if (!cell) return
+  const cells = [...cell.closest('table').querySelectorAll('.pos-grid-cell')]
+  const i = cells.indexOf(cell)
+  if (i >= 0) hoverLabel.value = GRID_LABELS[Math.floor(i / 3)][i % 3]
+}
+function onGridLeave() {
+  hoverLabel.value = activeGridLabel()
+}
+watch(() => props.value, () => { hoverLabel.value = activeGridLabel() })
 </script>
 
 <style scoped>
