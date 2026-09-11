@@ -74,7 +74,7 @@
     :model-value="value"
     @update:model-value="(v) => emit('change', v)"
     :disabled="field.disabled"
-    style="width: 100%"
+    :style="(compact && !fluid) ? 'width: 56px' : 'width: 100%'"
   />
 
   <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top" :enterable="false" :show-after="200">
