@@ -27,7 +27,7 @@
 
 用于：标题 left×top、legend left×top。
 
-每个格子是**完全相同**的单个实心圆点（r=4.2，无外框）——位置由 3×3 单元格自身的相对位置表达，无需每格独立图标；选中格整体高亮（蓝边框 + 浅蓝底 + 蓝点）。
+每个格子是**按方位偏移的实心圆点**（r=4.2，无外框）——点落在格子内的对应角落（24 viewBox 内：横 x=[5,12,19]，纵 y=[5,12,19]），点本身即表达该格方位；选中格整体高亮（蓝边框 + 浅蓝底 + 蓝点）。
 
 九格映射：
 
@@ -117,17 +117,17 @@ if (field.type === 'positionGrid' && field.keys) {
 
 ```
 ┌───┬───┬───┐
-│ ● │ ● │ ● │   row 0 (top)
+│ ● │ ● │ ● │   row 0 (top)        ● 实际位于各自格子的左上/上中/右上
 ├───┼───┼───┤
-│ ● │ ○ │ ● │   row 1 (middle)  ← 居中选中
+│ ● │ ● │ ● │   row 1 (middle)     左中/居中/右中
 ├───┼───┼───┤
-│ ● │ ● │ ● │   row 2 (bottom)
+│ ● │ ● │ ● │   row 2 (bottom)     左下/下中/右下
 └───┴───┴───┘
  col0   col1   col2
 left  center  right
 ```
 
-9 格共用同一个 `posDot` 图标（同 ① 节），当前选中格高亮（蓝边框 + `--el-color-primary-light-9` 底色 + 蓝点）；悬停同款高亮。每格外层包 `el-tooltip`（content=方位名）。
+9 格各自使用对应的方位偏移点图标 `posTopLeft … posBotRight`（同 ① 节），选中格高亮（蓝边框 + `--el-color-primary-light-9` 底色 + 蓝点）；悬停同款高亮。每格外层包 `el-tooltip`（content=方位名）。
 
 点击格子触发 `emit('change', { left: colMap[col], top: rowMap[row] })`。
 
@@ -151,15 +151,15 @@ const svg = (children) => h('svg', {
   'stroke-linejoin': 'round',
 }, children)
 
-// 九宫格单元格（全部格子共用单点，选中格由 CSS 高亮）
-export const posDot = () => svg([
-  h('circle', { cx: 12, cy: 12, r: 4.2, fill: 'currentColor', stroke: 'none' }),
+// 九宫格单元格（按方位偏移的实心点，格子内角落/边缘）
+export const posDotAt = (cx, cy) => () => svg([
+  h('circle', { cx, cy, r: 4.2, fill: 'currentColor', stroke: 'none' }),
 ])
 
 // ... 方向、数据标签、饼图标签组件同理
 ```
 
-导出命名：`posDot`（九宫格共用）；`dirH, dirV`（方向）；`lblTop, lblBot, lblLeft, lblRight, lblIn`（数据标签）；`pieOut, pieIn, pieCenter`（饼图）。
+导出命名：`posTopLeft, posTopCenter, posTopRight, posMidLeft, posMidCenter, posMidRight, posBotLeft, posBotCenter, posBotRight`（九宫格 9 格方位偏移点）；`dirH, dirV`（方向）；`lblTop, lblBot, lblLeft, lblRight, lblIn`（数据标签）；`pieOut, pieIn, pieCenter`（饼图）。
 
 这些 Vue 组件通过 `<component :is="opt.icon">` 渲染。图标为 render-function（`typeof opt.icon === 'function'`），SchemaControl 分支同时接受 `object` 与 `function`。
 

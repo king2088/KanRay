@@ -123,7 +123,7 @@
               :class="{ 'is-active': isGridActive(r, c) }"
               @click="emit('change', { left: colVal, top: rowVal })"
             >
-              <el-icon :size="20"><pos-dot /></el-icon>
+              <el-icon :size="20"><component :is="GRID_ICONS[r][c]" /></el-icon>
             </button>
           </el-tooltip>
         </td>
@@ -135,10 +135,19 @@
 </template>
 
 <script setup>
-import { posDot } from './control-icons'
+import {
+  posTopLeft, posTopCenter, posTopRight,
+  posMidLeft, posMidCenter, posMidRight,
+  posBotLeft, posBotCenter, posBotRight,
+} from './control-icons'
 
 const COL_VALS = ['left', 'center', 'right']
 const ROW_VALS = ['top', 'middle', 'bottom']
+const GRID_ICONS = [
+  [posTopLeft, posTopCenter, posTopRight],
+  [posMidLeft, posMidCenter, posMidRight],
+  [posBotLeft, posBotCenter, posBotRight],
+]
 const GRID_LABELS = [
   ['左上', '上中', '右上'],
   ['左中', '居中', '右中'],

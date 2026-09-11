@@ -9,10 +9,20 @@ const svg = (children) => h('svg', {
   'stroke-linejoin': 'round',
 }, children)
 
-// ① 九宫格单元格：单点（位置由 3×3 网格本身表达，选中格整体高亮）
-export const posDot = () => svg([
-  h('circle', { cx: 12, cy: 12, r: 4.2, fill: 'currentColor', stroke: 'none' }),
+// ① 九宫格单元格：按方位偏移的实心点（位置由点所在格内角落表达 + 3×3 网格本身）
+const posDotAt = (cx, cy) => () => svg([
+  h('circle', { cx, cy, r: 4.2, fill: 'currentColor', stroke: 'none' }),
 ])
+const PX = [5, 12, 19], PY = [5, 12, 19] // left/center/right · top/middle/bottom
+export const posTopLeft = posDotAt(PX[0], PY[0])
+export const posTopCenter = posDotAt(PX[1], PY[0])
+export const posTopRight = posDotAt(PX[2], PY[0])
+export const posMidLeft = posDotAt(PX[0], PY[1])
+export const posMidCenter = posDotAt(PX[1], PY[1])
+export const posMidRight = posDotAt(PX[2], PY[1])
+export const posBotLeft = posDotAt(PX[0], PY[2])
+export const posBotCenter = posDotAt(PX[1], PY[2])
+export const posBotRight = posDotAt(PX[2], PY[2])
 
 // ② 方向：三格方块
 const blk = (x, y, op) => h('rect', { x, y, width: 4.6, height: 5.6, rx: 1.2, fill: 'currentColor', stroke: 'none', opacity: op })
