@@ -667,35 +667,5 @@ onMounted(async () => {
   margin-bottom: 4px;
 }
 
-.chart-type-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
 
-.chart-type-item {
-  border: 1px solid var(--app-border-light);
-  border-radius: var(--app-radius);
-  padding: 8px 4px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--app-text-regular);
-}
-
-.chart-type-item:hover {
-  border-color: var(--app-primary);
-  color: var(--app-primary);
-}
-
-.chart-type-item.active {
-  border-color: var(--app-primary);
-  background: var(--app-primary-light);
-  color: var(--app-primary);
-}
 </style>

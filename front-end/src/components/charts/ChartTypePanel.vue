@@ -29,7 +29,7 @@
         @click="$emit('update:chartType', t.value)"
         :title="t.label"
       >
-        <el-icon :size="20"><component :is="t.icon" /></el-icon>
+        <ChartTypeIcon :name="t.value" :size="50" />
         <span>{{ t.label }}</span>
       </div>
     </div>
@@ -43,6 +43,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { CHART_TYPES, CHART_CATEGORIES } from '@/config/chart-types'
+import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
 
 defineProps({
   chartType: { type: String, required: true },
@@ -75,14 +76,14 @@ function onCategoryChange(val) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  max-height: 300px;
+  max-height: 420px;
   overflow-y: auto;
 }
 
 .chart-type-item {
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
-  padding: 8px 4px;
+  padding: 4px;
   text-align: center;
   cursor: pointer;
   transition: all 0.15s;
@@ -92,7 +93,6 @@ function onCategoryChange(val) {
   gap: 4px;
   font-size: 11px;
   color: var(--app-text-regular);
-  min-height: 60px;
 }
 
 .chart-type-item:hover {
