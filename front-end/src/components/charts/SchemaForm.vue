@@ -233,7 +233,7 @@ function onNestedUpdate(key, newVal) {
   align-items: center;
   justify-content: flex-start;
   min-height: 34px;
-  padding: 2px 0;
+  padding: 6px 0;
   gap: 8px;
 }
 .field-row.group-child {
