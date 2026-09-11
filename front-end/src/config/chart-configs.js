@@ -10,6 +10,12 @@ const STYLE_TEXT = {
   fontStyle: { type: 'toggle', label: '斜体', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
 }
 
+// 标题专用文字样式：默认字号 16，其余与通用样式一致
+const STYLE_TITLE = {
+  ...STYLE_TEXT,
+  fontSize: { type: 'number', label: '字号', default: 16, min: 8, max: 40 },
+}
+
 export const COMMON_CONFIG_SCHEMA = {
   title: {
     type: 'group', label: '标题', children: {
@@ -26,7 +32,7 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '顶部', value: 'top' }, { label: '中部', value: 'middle' }, { label: '底部', value: 'bottom' },
         ],
       },
-      textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
+      textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TITLE },
     },
   },
   legend: {
@@ -57,7 +63,7 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       icon: {
-        type: 'select', label: '形状', row: true, default: '', options: [
+        type: 'select', label: '形状', row: true, selectWidth: 100, default: '', options: [
           { label: '自动', value: '' },
           { label: '圆形', value: 'circle' },
           { label: '方形', value: 'rect' },
@@ -67,8 +73,8 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '引脚', value: 'pin' },
         ],
       },
-      itemWidth: { type: 'number', label: '宽度', row: true, default: 25, min: 8, max: 100 },
-      itemHeight: { type: 'number', label: '高度', row: true, default: 14, min: 8, max: 100 },
+      itemWidth: { type: 'number', label: '宽', row: true, default: 25, min: 8, max: 100 },
+      itemHeight: { type: 'number', label: '高', row: true, default: 14, min: 8, max: 100 },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },

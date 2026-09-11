@@ -229,7 +229,7 @@ function renderMap(meta) {
         left: config.title.left || 'center',
         top: 0,
         textStyle: {
-          fontSize: config.title.textStyle?.fontSize ?? 14,
+          fontSize: config.title.textStyle?.fontSize ?? 16,
           fontWeight: config.title.textStyle?.fontWeight === 'bold' ? 'bold' : 600,
           color: config.title.textStyle?.color || '#333',
         },
