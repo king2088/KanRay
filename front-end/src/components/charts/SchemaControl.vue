@@ -101,7 +101,7 @@
       :title="opt.title || opt.label"
       class="glyph-btn"
     >
-      <el-icon v-if="typeof opt.icon === 'object'" :size="14">
+      <el-icon v-if="typeof opt.icon === 'object' || typeof opt.icon === 'function'" :size="14">
         <component :is="opt.icon" />
       </el-icon>
       <span v-else :style="decoStyle(opt.value)" v-html="opt.icon || opt.label"></span>
