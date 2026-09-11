@@ -60,7 +60,7 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       icon: {
-        type: 'select', label: '形状', row: true, selectWidth: 100, default: '', options: [
+        type: 'select', label: '形状', selectWidth: 100, default: '', options: [
           { label: '自动', value: '' },
           { label: '圆形', value: 'circle' },
           { label: '方形', value: 'rect' },
@@ -84,9 +84,9 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       axisPointer: {
-        type: 'group', label: '坐标轴指示器', children: {
+        type: 'group', label: '指示器类型', inline: true, children: {
           type: {
-            type: 'select', label: '指示器类型', default: 'line', options: [
+            type: 'select', label: '', selectWidth: 120, default: 'line', options: [
               { label: '直线', value: 'line' }, { label: '阴影', value: 'shadow' },
               { label: '无', value: 'none' }, { label: '十字准星', value: 'cross' },
             ],
@@ -94,8 +94,8 @@ export const COMMON_CONFIG_SCHEMA = {
         },
       },
       formatter: { type: 'input', label: '内容格式', default: '', placeholder: '如 {a}{b}: {c}，留空自动' },
-      backgroundColor: { type: 'color', label: '背景色', default: 'rgba(255,255,255,0.96)' },
-      borderColor: { type: 'color', label: '边框色', default: '#DCDFE6' },
+      backgroundColor: { type: 'color', label: '背景色', row: true, default: 'rgba(255,255,255,0.96)' },
+      borderColor: { type: 'color', label: '边框色', row: true, default: '#DCDFE6' },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },
@@ -114,10 +114,10 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       position: { type: 'buttonGroup', label: '位置', default: 'top', options: LABEL_POS_OPTIONS },
-      color: { type: 'color', label: '文字颜色', default: 'inherit' },
-      fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 30 },
-      fontWeight: { type: 'toggle', label: '加粗', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
-      fontStyle: { type: 'toggle', label: '斜体', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
+      color: { type: 'color', label: '文字颜色', row: true, default: 'inherit' },
+      fontSize: { type: 'number', label: '字号', row: true, default: 12, min: 8, max: 30 },
+      fontWeight: { type: 'toggle', label: '加粗', row: true, default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
+      fontStyle: { type: 'toggle', label: '斜体', row: true, default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
       showBorder: { type: 'switch', label: '显示描边', default: false },
       borderColor: { type: 'color', label: '描边颜色', default: '#FFFFFF' },
       allowOverlap: { type: 'switch', label: '允许重叠', default: false },
@@ -133,8 +133,8 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       customValue: { type: 'number', label: '自定义值', default: 0 },
-      color: { type: 'color', label: '线条颜色', default: '#E63946' },
-      width: { type: 'number', label: '线宽', default: 1.5, min: 0.5, max: 10, step: 0.5 },
+      color: { type: 'color', label: '线条', row: true, default: '#E63946' },
+      width: { type: 'number', label: '', row: true, default: 1.5, min: 0.5, max: 10, step: 0.5 },
       lineType: {
         type: 'select', label: '线型', default: 'dashed', options: [
           { label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' },

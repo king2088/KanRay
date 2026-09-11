@@ -268,16 +268,21 @@ function onNestedUpdate(key, newVal) {
 }
 .row-group {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   padding: 2px 0;
 }
 .row-group .row-field {
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.row-field :deep(.el-color-picker),
+.ctrl :deep(.el-color-picker) {
+  flex: 0 0 32px;
+  width: 32px;
 }
 .row-field-label {
   flex-shrink: 0;
@@ -296,8 +301,8 @@ function onNestedUpdate(key, newVal) {
   flex: 0 0 auto;
 }
 .row-field :deep(.el-input-number) {
-  width: 100%;
-  flex: 1;
+  width: 86px;
+  flex: 0 1 86px;
   min-width: 0;
 }
 :deep(.field-control .el-input-number),
@@ -308,8 +313,7 @@ function onNestedUpdate(key, newVal) {
   margin-right: 4px;
 }
 :deep(.field-control > .el-select),
-:deep(.field-control > .el-input),
-:deep(.field-control > .el-color-picker) {
+:deep(.field-control > .el-input) {
   width: 100%;
 }
 </style>

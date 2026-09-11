@@ -36,7 +36,7 @@
     :placeholder="field.placeholder"
     :disabled="field.disabled"
     :controls-position="field.controlsPosition || 'right'"
-    :style="fluid ? 'width: 100%' : (compact ? 'width: 86px' : 'width: 140px')"
+    :style="compact ? 'width: 86px' : (fluid ? 'width: 100%' : 'width: 140px')"
   />
 
   <el-slider
@@ -74,7 +74,6 @@
     :model-value="value"
     @update:model-value="(v) => emit('change', v)"
     :disabled="field.disabled"
-    :style="(compact && !fluid) ? 'width: 56px' : 'width: 100%'"
   />
 
   <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top" :enterable="false" :show-after="200">
