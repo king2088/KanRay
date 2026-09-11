@@ -71,10 +71,20 @@
 - 内：点在 x=14.6, y=15.4（圆内偏右下）
 - 居中：点在圆心
 
+### ⑤ 图例对齐（自动 / 左 / 中 / 右）—— 文本行对齐预览
+
+用于：legend.align（原为文本字形 ⇤≡⇥，v3 改为自绘图标）。
+
+- 自动：双向箭头（↔，水平线 + 两端箭头）
+- 左：四条对齐到左侧的横线（x1 固定 3，宽 15 / 11 / 14 / 8）
+- 中：四条居中横线（围绕 x=12）
+- 右：四条对齐到右侧的横线（x2 固定 21）
+
+导出：`alignAuto, alignLeft, alignCenter, alignRight`。
+
 ### 不变的控件
 
 - **加粗 / 斜体** toggle（B / I 文字字形）—— 不属于方向 / 布局，保持现状。
-- **图例对齐**（auto / left / center / right，文本字形 ⇤≡⇥）—— 保持现状。
 - **图例形状**下拉 select，selectWidth:100 —— 保持现状。
 - **标题默认字号** 16 —— 保持现状。
 
@@ -174,7 +184,7 @@ export const posDotAt = (cx, cy) => () => svg([
 | `front-end/src/components/charts/control-icons.js` | **新建**：全部自绘 SVG 组件 |
 | `front-end/src/config/chart-configs.js` | 移除 EP 图标 import；引入 control-icons；title / legend left+top → positionGrid；label / pie / doughnut / treemap → 自定义图标 buttonGroup |
 | `front-end/src/components/charts/SchemaControl.vue` | 新增 `positionGrid` 渲染分支（3×3 点阵网格）；buttonGroup 改自定义 `.icon-btn-group` 并加 `el-tooltip`；toggle 也加 `el-tooltip`；按钮 / 图标放大 |
-| `front-end/src/components/charts/SchemaForm.vue` | positionGrid 在 layout 中单独渲染；get/set 读写两个真实键；`isCtrlInline` 让 positionGrid 与带图标 buttonGroup 行左对齐 |
+| `front-end/src/components/charts/SchemaForm.vue` | positionGrid 在 layout 中单独渲染；get/set 读写两个真实键；**全部 `.field-row` 左对齐**（`justify-content: flex-start`，控制紧贴标签），不再按字段类型区分 |
 | `front-end/scripts/e2e-config-panel.cjs` | 适配（图例行不再有 left/top row，变成 positionGrid 控件；数据标签/饼图标签图标按钮文本可能变；需要同步） |
 
 ## 验证

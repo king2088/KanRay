@@ -60,7 +60,7 @@
         </span>
 
         <!-- Normal row: label left, control right -->
-        <div v-else class="field-row" :class="{ 'ctrl-inline': isCtrlInline(unit.field) }">
+        <div v-else class="field-row">
           <div class="field-label">{{ unit.field.label }}</div>
           <div class="field-control">
             <Control
@@ -125,10 +125,6 @@ function getDefaultValue(field) {
   if (field.type === 'input') return field.default ?? ''
   if (field.type === 'textarea') return field.default ?? ''
   return field.default ?? null
-}
-
-function isCtrlInline(field) {
-  return field && (field.type === 'positionGrid' || field.type === 'buttonGroup')
 }
 
 function buildModel(source) {
@@ -215,17 +211,10 @@ function onNestedUpdate(key, newVal) {
 .field-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   min-height: 34px;
   padding: 2px 0;
   gap: 8px;
-}
-.field-row.ctrl-inline {
-  justify-content: flex-start;
-}
-.field-row.ctrl-inline .field-control {
-  flex: 0 0 auto;
-  justify-content: flex-start;
 }
 .field-row.group-child {
   align-items: flex-start;
@@ -245,7 +234,7 @@ function onNestedUpdate(key, newVal) {
   flex: 1;
   min-width: 0;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
 }
 .hint {

@@ -43,3 +43,12 @@ const ring = () => h('circle', { cx: 11.5, cy: 12, r: 7 })
 export const pieOut = () => svg([ring(), dot(20, 12)])
 export const pieIn = () => svg([ring(), dot(14.6, 15.4)])
 export const pieCenter = () => svg([ring(), dot(11.5, 12)])
+
+// ⑤ 图例对齐：文本行对齐预览
+export const alignAuto = () => svg([
+  h('path', { d: 'M4 12h16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3' }),
+])
+const ln = (x1, y, x2) => h('line', { x1, y1: y, x2, y2: y })
+export const alignLeft = () => svg([ln(3, 5, 18), ln(3, 9, 14), ln(3, 13, 17), ln(3, 17, 11)])
+export const alignCenter = () => svg([ln(5, 5, 19), ln(3, 9, 21), ln(6, 13, 18), ln(8, 17, 16)])
+export const alignRight = () => svg([ln(6, 5, 21), ln(10, 9, 21), ln(7, 13, 21), ln(13, 17, 21)])

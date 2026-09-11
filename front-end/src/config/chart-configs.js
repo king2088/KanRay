@@ -1,5 +1,5 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
-import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter } from '../components/charts/control-icons'
+import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter, alignAuto, alignLeft, alignCenter, alignRight } from '../components/charts/control-icons'
 
 // ---- 公共配置schema（所有图表共享，精简版） ----
 
@@ -53,10 +53,10 @@ export const COMMON_CONFIG_SCHEMA = {
       align: {
         type: 'buttonGroup', label: '对齐', default: 'auto',
         options: [
-          { label: '自动', value: 'auto' },
-          { label: '左', value: 'left', icon: '⇤' },
-          { label: '中', value: 'center', icon: '≡' },
-          { label: '右', value: 'right', icon: '⇥' },
+          { label: '自动', title: '自动对齐', value: 'auto', icon: alignAuto },
+          { label: '左', title: '左对齐', value: 'left', icon: alignLeft },
+          { label: '中', title: '居中对齐', value: 'center', icon: alignCenter },
+          { label: '右', title: '右对齐', value: 'right', icon: alignRight },
         ],
       },
       icon: {
