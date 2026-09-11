@@ -131,6 +131,7 @@ function buildModel(source) {
   const result = { ...(source || {}) }
   for (const key of Object.keys(props.schema)) {
     const field = props.schema[key]
+    if (field && field.type === 'positionGrid' && field.keys) continue
     if (!(key in result)) {
       result[key] = getDefaultValue(field)
     }
@@ -162,10 +163,28 @@ function emitUpdate() {
 }
 
 function getModelValue(key) {
+  const f = props.schema[key]
+  if (f && f.type === 'positionGrid' && f.keys) {
+    const out = {}
+    for (const k of f.keys) out[k] = localModel.value[k]
+    return out
+  }
   return localModel.value[key]
 }
 
 function setModelValue(key, val) {
+  const f = props.schema[key]
+  if (f && f.type === 'positionGrid' && f.keys && val && typeof val === 'object') {
+    let changed = false
+    for (const k of f.keys) {
+      if (localModel.value[k] !== val[k]) {
+        localModel.value[k] = val[k]
+        changed = true
+      }
+    }
+    if (changed) emitUpdate()
+    return
+  }
   if (localModel.value[key] !== val) {
     localModel.value[key] = val
     emitUpdate()

@@ -108,10 +108,41 @@
     </el-button>
   </el-button-group>
 
+  <div v-else-if="field.type === 'positionGrid'" class="pos-grid" :title="field.label">
+    <table class="pos-grid-table">
+      <tr v-for="(rowVal, r) in ROW_VALS" :key="rowVal">
+        <td v-for="(colVal, c) in COL_VALS" :key="colVal">
+          <button
+            type="button"
+            class="pos-grid-cell"
+            :class="{ 'is-active': isGridActive(r, c) }"
+            @click="emit('change', { left: colVal, top: rowVal })"
+          >
+            <el-icon :size="14"><component :is="GRID_ICONS[r][c]" /></el-icon>
+          </button>
+        </td>
+      </tr>
+    </table>
+  </div>
+
   <el-alert v-else title="Unsupported field type" type="warning" :show-icon="false" style="font-size: 12px" />
 </template>
 
 <script setup>
+import {
+  posTopLeft, posTopCenter, posTopRight,
+  posMidLeft, posMidCenter, posMidRight,
+  posBotLeft, posBotCenter, posBotRight,
+} from './control-icons'
+
+const COL_VALS = ['left', 'center', 'right']
+const ROW_VALS = ['top', 'middle', 'bottom']
+const GRID_ICONS = [
+  [posTopLeft, posTopCenter, posTopRight],
+  [posMidLeft, posMidCenter, posMidRight],
+  [posBotLeft, posBotCenter, posBotRight],
+]
+
 const props = defineProps({
   field: { type: Object, required: true },
   value: { type: [String, Number, Boolean, Array, Object], default: undefined },
@@ -135,11 +166,44 @@ function decoStyle(val) {
   if (val === 'line-through') return { textDecoration: 'line-through' }
   return {}
 }
+function isGridActive(r, c) {
+  const v = props.value || {}
+  return COL_VALS[c] === v.left && ROW_VALS[r] === v.top
+}
 </script>
 
 <style scoped>
 .glyph-btn {
   min-width: 24px;
   padding: 3px 4px;
+}
+.pos-grid-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+.pos-grid-table td {
+  padding: 0;
+}
+.pos-grid-cell {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  color: #6b7280;
+}
+.pos-grid-cell:hover {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+.pos-grid-cell.is-active {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
 }
 </style>

@@ -479,6 +479,11 @@ export const SERIES_STYLE_TYPES = new Set(['line', 'lineMulti', 'areaStacked', '
 export function getDefaultsFromSchema(schema) {
   const result = {}
   for (const [key, field] of Object.entries(schema || {})) {
+    if (field.type === 'positionGrid' && field.keys) {
+      const def = field.default || {}
+      for (const k of field.keys) result[k] = def[k] ?? ''
+      continue
+    }
     if (field.type === 'group' && field.children) {
       result[key] = getDefaultsFromSchema(field.children)
     } else if ('default' in field) {
