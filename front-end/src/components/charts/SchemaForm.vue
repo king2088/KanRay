@@ -3,7 +3,13 @@
     <template v-for="unit in layout" :key="unit.type === 'row' ? `row:${unit.keys.join(',')}` : unit.key">
       <!-- One-line group: consecutive row-flagged fields laid out horizontally -->
       <div v-if="unit.type === 'row'" class="row-group">
-        <div v-for="f in unit.fields" :key="f.key" class="row-field">
+        <div
+          v-for="f in unit.fields"
+          :key="f.key"
+          class="row-field"
+          :class="{ 'is-fixed': f.field.selectWidth }"
+        >
+          <span v-if="f.field.separator" class="row-sep" />
           <span class="row-field-label">{{ f.field.label }}</span>
           <Control
             :field="f.field"
@@ -259,6 +265,16 @@ function onNestedUpdate(key, newVal) {
   font-size: 12px;
   white-space: nowrap;
   color: var(--app-text-secondary, #6b7280);
+}
+.row-group .row-sep {
+  width: 1px;
+  height: 16px;
+  flex-shrink: 0;
+  background: var(--el-border-color-lighter, #ebeef5);
+  margin: 0 2px;
+}
+.row-group .row-field.is-fixed {
+  flex: 0 0 auto;
 }
 .row-field :deep(.el-input-number) {
   width: 100%;
