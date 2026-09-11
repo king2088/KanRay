@@ -273,10 +273,10 @@ function onNestedUpdate(key, newVal) {
   flex-wrap: wrap;
   flex: 1;
   min-width: 0;
-  gap: 6px;
+  gap: 2px;
 }
 .inline-sub :deep(.el-button) {
-  min-width: 24px;
+  min-width: 20px;
   padding: 0 6px;
 }
 .ctrl {
