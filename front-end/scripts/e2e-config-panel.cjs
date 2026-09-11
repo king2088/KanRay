@@ -84,7 +84,7 @@ let failed = 0;
   const checked0 = await sw.evaluate((el) => el.classList.contains('is-checked')).catch(() => false);
   if (!checked0) await sw.click();
   await sleep(150);
-  const labelFontSize = fieldRow(gLabel, '字号').locator('.el-input-number input');
+  const labelFontSize = gLabel.locator('.inline-group .el-input-number input').first();
   await labelFontSize.fill('15');
   await labelFontSize.press('Enter');
   await sleep(200);
@@ -165,7 +165,7 @@ let failed = 0;
       titleFontSize: o.title && o.title.textStyle && o.title.textStyle.fontSize,
       titleWeight: o.title && o.title.textStyle && o.title.textStyle.fontWeight,
       labelShow: o.label && o.label.show,
-      labelFontSize: o.label && o.label.fontSize,
+      labelFontSize: o.label && (o.label.textStyle ? o.label.textStyle.fontSize : o.label.fontSize),
       gridLeft: o.grid && o.grid.left,
       yMin: o.yAxis && o.yAxis.min,
       yUnit: o.yAxis && o.yAxis.unit,

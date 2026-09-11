@@ -9,6 +9,7 @@ const STYLE_TEXT = {
   fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 40 },
   fontWeight: { type: 'toggle', label: '加粗', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
   fontStyle: { type: 'toggle', label: '斜体', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
+  textDecoration: { type: 'toggle', label: '下划线', default: 'none', activeValue: 'underline', inactiveValue: 'none', icon: 'U' },
 }
 
 // 标题专用文字样式：默认字号 16，其余与通用样式一致
@@ -114,10 +115,12 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       position: { type: 'buttonGroup', label: '位置', default: 'top', options: LABEL_POS_OPTIONS },
-      color: { type: 'color', label: '文字颜色', row: true, default: 'inherit' },
-      fontSize: { type: 'number', label: '字号', row: true, default: 12, min: 8, max: 30 },
-      fontWeight: { type: 'toggle', label: '加粗', row: true, default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
-      fontStyle: { type: 'toggle', label: '斜体', row: true, default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
+      textStyle: {
+        type: 'group', label: '文字样式', inline: true, children: {
+          ...STYLE_TEXT,
+          color: { type: 'color', label: '颜色', default: 'inherit' },
+        },
+      },
       showBorder: { type: 'switch', label: '显示描边', default: false },
       borderColor: { type: 'color', label: '描边颜色', default: '#FFFFFF' },
       allowOverlap: { type: 'switch', label: '允许重叠', default: false },
@@ -927,17 +930,19 @@ function buildBar(data, config, palette, horizontal = false) {
 function buildLabelConfig(config, fallbackPosition = 'top') {
   if (!config.label?.show) return undefined
   const l = config.label
+  const ts = l.textStyle || {}
+  const lf = ts.fontFamily ?? l.fontFamily
   const formatter = l.formatter || (Array.isArray(l.content) && l.content.length ? l.content.join(l.separator ?? ' ') : undefined)
   return {
     show: true,
     position: l.position || fallbackPosition,
     formatter,
-    color: l.color || 'inherit',
-    fontSize: l.fontSize || 12,
-    fontWeight: l.fontWeight || 'normal',
-    fontStyle: l.fontStyle || 'normal',
-    fontFamily: l.fontFamily !== 'inherit' ? l.fontFamily : undefined,
-    textDecoration: l.textDecoration !== 'none' ? l.textDecoration : undefined,
+    color: ts.color || l.color || 'inherit',
+    fontSize: ts.fontSize || l.fontSize || 12,
+    fontWeight: ts.fontWeight || l.fontWeight || 'normal',
+    fontStyle: ts.fontStyle || l.fontStyle || 'normal',
+    fontFamily: lf && lf !== 'inherit' ? lf : undefined,
+    textDecoration: (ts.textDecoration && ts.textDecoration !== 'none') ? ts.textDecoration : (l.textDecoration && l.textDecoration !== 'none' ? l.textDecoration : undefined),
     align: l.align || 'auto',
     verticalAlign: l.verticalAlign || 'auto',
     lineHeight: l.lineHeight || 1.2,

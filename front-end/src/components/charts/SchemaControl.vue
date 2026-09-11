@@ -173,6 +173,7 @@ function getToggleStyle() {
   const v = props.value
   if (props.field.icon === 'B') return v === props.field.activeValue ? { fontWeight: 'bold' } : {}
   if (props.field.icon === 'I') return v === props.field.activeValue ? { fontStyle: 'italic' } : {}
+  if (props.field.icon === 'U') return v === props.field.activeValue ? { textDecoration: 'underline' } : {}
   return {}
 }
 function decoStyle(val) {
