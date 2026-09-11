@@ -63,7 +63,7 @@ let failed = 0;
   function fieldRow(g, label) {
     return g.getByText(label, { exact: true })
       .first()
-      .locator('xpath=ancestor::div[contains(@class,"field-row")][1]');
+      .locator('xpath=ancestor::div[contains(@class,"field-row") or contains(@class,"row-field")][1]');
   }
 
   // ---------- 标题: text + 文字样式 (fontSize 18, bold) ----------
@@ -116,12 +116,12 @@ let failed = 0;
   await page.locator('.el-select-dropdown__item:visible').filter({ hasText: '菱形' }).first().click();
   await sleep(250);
 
-  const legW = fieldRow(gLeg, '形状宽度').locator('.el-input-number input');
+  const legW = fieldRow(gLeg, '宽度').locator('.el-input-number input');
   await legW.fill('30');
   await legW.press('Enter');
   await sleep(150);
 
-  const legH = fieldRow(gLeg, '形状高度').locator('.el-input-number input');
+  const legH = fieldRow(gLeg, '高度').locator('.el-input-number input');
   await legH.fill('18');
   await legH.press('Enter');
   await sleep(250);
