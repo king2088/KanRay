@@ -225,7 +225,7 @@ function onNestedUpdate(key, newVal) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
 }
 .field-row {
