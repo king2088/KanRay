@@ -1,54 +1,70 @@
 <template>
   <div class="schema-form" :class="{ 'is-inline': isInline }">
-    <template v-for="(field, key) in schema" :key="key">
-      <!-- Inline toolbar group (text style) -->
-      <div v-if="field.type === 'group' && field.inline && field.children" class="inline-group">
-        <span class="inline-group-label">{{ field.label }}</span>
-        <span class="inline-sub">
-          <SchemaForm
-            :schema="field.children"
-            :model="getNestedModel(key)"
-            @update="onNestedUpdate(key, $event)"
-            inline
+    <template v-for="unit in layout" :key="unit.type === 'row' ? `row:${unit.keys.join(',')}` : unit.key">
+      <!-- One-line group: consecutive row-flagged fields laid out horizontally -->
+      <div v-if="unit.type === 'row'" class="row-group">
+        <div v-for="f in unit.fields" :key="f.key" class="row-field">
+          <span class="row-field-label">{{ f.field.label }}</span>
+          <Control
+            :field="f.field"
+            :value="getModelValue(f.key)"
+            :compact="true"
+            fluid
+            @change="(v) => setModelValue(f.key, v)"
+          />
+        </div>
+      </div>
+
+      <template v-else>
+        <!-- Inline toolbar group (text style) -->
+        <div v-if="unit.field.type === 'group' && unit.field.inline && unit.field.children" class="inline-group">
+          <span class="inline-group-label">{{ unit.field.label }}</span>
+          <span class="inline-sub">
+            <SchemaForm
+              :schema="unit.field.children"
+              :model="getNestedModel(unit.key)"
+              @update="onNestedUpdate(unit.key, $event)"
+              inline
+            />
+          </span>
+        </div>
+
+        <!-- Nested group: render as a sub-block -->
+        <div v-else-if="!unit.field.type || unit.field.type === 'group'" class="field-row group-child">
+          <div class="field-label sub">{{ unit.field.label }}</div>
+          <div class="field-control">
+            <SchemaForm
+              v-if="unit.field.children"
+              :schema="unit.field.children"
+              :model="getNestedModel(unit.key)"
+              @update="onNestedUpdate(unit.key, $event)"
+            />
+            <span v-else class="hint">配置缺失</span>
+          </div>
+        </div>
+
+        <!-- Inline (toolbar) mode: bare compact control, no label -->
+        <span v-else-if="isInline" class="ctrl">
+          <Control
+            :field="unit.field"
+            :value="getModelValue(unit.key)"
+            :compact="true"
+            @change="(v) => setModelValue(unit.key, v)"
           />
         </span>
-      </div>
 
-      <!-- Nested group: render as a sub-block -->
-      <div v-else-if="!field.type || field.type === 'group'" class="field-row group-child">
-        <div class="field-label sub">{{ field.label }}</div>
-        <div class="field-control">
-          <SchemaForm
-            v-if="field.children"
-            :schema="field.children"
-            :model="getNestedModel(key)"
-            @update="onNestedUpdate(key, $event)"
-          />
-          <span v-else class="hint">配置缺失</span>
+        <!-- Normal row: label left, control right -->
+        <div v-else class="field-row">
+          <div class="field-label">{{ unit.field.label }}</div>
+          <div class="field-control">
+            <Control
+              :field="unit.field"
+              :value="getModelValue(unit.key)"
+              @change="(v) => setModelValue(unit.key, v)"
+            />
+          </div>
         </div>
-      </div>
-
-      <!-- Inline (toolbar) mode: bare compact control, no label -->
-      <span v-else-if="isInline" class="ctrl">
-        <Control
-          :field="field"
-          :value="getModelValue(key)"
-          :compact="true"
-          @change="(v) => setModelValue(key, v)"
-        />
-      </span>
-
-      <!-- Normal row: label left, control right -->
-      <div v-else class="field-row">
-        <div class="field-label">{{ field.label }}</div>
-        <div class="field-control">
-          <Control
-            :field="field"
-            :value="getModelValue(key)"
-            @change="(v) => setModelValue(key, v)"
-          />
-        </div>
-      </div>
+      </template>
     </template>
   </div>
 </template>
@@ -67,6 +83,28 @@ const emit = defineEmits(['update'])
 
 const isInline = computed(() => props.inline)
 const localModel = ref({})
+
+// 将连续的 row 标记字段合并为一行渲染，其余字段保持原有单个渲染
+const layout = computed(() => {
+  const units = []
+  let row = []
+  const flush = () => {
+    if (row.length) {
+      units.push({ type: 'row', keys: row.map((f) => f.key), fields: row })
+      row = []
+    }
+  }
+  for (const [key, field] of Object.entries(props.schema)) {
+    if (field && field.row) {
+      row.push({ key, field })
+    } else {
+      flush()
+      units.push({ type: 'single', key, field })
+    }
+  }
+  flush()
+  return units
+})
 
 function getDefaultValue(field) {
   if (!field.type || field.type === 'group') return {}
@@ -202,6 +240,30 @@ function onNestedUpdate(key, newVal) {
 .ctrl {
   display: inline-flex;
   align-items: center;
+}
+.row-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.row-group .row-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.row-field-label {
+  flex-shrink: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--app-text-secondary, #6b7280);
+}
+.row-field :deep(.el-input-number) {
+  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 :deep(.field-control .el-input-number),
 :deep(.field-control .el-slider) {

@@ -57,7 +57,7 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       icon: {
-        type: 'select', label: '形状', default: '', options: [
+        type: 'select', label: '形状', row: true, default: '', options: [
           { label: '自动', value: '' },
           { label: '圆形', value: 'circle' },
           { label: '方形', value: 'rect' },
@@ -67,8 +67,8 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '引脚', value: 'pin' },
         ],
       },
-      itemWidth: { type: 'number', label: '形状宽度', default: 25, min: 8, max: 100 },
-      itemHeight: { type: 'number', label: '形状高度', default: 14, min: 8, max: 100 },
+      itemWidth: { type: 'number', label: '宽度', row: true, default: 25, min: 8, max: 100 },
+      itemHeight: { type: 'number', label: '高度', row: true, default: 14, min: 8, max: 100 },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },

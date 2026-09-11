@@ -37,7 +37,7 @@
     :disabled="field.disabled"
     :controls-position="field.controlsPosition || 'right'"
     :size="compact ? 'small' : undefined"
-    :style="compact ? 'width: 86px' : 'width: 140px'"
+    :style="fluid ? 'width: 100%' : (compact ? 'width: 86px' : 'width: 140px')"
   />
 
   <el-slider
@@ -113,6 +113,7 @@ const props = defineProps({
   field: { type: Object, required: true },
   value: { type: [String, Number, Boolean, Array, Object], default: undefined },
   compact: { type: Boolean, default: false },
+  fluid: { type: Boolean, default: false },
 })
 const emit = defineEmits(['change'])
 
