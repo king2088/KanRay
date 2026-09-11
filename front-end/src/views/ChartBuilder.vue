@@ -560,6 +560,8 @@ onMounted(async () => {
 .preview-area > :deep(.ec-chart) {
   position: absolute;
   inset: 16px;
+  width: auto;
+  height: auto;
 }
 
 .stat-card {
