@@ -8,7 +8,7 @@
           <SchemaForm
             :schema="field.children"
             :model="getNestedModel(key)"
-            @update="onNestedUpdate(key)"
+            @update="onNestedUpdate(key, $event)"
             inline
           />
         </span>
@@ -22,7 +22,7 @@
             v-if="field.children"
             :schema="field.children"
             :model="getNestedModel(key)"
-            @update="onNestedUpdate(key)"
+            @update="onNestedUpdate(key, $event)"
           />
           <span v-else class="hint">配置缺失</span>
         </div>
@@ -73,7 +73,9 @@ function getDefaultValue(field) {
   if (field.type === 'switch') return field.default ?? false
   if (field.type === 'number') return field.default ?? field.min ?? 0
   if (field.type === 'slider') return field.default ?? field.min ?? 0
-  if (field.type === 'select' || field.type === 'buttonGroup') return field.default ?? (field.options?.[0]?.value ?? '')
+  if (field.type === 'select' || field.type === 'buttonGroup') {
+    return field.multiple ? (field.default ?? []) : (field.default ?? (field.options?.[0]?.value ?? ''))
+  }
   if (field.type === 'toggle') return field.default ?? field.inactiveValue ?? ''
   if (field.type === 'color') return field.default ?? '#409EFF'
   if (field.type === 'input') return field.default ?? ''
@@ -133,11 +135,9 @@ function getNestedModel(key) {
   return localModel.value[key]
 }
 
-function onNestedUpdate(key) {
-  return (newVal) => {
-    localModel.value[key] = newVal
-    emitUpdate()
-  }
+function onNestedUpdate(key, newVal) {
+  localModel.value[key] = newVal
+  emitUpdate()
 }
 </script>
 

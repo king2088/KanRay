@@ -27,19 +27,36 @@
           @update="onTypeSpecificUpdate"
         />
       </el-collapse-item>
+
+      <!-- 折线系列样式（按系列单独配置，line/area 等类型） -->
+      <el-collapse-item
+        v-if="showSeriesStyles && seriesNames.length"
+        title="线条样式 · 按系列"
+        name="seriesStyles"
+      >
+        <div v-for="nm in seriesNames" :key="nm" class="series-style-block">
+          <div class="series-style-name">{{ nm }}</div>
+          <SchemaForm
+            :schema="seriesStyleSchema"
+            :model="seriesStyleModel(nm)"
+            @update="(v) => onSeriesStyleUpdate(nm, v)"
+          />
+        </div>
+      </el-collapse-item>
     </el-collapse>
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import { COMMON_CONFIG_SCHEMA, TYPE_CONFIG_SCHEMAS } from '@/config/chart-configs'
+import { COMMON_CONFIG_SCHEMA, TYPE_CONFIG_SCHEMAS, SERIES_STYLE_TYPES, SERIES_STYLE_SCHEMA, getDefaultsFromSchema } from '@/config/chart-configs'
 import { getChartType } from '@/config/chart-types'
 import SchemaForm from './SchemaForm.vue'
 
 const props = defineProps({
   chartType: { type: String, required: true },
   config: { type: Object, default: () => ({}) },
+  seriesNames: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:config'])
@@ -59,6 +76,14 @@ const commonSchemaGroups = computed(() => {
 const typeSchema = computed(() => TYPE_CONFIG_SCHEMAS[props.chartType] || {})
 const typeSchemaKeys = computed(() => Object.keys(typeSchema.value))
 
+const showSeriesStyles = computed(() => SERIES_STYLE_TYPES.has(props.chartType))
+const seriesStyleSchema = SERIES_STYLE_SCHEMA
+
+function seriesStyleModel(nm) {
+  const existing = props.config?.typeSpecific?.seriesStyles?.[nm] || {}
+  return { ...getDefaultsFromSchema(SERIES_STYLE_SCHEMA), ...existing }
+}
+
 function emitMerged(mutator) {
   const merged = { ...props.config }
   mutator(merged)
@@ -71,6 +96,14 @@ function onGroupUpdate(key, newVal) {
 
 function onTypeSpecificUpdate(newVal) {
   emitMerged((merged) => { merged.typeSpecific = newVal })
+}
+
+function onSeriesStyleUpdate(nm, newVal) {
+  emitMerged((merged) => {
+    merged.typeSpecific = merged.typeSpecific || {}
+    merged.typeSpecific.seriesStyles = merged.typeSpecific.seriesStyles || {}
+    merged.typeSpecific.seriesStyles[nm] = newVal
+  })
 }
 </script>
 
@@ -85,5 +118,18 @@ function onTypeSpecificUpdate(newVal) {
 }
 .config-collapse :deep(.el-collapse-item__content) {
   padding-top: 4px;
+}
+.series-style-block {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 6px;
+  background: var(--el-fill-color-light, #fafafa);
+}
+.series-style-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--app-text, #333);
+  margin-bottom: 4px;
 }
 </style>

@@ -158,7 +158,7 @@
         <el-divider style="margin: 8px 0" />
         <div class="right-section right-config">
           <div class="right-section-title">显示配置</div>
-          <ChartConfigPanel :chart-type="chartType" :config="displayConfig" @update:config="displayConfig = $event" />
+          <ChartConfigPanel :chart-type="chartType" :config="displayConfig" :series-names="chartSeriesNames" @update:config="displayConfig = $event" />
         </div>
       </div>
     </div>
@@ -207,7 +207,12 @@ const displayConfig = ref({})
 const previewData = ref(null)
 const previewRows = ref([])
 const statData = ref(null)
-const progressValue = ref(0)
+const progressValue = computed(() => {
+  if (!isProgressType.value) return 0
+  const val = previewData.value?.rows?.[0]?.[`metric:${metrics.value[0]?.field}`]?.value || 0
+  const max = progressMax()
+  return max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0
+})
 const previewLoading = ref(false)
 const saving = ref(false)
 let editingId = null
@@ -258,9 +263,27 @@ function fmtNumber(n) {
   return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
 }
 
+function progressMax() {
+  return displayConfig.value.typeSpecific?.max ?? displayConfig.value.max ?? 100
+}
+
+const chartSeriesNames = computed(() => {
+  const d = previewData.value
+  if (!d || !d.rows?.length || !d.dimensions?.length) return []
+  const gDim = d.dimensions[1]
+  if (gDim) {
+    return [...new Set(d.rows.map((r) => String(r[`dim:${gDim.field}`]?.value ?? r[gDim.field] ?? '无')))]
+  }
+  const m = metrics.value?.[0]
+  if (!m) return []
+  if (m.field === '*' && m.agg === 'count') return ['数据行数']
+  const f = fields.value.find((x) => x.name === m.field)
+  return [`${f ? f.label || f.name : m.field}(${m.agg})`]
+})
+
 function calcMultiRing(m) {
   const val = previewData.value?.rows?.[0]?.[`metric:${m.field}`]?.value
-  const max = displayConfig.value.max || 100
+  const max = progressMax()
   return { val, pct: max > 0 ? Math.min(100, Math.round((val || 0) / max * 100)) : 0 }
 }
 
@@ -334,10 +357,6 @@ async function loadPreview() {
     previewRows.value = res.rows
     if (chartType.value === 'stat' || chartType.value === 'statTrend') {
       statData.value = { value: res.rows[0]?.[`metric:${metrics.value[0].field}`]?.value, label: metricLabel(metrics.value[0]) }
-    } else if (isProgressType.value) {
-      const val = res.rows[0]?.[`metric:${metrics.value[0].field}`]?.value || 0
-      const max = displayConfig.value.max || 100
-      progressValue.value = max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0
     }
   } finally {
     previewLoading.value = false

@@ -58,8 +58,10 @@
     :placeholder="field.placeholder || '请选择'"
     :disabled="field.disabled"
     :size="compact ? 'small' : undefined"
+    :multiple="field.multiple"
+    :collapse-tags="field.multiple"
+    :clearable="!field.multiple"
     style="width: 100%"
-    clearable
   >
     <el-option
       v-for="opt in field.options || []"

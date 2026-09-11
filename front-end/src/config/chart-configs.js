@@ -56,6 +56,19 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '右', value: 'right', icon: '⇥' },
         ],
       },
+      icon: {
+        type: 'select', label: '形状', default: '', options: [
+          { label: '自动', value: '' },
+          { label: '圆形', value: 'circle' },
+          { label: '方形', value: 'rect' },
+          { label: '圆角矩形', value: 'roundRect' },
+          { label: '菱形', value: 'diamond' },
+          { label: '三角', value: 'triangle' },
+          { label: '引脚', value: 'pin' },
+        ],
+      },
+      itemWidth: { type: 'number', label: '形状宽度', default: 25, min: 8, max: 100 },
+      itemHeight: { type: 'number', label: '形状高度', default: 14, min: 8, max: 100 },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },
@@ -67,30 +80,49 @@ export const COMMON_CONFIG_SCHEMA = {
           { label: '坐标轴', value: 'axis' }, { label: '数据项', value: 'item' }, { label: '不触发', value: 'none' },
         ],
       },
+      axisPointer: {
+        type: 'group', label: '坐标轴指示器', children: {
+          type: {
+            type: 'select', label: '指示器类型', default: 'line', options: [
+              { label: '直线', value: 'line' }, { label: '阴影', value: 'shadow' },
+              { label: '无', value: 'none' }, { label: '十字准星', value: 'cross' },
+            ],
+          },
+        },
+      },
       formatter: { type: 'input', label: '内容格式', default: '', placeholder: '如 {a}{b}: {c}，留空自动' },
-      backgroundColor: { type: 'color', label: '背景色', default: 'rgba(50,50,50,0.9)' },
+      backgroundColor: { type: 'color', label: '背景色', default: 'rgba(255,255,255,0.96)' },
+      borderColor: { type: 'color', label: '边框色', default: '#DCDFE6' },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
     },
   },
   label: {
     type: 'group', label: '数据标签', children: {
       show: { type: 'switch', label: '显示', default: false },
+      content: {
+        type: 'select', multiple: true, label: '显示内容', default: ['{c}'], options: [
+          { label: '系列名称', value: '{a}' }, { label: '类别名称', value: '{b}' }, { label: '数值', value: '{c}' },
+        ],
+      },
+      separator: {
+        type: 'select', label: '分隔符', default: ' ', options: [
+          { label: '空格', value: ' ' }, { label: '逗号', value: ', ' },
+          { label: '换行', value: '\n' }, { label: '竖线', value: ' | ' },
+        ],
+      },
       position: {
         type: 'select', label: '位置', default: 'top', options: [
           { label: '上', value: 'top' }, { label: '下', value: 'bottom' },
           { label: '左', value: 'left' }, { label: '右', value: 'right' }, { label: '内', value: 'inside' },
         ],
       },
-      formatter: {
-        type: 'select', label: '内容格式', default: '', options: [
-          { label: '默认', value: '' }, { label: '数值', value: '{c}' }, { label: '名称', value: '{b}' },
-          { label: '百分比', value: '{d}%' }, { label: '系列名', value: '{a}' },
-        ],
-      },
       color: { type: 'color', label: '文字颜色', default: 'inherit' },
       fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 30 },
       fontWeight: { type: 'toggle', label: '加粗', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
       fontStyle: { type: 'toggle', label: '斜体', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
+      showBorder: { type: 'switch', label: '显示描边', default: false },
+      borderColor: { type: 'color', label: '描边颜色', default: '#FFFFFF' },
+      allowOverlap: { type: 'switch', label: '允许重叠', default: false },
     },
   },
   markLine: {
@@ -121,10 +153,24 @@ export const COMMON_CONFIG_SCHEMA = {
       bottom: { type: 'number', label: '下边距', default: 40, min: 0, max: 200 },
     },
   },
+  dataZoom: {
+    type: 'group', label: '缩略轴', children: {
+      show: { type: 'switch', label: '启用', default: false },
+      type: {
+        type: 'select', label: '类型', default: 'slider', options: [
+          { label: '滑块', value: 'slider' }, { label: '内置', value: 'inside' },
+        ],
+      },
+      startPercent: { type: 'number', label: '起始比例%', default: 0, min: 0, max: 100 },
+      endPercent: { type: 'number', label: '结束比例%', default: 100, min: 0, max: 100 },
+    },
+  },
   xAxis: {
     type: 'group', label: 'X轴', children: {
       show: { type: 'switch', label: '显示', default: true },
       name: { type: 'input', label: '轴名称', default: '' },
+      nameTextStyle: { type: 'group', label: '标题文字样式', inline: true, children: STYLE_TEXT },
+      labelColor: { type: 'color', label: '标签颜色', default: '' },
       nameRotate: { type: 'number', label: '名称旋转', default: 0, min: -90, max: 90 },
       labelRotate: { type: 'number', label: '标签旋转', default: 0, min: -90, max: 90 },
     },
@@ -133,9 +179,13 @@ export const COMMON_CONFIG_SCHEMA = {
     type: 'group', label: 'Y轴', children: {
       show: { type: 'switch', label: '显示', default: true },
       name: { type: 'input', label: '轴名称', default: '' },
+      nameTextStyle: { type: 'group', label: '标题文字样式', inline: true, children: STYLE_TEXT },
+      unit: { type: 'input', label: '单位', default: '', placeholder: '如 元、%' },
+      labelColor: { type: 'color', label: '标签颜色', default: '' },
       splitLine: { type: 'switch', label: '网格线', default: true },
       min: { type: 'input', label: '最小值', default: '', placeholder: '自动或数值' },
       max: { type: 'input', label: '最大值', default: '', placeholder: '自动或数值' },
+      interval: { type: 'input', label: '数据步长', default: '', placeholder: '自动或数值' },
     },
   },
 }
@@ -267,6 +317,13 @@ export const TYPE_CONFIG_SCHEMAS = {
         { label: '外', value: 'outside' }, { label: '内', value: 'inside' }, { label: '居中', value: 'center' },
       ],
     },
+    showCenter: { type: 'switch', label: '中心文本', default: false },
+    centerText: { type: 'input', label: '中心标题', default: '', placeholder: '留空显示数值' },
+    centerSubtext: { type: 'input', label: '中心副标题', default: '', placeholder: '可选' },
+    centerColor: { type: 'color', label: '标题颜色', default: '#303133' },
+    centerSubColor: { type: 'color', label: '副标题颜色', default: '#909399' },
+    centerFontSize: { type: 'number', label: '标题字号', default: 22, min: 10, max: 60 },
+    centerSubFontSize: { type: 'number', label: '副标题字号', default: 12, min: 8, max: 40 },
   },
   sunburst: {
     radius: { type: 'slider', label: '半径%', default: 80, min: 30, max: 90 },
@@ -331,6 +388,15 @@ export const TYPE_CONFIG_SCHEMAS = {
     showSparkline: { type: 'switch', label: '显示趋势线', default: true },
     sparklineColor: { type: 'color', label: '趋势线颜色', default: '#409EFF' },
   },
+  radar: {
+    shape: {
+      type: 'select', label: '形状', default: 'polygon', options: [
+        { label: '多边形', value: 'polygon' }, { label: '圆形', value: 'circle' },
+      ],
+    },
+    splitNumber: { type: 'number', label: '分割段数', default: 5, min: 3, max: 12 },
+    areaOpacity: { type: 'slider', label: '区域透明度', default: 15, min: 0, max: 100, step: 5 },
+  },
 
   // 地图
   mapChina: {
@@ -386,8 +452,30 @@ export const TYPE_CONFIG_SCHEMAS = {
   },
 }
 
+// 折线系列的单系列线条样式（按系列名配置）
+export const SERIES_STYLE_SCHEMA = {
+  lineType: {
+    type: 'select', label: '线型', default: 'solid', options: [
+      { label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' },
+    ],
+  },
+  lineColor: { type: 'color', label: '线条颜色', default: '', placeholder: '留空随调色板' },
+  lineWidth: { type: 'number', label: '线宽', default: 2, min: 0.5, max: 10, step: 0.5 },
+  symbol: {
+    type: 'select', label: '数据点', default: 'circle', options: [
+      { label: '实心圆', value: 'circle' }, { label: '空心圆', value: 'emptyCircle' },
+      { label: '矩形', value: 'rect' }, { label: '圆角矩形', value: 'roundRect' },
+      { label: '菱形', value: 'diamond' }, { label: '三角', value: 'triangle' }, { label: '无', value: 'none' },
+    ],
+  },
+  symbolSize: { type: 'number', label: '点大小', default: 6, min: 2, max: 25 },
+}
+
+// 支持按系列配置线条样式的图表类型
+export const SERIES_STYLE_TYPES = new Set(['line', 'lineMulti', 'areaStacked', 'areaPercentStacked', 'barLine', 'barStackedLine'])
+
 // Extract default config object from a schema
-function getDefaultsFromSchema(schema) {
+export function getDefaultsFromSchema(schema) {
   const result = {}
   for (const [key, field] of Object.entries(schema || {})) {
     if (field.type === 'group' && field.children) {
@@ -435,6 +523,12 @@ function mergeConfig(target, source) {
   return result
 }
 
+function numOr(v) {
+  if (v === undefined || v === null || v === '') return undefined
+  const n = Number(v)
+  return Number.isFinite(n) ? n : v
+}
+
 function buildTextStyle(cfg, prefix = '') {
   if (!cfg) return {}
   const style = {}
@@ -450,7 +544,7 @@ function buildTextStyle(cfg, prefix = '') {
   return style
 }
 
-function buildCommonOption(config, palette) {
+function buildCommonOption(config, palette, enableZoom = false) {
   const opt = {}
 
   // Title
@@ -486,6 +580,7 @@ function buildCommonOption(config, palette) {
       left: l.left || 'center',
       top: l.top || 'bottom',
       align: l.align || 'auto',
+      icon: l.icon || undefined,
       itemWidth: l.itemWidth || 25,
       itemHeight: l.itemHeight || 14,
       itemGap: l.itemGap || 10,
@@ -543,10 +638,10 @@ function buildCommonOption(config, palette) {
           } : {},
         },
         textStyle: buildTextStyle(tt.textStyle, 'tooltip'),
-        backgroundColor: tt.backgroundColor || 'rgba(50,50,50,0.9)',
-        borderColor: tt.borderColor || 'transparent',
-        borderWidth: tt.borderWidth || 0,
-        borderRadius: tt.borderRadius || 4,
+        backgroundColor: tt.backgroundColor || 'rgba(255,255,255,0.96)',
+        borderColor: tt.borderColor || '#DCDFE6',
+        borderWidth: tt.borderWidth || 1,
+        borderRadius: tt.borderRadius || 6,
         padding: tt.padding || 10,
         extraCssText: tt.extraCssText || '',
         formatter: tt.formatter || undefined,
@@ -565,10 +660,10 @@ function buildCommonOption(config, palette) {
     const g = config.grid
     opt.grid = {
       show: g.show || false,
-      left: g.left || '60',
-      right: g.right || '30',
-      top: g.top || '40',
-      bottom: g.bottom || '40',
+      left: g.left ?? 60,
+      right: g.right ?? 30,
+      top: g.top ?? 40,
+      bottom: g.bottom ?? 40,
       width: g.width || 'auto',
       height: g.height || 'auto',
       backgroundColor: g.backgroundColor || 'transparent',
@@ -588,10 +683,11 @@ function buildCommonOption(config, palette) {
       nameLocation: xa.nameLocation || 'middle',
       nameGap: xa.nameGap || 15,
       nameRotate: xa.nameRotate || 0,
+      nameTextStyle: buildTextStyle(xa.nameTextStyle, 'xAxisName'),
       inverse: xa.inverse || false,
       boundaryGap: xa.boundaryGap !== false,
-      min: xa.min || undefined,
-      max: xa.max || undefined,
+      min: numOr(xa.min),
+      max: numOr(xa.max),
       scale: xa.scale || false,
       splitNumber: xa.splitNumber || 5,
       interval: xa.interval || undefined,
@@ -620,6 +716,7 @@ function buildCommonOption(config, palette) {
         margin: xa.axisLabel?.margin || 8,
         formatter: xa.axisLabel?.formatter || undefined,
         ...buildTextStyle(xa.axisLabel?.textStyle, 'xAxisLabel'),
+        ...(xa.labelColor ? { color: xa.labelColor } : {}),
       },
       splitLine: {
         show: typeof xa.splitLine === 'boolean' ? xa.splitLine : xa.splitLine?.show || false,
@@ -653,13 +750,14 @@ function buildCommonOption(config, palette) {
       nameLocation: ya.nameLocation || 'middle',
       nameGap: ya.nameGap || 15,
       nameRotate: ya.nameRotate || 0,
+      nameTextStyle: buildTextStyle(ya.nameTextStyle, 'yAxisName'),
       inverse: ya.inverse || false,
       boundaryGap: ya.boundaryGap || false,
-      min: ya.min || undefined,
-      max: ya.max || undefined,
+      min: numOr(ya.min),
+      max: numOr(ya.max),
       scale: ya.scale || false,
       splitNumber: ya.splitNumber || 5,
-      interval: ya.interval || undefined,
+      interval: numOr(ya.interval),
       axisLine: {
         show: ya.axisLine?.show !== false,
         onZero: ya.axisLine?.onZero !== false,
@@ -683,8 +781,9 @@ function buildCommonOption(config, palette) {
         inside: ya.axisLabel?.inside || false,
         rotate: ya.axisLabel?.rotate || 0,
         margin: ya.axisLabel?.margin || 8,
-        formatter: ya.axisLabel?.formatter || undefined,
+        formatter: ya.axisLabel?.formatter || (ya.unit ? `{value} ${ya.unit}` : undefined),
         ...buildTextStyle(ya.axisLabel?.textStyle, 'yAxisLabel'),
+        ...(ya.labelColor ? { color: ya.labelColor } : {}),
       },
       splitLine: {
         show: typeof ya.splitLine === 'boolean' ? ya.splitLine : ya.splitLine?.show !== false,
@@ -705,6 +804,18 @@ function buildCommonOption(config, palette) {
       zlevel: ya.zlevel || 0,
     }
     opt.yAxis = axisCfg
+  }
+
+  if (enableZoom && config.dataZoom?.show && opt.xAxis) {
+    const dz = config.dataZoom
+    opt.dataZoom = [{
+      type: dz.type === 'inside' ? 'inside' : 'slider',
+      show: dz.type !== 'inside',
+      start: dz.startPercent ?? 0,
+      end: dz.endPercent ?? 100,
+      filterMode: 'filter',
+      xAxisIndex: Array.isArray(opt.xAxis) ? opt.xAxis.map((_, i) => i) : 0,
+    }]
   }
 
   opt.color = palette
@@ -748,7 +859,8 @@ function buildLegendPosition(opt, config) {
 function getGroups(rows, groupDim) {
   const groups = {}
   rows.forEach((r) => {
-    const g = String(r[groupDim.field]?.value ?? '无')
+    const v = r[`dim:${groupDim.field}`]?.value ?? r[groupDim.field]
+    const g = String(v === undefined || v === null ? '无' : v)
     if (!groups[g]) groups[g] = []
     groups[g].push(r)
   })
@@ -778,7 +890,7 @@ function buildBar(data, config, palette, horizontal = false) {
   const groupDim = dimensions[1]
   const metric = check.metric
 
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
   const series = []
   const cats = getCats(dim, rows)
   const barStyle = {}
@@ -821,41 +933,76 @@ function buildBar(data, config, palette, horizontal = false) {
   return opt
 }
 
-function applyLabelConfig(series, config) {
-  if (config.label?.show) {
-    const l = config.label
-    series.label = {
-      show: true,
-      position: l.position || 'top',
-      formatter: l.formatter || undefined,
-      color: l.color || 'inherit',
-      fontSize: l.fontSize || 12,
-      fontWeight: l.fontWeight || 'normal',
-      fontStyle: l.fontStyle || 'normal',
-      fontFamily: l.fontFamily !== 'inherit' ? l.fontFamily : undefined,
-      textDecoration: l.textDecoration !== 'none' ? l.textDecoration : undefined,
-      align: l.align || 'auto',
-      verticalAlign: l.verticalAlign || 'auto',
-      lineHeight: l.lineHeight || 1.2,
-      rich: l.rich ? {} : undefined,
-      rotate: l.rotate || 0,
-      overflow: l.overflow || 'none',
-      width: l.width || undefined,
-      height: l.height || undefined,
-      borderColor: l.borderColor || 'transparent',
-      borderWidth: l.borderWidth || 0,
-      borderRadius: l.borderRadius || 0,
-      backgroundColor: l.backgroundColor || 'transparent',
-      padding: l.padding || 0,
-      shadowColor: l.shadowColor || 'transparent',
-      shadowBlur: l.shadowBlur || 0,
-      shadowOffsetX: l.shadowOffsetX || 0,
-      shadowOffsetY: l.shadowOffsetY || 0,
-      distance: l.distance || 5,
-      offset: l.offset ? JSON.parse(l.offset) : undefined,
-      bleedMargin: l.bleedMargin || 10,
-    }
+function buildLabelConfig(config, fallbackPosition = 'top') {
+  if (!config.label?.show) return undefined
+  const l = config.label
+  const formatter = l.formatter || (Array.isArray(l.content) && l.content.length ? l.content.join(l.separator ?? ' ') : undefined)
+  return {
+    show: true,
+    position: l.position || fallbackPosition,
+    formatter,
+    color: l.color || 'inherit',
+    fontSize: l.fontSize || 12,
+    fontWeight: l.fontWeight || 'normal',
+    fontStyle: l.fontStyle || 'normal',
+    fontFamily: l.fontFamily !== 'inherit' ? l.fontFamily : undefined,
+    textDecoration: l.textDecoration !== 'none' ? l.textDecoration : undefined,
+    align: l.align || 'auto',
+    verticalAlign: l.verticalAlign || 'auto',
+    lineHeight: l.lineHeight || 1.2,
+    rich: l.rich ? {} : undefined,
+    rotate: l.rotate || 0,
+    overflow: l.overflow || 'none',
+    width: l.width || undefined,
+    height: l.height || undefined,
+    borderColor: l.showBorder ? (l.borderColor || '#FFFFFF') : 'transparent',
+    borderWidth: l.showBorder ? 1 : 0,
+    borderRadius: l.borderRadius || 0,
+    backgroundColor: l.backgroundColor || 'transparent',
+    padding: l.padding || 0,
+    shadowColor: l.shadowColor || 'transparent',
+    shadowBlur: l.shadowBlur || 0,
+    shadowOffsetX: l.shadowOffsetX || 0,
+    shadowOffsetY: l.shadowOffsetY || 0,
+    distance: l.distance || 5,
+    offset: l.offset ? JSON.parse(l.offset) : undefined,
+    bleedMargin: l.bleedMargin || 10,
   }
+}
+
+function applyLabelConfig(series, config, fallbackPosition) {
+  const label = buildLabelConfig(config, fallbackPosition)
+  if (label) {
+    series.label = label
+    if (config.label?.allowOverlap === true) series.labelLayout = { hideOverlap: false }
+  }
+  return series
+}
+
+function fmtNum(n) {
+  if (n === null || n === undefined) return '-'
+  if (typeof n !== 'number') return String(n)
+  return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+}
+
+// 按系列应用折线样式（线型/颜色/线宽/数据点/点大小），优先 seriesStyles[系列名]，未配置时用默认值
+function applyLineStyle(series, config) {
+  series.lineStyle = { type: 'solid', width: 2, ...(series.lineStyle || {}) }
+  series.symbol = series.symbol || 'circle'
+  series.symbolSize = series.symbolSize || 6
+  const per = config?.seriesStyles?.[series.name]
+  if (per) {
+    if (per.lineColor) {
+      series.lineStyle.color = per.lineColor
+      series.itemStyle = { ...(series.itemStyle || {}), color: per.lineColor }
+      if (series.areaStyle) series.areaStyle.color = per.lineColor
+    }
+    if (per.lineType) series.lineStyle.type = per.lineType
+    if (per.lineWidth != null) series.lineStyle.width = per.lineWidth
+    if (per.symbol) series.symbol = per.symbol
+    if (per.symbolSize != null) series.symbolSize = per.symbolSize
+  }
+  if (series.symbol === 'none') series.showSymbol = false
   return series
 }
 
@@ -889,29 +1036,29 @@ function buildLineChart(data, config, palette) {
   const groupDim = dimensions[1]
   const metric = check.metric
 
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
   const series = []
   const cats = getCats(dim, rows)
 
-  const lineStyle = {
+  const lineBase = {
     type: 'line',
     smooth: !!config.smooth,
-    symbol: 'circle',
-    symbolSize: 6,
   }
-  if (config.step) lineStyle.step = config.step
-  if (config.areaStyle) lineStyle.areaStyle = { opacity: config.opacity || 0.4 }
+  if (config.step) lineBase.step = config.step
+  if (config.areaStyle) lineBase.areaStyle = { opacity: config.opacity || 0.4 }
 
   if (groupDim) {
     const groups = getGroups(rows, groupDim)
     Object.entries(groups).forEach(([g, rws]) => {
-      const s = { name: g, data: rws.map((r) => r[metric.field]), ...lineStyle }
+      const s = applyLineStyle({ name: g, data: rws.map((r) => r[metric.field]), ...lineBase }, config)
       addMarkLine(s, config)
+      applyLabelConfig(s, config)
       series.push(s)
     })
   } else {
-    const s = { name: metric.label, data: rows.map((r) => r[metric.field]), ...lineStyle }
+    const s = applyLineStyle({ name: metric.label, data: rows.map((r) => r[metric.field]), ...lineBase }, config)
     addMarkLine(s, config)
+    applyLabelConfig(s, config)
     series.push(s)
   }
 
@@ -962,12 +1109,10 @@ function buildPie(data, config, palette, type = 'pie') {
       seriesCfg.radius = `${config.radius ?? 65}%`
       seriesCfg.startAngle = config.startAngle ?? 90
       if (config.roseType) seriesCfg.roseType = 'radius'
-      seriesCfg.label = { position: config.labelPosition || 'outside' }
       break
     case 'doughnut':
       seriesCfg.radius = [`${config.radiusInner ?? 40}%`, `${config.radiusOuter ?? 68}%`]
       seriesCfg.startAngle = config.startAngle ?? 90
-      seriesCfg.label = { position: config.labelPosition || 'outside' }
       break
     case 'nightingale':
       seriesCfg.radius = ['10%', `${config.radius ?? 80}%`]
@@ -977,6 +1122,33 @@ function buildPie(data, config, palette, type = 'pie') {
       seriesCfg.radius = ['10%', `${config.radius ?? 80}%`]
       seriesCfg.startAngle = config.startAngle ?? 90
       break
+  }
+
+  if (config.label?.show) {
+    seriesCfg.label = buildLabelConfig(config, config.labelPosition || 'outside')
+  } else if (type === 'pie' || type === 'doughnut') {
+    seriesCfg.label = { position: config.labelPosition || 'outside' }
+  }
+
+  if (type === 'doughnut' && config.showCenter) {
+    const total = rows.reduce((a, r) => a + (Number(r[metric.field]) || 0), 0)
+    const fontSize = config.centerFontSize || 22
+    const subFontSize = config.centerSubFontSize || 12
+    const main = config.centerText || fmtNum(total)
+    const sub = config.centerSubtext || (config.centerText ? fmtNum(total) : '')
+    const graphic = [
+      {
+        type: 'text', left: 'center', top: '40%', z: 100, silent: true,
+        style: { text: main, fill: config.centerColor || '#303133', fontSize, fontWeight: 600, textAlign: 'center', textVerticalAlign: 'middle' },
+      },
+    ]
+    if (sub) {
+      graphic.push({
+        type: 'text', left: 'center', top: '58%', z: 100, silent: true,
+        style: { text: sub, fill: config.centerSubColor || '#909399', fontSize: subFontSize, textAlign: 'center', textVerticalAlign: 'middle' },
+      })
+    }
+    opt.graphic = graphic
   }
 
   opt.series = [seriesCfg]
@@ -1001,7 +1173,9 @@ function buildFunnel(data, config, palette, horizontal = false) {
     width: horizontal ? '80%' : '60%',
     sort: config.sort || 'descending',
     gap: config.gap ?? 2,
-    label: { show: true, position: 'inside', formatter: '{b}: {c}' },
+    label: config.label?.show
+      ? buildLabelConfig(config, 'inside')
+      : { show: true, position: 'inside', formatter: '{b}: {c}' },
     data: rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: r[metric.field] })),
   }]
   return opt
@@ -1015,51 +1189,77 @@ function buildScatter(data, config, palette, isBubble = false) {
   const dim = check.dim
   const metric = check.metric
 
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
+  const xNumeric = rows.every((r) => {
+    const v = r[`dim:${dim.field}`]?.value
+    return v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v))
+  })
   const scatterData = rows.map((r) => {
-    const x = r[`dim:${dim.field}`]?.value
+    const x = xNumeric ? Number(r[`dim:${dim.field}`]?.value) : String(r[`dim:${dim.field}`]?.value ?? '')
     const y = r[metric.field]
     return isBubble ? [x, y, Math.abs(y) || 10] : [x, y]
   })
 
   opt.grid = mergeConfig({ left: 60, right: 30, top: 40, bottom: 40 }, opt.grid)
-  opt.xAxis = mergeConfig(opt.xAxis, { type: 'value', name: dim.label || dim.field, boundaryGap: '0%' })
-  opt.yAxis = mergeConfig(opt.yAxis, { type: 'value', name: metric.label, boundaryGap: '0%' })
-  opt.series = [{
+  const xName = opt.xAxis?.name || dim.label || dim.field
+  if (xNumeric) {
+    opt.xAxis = mergeConfig(opt.xAxis || {}, { type: 'value', boundaryGap: '0%', name: xName })
+  } else {
+    opt.xAxis = mergeConfig(opt.xAxis || {}, { type: 'category', data: getCats(dim, rows), boundaryGap: '0%', name: xName })
+  }
+  opt.yAxis = mergeConfig(opt.yAxis || {}, { type: 'value', boundaryGap: '0%', name: opt.yAxis?.name || metric.label })
+  const scatterSeries = {
     name: metric.label,
     type: 'scatter',
     data: scatterData,
     symbolSize: isBubble
       ? (val) => Math.max(5, (val[2] / 100) * (config.symbolSize || 50))
       : (config.symbolSize || 10),
-  }]
+  }
+  applyLabelConfig(scatterSeries, config)
+  opt.series = [scatterSeries]
   return opt
 }
 
 // ---- 雷达图 ----
 function buildRadar(data, config, palette) {
-  const check = assertChartData(data)
-  if (!check.ok) return emptyOption(check.msg)
-  const { dimensions, metrics, rows } = data
-  const dim = check.dim
-  return buildCommonOption(config, palette)
-  // Radar uses multiple metrics as axes; a simpler implementation:
-  // Use each row as an indicator, each metric as a series
-  // We'll build radar from multiple metrics
-  // eslint-disable-next-line no-unreachable
-  const indicators = rows.map((r) => {
-    const maxVal = Math.max(...metrics.map((m) => r[m.field] || 0))
-    return { name: String(r[`dim:${dim.field}`]?.value ?? ''), max: maxVal * 1.2 || 100 }
+  const { dimensions, metrics, rows } = data || {}
+  if (!dimensions?.length || !metrics?.length || !rows?.length) return emptyOption('请配置维度与指标')
+  const dim = dimensions[0]
+  const cats = getCats(dim, rows)
+  if (cats.length === 0) return emptyOption('请配置维度与指标')
+  const maxes = metrics.map((m) => {
+    const mx = Math.max(...rows.map((r) => Number(r[m.field]) || 0))
+    return mx > 0 ? mx : 1
   })
-  const opt = {
-    ...buildCommonOption(config, palette),
-    radar: { indicator: indicators, shape: config.shape || 'polygon', splitNumber: config.splitNumber || 5 },
-    series: metrics.map((m) => ({
-      name: m.label, type: 'radar',
-      areaStyle: { opacity: config.areaOpacity ?? 0.2 },
-      data: [{ value: rows.map((r) => r[m.field]), name: m.label }],
-    })),
+  const valueOf = (r, i) => Math.max(0, Math.min(100, Math.round(((Number(r?.[metrics[i].field]) || 0) / maxes[i]) * 100)))
+  const series = cats.map((catName) => {
+    const r = rows.find((row) => String(row[`dim:${dim.field}`]?.value ?? '') === catName)
+    return {
+      name: catName,
+      type: 'radar',
+      symbol: config.symbolType || 'circle',
+      symbolSize: 4,
+      lineStyle: { width: 2 },
+      areaStyle: { opacity: (config.areaOpacity ?? 15) / 100 },
+      data: [{ value: metrics.map((m, i) => valueOf(r, i)) }],
+    }
+  })
+  const opt = buildCommonOption(config, palette)
+  opt.radar = {
+    indicator: metrics.map((m) => ({ name: m.label, max: 100 })),
+    shape: config.shape || 'polygon',
+    splitNumber: config.splitNumber || 5,
+    radius: '62%',
+    axisName: { color: '#606266', fontSize: 11 },
+    splitArea: { areaStyle: { color: ['rgba(64,158,255,0.03)', 'rgba(64,158,255,0.08)'] } },
   }
+  if (opt.tooltip) {
+    if (opt.tooltip.show !== false) opt.tooltip.trigger = 'item'
+  } else if (config.tooltip?.show !== false && config.tooltip?.trigger !== 'none') {
+    opt.tooltip = { trigger: 'item' }
+  }
+  opt.series = series
   return opt
 }
 
@@ -1093,7 +1293,7 @@ function buildHeatmap(data, config, palette) {
   const dimY = dimensions?.[1]
   const metric = metrics?.[0]
   if (!dimX || !dimY || !metric || !rows?.length) return emptyOption('请配置 X/Y 维度与指标')
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
   const xCats = getCats(dimX, rows)
   const yCats = getCats(dimY, rows)
   const heatData = rows.map((r) => [
@@ -1102,14 +1302,21 @@ function buildHeatmap(data, config, palette) {
     r[metric.field],
   ])
   opt.grid = mergeConfig({ left: 80, right: 80, top: 40, bottom: 60 }, opt.grid)
-  opt.xAxis = mergeConfig(opt.xAxis, { type: 'category', data: xCats, boundaryGap: true, splitArea: { show: true } })
-  opt.yAxis = mergeConfig(opt.yAxis, { type: 'category', data: yCats, boundaryGap: true, splitArea: { show: true } })
+  opt.xAxis = mergeConfig(opt.xAxis || {}, { type: 'category', data: xCats, boundaryGap: true, splitArea: { show: true } })
+  opt.yAxis = mergeConfig(opt.yAxis || {}, { type: 'category', data: yCats, boundaryGap: true, splitArea: { show: true } })
+  const heatVals = heatData.map((d) => d[2]).map((v) => Number(v)).filter((v) => Number.isFinite(v))
+  let vMin = heatVals.length ? Math.min(...heatVals) : 0
+  let vMax = heatVals.length ? Math.max(...heatVals) : 1
+  if (vMin === vMax) vMax = vMin + 1
   opt.visualMap = {
-    min: Math.min(...heatData.map((d) => d[2])),
-    max: Math.max(...heatData.map((d) => d[2])),
+    min: vMin,
+    max: vMax,
     calculable: true, orient: 'vertical', right: 0, top: 'center',
   }
-  opt.series = [{ type: 'heatmap', data: heatData, label: config.showValues ? { show: true } : undefined }]
+  const heatLabel = config.label?.show
+    ? buildLabelConfig(config, 'inside')
+    : (config.showValues ? { show: true } : undefined)
+  opt.series = [{ type: 'heatmap', data: heatData, label: heatLabel }]
   return opt
 }
 
@@ -1127,7 +1334,7 @@ function buildWaterfall(data, config, palette) {
   const increaseColor = config.increaseColor || '#67C23A'
   const decreaseColor = config.decreaseColor || '#F56C6C'
 
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
   opt.grid = mergeConfig({ left: 60, right: 30, top: 30, bottom: 36 }, opt.grid)
   opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
   opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
@@ -1159,7 +1366,7 @@ function buildBoxplot(data, config, palette) {
     return [q(0), q(0.25), q(0.5), q(0.75), q(1)]
   })
 
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
   opt.grid = mergeConfig({ left: 60, right: 30, top: 40, bottom: 36 }, opt.grid)
   opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
   opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
@@ -1255,7 +1462,7 @@ function buildCandlestick(data, config, palette) {
   const { dimensions, metrics, rows } = data || {}
   if (!rows?.length || metrics.length < 4) return emptyOption('K线图需要 日期维度 + 开/高/低/收 4个指标')
   const dim = dimensions?.[0]
-  const opt = buildCommonOption(config, palette)
+  const opt = buildCommonOption(config, palette, true)
   const cats = rows.map((r) => String(r[`dim:${dim.field}`]?.value ?? ''))
   const ohlc = rows.map((r) => [r[metrics[0].field], r[metrics[1].field], r[metrics[2].field], r[metrics[3].field]])
   opt.grid = mergeConfig({ left: 60, right: 30, top: 30, bottom: 36 }, opt.grid)
@@ -1317,9 +1524,12 @@ export const OPTION_BUILDERS = {
       const last = opt.series[opt.series.length - 1]
       last.type = 'line'
       last.smooth = !!c.smooth
+      if (last.symbol) delete last.symbol
+      applyLineStyle(last, c)
     } else if (opt.series?.length > 0) {
       opt.series[opt.series.length - 1].type = 'line'
       opt.series[opt.series.length - 1].smooth = !!c.smooth
+      applyLineStyle(opt.series[opt.series.length - 1], c)
     }
     return opt
   },
@@ -1341,6 +1551,8 @@ export const OPTION_BUILDERS = {
       const last = opt.series[opt.series.length - 1]
       last.type = 'line'
       last.smooth = true
+      if (last.symbol) delete last.symbol
+      applyLineStyle(last, c)
     }
     return opt
   },
