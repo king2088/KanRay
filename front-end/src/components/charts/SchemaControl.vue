@@ -61,7 +61,7 @@
     :multiple="field.multiple"
     :collapse-tags="field.multiple"
     :clearable="!field.multiple"
-    style="width: 100%"
+    :style="field.selectWidth ? 'width: ' + field.selectWidth + 'px' : 'width: 100%'"
   >
     <el-option
       v-for="opt in field.options || []"
@@ -98,10 +98,13 @@
       :type="value === opt.value ? 'primary' : 'default'"
       size="small"
       @click="emit('change', opt.value)"
-      :title="opt.label"
-      style="min-width: 30px; padding: 6px 8px;"
+      :title="opt.title || opt.label"
+      class="glyph-btn"
     >
-      <span :style="decoStyle(opt.value)" v-html="opt.icon || opt.label"></span>
+      <el-icon v-if="typeof opt.icon === 'object'" :size="14">
+        <component :is="opt.icon" />
+      </el-icon>
+      <span v-else :style="decoStyle(opt.value)" v-html="opt.icon || opt.label"></span>
     </el-button>
   </el-button-group>
 
@@ -133,3 +136,10 @@ function decoStyle(val) {
   return {}
 }
 </script>
+
+<style scoped>
+.glyph-btn {
+  min-width: 24px;
+  padding: 3px 4px;
+}
+</style>
