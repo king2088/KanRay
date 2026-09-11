@@ -9,21 +9,10 @@ const svg = (children) => h('svg', {
   'stroke-linejoin': 'round',
 }, children)
 
-// ① 九宫格单元格：框 + 点
-const cell = (cx, cy) => () => svg([
-  h('rect', { x: 3.2, y: 3.2, width: 17.6, height: 17.6, rx: 3, fill: 'none' }),
-  h('circle', { cx, cy, r: 2.1, fill: 'currentColor', stroke: 'none' }),
+// ① 九宫格单元格：单点（位置由 3×3 网格本身表达，选中格整体高亮）
+export const posDot = () => svg([
+  h('circle', { cx: 12, cy: 12, r: 4.2, fill: 'currentColor', stroke: 'none' }),
 ])
-const XS = [7, 12, 17], YS = [7, 12, 17]
-export const posTopLeft = cell(XS[0], YS[0])
-export const posTopCenter = cell(XS[1], YS[0])
-export const posTopRight = cell(XS[2], YS[0])
-export const posMidLeft = cell(XS[0], YS[1])
-export const posMidCenter = cell(XS[1], YS[1])
-export const posMidRight = cell(XS[2], YS[1])
-export const posBotLeft = cell(XS[0], YS[2])
-export const posBotCenter = cell(XS[1], YS[2])
-export const posBotRight = cell(XS[2], YS[2])
 
 // ② 方向：三格方块
 const blk = (x, y, op) => h('rect', { x, y, width: 4.6, height: 5.6, rx: 1.2, fill: 'currentColor', stroke: 'none', opacity: op })

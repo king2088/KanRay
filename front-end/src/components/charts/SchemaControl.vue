@@ -80,46 +80,52 @@
     style="width: 100%"
   />
 
-  <el-button
-    v-else-if="field.type === 'toggle'"
-    :type="value === field.activeValue ? 'primary' : 'default'"
-    size="small"
-    @click="toggle"
-    :title="field.label"
-    style="min-width: 34px; padding: 6px 8px;"
-  >
-    <span :style="getToggleStyle()">{{ field.icon || field.label }}</span>
-  </el-button>
-
-  <el-button-group v-else-if="field.type === 'buttonGroup'">
+  <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top">
     <el-button
+      :type="value === field.activeValue ? 'primary' : 'default'"
+      size="small"
+      @click="toggle"
+      style="min-width: 34px; padding: 6px 8px;"
+    >
+      <span :style="getToggleStyle()">{{ field.icon || field.label }}</span>
+    </el-button>
+  </el-tooltip>
+
+  <div v-else-if="field.type === 'buttonGroup'" class="icon-btn-group">
+    <el-tooltip
       v-for="opt in field.options || []"
       :key="opt.value"
-      :type="value === opt.value ? 'primary' : 'default'"
-      size="small"
-      @click="emit('change', opt.value)"
-      :title="opt.title || opt.label"
-      class="glyph-btn"
+      :content="opt.title || opt.label"
+      placement="top"
     >
-      <el-icon v-if="typeof opt.icon === 'object' || typeof opt.icon === 'function'" :size="14">
-        <component :is="opt.icon" />
-      </el-icon>
-      <span v-else :style="decoStyle(opt.value)" v-html="opt.icon || opt.label"></span>
-    </el-button>
-  </el-button-group>
+      <el-button
+        :type="value === opt.value ? 'primary' : 'default'"
+        size="small"
+        @click="emit('change', opt.value)"
+        class="glyph-btn"
+      >
+        <el-icon v-if="typeof opt.icon === 'object' || typeof opt.icon === 'function'" :size="18">
+          <component :is="opt.icon" />
+        </el-icon>
+        <span v-else :style="decoStyle(opt.value)" v-html="opt.icon || opt.label"></span>
+      </el-button>
+    </el-tooltip>
+  </div>
 
-  <div v-else-if="field.type === 'positionGrid'" class="pos-grid" :title="field.label">
+  <div v-else-if="field.type === 'positionGrid'" class="pos-grid">
     <table class="pos-grid-table">
       <tr v-for="(rowVal, r) in ROW_VALS" :key="rowVal">
         <td v-for="(colVal, c) in COL_VALS" :key="colVal">
-          <button
-            type="button"
-            class="pos-grid-cell"
-            :class="{ 'is-active': isGridActive(r, c) }"
-            @click="emit('change', { left: colVal, top: rowVal })"
-          >
-            <el-icon :size="14"><component :is="GRID_ICONS[r][c]" /></el-icon>
-          </button>
+          <el-tooltip :content="GRID_LABELS[r][c]" placement="top">
+            <button
+              type="button"
+              class="pos-grid-cell"
+              :class="{ 'is-active': isGridActive(r, c) }"
+              @click="emit('change', { left: colVal, top: rowVal })"
+            >
+              <el-icon :size="20"><pos-dot /></el-icon>
+            </button>
+          </el-tooltip>
         </td>
       </tr>
     </table>
@@ -129,18 +135,14 @@
 </template>
 
 <script setup>
-import {
-  posTopLeft, posTopCenter, posTopRight,
-  posMidLeft, posMidCenter, posMidRight,
-  posBotLeft, posBotCenter, posBotRight,
-} from './control-icons'
+import { posDot } from './control-icons'
 
 const COL_VALS = ['left', 'center', 'right']
 const ROW_VALS = ['top', 'middle', 'bottom']
-const GRID_ICONS = [
-  [posTopLeft, posTopCenter, posTopRight],
-  [posMidLeft, posMidCenter, posMidRight],
-  [posBotLeft, posBotCenter, posBotRight],
+const GRID_LABELS = [
+  ['左上', '上中', '右上'],
+  ['左中', '居中', '右中'],
+  ['左下', '下中', '右下'],
 ]
 
 const props = defineProps({
@@ -174,8 +176,20 @@ function isGridActive(r, c) {
 
 <style scoped>
 .glyph-btn {
-  min-width: 24px;
-  padding: 3px 4px;
+  min-width: 30px;
+  padding: 5px 6px;
+}
+.icon-btn-group {
+  display: inline-flex;
+}
+.icon-btn-group :deep(.el-tooltip__trigger:not(:last-child) .el-button) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.icon-btn-group :deep(.el-tooltip__trigger:not(:first-child) .el-button) {
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 .pos-grid-table {
   border-collapse: separate;
@@ -185,8 +199,8 @@ function isGridActive(r, c) {
   padding: 0;
 }
 .pos-grid-cell {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -195,11 +209,12 @@ function isGridActive(r, c) {
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
-  color: #6b7280;
+  color: #c8ccd4;
 }
 .pos-grid-cell:hover {
   border-color: var(--el-color-primary, #409eff);
   color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
 }
 .pos-grid-cell.is-active {
   border-color: var(--el-color-primary, #409eff);

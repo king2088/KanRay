@@ -1,8 +1,14 @@
 # 图表配置面板 · 图标统一 + 九宫格位置选择器
 
 日期：2026-09-11
-状态：已批准
+状态：已批准（v2 按用户反馈修订）
 取代：2026-09-11-chart-position-controls-design.md（EP 图标方案，已被本设计取代）
+
+> **v2 修订（用户反馈）**：
+> 1. 九宫格原先被推挤到面板右侧 → 改为 `.field-row` 内左对齐，紧跟在左侧标签后（positionGrid 与带图标 buttonGroup 行均左对齐）。
+> 2. 九宫格每格「框+小圆点」在小按钮里看不清 → 改为**点阵式**：9 格共用单个大圆点图标（r=4.2），位置由 3×3 单元格本身表达，选中格整体高亮；格子放大到 32×32、图标 20px。
+> 3. 方向 / 数据标签 / 饼图图标按钮太小 → 放大（按钮 ≥30×24、图标 18px），把 `el-button-group` 换成自定义 `.icon-btn-group`。
+> 4. 全部方向 / 布局按钮无提示 → 每个 buttonGroup 按钮、九宫格格子、toggle（B/I）外层包 `el-tooltip`（content = 选项 title / 方位名）。
 
 ## 背景
 
@@ -17,11 +23,11 @@
 
 ## 统一图标家族（全部自绘，基于 Vue render-function）
 
-### ① 位置（图表区域内）—— 九宫格单元格图标
+### ① 位置（图表区域内）—— 九宫格选择器（点阵式）
 
 用于：标题 left×top、legend left×top。
 
-每个格子：圆角矩形框（stroke）+ 实心圆点（fill）在对应位置。
+每个格子是**完全相同**的单个实心圆点（r=4.2，无外框）——位置由 3×3 单元格自身的相对位置表达，无需每格独立图标；选中格整体高亮（蓝边框 + 浅蓝底 + 蓝点）。
 
 九格映射：
 
@@ -31,9 +37,8 @@
 | **col 1 (center)** | 中上 left=center · top=top | 正中 left=center · top=middle | 中下 left=center · top=bottom |
 | **col 2 (right)** | 右上 left=right · top=top | 右中 left=right · top=middle | 右下 left=right · top=bottom |
 
-- 点位置：x = \[7, 12, 17\][col]，y = \[7, 12, 17\][row]（24 viewBox）
-- 框：x=3.2, y=3.2, w=17.6, h=17.6, rx=3
 - 默认值：标题 → 中上 (center/top)，图例 → 中下 (center/bottom)
+- 每个格子 32×32px，图标 20px；格子 tooltip = 方位名（左上 / 上中 / …）
 
 ### ② 方向（横排 / 竖排）—— 三格方块
 
@@ -108,25 +113,27 @@ if (field.type === 'positionGrid' && field.keys) {
 
 ### SchemaControl 新增 positionGrid 控件
 
-渲染为 3 × 3 表格：
+渲染为 3 × 3 表格（每格 32×32，图标 20px）：
 
 ```
 ┌───┬───┬───┐
-│ ◷ │ ◴ │ ◶ │   row 0 (top)
+│ ● │ ● │ ● │   row 0 (top)
 ├───┼───┼───┤
-│ ◹ │ ● │ ◹ │   row 1 (middle)
+│ ● │ ○ │ ● │   row 1 (middle)  ← 居中选中
 ├───┼───┼───┤
-│ ◸ │ ◷ │ ◸ │   row 2 (bottom)
+│ ● │ ● │ ● │   row 2 (bottom)
 └───┴───┴───┘
  col0   col1   col2
 left  center  right
 ```
 
-每个 `<td>` 内渲染对应位置的自绘 SVG 组件（同 ① 节），当前选中格高亮（stroke #409EFF, stroke-width 1.9, fill #409EFF）。
+9 格共用同一个 `posDot` 图标（同 ① 节），当前选中格高亮（蓝边框 + `--el-color-primary-light-9` 底色 + 蓝点）；悬停同款高亮。每格外层包 `el-tooltip`（content=方位名）。
 
 点击格子触发 `emit('change', { left: colMap[col], top: rowMap[row] })`。
 
 行映射：`colMap = ['left', 'center', 'right']`，`rowMap = ['top', 'middle', 'bottom']`。
+
+**布局**：positionGrid 与带图标的 buttonGroup 行在 `.field-row` 中左对齐（`justify-content: flex-start`），紧跟在左侧标签后，不再推挤到面板右侧。
 
 ## 图标文件结构
 
@@ -144,18 +151,19 @@ const svg = (children) => h('svg', {
   'stroke-linejoin': 'round',
 }, children)
 
-// 九宫格单元格（参数 cx, cy 即圆点坐标）
-export const posCell = (cx, cy) => () => svg([
-  h('rect', { x: 3.2, y: 3.2, width: 17.6, height: 17.6, rx: 3, fill: 'none' }),
-  h('circle', { cx, cy, r: 2.1, fill: 'currentColor', stroke: 'none' }),
+// 九宫格单元格（全部格子共用单点，选中格由 CSS 高亮）
+export const posDot = () => svg([
+  h('circle', { cx: 12, cy: 12, r: 4.2, fill: 'currentColor', stroke: 'none' }),
 ])
 
 // ... 方向、数据标签、饼图标签组件同理
 ```
 
-导出命名：`posTopLeft, posTopCenter, posTopRight, posMidLeft, posMidCenter, posMidRight, posBotLeft, posBotCenter, posBotRight`（九宫格用）；`dirH, dirV`（方向）；`lblTop, lblBot, lblLeft, lblRight, lblIn`（数据标签）；`pieOut, pieIn, pieCenter`（饼图）。
+导出命名：`posDot`（九宫格共用）；`dirH, dirV`（方向）；`lblTop, lblBot, lblLeft, lblRight, lblIn`（数据标签）；`pieOut, pieIn, pieCenter`（饼图）。
 
-这些 Vue 组件通过 `<component :is="opt.icon">` 渲染，SchemaControl 现有 `typeof opt.icon === 'object'` 分支已支持。
+这些 Vue 组件通过 `<component :is="opt.icon">` 渲染。图标为 render-function（`typeof opt.icon === 'function'`），SchemaControl 分支同时接受 `object` 与 `function`。
+
+**尺寸与提示**：buttonGroup 按钮 30×24+（图标 18px）、九宫格格子 32×32（图标 20px）；全部图标按钮（buttonGroup、九宫格、toggle B/I）外层包 `el-tooltip`（content = option.title / 方位名），去除对原生 `title` 的依赖。toggle 的 `v-else-if` 指令移至 `el-tooltip` 外层，维持 v-if 链。
 
 ## 实现触点
 
@@ -163,18 +171,18 @@ export const posCell = (cx, cy) => () => svg([
 |---|---|
 | `front-end/src/components/charts/control-icons.js` | **新建**：全部自绘 SVG 组件 |
 | `front-end/src/config/chart-configs.js` | 移除 EP 图标 import；引入 control-icons；title / legend left+top → positionGrid；label / pie / doughnut / treemap → 自定义图标 buttonGroup |
-| `front-end/src/components/charts/SchemaControl.vue` | 新增 `positionGrid` 渲染分支（3×3 网格） |
-| `front-end/src/components/charts/SchemaForm.vue` | positionGrid 在 layout 中单独渲染；get/set 读写两个真实键 |
+| `front-end/src/components/charts/SchemaControl.vue` | 新增 `positionGrid` 渲染分支（3×3 点阵网格）；buttonGroup 改自定义 `.icon-btn-group` 并加 `el-tooltip`；toggle 也加 `el-tooltip`；按钮 / 图标放大 |
+| `front-end/src/components/charts/SchemaForm.vue` | positionGrid 在 layout 中单独渲染；get/set 读写两个真实键；`isCtrlInline` 让 positionGrid 与带图标 buttonGroup 行左对齐 |
 | `front-end/scripts/e2e-config-panel.cjs` | 适配（图例行不再有 left/top row，变成 positionGrid 控件；数据标签/饼图标签图标按钮文本可能变；需要同步） |
 
 ## 验证
 
 - `npm run build` 通过。
 - 启动前后端，浏览器图表编辑页逐一检查：
-  - 标题位置九宫格（3×3）正确渲染，当前默认格（中上）高亮。
-  - 点击不同格子后保存，`title.left/title.top` 值正确。
+  - 标题位置九宫格（3×3 点阵）正确渲染，当前默认格（中上）高亮；**格子位于标签右侧、左对齐**。
+  - 点击不同格子后保存，`title.left/title.top` 值正确；悬停格子出现方位名 tooltip。
   - 图例位置九宫格同理，默认中下高亮，点选后 left/top 值正确。
-  - 图例方向横排 / 竖排三格方块图标，点击保存 orient 值正确。
+  - 图例方向横排 / 竖排三格方块图标，点击保存 orient 值正确；悬停出现 tooltip。
   - 数据标签位置五个柱子+点图标正常，点击保存 position 值正确。
   - 饼图 / 环形标签三个圆+点图标正常，保存 labelPosition 值正确。
   - treemap 方向两图标正常。
