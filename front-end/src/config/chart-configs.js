@@ -1,8 +1,5 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
-import {
-  Aim, ArrowDown, ArrowDownBold, ArrowLeft, ArrowLeftBold,
-  ArrowRight, ArrowRightBold, ArrowUp, ArrowUpBold, Expand, Fold, Position,
-} from '@element-plus/icons-vue'
+import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter } from '../components/charts/control-icons'
 
 // ---- 公共配置schema（所有图表共享，精简版） ----
 
@@ -20,32 +17,22 @@ const STYLE_TITLE = {
   fontSize: { type: 'number', label: '字号', default: 16, min: 8, max: 40 },
 }
 
-// ---- 图标按钮组共享选项（位置/方向） ----
-const H_POS_OPTIONS = [
-  { label: '左', title: '左', value: 'left', icon: ArrowLeftBold },
-  { label: '中', title: '居中', value: 'center', icon: Aim },
-  { label: '右', title: '右', value: 'right', icon: ArrowRightBold },
-]
-const V_POS_OPTIONS = [
-  { label: '上', title: '顶', value: 'top', icon: ArrowUpBold },
-  { label: '中', title: '中部', value: 'middle', icon: Aim },
-  { label: '下', title: '底', value: 'bottom', icon: ArrowDownBold },
-]
+// ---- 图标按钮组共享选项（方向/标签） ----
 const ORIENT_OPTIONS = [
-  { label: '水平', title: '水平', value: 'horizontal', icon: ArrowRightBold },
-  { label: '垂直', title: '垂直', value: 'vertical', icon: ArrowDownBold },
+  { label: '横排', title: '横排', value: 'horizontal', icon: dirH },
+  { label: '竖排', title: '竖排', value: 'vertical', icon: dirV },
 ]
 const LABEL_POS_OPTIONS = [
-  { label: '上', title: '上', value: 'top', icon: ArrowUp },
-  { label: '下', title: '下', value: 'bottom', icon: ArrowDown },
-  { label: '左', title: '左', value: 'left', icon: ArrowLeft },
-  { label: '右', title: '右', value: 'right', icon: ArrowRight },
-  { label: '内', title: '内', value: 'inside', icon: Position },
+  { label: '上', title: '上', value: 'top', icon: lblTop },
+  { label: '下', title: '下', value: 'bottom', icon: lblBot },
+  { label: '左', title: '左', value: 'left', icon: lblLeft },
+  { label: '右', title: '右', value: 'right', icon: lblRight },
+  { label: '内', title: '内', value: 'inside', icon: lblIn },
 ]
 const PIE_LABEL_POS_OPTIONS = [
-  { label: '外', title: '外', value: 'outside', icon: Expand },
-  { label: '内', title: '内', value: 'inside', icon: Fold },
-  { label: '居中', title: '居中', value: 'center', icon: Aim },
+  { label: '外', title: '外', value: 'outside', icon: pieOut },
+  { label: '内', title: '内', value: 'inside', icon: pieIn },
+  { label: '居中', title: '居中', value: 'center', icon: pieCenter },
 ]
 
 export const COMMON_CONFIG_SCHEMA = {
@@ -54,17 +41,15 @@ export const COMMON_CONFIG_SCHEMA = {
       show: { type: 'switch', label: '显示', default: true },
       text: { type: 'input', label: '标题文字', default: '', placeholder: '输入图表标题' },
       subtext: { type: 'input', label: '副标题', default: '', placeholder: '副标题(可选)' },
-      left: { type: 'buttonGroup', label: '水平', row: true, default: 'center', options: H_POS_OPTIONS },
-      top: { type: 'buttonGroup', label: '垂直', row: true, separator: true, default: 'top', options: V_POS_OPTIONS },
+      position: { type: 'positionGrid', label: '位置', default: { left: 'center', top: 'top' }, keys: ['left', 'top'] },
       textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TITLE },
     },
   },
   legend: {
     type: 'group', label: '图例', children: {
       show: { type: 'switch', label: '显示', default: true },
-      orient: { type: 'buttonGroup', label: '方向', row: true, default: 'horizontal', options: ORIENT_OPTIONS },
-      left: { type: 'buttonGroup', label: '水平', row: true, default: 'center', options: H_POS_OPTIONS },
-      top: { type: 'buttonGroup', label: '垂直', row: true, separator: true, default: 'bottom', options: V_POS_OPTIONS },
+      orient: { type: 'buttonGroup', label: '方向', default: 'horizontal', options: ORIENT_OPTIONS },
+      position: { type: 'positionGrid', label: '位置', default: { left: 'center', top: 'bottom' }, keys: ['left', 'top'] },
       align: {
         type: 'buttonGroup', label: '对齐', default: 'auto',
         options: [
