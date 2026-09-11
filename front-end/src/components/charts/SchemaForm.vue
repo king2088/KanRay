@@ -275,10 +275,6 @@ function onNestedUpdate(key, newVal) {
   min-width: 0;
   gap: 2px;
 }
-.inline-sub :deep(.el-button) {
-  min-width: 20px;
-  padding: 0 6px;
-}
 .ctrl {
   display: inline-flex;
   align-items: center;

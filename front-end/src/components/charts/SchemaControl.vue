@@ -80,7 +80,7 @@
     <el-button
       :type="value === field.activeValue ? 'primary' : 'default'"
       @click="toggle"
-      style="min-width: 34px; padding: 0 8px;"
+      style="min-width: 20px; padding: 0 2px;"
     >
       <span :style="getToggleStyle()">{{ field.icon || field.label }}</span>
     </el-button>
