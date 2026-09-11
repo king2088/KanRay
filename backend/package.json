@@ -16,7 +16,7 @@
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "multer": "^2.0.2",
-    "xlsx": "^0.18.5",
+    "read-excel-file": "^9.3.10",
     "zod": "^3.25.76"
   },
   "allowScripts": {
