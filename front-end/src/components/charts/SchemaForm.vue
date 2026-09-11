@@ -35,6 +35,19 @@
           </span>
         </div>
 
+        <!-- Flattened single-control group: rendered as a plain field-row -->
+        <div v-else-if="unit.field.type === 'group' && unit.field.flat && unit.field.children" class="field-row">
+          <div class="field-label">{{ unit.field.label }}</div>
+          <div class="field-control flat-control">
+            <SchemaForm
+              :schema="unit.field.children"
+              :model="getNestedModel(unit.key)"
+              @update="onNestedUpdate(unit.key, $event)"
+              inline
+            />
+          </div>
+        </div>
+
         <!-- Nested group: render as a sub-block -->
         <div v-else-if="!unit.field.type || unit.field.type === 'group'" class="field-row group-child">
           <div class="field-label sub">{{ unit.field.label }}</div>
@@ -245,13 +258,13 @@ function onNestedUpdate(key, newVal) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 2px 0;
 }
 .inline-group-label {
   font-size: 12px;
   color: var(--app-text-secondary, #888);
-  min-width: 62px;
+  min-width: 72px;
   flex-shrink: 0;
 }
 .inline-sub {
@@ -262,6 +275,10 @@ function onNestedUpdate(key, newVal) {
   min-width: 0;
   gap: 6px;
 }
+.inline-sub :deep(.el-button) {
+  min-width: 24px;
+  padding: 0 6px;
+}
 .ctrl {
   display: inline-flex;
   align-items: center;
@@ -271,7 +288,14 @@ function onNestedUpdate(key, newVal) {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 2px 0;
+  padding: 2px 0 2px 80px;
+}
+.flat-control :deep(.ctrl) {
+  display: flex;
+  width: 100%;
+}
+.flat-control :deep(.ctrl .el-select) {
+  width: 100%;
 }
 .row-group .row-field {
   flex: 0 1 auto;

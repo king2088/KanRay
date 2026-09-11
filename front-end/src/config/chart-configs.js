@@ -85,9 +85,9 @@ export const COMMON_CONFIG_SCHEMA = {
         ],
       },
       axisPointer: {
-        type: 'group', label: '指示器类型', inline: true, children: {
+        type: 'group', label: '指示器类型', flat: true, children: {
           type: {
-            type: 'select', label: '', selectWidth: 120, default: 'line', options: [
+            type: 'select', label: '', default: 'line', options: [
               { label: '直线', value: 'line' }, { label: '阴影', value: 'shadow' },
               { label: '无', value: 'none' }, { label: '十字准星', value: 'cross' },
             ],
@@ -170,7 +170,7 @@ export const COMMON_CONFIG_SCHEMA = {
     type: 'group', label: 'X轴', children: {
       show: { type: 'switch', label: '显示', default: true },
       name: { type: 'input', label: '轴名称', default: '' },
-      nameTextStyle: { type: 'group', label: '标题文字样式', inline: true, children: STYLE_TEXT },
+      nameTextStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
       labelColor: { type: 'color', label: '标签颜色', default: '' },
       nameRotate: { type: 'number', label: '名称旋转', default: 0, min: -90, max: 90 },
       labelRotate: { type: 'number', label: '标签旋转', default: 0, min: -90, max: 90 },
@@ -180,7 +180,7 @@ export const COMMON_CONFIG_SCHEMA = {
     type: 'group', label: 'Y轴', children: {
       show: { type: 'switch', label: '显示', default: true },
       name: { type: 'input', label: '轴名称', default: '' },
-      nameTextStyle: { type: 'group', label: '标题文字样式', inline: true, children: STYLE_TEXT },
+      nameTextStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
       unit: { type: 'input', label: '单位', default: '', placeholder: '如 元、%' },
       labelColor: { type: 'color', label: '标签颜色', default: '' },
       splitLine: { type: 'switch', label: '网格线', default: true },

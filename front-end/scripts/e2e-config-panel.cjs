@@ -135,7 +135,7 @@ let failed = 0;
 
   // ---------- 提示框: 指示器类型 = 十字准星 ----------
   const gTip = await expand('提示框');
-  await gTip.locator('.inline-group', { hasText: '指示器类型' }).locator('.el-select').click();
+  await fieldRow(gTip, '指示器类型').locator('.el-select').click();
   await page.waitForSelector('.el-select-dropdown__item:visible', { timeout: 5000 });
   await page.locator('.el-select-dropdown__item:visible').filter({ hasText: '十字准星' }).first().click();
   await sleep(250);
