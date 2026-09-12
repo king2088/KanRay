@@ -127,6 +127,15 @@ function onSeriesStyleUpdate(nm, newVal) {
   font-weight: 500;
   padding: 10px 0;
 }
+.config-collapse :deep(.el-collapse-item.is-active > .el-collapse-item__header) {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--app-card);
+  margin: 0 -10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
 .config-collapse :deep(.el-collapse-item__content) {
   padding-top: 4px;
 }

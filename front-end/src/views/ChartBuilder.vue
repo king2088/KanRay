@@ -163,7 +163,6 @@
         </div>
         <el-divider style="margin: 8px 0" />
         <div class="right-section right-config">
-          <div class="right-section-title">显示配置</div>
           <el-scrollbar class="right-config-scroll">
             <div class="right-config-view">
               <ChartConfigPanel :chart-type="chartType" :config="displayConfig" :series-names="chartSeriesNames" @update:config="displayConfig = $event" />
