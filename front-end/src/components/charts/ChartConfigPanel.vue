@@ -184,6 +184,7 @@ function groupIcon(label) {
 .cfg-icon {
   display: inline-flex;
   color: var(--app-text-secondary);
+  opacity: 0.55;
 }
 
 .cfg-icon :deep(svg) {
