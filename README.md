@@ -72,12 +72,54 @@ cd backend && node scripts/integration-test.js
 cd front-end && npm run dev   # 另一个终端：npm run dev（后端）
 cd front-end && node scripts/e2e-smoke.cjs
 
+# 权限回归 e2e（需前后端均已启动；macOS 用 CHROME_PATH 指定本机 Chrome）
+cd front-end && node scripts/e2e-rbac.cjs
+
 # 前端生产构建
 cd front-end && npm run build
 ```
 
-## 已知限制（第一阶段）
+## 多用户与权限（M1）
 
-- 单用户、无鉴权（第二阶段加入 RBAC）
+第二阶段 M1 已交付多用户认证 + RBAC + 管理后台：
+
+- **认证**：邮箱+密码注册/登录，JWT 访问令牌（默认 15 分钟）+ 刷新令牌（默认 7 天，服务端哈希存储、单次使用轮换）；登出/改密/禁用即吊销
+- **内置角色**：管理员（全部 27 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
+- **资源隔离**：数据集/图表/看板按 owner 隔离，管理与越权访问统一返回 403
+- **默认管理员**：首次启动自动创建 `admin@kanban.local / admin123`（请尽快改密）
+
+### 环境变量
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `ADMIN_EMAIL` | `admin@kanban.local` | 初始管理员邮箱 |
+| `ADMIN_INITIAL_PASSWORD` | `admin123` | 初始管理员密码 |
+| `JWT_SECRET` | `dev-secret-change-me` | JWT 签名密钥（生产必须注入） |
+| `ACCESS_TTL` | `15m` | 访问令牌有效期 |
+| `REFRESH_TTL_DAYS` | `7` | 刷新令牌有效期（天） |
+
+### 认证接口（/api/auth）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/auth/register` | 注册（默认查看者角色） |
+| POST | `/api/auth/login` | 登录，返回 access/refresh 令牌 |
+| POST | `/api/auth/refresh` | 刷新令牌轮换 |
+| POST | `/api/auth/logout` | 登出（吊销刷新令牌） |
+| GET / PATCH | `/api/auth/me` | 查看 / 修改个人资料 |
+| PUT | `/api/auth/password` | 修改密码 |
+
+### 管理接口（/api/admin，需对应权限点）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET / POST / PATCH / DELETE | `/api/admin/users[/:id]` | 用户管理（分配角色、重置密码、启停、禁止删自己） |
+| GET / POST / PATCH / DELETE | `/api/admin/roles[/:id]` | 角色管理（内置角色只读） |
+| GET | `/api/admin/permissions` | 权限点列表 |
+| GET | `/api/admin/audit` | 操作审计日志 |
+
+## 已知限制
+
+- 共享授权（grants）、看板级访问控制、RLS 规划于后续里程碑（M3/M4，见 `需求清单-第二阶段.md`）
 - 数据生命周期 20 万行 / 20MB 以内
 - 看板布局为 flow-grid（按数组顺序流式排布），第二维度作系列时显示为多系列
