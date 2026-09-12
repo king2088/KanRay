@@ -48,13 +48,85 @@ CREATE TABLE IF NOT EXISTS dashboards (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 用户
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 角色
+CREATE TABLE IF NOT EXISTS roles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  is_builtin INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 权限点
+CREATE TABLE IF NOT EXISTS permissions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT ''
+);
+
+-- 角色-权限
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+  PRIMARY KEY (role_id, permission_id)
+);
+
+-- 用户-角色
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, role_id)
+);
+
+-- 刷新令牌
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 审计日志
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  email TEXT,
+  action TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  detail TEXT,
+  ip TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `)
 
 // 旧库迁移：补齐 gap_x/gap_y/card_style（幂等，已存在则跳过）
 const dashCols = db.prepare("PRAGMA table_info('dashboards')").all().map(c => c.name)
-if (!dashCols.includes('gap_x')) db.exec("ALTER TABLE dashboards ADD COLUMN gap_x INT NOT NULL DEFAULT 12")
-if (!dashCols.includes('gap_y')) db.exec("ALTER TABLE dashboards ADD COLUMN gap_y INT NOT NULL DEFAULT 12")
-if (!dashCols.includes('card_style')) db.exec("ALTER TABLE dashboards ADD COLUMN card_style TEXT NOT NULL DEFAULT '{}'")
+if (!dashCols.includes('gap_x')) db.exec("ALTER TABLE dashboards ADD COLUMN gap_x INT NOT NULL DEFAULT 12");
+if (!dashCols.includes('gap_y')) db.exec("ALTER TABLE dashboards ADD COLUMN gap_y INT NOT NULL DEFAULT 12");
+if (!dashCols.includes('card_style')) db.exec("ALTER TABLE dashboards ADD COLUMN card_style TEXT NOT NULL DEFAULT '{}'");
+
+// 旧库迁移：资源表补齐 owner_id（幂等，已存在则跳过）
+['datasets', 'charts', 'dashboards'].forEach((t) => {
+  const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
+  if (!cols.includes('owner_id')) db.exec(`ALTER TABLE ${t} ADD COLUMN owner_id INTEGER`);
+});
 
 /**
  * 为数据集动态创建数据表（单引号表名转义策略：表名由系统生成，安全）

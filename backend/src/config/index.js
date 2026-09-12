@@ -14,7 +14,12 @@ module.exports = {
   root,
   dataDir,
   uploadDir,
-  dbPath: path.join(dataDir, 'kanban.db'),
+  dbPath: process.env.DB_PATH || path.join(dataDir, 'kanban.db'),
+  auth: {
+    jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+    accessTtl: process.env.ACCESS_TTL || '15m',
+    refreshTtlDays: parseInt(process.env.REFRESH_TTL_DAYS || '7', 10),
+  },
   upload: {
     // 第一阶段限制：仅 Excel/CSV
     allowedExt: ['.xlsx', '.xls', '.csv'],
