@@ -43,6 +43,8 @@
 
     <!-- 右侧主区：工具栏 + 预览 + 配置 -->
     <div class="builder-main">
+      <div class="builder-workspace">
+        <div class="builder-preview-col">
       <!-- 工具栏 -->
       <div class="builder-toolbar">
         <div class="tb-left">
@@ -57,9 +59,8 @@
         </div>
       </div>
 
-      <div class="builder-workspace">
         <!-- 中间：图表预览 -->
-      <div class="builder-preview">
+        <div class="builder-preview">
         <div class="preview-toolbar">
           <span>
             <el-icon style="margin-right: 6px; vertical-align: middle"><TrendCharts />
@@ -153,6 +154,7 @@
             />
           </template>
         </div>
+      </div>
       </div>
 
       <!-- 右侧：图表类型 + 配置 -->
@@ -519,6 +521,13 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   min-height: 0;
+}
+
+.builder-preview-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .builder-left {

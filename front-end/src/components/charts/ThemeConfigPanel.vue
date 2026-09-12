@@ -119,6 +119,7 @@ function setCustomColors(arr) {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  --theme-label-w: 64px;
 }
 .theme-row {
   display: flex;
@@ -129,7 +130,7 @@ function setCustomColors(arr) {
 }
 .theme-label {
   flex-shrink: 0;
-  width: 64px;
+  width: var(--theme-label-w);
   font-size: 12px;
   color: var(--app-text-secondary, #6b7280);
 }
@@ -185,6 +186,7 @@ function setCustomColors(arr) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-left: calc(var(--theme-label-w) + 8px);
 }
 .custom-palette-grid {
   display: flex;
