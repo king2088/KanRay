@@ -4,12 +4,12 @@
       <span class="theme-label">模式</span>
       <div class="mode-btns">
         <el-button
-          size="small"
+          
           :type="mode === 'light' ? 'primary' : 'default'"
           @click="setMode('light')"
         >亮色</el-button>
         <el-button
-          size="small"
+          
           :type="mode === 'dark' ? 'primary' : 'default'"
           @click="setMode('dark')"
         >暗色</el-button>
@@ -32,7 +32,7 @@
       <span class="theme-label">系列色板</span>
       <el-select
         class="theme-palette-select"
-        size="small"
+        
         :model-value="Number(paletteIndex)"
         @update:model-value="emit('update:palette', $event)"
       >
@@ -65,7 +65,7 @@
         <el-color-picker
           v-for="(c, i) in customColors"
           :key="i"
-          size="small"
+          
           :model-value="c"
           @update:model-value="setCustomColor(i, $event)"
         />
