@@ -160,7 +160,7 @@
       <!-- 右侧：图表类型 + 配置 -->
       <div class="builder-right">
         <div class="right-section right-types">
-          <div class="right-section-title">图表类型</div>
+          <div class="right-section-title"><span class="rsec-icon" v-html="sectionIcon()"></span>图表类型</div>
           <ChartTypePanel :chart-type="chartType" @update:chartType="chartType = $event" />
         </div>
         <el-divider style="margin: 8px 0" />
@@ -252,6 +252,8 @@ function mergeWithDefaults(saved = {}, type = chartType.value) {
 const isProgressType = computed(() => ['progressBar', 'circularProgress', 'multiRingProgress', 'fluidProgress'].includes(chartType.value))
 
 const typeLabel = (t) => ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t)
+
+const sectionIcon = () => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><rect x="3" y="11" width="3.4" height="8" rx="1.2"/><rect x="9.2" y="5.5" width="3.4" height="13.5" rx="1.2"/><rect x="15.4" y="8.5" width="3.4" height="10.5" rx="1.2"/><rect x="1.6" y="20.4" width="20.8" height="1.6" rx="0.8"/></svg>'
 
 function isDateField(fieldName) {
   const f = fields.value.find((x) => x.name === fieldName)
@@ -700,6 +702,19 @@ onMounted(async () => {
   color: var(--app-text-primary);
   margin-bottom: 8px;
   margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rsec-icon {
+  display: inline-flex;
+}
+
+.rsec-icon :deep(svg) {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
 }
 
 .right-section {
@@ -707,8 +722,8 @@ onMounted(async () => {
 }
 
 .right-types {
-  flex: 0 1 calc(44% - 16px);
-  min-height: 0;
+  flex: 0 1 40%;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
 }
@@ -723,6 +738,10 @@ onMounted(async () => {
 .right-config-scroll {
   flex: 1;
   min-height: 0;
+}
+
+.right-config-scroll :deep(.el-scrollbar__bar) {
+  z-index: 6;
 }
 
 .right-config-view {
