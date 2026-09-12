@@ -1,5 +1,4 @@
 process.env.DB_PATH = `/tmp/kanban-test-${process.pid}.db`;
-const fs = require('fs');
 const db = require('../../src/db');
 const { seed } = require('../../src/seeds');
 

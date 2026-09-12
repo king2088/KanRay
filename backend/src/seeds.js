@@ -41,8 +41,14 @@ function seedRoles(permIds) {
     ins.run(r.code, r.name, r.description, r.isBuiltin);
     const id = getId.get(r.code).id;
     roles[r.code] = id;
-    clearLinks.run(id);
-    r.permissions.forEach((code) => link.run(id, permIds[code]));
+    const current = db.prepare(
+      'SELECT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id WHERE rp.role_id = ? ORDER BY p.code'
+    ).all(id).map((x) => x.code);
+    const target = [...r.permissions].sort();
+    if (JSON.stringify(current) !== JSON.stringify(target)) {
+      clearLinks.run(id);
+      r.permissions.forEach((code) => link.run(id, permIds[code]));
+    }
   });
   return roles;
 }
@@ -59,8 +65,8 @@ function seedAdmin() {
     const r = db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)').run(email, hash, '管理员');
     uid = r.lastInsertRowid;
   }
-  const adminRole = db.prepare("SELECT id FROM roles WHERE code = 'admin'").get().id;
-  db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)').run(uid, adminRole);
+  const adminRole = db.prepare("SELECT id FROM roles WHERE code = 'admin'").get()?.id;
+  if (adminRole) db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)').run(uid, adminRole);
   return uid;
 }
 

@@ -126,7 +126,11 @@ if (!dashCols.includes('card_style')) db.exec("ALTER TABLE dashboards ADD COLUMN
 ['datasets', 'charts', 'dashboards'].forEach((t) => {
   const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
   if (!cols.includes('owner_id')) db.exec(`ALTER TABLE ${t} ADD COLUMN owner_id INTEGER`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_${t}_owner ON ${t}(owner_id);`);
 });
+
+// 刷新令牌哈希检索索引
+db.exec('CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);');
 
 /**
  * 为数据集动态创建数据表（单引号表名转义策略：表名由系统生成，安全）
