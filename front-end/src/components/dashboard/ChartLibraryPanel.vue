@@ -12,8 +12,12 @@
           @dragstart="onPaletteDrag($event, c)"
           @click="$emit('add-chart', c)"
         >
-          <el-icon :size="14"><PieChart /></el-icon>
-          <span class="clp-name">{{ c.name }}</span>
+          <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
+          <div class="clp-body">
+            <span class="clp-name">{{ c.name }}</span>
+            <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+            <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+          </div>
         </div>
       </div>
       <div v-else class="clp-empty">
@@ -22,8 +26,12 @@
 
       <div v-if="used.length" class="clp-list clp-list--used">
         <div v-for="c in used" :key="c.id" class="chart-palette-item is-used">
-          <el-icon :size="14"><PieChart /></el-icon>
-          <span class="clp-name">{{ c.name }}</span>
+          <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
+          <div class="clp-body">
+            <span class="clp-name">{{ c.name }}</span>
+            <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+            <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+          </div>
           <el-tag size="small" type="info">已在看板</el-tag>
         </div>
       </div>
@@ -33,8 +41,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { PieChart } from '@element-plus/icons-vue'
 import { flattenItems } from '@/utils/grid-layout'
+import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
 
 const props = defineProps({
   charts: { type: Array, required: true },
@@ -42,6 +50,10 @@ const props = defineProps({
 })
 
 defineEmits(['add-chart'])
+
+function formatDate(s) {
+  return s ? String(s).replace('T', ' ').slice(0, 16) : '-'
+}
 
 function usedChartIds() {
   return new Set(flattenItems(props.items).filter((i) => i.type === 'chart').map((i) => i.chartId))
@@ -109,9 +121,10 @@ function onPaletteDrag(e, chart) {
 }
 
 .chart-palette-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  width: 100%;
   background: var(--app-primary-light);
   border: 1px solid var(--app-primary);
   color: var(--app-primary);
@@ -134,6 +147,40 @@ function onPaletteDrag(e, chart) {
   color: var(--app-text-secondary);
   cursor: default;
   opacity: 0.85;
+}
+
+.clp-type-icon {
+  flex-shrink: 0;
+}
+
+.clp-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.chart-palette-item .clp-name {
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.clp-meta {
+  font-size: 11px;
+  color: var(--app-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.clp-time {
+  font-size: 10.5px;
+  color: var(--app-text-secondary);
+  opacity: 0.8;
+  line-height: 1.3;
 }
 
 .clp-empty {
