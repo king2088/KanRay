@@ -59,7 +59,7 @@ const builtOpt = computed(() => {
   if (!props.data) return null
   const builder = OPTION_BUILDERS[props.chartType]
   if (!builder) return null
-  const palette = props.options._palette || getPalette(props.options.colorPalette || 0)
+  const palette = props.options._palette || getPalette(props.options.colorPalette || 0, props.options.customPalette)
   try {
     return builder(props.data, resolveConfig(props.options), palette)
   } catch (e) {

@@ -28,47 +28,72 @@
       <span class="theme-reset" @click="setTextColor('')">重置</span>
     </div>
 
-    <div class="theme-row palette-label-row">
+    <div class="theme-row">
       <span class="theme-label">系列色板</span>
-    </div>
-    <div class="palette-list">
-      <div
-        v-for="(p, i) in COLOR_PALETTES"
-        :key="i"
-        class="palette-item"
-        :class="{ active: paletteIndex === i }"
-        @click="emit('update:palette', i)"
+      <el-select
+        class="theme-palette-select"
+        size="small"
+        :model-value="Number(paletteIndex)"
+        @update:model-value="emit('update:palette', $event)"
       >
-        <div class="palette-swatches">
-          <span
-            v-for="(c, ci) in p.colors"
-            :key="ci"
-            class="swatch"
-            :style="{ background: c }"
-          />
-        </div>
-        <span class="palette-name">{{ p.name }}</span>
-        <el-icon v-if="paletteIndex === i" class="palette-check"><Check /></el-icon>
+        <el-option
+          v-for="(p, i) in COLOR_PALETTES"
+          :key="i"
+          :value="i"
+          :label="p.name"
+        >
+          <div class="palette-opt">
+            <div class="palette-opt-swatches">
+              <span v-for="c in p.colors" :key="c" class="palette-opt-swatch" :style="{ background: c }" />
+            </div>
+            <span class="palette-opt-name">{{ p.name }}</span>
+          </div>
+        </el-option>
+        <el-option :value="CUSTOM_PALETTE_INDEX" label="自定义">
+          <div class="palette-opt">
+            <div class="palette-opt-swatches">
+              <span v-for="c in customColors" :key="c" class="palette-opt-swatch" :style="{ background: c }" />
+            </div>
+            <span class="palette-opt-name">自定义</span>
+          </div>
+        </el-option>
+      </el-select>
+    </div>
+
+    <div v-if="Number(paletteIndex) === CUSTOM_PALETTE_INDEX" class="custom-palette">
+      <div class="custom-palette-grid">
+        <el-color-picker
+          v-for="(c, i) in customColors"
+          :key="i"
+          size="small"
+          :model-value="c"
+          @update:model-value="setCustomColor(i, $event)"
+        />
       </div>
+      <span class="theme-reset" @click="setCustomColors(DEFAULT_PALETTE)">恢复默认</span>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Check } from '@element-plus/icons-vue'
-import { COLOR_PALETTES } from '@/config/color-palettes'
+import { COLOR_PALETTES, DEFAULT_PALETTE, CUSTOM_PALETTE_INDEX } from '@/config/color-palettes'
 
 const props = defineProps({
   theme: { type: Object, default: () => ({}) },
   paletteIndex: { type: [Number, String], default: 0 },
+  customPalette: { type: Array, default: null },
 })
 
-const emit = defineEmits(['update:theme', 'update:palette'])
+const emit = defineEmits(['update:theme', 'update:palette', 'update:customPalette'])
 
 const mode = computed(() => props.theme?.mode || 'light')
 const background = computed(() => props.theme?.background || '')
 const textColor = computed(() => props.theme?.textColor || '')
+const customColors = computed(() => {
+  const p = props.customPalette
+  return p && p.length ? p : DEFAULT_PALETTE
+})
 
 function setMode(m) {
   emit('update:theme', { ...props.theme, mode: m })
@@ -78,6 +103,14 @@ function setBackground(v) {
 }
 function setTextColor(v) {
   emit('update:theme', { ...props.theme, textColor: v })
+}
+function setCustomColor(i, v) {
+  const next = [...customColors.value]
+  next[i] = v
+  emit('update:customPalette', next)
+}
+function setCustomColors(arr) {
+  emit('update:customPalette', [...arr])
 }
 </script>
 
@@ -121,51 +154,41 @@ function setTextColor(v) {
   border-bottom-right-radius: 4px;
   margin-left: -1px;
 }
-.palette-label-row {
-  padding-top: 8px;
+.theme-palette-select {
+  flex: 1;
+  min-width: 0;
 }
-.palette-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.palette-item {
+.palette-opt {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 8px;
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
+  width: 100%;
 }
-.palette-item:hover {
-  border-color: var(--el-color-primary, #409eff);
-}
-.palette-item.active {
-  border-color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
-}
-.palette-swatches {
+.palette-opt-swatches {
   display: flex;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   border-radius: 3px;
 }
-.swatch {
-  width: 14px;
-  height: 14px;
+.palette-opt-swatch {
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
 }
-.palette-name {
+.palette-opt-name {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--app-text-regular, #606266);
 }
-.palette-check {
-  flex-shrink: 0;
-  color: var(--el-color-primary, #409eff);
-  font-size: 14px;
+.custom-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.custom-palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 </style>

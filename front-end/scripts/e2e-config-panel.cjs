@@ -154,9 +154,9 @@ let failed = 0;
   const darkActive = await themeModeDark.evaluate((el) => el.classList.contains('el-button--primary')).catch(() => false);
   if (!darkActive) await themeModeDark.click();
   await sleep(250);
-  const paletteItem = gTheme.locator('.palette-item').nth(2);
-  const paletteActive = await paletteItem.evaluate((el) => el.classList.contains('active')).catch(() => false);
-  if (!paletteActive) await paletteItem.click();
+  await gTheme.locator('.theme-palette-select').click();
+  await page.waitForSelector('.el-select-dropdown__item:visible', { timeout: 5000 });
+  await page.locator('.el-select-dropdown__item:visible').filter({ hasText: '鲜艳' }).first().click();
   await sleep(250);
   assert(pageErrors.length === 0, 'no page errors while editing', JSON.stringify(pageErrors));
 

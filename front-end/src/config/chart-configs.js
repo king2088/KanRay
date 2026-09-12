@@ -490,6 +490,7 @@ export function getDefaultConfig(chartType) {
   return {
     ...commonDefaults,
     colorPalette: DEFAULT_PALETTE_INDEX,
+    customPalette: null,
     theme: { ...DEFAULT_THEME },
     ...(Object.keys(typeDefaults).length ? { typeSpecific: typeDefaults } : {}),
   }

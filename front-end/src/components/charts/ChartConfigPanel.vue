@@ -6,8 +6,10 @@
         <ThemeConfigPanel
           :theme="config.theme"
           :palette-index="config.colorPalette"
+          :custom-palette="config.customPalette"
           @update:theme="(v) => emitMerged((m) => { m.theme = v })"
           @update:palette="(v) => emitMerged((m) => { m.colorPalette = v })"
+          @update:customPalette="(v) => emitMerged((m) => { m.customPalette = v })"
         />
       </el-collapse-item>
 

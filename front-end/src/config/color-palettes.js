@@ -1,5 +1,7 @@
 export const DEFAULT_PALETTE_INDEX = 0
 
+export const CUSTOM_PALETTE_INDEX = -1
+
 export const DEFAULT_PALETTE = [
   '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
   '#8E44AD', '#16A085', '#E74C3C', '#2C3E50', '#D35400',
@@ -48,4 +50,10 @@ export const COLOR_PALETTES = [
   },
 ]
 
-export const getPalette = (index) => COLOR_PALETTES[index]?.colors || DEFAULT_PALETTE
+export const getPalette = (index, customColors) => {
+  const i = Number(index)
+  if (i === CUSTOM_PALETTE_INDEX) {
+    return customColors && customColors.length ? [...customColors] : [...DEFAULT_PALETTE]
+  }
+  return COLOR_PALETTES[i]?.colors || DEFAULT_PALETTE
+}

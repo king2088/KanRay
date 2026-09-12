@@ -231,7 +231,7 @@ const currentChartLabel = computed(() => getChartType(chartType.value)?.label ||
 
 const finalOptions = computed(() => ({
   ...displayConfig.value,
-  _palette: getPalette(displayConfig.value.colorPalette),
+  _palette: getPalette(displayConfig.value.colorPalette, displayConfig.value.customPalette),
 }))
 
 // 用 schema 默认值兜底，确保缺失字段也有默认值，避免配置面板显示空白
