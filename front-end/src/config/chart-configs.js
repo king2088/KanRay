@@ -152,9 +152,9 @@ export const COMMON_CONFIG_SCHEMA = {
   grid: {
     type: 'group', label: '绘图区域', children: {
       left: { type: 'number', label: '左边距', default: 60, min: 0, max: 200 },
-      right: { type: 'number', label: '右边距', default: 30, min: 0, max: 200 },
-      top: { type: 'number', label: '上边距', default: 40, min: 0, max: 200 },
-      bottom: { type: 'number', label: '下边距', default: 40, min: 0, max: 200 },
+      right: { type: 'number', label: '右边距', default: 60, min: 0, max: 200 },
+      top: { type: 'number', label: '上边距', default: 60, min: 0, max: 200 },
+      bottom: { type: 'number', label: '下边距', default: 60, min: 0, max: 200 },
     },
   },
   dataZoom: {
