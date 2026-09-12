@@ -44,7 +44,7 @@
           @update:items="items = $event"
         />
       </div>
-      <ChartLibraryPanel :charts="charts" :items="items" @add-chart="onAddChart" />
+      <ChartLibraryPanel :datasets="datasets" :items="items" @add-chart="onAddChart" />
     </div>
 
     <!-- 看板设置（卡片间距 / 卡片样式） -->
@@ -96,7 +96,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, View, Check, Plus, ArrowDown, Setting } from '@element-plus/icons-vue'
-import { dashboardApi, chartApi, datasetApi } from '@/api'
+import { dashboardApi, datasetApi } from '@/api'
 import { alignTree, DEFAULT_CARD_STYLE, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 import ChartLibraryPanel from '@/components/dashboard/ChartLibraryPanel.vue'
@@ -129,7 +129,6 @@ async function load() {
   cardStyle.value = normCardStyle(dash.cardStyle)
   items.value = normalizeLayout(dash.layout || [], 12, gap.value)
   alignTree(items.value, 12, gap.value)
-  charts.value = await chartApi.list()
   datasets.value = await datasetApi.list()
 }
 

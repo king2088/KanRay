@@ -33,7 +33,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { dashboardApi, chartApi } from '@/api'
+import { dashboardApi } from '@/api'
 import { alignTree, DEFAULT_CARD_STYLE, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 
@@ -55,7 +55,6 @@ async function load() {
   cardStyle.value = normCardStyle(dash.cardStyle)
   items.value = normalizeLayout(dash.layout || [], 12, gap.value)
   alignTree(items.value, 12, gap.value)
-  charts.value = await chartApi.list()
 }
 
 function refresh() {

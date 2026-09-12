@@ -2,37 +2,41 @@
   <aside class="chart-library-panel">
     <div class="clp-header">
       <div class="clp-title"><el-icon :size="15"><PieChart /></el-icon> 图表库</div>
-      <el-select v-model="dsFilter" clearable placeholder="按数据源筛选" class="clp-select">
-        <el-option v-for="d in datasetOptions" :key="d" :label="d" :value="d" />
+      <el-select v-model="dsFilter" clearable placeholder="按数据源筛选" class="clp-select" @change="onFilterChange">
+        <el-option v-for="d in datasetOptions" :key="d.id" :label="d.name" :value="d.id" />
       </el-select>
-      <el-input v-model="keyword" clearable placeholder="搜索图表名称" :prefix-icon="Search" class="clp-search" />
+      <el-input v-model="keyword" clearable placeholder="搜索图表名称" :prefix-icon="Search" class="clp-search" @input="onKeywordInput" @clear="onKeywordClear" />
+      <div class="clp-count">共 {{ total }} 个图表</div>
     </div>
 
     <el-scrollbar class="clp-scroll">
-      <div class="clp-lists">
-        <div v-if="available.length" class="clp-list">
-          <div
-            v-for="c in available"
-            :key="c.id"
-            class="chart-palette-item"
-            draggable="true"
-            @dragstart="onPaletteDrag($event, c)"
-            @click="$emit('add-chart', c)"
-          >
-            <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
-            <div class="clp-body">
-              <span class="clp-name">{{ c.name }}</span>
-              <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
-              <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+      <div v-loading="loading" class="clp-lists" element-loading-text="加载中…">
+        <template v-if="available.length">
+          <div class="clp-list">
+            <div
+              v-for="c in available"
+              :key="c.id"
+              class="chart-palette-item"
+              draggable="true"
+              @dragstart="onPaletteDrag($event, c)"
+              @click="$emit('add-chart', c)"
+            >
+              <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
+              <div class="clp-body">
+                <span class="clp-name">{{ c.name }}</span>
+                <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+                <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div v-else class="clp-empty">
-          <el-empty description="没有可用图表" :image-size="46" />
-        </div>
+          <div v-if="hasMore" class="clp-more">
+            <el-button size="small" text :loading="loadingMore" @click="loadMore">加载更多</el-button>
+          </div>
+        </template>
+        <el-empty v-else-if="!loading" description="没有可用图表" :image-size="46" />
 
-        <div v-if="used.length" class="clp-list clp-list--used">
-          <div v-for="c in used" :key="c.id" class="chart-palette-item is-used">
+        <div v-if="usedList.length" class="clp-list clp-list--used">
+          <div v-for="c in usedList" :key="c.id" class="chart-palette-item is-used">
             <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
             <div class="clp-body">
               <span class="clp-name">{{ c.name }}</span>
@@ -48,13 +52,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { Search, PieChart } from '@element-plus/icons-vue'
+import { chartApi } from '@/api'
 import { flattenItems } from '@/utils/grid-layout'
 import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
 
+const PAGE_SIZE = 20
+
 const props = defineProps({
-  charts: { type: Array, required: true },
+  datasets: { type: Array, default: () => [] },
   items: { type: Array, required: true },
 })
 
@@ -62,35 +69,110 @@ defineEmits(['add-chart'])
 
 const dsFilter = ref('')
 const keyword = ref('')
+const list = ref([])
+const usedList = ref([])
+const total = ref(0)
+const page = ref(1)
+const loading = ref(false)
+const loadingMore = ref(false)
+let seq = 0
+let kwTimer = null
 
-const datasetOptions = computed(() => [...new Set((props.charts || []).map((c) => c.datasetName || '未绑定数据源').filter(Boolean))])
-
-function matchesFilter(c) {
-  if (dsFilter.value && (c.datasetName || '未绑定数据源') !== dsFilter.value) return false
-  if (keyword.value.trim()) {
-    const kw = keyword.value.trim().toLowerCase()
-    if (!c.name.toLowerCase().includes(kw) && !(c.datasetName || '').toLowerCase().includes(kw)) return false
-  }
-  return true
-}
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 16) : '-'
-}
+const datasetOptions = computed(() => (props.datasets || []).map((d) => ({ id: d.id, name: d.name })))
 
 function usedChartIds() {
   return new Set(flattenItems(props.items).filter((i) => i.type === 'chart').map((i) => i.chartId))
 }
 
-const used = computed(() => {
+async function fetchAvailable(reset, extra = {}) {
+  const mySeq = ++seq
   const ids = usedChartIds()
-  return props.charts.filter((c) => ids.has(c.id) && matchesFilter(c))
+  const params = {
+    keyword: keyword.value.trim() || undefined,
+    datasetId: dsFilter.value || undefined,
+    excludeIds: ids.size ? [...ids].join(',') : undefined,
+    page: reset ? 1 : page.value,
+    pageSize: PAGE_SIZE,
+  }
+  loading.value = !!reset
+  try {
+    const res = await chartApi.list({ ...params, ...extra })
+    if (mySeq !== seq) return
+    const data = Array.isArray(res) ? { list: res, total: res.length } : res
+    if (reset) {
+      list.value = data.list || []
+      page.value = 1
+    } else {
+      list.value = list.value.concat(data.list || [])
+    }
+    total.value = data.total ?? list.value.length
+  } catch (e) {
+    if (mySeq !== seq) return
+    if (reset) list.value = []
+    total.value = list.value.length
+  } finally {
+    if (mySeq === seq) loading.value = false
+    loadingMore.value = false
+  }
+}
+
+async function fetchUsed() {
+  const ids = usedChartIds()
+  if (!ids.size) {
+    usedList.value = []
+    return
+  }
+  try {
+    const res = await chartApi.list({ ids: [...ids].join(',') })
+    usedList.value = Array.isArray(res) ? res : res.list || []
+  } catch (e) {
+    usedList.value = []
+  }
+}
+
+function onFilterChange() {
+  fetchAvailable(true)
+}
+
+function onKeywordInput() {
+  if (kwTimer) clearTimeout(kwTimer)
+  kwTimer = setTimeout(() => fetchAvailable(true), 350)
+}
+
+function onKeywordClear() {
+  fetchAvailable(true)
+}
+
+async function loadMore() {
+  if (loadingMore.value || loading.value) return
+  loadingMore.value = true
+  page.value += 1
+  await fetchAvailable(false)
+}
+
+const hasMore = computed(() => list.value.length < total.value)
+
+watch(
+  () => flattenItems(props.items).filter((i) => i.type === 'chart').map((i) => i.chartId).join(','),
+  () => {
+    fetchUsed()
+    fetchAvailable(true)
+  },
+)
+
+fetchAvailable(true)
+fetchUsed()
+
+onBeforeUnmount(() => {
+  if (kwTimer) clearTimeout(kwTimer)
+  seq += 1
 })
 
-const available = computed(() => {
-  const ids = usedChartIds()
-  return props.charts.filter((c) => !ids.has(c.id) && matchesFilter(c))
-})
+function formatDate(s) {
+  return s ? String(s).replace('T', ' ').slice(0, 16) : '-'
+}
+
+const available = computed(() => list.value)
 
 function onPaletteDrag(e, chart) {
   e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'chart', chartId: chart.id }))
@@ -125,6 +207,11 @@ function onPaletteDrag(e, chart) {
   width: 100%;
 }
 
+.clp-count {
+  font-size: 11px;
+  color: var(--app-text-secondary);
+}
+
 .clp-scroll {
   flex: 1;
   min-height: 0;
@@ -135,6 +222,7 @@ function onPaletteDrag(e, chart) {
   flex-direction: column;
   gap: 14px;
   padding: 0 8px 4px 0;
+  min-height: 100%;
 }
 
 .clp-title {
@@ -155,6 +243,11 @@ function onPaletteDrag(e, chart) {
 .clp-list--used {
   border-top: 1px solid var(--app-border-light);
   padding-top: 14px;
+}
+
+.clp-more {
+  display: flex;
+  justify-content: center;
 }
 
 .clp-name {

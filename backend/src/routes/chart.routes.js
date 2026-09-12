@@ -4,15 +4,32 @@ const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
 const chartService = require('../services/chart.service');
 const queryEngine = require('../engines/query-engine');
-const { parsePageQuery, paginate } = require('../utils/pagination');
+const { parsePageQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
-// GET /api/charts  (可选 page/pageSize -> {list,total}，否则返回全量数组)
+// GET /api/charts
+//   支持：keyword(名称/数据源模糊) · datasetId(数据源) · ids=1,2,3(白名单) · excludeIds=1,2(排除)
+//   可选 page/pageSize -> {list,total}；未传分页返回全量数组
 router.get('/', (req, res) => {
-  const items = chartService.listCharts();
+  const parseIds = (raw) =>
+    String(raw || '').split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+  const filter = {
+    keyword: String(req.query.keyword || ''),
+    datasetId: Number(req.query.datasetId) > 0 ? Number(req.query.datasetId) : undefined,
+    ids: parseIds(req.query.ids),
+    excludeIds: parseIds(req.query.excludeIds),
+  };
   const page = parsePageQuery(req.query);
-  ok(res, page ? paginate(items, page.page, page.pageSize) : items);
+  if (!page) {
+    ok(res, chartService.listCharts(filter));
+    return;
+  }
+  const list = chartService.listCharts({ ...filter, limit: page.pageSize, offset: (page.page - 1) * page.pageSize });
+  const total = chartService.countCharts(filter);
+  ok(res, { list, total, page: page.page, pageSize: page.pageSize });
 });
 
 // GET /api/charts/:id

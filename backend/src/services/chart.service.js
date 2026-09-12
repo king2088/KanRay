@@ -27,16 +27,64 @@ const CHART_TYPES = [
   'candlestick', 'treemap', 'sankey', 'chord',
 ];
 
-function listCharts() {
+const SELECT_SQL = `
+  SELECT c.id, c.name, c.chart_type AS chartType, c.dataset_id AS datasetId, d.name AS datasetName,
+         c.config, c.created_at AS createdAt, c.updated_at AS updatedAt
+  FROM charts c LEFT JOIN datasets d ON d.id = c.dataset_id
+`
+
+/** 查询条件：keyword(名称/数据源模糊)、datasetId、ids 白名单、excludeIds 排除、limit/offset */
+function buildWhere(opts = {}) {
+  const where = []
+  const params = []
+  const kw = String(opts.keyword || '').trim()
+  if (kw) {
+    const escaped = kw.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+    const like = `%${escaped}%`
+    where.push(`(c.name LIKE ? ESCAPE '\\' OR d.name LIKE ? ESCAPE '\\')`)
+    params.push(like, like)
+  }
+  const dsId = Number(opts.datasetId)
+  if (Number.isFinite(dsId) && dsId > 0) {
+    where.push('c.dataset_id = ?')
+    params.push(dsId)
+  }
+  const idList = (opts.ids || []).map(Number).filter(Number.isFinite)
+  if (idList.length) {
+    where.push(`c.id IN (${idList.map(() => '?').join(',')})`)
+    params.push(...idList)
+  }
+  const excludeList = (opts.excludeIds || []).map(Number).filter(Number.isFinite)
+  if (excludeList.length) {
+    where.push(`c.id NOT IN (${excludeList.map(() => '?').join(',')})`)
+    params.push(...excludeList)
+  }
+  return { whereSql: where.length ? ` WHERE ${where.join(' AND ')}` : '', params }
+}
+
+function listCharts(opts = {}) {
+  const { whereSql, params } = buildWhere(opts)
+  let { limit, offset } = opts
+  const hasLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
+  const hasOffset = Number.isFinite(Number(offset)) && Number(offset) >= 0
+  let limitSql = ''
+  if (hasLimit) {
+    limitSql = ` LIMIT ?${hasOffset ? ' OFFSET ?' : ''}`
+    params.push(Number(limit))
+    if (hasOffset) params.push(Number(offset))
+  }
   return db
-    .prepare(`
-      SELECT c.id, c.name, c.chart_type AS chartType, c.dataset_id AS datasetId, d.name AS datasetName,
-             c.config, c.created_at AS createdAt, c.updated_at AS updatedAt
-      FROM charts c LEFT JOIN datasets d ON d.id = c.dataset_id
-      ORDER BY c.updated_at DESC
-    `)
-    .all()
+    .prepare(`${SELECT_SQL}${whereSql} ORDER BY c.updated_at DESC, c.id DESC${limitSql}`)
+    .all(...params)
     .map((r) => ({ ...r, config: JSON.parse(r.config) }));
+}
+
+function countCharts(opts = {}) {
+  const { whereSql, params } = buildWhere(opts)
+  const row = db
+    .prepare(`SELECT COUNT(*) AS n FROM charts c LEFT JOIN datasets d ON d.id = c.dataset_id${whereSql}`)
+    .get(...params);
+  return Number(row?.n || 0);
 }
 
 function getChart(id) {
@@ -103,6 +151,7 @@ function deleteChart(id) {
 module.exports = {
   CHART_TYPES,
   listCharts,
+  countCharts,
   getChart,
   getChartOrThrow,
   createChart,

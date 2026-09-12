@@ -143,6 +143,7 @@
 <script setup>
 import { computed, defineOptions, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/icons-vue'
+import { chartApi } from '@/api'
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
 import {
@@ -305,15 +306,22 @@ function remove(id) {
 }
 
 /* ---- HTML5 拖入（图表库调色板） ---- */
-function onBoardHtmlDrop(e) {
+async function onBoardHtmlDrop(e) {
   if (!props.editable) return
   const raw = e.dataTransfer.getData('text/plain')
   if (!raw) return
   try {
     const data = JSON.parse(raw)
     if (data.type === 'chart') {
-      const chart = props.charts?.find?.((c) => c.id === data.chartId) || chartMap.value[data.chartId]
-      if (!chart) return
+      let chart = props.charts?.find?.((c) => c.id === data.chartId) || chartMap.value[data.chartId]
+      if (!chart) {
+        try {
+          chart = await chartApi.get(data.chartId)
+          chartMap.value[data.chartId] = chart
+        } catch (err) {
+          return
+        }
+      }
       const g = gapValue.value
       const cell = findFreeCell(props.items, 6, cardHeightPx({ h: 2 }, g), cols.value, g)
       const item = {

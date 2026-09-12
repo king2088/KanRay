@@ -27,7 +27,7 @@ export const datasetApi = {
 }
 
 export const chartApi = {
-  list: () => http.get('/charts'),
+  list: (params) => http.get('/charts', { params }),
   listPaged: (page, pageSize) => listPaged('/charts', page, pageSize),
   get: (id) => http.get(`/charts/${id}`),
   create: (payload) => http.post('/charts', payload),
