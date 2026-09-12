@@ -657,10 +657,13 @@ onMounted(async () => {
 
 .builder-right {
   width: 340px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: var(--app-card);
   border-left: 1px solid var(--app-border-light);
-  padding: 4px 16px 16px;
+  padding: 4px 16px 0;
   flex-shrink: 0;
 }
 
@@ -674,6 +677,20 @@ onMounted(async () => {
 
 .right-section {
   margin-bottom: 4px;
+}
+
+.right-types {
+  flex: 0 1 44%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-config {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 16px;
 }
 
 

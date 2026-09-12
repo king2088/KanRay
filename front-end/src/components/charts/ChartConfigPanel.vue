@@ -1,6 +1,16 @@
 <template>
   <div class="chart-config-panel">
     <el-collapse v-model="openPanels" class="config-collapse">
+      <!-- 主题配置 -->
+      <el-collapse-item name="theme" title="主题">
+        <ThemeConfigPanel
+          :theme="config.theme"
+          :palette-index="config.colorPalette"
+          @update:theme="(v) => emitMerged((m) => { m.theme = v })"
+          @update:palette="(v) => emitMerged((m) => { m.colorPalette = v })"
+        />
+      </el-collapse-item>
+
       <!-- 公共配置：动态渲染 COMMON_CONFIG_SCHEMA -->
       <el-collapse-item
         v-for="(schema, key) in commonSchemaGroups"
@@ -52,6 +62,7 @@ import { computed, ref } from 'vue'
 import { COMMON_CONFIG_SCHEMA, TYPE_CONFIG_SCHEMAS, SERIES_STYLE_TYPES, SERIES_STYLE_SCHEMA, getDefaultsFromSchema } from '@/config/chart-configs'
 import { getChartType } from '@/config/chart-types'
 import SchemaForm from './SchemaForm.vue'
+import ThemeConfigPanel from './ThemeConfigPanel.vue'
 
 const props = defineProps({
   chartType: { type: String, required: true },

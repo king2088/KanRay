@@ -116,6 +116,14 @@ let failed = 0;
   await page.locator('.el-select-dropdown__item:visible').filter({ hasText: '菱形' }).first().click();
   await sleep(250);
 
+  // ---------- 图例: 方向 = 竖排 ----------
+  const dirRow = fieldRow(gLeg, '方向');
+  const dirBtns = dirRow.locator('.el-button');
+  const dirVBtn = dirBtns.nth(1);
+  const dirVActive = await dirVBtn.evaluate((el) => el.classList.contains('el-button--primary')).catch(() => false);
+  if (!dirVActive) await dirVBtn.click();
+  await sleep(250);
+
   const legW = fieldRow(gLeg, '形状宽').locator('.el-input-number input');
   await legW.fill('30');
   await legW.press('Enter');
@@ -140,6 +148,16 @@ let failed = 0;
   await page.locator('.el-select-dropdown__item:visible').filter({ hasText: '十字准星' }).first().click();
   await sleep(250);
 
+  // ---------- 主题: 暗色模式 + 色板 = 鲜艳(索引2) ----------
+  const gTheme = await expand('主题');
+  const themeModeDark = gTheme.locator('.mode-btns .el-button', { hasText: '暗色' });
+  const darkActive = await themeModeDark.evaluate((el) => el.classList.contains('el-button--primary')).catch(() => false);
+  if (!darkActive) await themeModeDark.click();
+  await sleep(250);
+  const paletteItem = gTheme.locator('.palette-item').nth(2);
+  const paletteActive = await paletteItem.evaluate((el) => el.classList.contains('active')).catch(() => false);
+  if (!paletteActive) await paletteItem.click();
+  await sleep(250);
   assert(pageErrors.length === 0, 'no page errors while editing', JSON.stringify(pageErrors));
 
   // live preview still renders while config changes are applied
@@ -174,6 +192,9 @@ let failed = 0;
       legendH: o.legend && o.legend.itemHeight,
       axisPtrType: o.tooltip && o.tooltip.axisPointer && o.tooltip.axisPointer.type,
       zoomShow: o.dataZoom && o.dataZoom.show,
+      legendOrient: o.legend && o.legend.orient,
+      themeMode: o.theme && o.theme.mode,
+      colorPalette: o.colorPalette,
     };
   }, meta.id);
   assert(saved.titleText === '显示配置E2E标题', 'saved title.text', JSON.stringify(saved.titleText));
@@ -189,6 +210,9 @@ let failed = 0;
   assert(Number(saved.legendH) === 18, 'saved legend.itemHeight=18', JSON.stringify(saved.legendH));
   assert(saved.axisPtrType === 'cross', 'saved tooltip.axisPointer.type=cross', JSON.stringify(saved.axisPtrType));
   assert(saved.zoomShow === true, 'saved dataZoom.show', JSON.stringify(saved.zoomShow));
+  assert(saved.legendOrient === 'vertical', 'saved legend.orient=vertical', JSON.stringify(saved.legendOrient));
+  assert(saved.themeMode === 'dark', 'saved theme.mode=dark', JSON.stringify(saved.themeMode));
+  assert(Number(saved.colorPalette) === 2, 'saved colorPalette=2', JSON.stringify(saved.colorPalette));
 
   // ---------- edited chart still renders from saved config ----------
   await page.goto(`${BASE}/charts/${meta.id}/edit`, { waitUntil: 'networkidle', timeout: 20000 });

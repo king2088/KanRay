@@ -66,6 +66,10 @@ function onCategoryChange(val) {
 <style scoped>
 .chart-type-panel {
   padding-bottom: 12px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .category-select {
@@ -76,7 +80,8 @@ function onCategoryChange(val) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  max-height: 420px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

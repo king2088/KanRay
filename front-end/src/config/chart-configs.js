@@ -1,6 +1,9 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
 import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter, alignAuto, alignLeft, alignCenter, alignRight } from '../components/charts/control-icons'
 
+// ---- 主题默认值（明亮/背景/文字颜色由 ThemeConfigPanel 配置） ----
+export const DEFAULT_THEME = { mode: 'light', background: '', textColor: '' }
+
 // ---- 公共配置schema（所有图表共享，精简版） ----
 
 // 通用文字样式（标题/图例/提示框等文本的样式工具条）
@@ -487,6 +490,7 @@ export function getDefaultConfig(chartType) {
   return {
     ...commonDefaults,
     colorPalette: DEFAULT_PALETTE_INDEX,
+    theme: { ...DEFAULT_THEME },
     ...(Object.keys(typeDefaults).length ? { typeSpecific: typeDefaults } : {}),
   }
 }

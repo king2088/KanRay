@@ -218,6 +218,85 @@ function buildUnderlines() {
   zr.refresh()
 }
 
+function darkish(c) {
+  if (!c || typeof c !== 'string') return false
+  const s = c.trim().toLowerCase()
+  const m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/)
+  if (m) {
+    let hex = m[1]
+    if (hex.length === 3) hex = hex.split('').map((x) => x + x).join('')
+    const n = parseInt(hex, 16)
+    if (!Number.isFinite(n)) return false
+    return ((n >> 16) & 255) + ((n >> 8) & 255) + (n & 255) < 380
+  }
+  const rgb = s.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/)
+  if (rgb) return Number(rgb[1]) + Number(rgb[2]) + Number(rgb[3]) < 380
+  return false
+}
+
+function applyTheme(opt) {
+  const theme = props.options.theme || {}
+  const dark = theme.mode === 'dark'
+  const textColor = theme.textColor || ''
+  const lightText = textColor || (dark ? '#E6E9F0' : '')
+  opt.backgroundColor = theme.background || (dark ? '#16181D' : 'transparent')
+  if (!dark && !textColor) return
+
+  const setText = (obj, key) => {
+    const t = obj && obj[key]
+    if (!t) return
+    if (textColor) t.color = textColor
+    else if (dark && (t.color == null || darkish(t.color))) t.color = lightText
+  }
+  const setLine = (obj, key, darkVal) => {
+    const t = obj && obj[key] && obj[key].lineStyle
+    if (!t) return
+    if (dark && (t.color == null || !darkish(t.color))) t.color = darkVal
+  }
+
+  if (opt.title) {
+    setText(opt.title, 'textStyle')
+    setText(opt.title, 'subtextStyle')
+  }
+  if (opt.legend) {
+    setText(opt.legend, 'textStyle')
+    if (dark && !opt.legend.pageIconColor) opt.legend.pageIconColor = lightText
+  }
+  if (opt.tooltip && opt.tooltip.show !== false) {
+    opt.tooltip.textStyle = opt.tooltip.textStyle || {}
+    setText(opt.tooltip, 'textStyle')
+    if (dark) {
+      opt.tooltip.backgroundColor = theme.background && !textColor
+        ? theme.background
+        : (opt.tooltip.backgroundColor == null || !darkish(opt.tooltip.backgroundColor) ? 'rgba(34,38,46,0.96)' : opt.tooltip.backgroundColor)
+      if (opt.tooltip.borderColor == null || !darkish(opt.tooltip.borderColor)) opt.tooltip.borderColor = '#3A4048'
+    }
+  }
+  ;[opt.xAxis, opt.yAxis, opt.angleAxis, opt.radiusAxis].forEach((ax) => {
+    ;(Array.isArray(ax) ? ax : ax ? [ax] : []).forEach((a) => {
+      if (!a) return
+      setText(a, 'nameTextStyle')
+      setText(a, 'axisLabel')
+      if (dark) {
+        setLine(a, 'axisLine', '#3E4450')
+        setLine(a, 'axisTick', '#3E4450')
+        setLine(a, 'splitLine', '#262B33')
+      }
+    })
+  })
+  if (dark) {
+    const seriesList = Array.isArray(opt.series) ? opt.series : opt.series ? [opt.series] : []
+    seriesList.forEach((s) => {
+      if (s && s.label && s.label.color != null && darkish(s.label.color)) s.label.color = lightText
+    })
+  }
+  if (opt.visualMap && opt.visualMap.textStyle) {
+    setText(opt.visualMap, 'textStyle')
+  }
+  if (opt.radar && opt.radar.axisName) setText(opt.radar, 'axisName')
+  return opt
+}
+
 function render() {
   if (!chart || !props.data) return
   const opt = builtOpt.value
@@ -232,7 +311,7 @@ function render() {
     chart.clear()
     return
   }
-  if (!opt.backgroundColor) opt.backgroundColor = 'transparent'
+  applyTheme(opt)
   currentOpt = opt
   chart.setOption(opt, true)
 }
@@ -292,8 +371,10 @@ function renderMap(meta) {
     if (!el.value || !chart) return
     echarts.registerMap(mapName, geo)
     const bubble = mode === 'bubble' || mode === 'symbol'
+    const theme = props.options.theme || {}
+    const dark = theme.mode === 'dark'
     const option = {
-      backgroundColor: 'transparent',
+      backgroundColor: theme.background || (dark ? '#16181D' : 'transparent'),
       tooltip: config.tooltip?.show === false || config.tooltip?.trigger === 'none'
         ? { show: false }
         : {
