@@ -1,5 +1,5 @@
 <template>
-  <div ref="boardEl" class="grid-board" :data-board="boardKey" :class="{ 'grid-board--editable': editable }">
+  <div ref="boardEl" class="grid-board" :data-board="boardKey" :class="{ 'grid-board--editable': editable }" :style="boardVars">
     <div
       ref="bodyEl"
       class="grid-body"
@@ -28,14 +28,14 @@
             class="item-header"
             :class="{
               editable,
-              'item-header--min': item.hideTitle,
+              'item-header--min': headHidden(item),
               'item-header--hidden': cardHeightPx(item, gapValue) <= 35,
-              'item-header--compact': !item.hideTitle && cardHeightPx(item, gapValue) > 35 && cardHeightPx(item, gapValue) <= 80,
+              'item-header--compact': !headHidden(item) && cardHeightPx(item, gapValue) > 35 && cardHeightPx(item, gapValue) <= 80,
               'item-header--sel': state.selectedId === item.id,
             }"
             @mousedown.stop="editable && beginDrag($event, item)"
           >
-            <span v-if="!item.hideTitle" class="item-title">{{ itemTitle(item) }}</span>
+            <span v-if="!headHidden(item)" class="item-title">{{ itemTitle(item) }}</span>
             <span v-if="editable" class="item-actions">
               <el-icon class="act-btn" size="15" @click.stop="nudge(item, -1)"><ArrowUp /></el-icon>
               <el-icon class="act-btn" size="15" @click.stop="nudge(item, 1)"><ArrowDown /></el-icon>
@@ -111,6 +111,7 @@
               :board-key="item.id"
               :columns="Math.max(1, item.w || 6)"
               :gap="gap"
+              :card-style="cardStyle"
             />
             <el-empty
               v-else-if="item.type === 'container'"
@@ -145,7 +146,7 @@ import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/ico
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
 import {
-  alignRows, applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normGap, ROW_H, rowsForHeight,
+  alignRows, applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, GAP, GRID_COLS, normCardStyle, normGap, ROW_H, rowsForHeight,
 } from '@/utils/grid-layout'
 
 defineOptions({ name: 'GridBoard' })
@@ -159,6 +160,7 @@ const props = defineProps({
   boardKey: { type: String, required: true },
   columns: { type: Number, default: GRID_COLS },
   gap: { type: Object, default: () => ({ x: GAP, y: GAP }) },
+  cardStyle: { type: Object, default: () => ({}) },
 })
 
 const state = inject('boardState', null)
@@ -173,6 +175,20 @@ const bodyEl = ref(null)
 
 const cols = computed(() => Math.max(1, props.columns))
 const gapValue = computed(() => normGap(props.gap))
+const cardStyleValue = computed(() => normCardStyle(props.cardStyle))
+
+/** 卡片全局样式 → CSS 变量（边框/圆角/标题字号/标题下划线） */
+const boardVars = computed(() => ({
+  '--card-border-w': cardStyleValue.value.border ? '1px' : '0px',
+  '--card-radius': `${cardStyleValue.value.radius}px`,
+  '--card-fs': `${cardStyleValue.value.titleFontSize}px`,
+  '--card-underline': cardStyleValue.value.titleUnderline ? '1px solid var(--app-border-light)' : 'none',
+}))
+
+/** 标题隐藏判定：看板级全局关闭 或 单卡显隐 */
+function headHidden(item) {
+  return !cardStyleValue.value.showTitle || !!item.hideTitle
+}
 
 /** 供调色板/子组件引用的当前棋盘高度逻辑（像素纵向） */
 const bodyStyle = computed(() => {
@@ -207,9 +223,10 @@ function cellRectStyle(col, top, w, heightPx) {
 }
 
 function headerHeight(heightPx) {
+  const H = cardStyleValue.value.titleHeight
   if (heightPx <= 35) return 0
-  if (heightPx <= 80) return 22
-  return 34
+  if (heightPx <= 80) return Math.max(14, Math.round(H * 0.65))
+  return H
 }
 
 function itemInnerStyle(item) {
@@ -502,8 +519,8 @@ onBeforeUnmount(() => {
 .grid-item {
   position: absolute;
   background: var(--app-card);
-  border: 1px solid var(--app-border-light);
-  border-radius: var(--app-radius);
+  border: var(--card-border-w, 1px) solid var(--app-border-light);
+  border-radius: var(--card-radius, var(--app-radius));
   overflow: hidden;
   min-width: 0;
 }
@@ -531,15 +548,14 @@ onBeforeUnmount(() => {
 
 /* ---- 头部 ---- */
 .item-header {
-  --hh: 34px;
   display: flex;
   align-items: center;
   gap: 6px;
-  height: var(--hh);
+  height: var(--hh, 34px);
   padding: 0 10px;
   background: var(--app-card);
-  border-bottom: 1px solid var(--app-border-light);
-  font-size: 13px;
+  border-bottom: var(--card-underline, 1px solid var(--app-border-light));
+  font-size: var(--card-fs, 13px);
 }
 
 .item-header.editable {
@@ -562,7 +578,6 @@ onBeforeUnmount(() => {
 }
 
 .item-header.item-header--compact {
-  --hh: 22px;
   padding: 0 8px;
   gap: 4px;
   font-size: 12px;

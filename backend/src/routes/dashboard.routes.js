@@ -27,7 +27,7 @@ router.post('/', (req, res) => {
   ok(res, dashboardService.createDashboard(parsed.data.name), '看板创建成功');
 });
 
-// PATCH /api/dashboards/:id  { name?, layout?, gap? }
+// PATCH /api/dashboards/:id  { name?, layout?, gap?, cardStyle? }
 router.patch('/:id', (req, res) => {
   const schema = z.object({
     name: z.string().trim().min(1).max(100).optional(),
@@ -36,6 +36,16 @@ router.patch('/:id', (req, res) => {
       .object({
         x: z.number().min(0).max(96).optional(),
         y: z.number().min(0).max(96).optional(),
+      })
+      .optional(),
+    cardStyle: z
+      .object({
+        border: z.boolean().optional(),
+        radius: z.number().min(0).max(20).optional(),
+        titleHeight: z.number().min(24).max(52).optional(),
+        titleFontSize: z.number().min(12).max(20).optional(),
+        titleUnderline: z.boolean().optional(),
+        showTitle: z.boolean().optional(),
       })
       .optional(),
   }).strict();

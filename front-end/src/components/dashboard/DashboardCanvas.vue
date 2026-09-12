@@ -8,6 +8,7 @@
       :board-key="'root'"
       :columns="12"
       :gap="gap"
+      :card-style="cardStyle"
     />
   </div>
 </template>
@@ -23,6 +24,7 @@ const props = defineProps({
   charts: { type: Array, required: true },
   editable: { type: Boolean, default: false },
   gap: { type: Object, default: () => ({ x: GAP, y: GAP }) },
+  cardStyle: { type: Object, default: () => ({}) },
 })
 
 const emit = defineEmits(['update:items'])

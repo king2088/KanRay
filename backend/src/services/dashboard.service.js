@@ -2,27 +2,62 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { listCharts, getChartOrThrow } = require('../services/chart.service');
 
+/** 规范化卡片全局样式（越界值舍弃为默认，布尔缺省为打开） */
+function normCardStyle(cs) {
+  const clamp = (v, min, max, dflt) => {
+    const nv = Number(v);
+    if (!Number.isFinite(nv)) return dflt;
+    return Math.min(max, Math.max(min, Math.round(nv)));
+  };
+  return {
+    border: cs?.border !== false,
+    radius: clamp(cs?.radius, 0, 20, 6),
+    titleHeight: clamp(cs?.titleHeight, 24, 52, 34),
+    titleFontSize: clamp(cs?.titleFontSize, 12, 20, 13),
+    titleUnderline: cs?.titleUnderline !== false,
+    showTitle: cs?.showTitle !== false,
+  };
+}
+
+function renderDash(d) {
+  let cardStyle = {};
+  try {
+    cardStyle = JSON.parse(d.cardStyleRaw || d.cardStyle || '{}') || {};
+  } catch (e) {
+    cardStyle = {};
+  }
+  return {
+    id: d.id,
+    name: d.name,
+    layout: JSON.parse(d.layout),
+    gap: { x: d.gapX, y: d.gapY },
+    cardStyle: normCardStyle(cardStyle),
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+  };
+}
+
 function listDashboards() {
   return db
     .prepare(`
-      SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY,
+      SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY, card_style AS cardStyle,
              created_at AS createdAt, updated_at AS updatedAt
       FROM dashboards ORDER BY updated_at DESC
     `)
     .all()
-    .map((d) => ({ ...d, layout: JSON.parse(d.layout), gap: { x: d.gapX, y: d.gapY } }));
+    .map(renderDash);
 }
 
 function getDashboard(id) {
   const d = db
     .prepare(`
-      SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY,
+      SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY, card_style AS cardStyle,
              created_at AS createdAt, updated_at AS updatedAt
       FROM dashboards WHERE id = ?
     `)
     .get(id);
   if (!d) return null;
-  return { ...d, layout: JSON.parse(d.layout), gap: { x: d.gapX, y: d.gapY } };
+  return renderDash(d);
 }
 
 function getDashboardOrThrow(id) {
@@ -74,8 +109,9 @@ function updateDashboard(id, body) {
     gapX = normGap(body.gap).x;
     gapY = normGap(body.gap).y;
   }
-  db.prepare('UPDATE dashboards SET name = ?, layout = ?, gap_x = ?, gap_y = ?, updated_at = datetime(\'now\') WHERE id = ?')
-    .run(name, JSON.stringify(layout), gapX, gapY, id);
+  const cardStyle = body.cardStyle !== undefined ? normCardStyle(body.cardStyle) : existing.cardStyle;
+  db.prepare('UPDATE dashboards SET name = ?, layout = ?, gap_x = ?, gap_y = ?, card_style = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    .run(name, JSON.stringify(layout), gapX, gapY, JSON.stringify(cardStyle), id);
   return getDashboard(id);
 }
 

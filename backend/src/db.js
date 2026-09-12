@@ -44,15 +44,17 @@ CREATE TABLE IF NOT EXISTS dashboards (
   layout TEXT NOT NULL DEFAULT '[]',  -- JSON：组件数组
   gap_x INTEGER NOT NULL DEFAULT 12,  -- 卡片左右间距（px）
   gap_y INTEGER NOT NULL DEFAULT 12,  -- 卡片上下间距（px）
+  card_style TEXT NOT NULL DEFAULT '{}',  -- JSON：卡片全局样式（边框/标题等）
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `)
 
-// 旧库迁移：补齐 gap_x/gap_y（幂等，已存在则跳过）
+// 旧库迁移：补齐 gap_x/gap_y/card_style（幂等，已存在则跳过）
 const dashCols = db.prepare("PRAGMA table_info('dashboards')").all().map(c => c.name)
 if (!dashCols.includes('gap_x')) db.exec("ALTER TABLE dashboards ADD COLUMN gap_x INT NOT NULL DEFAULT 12")
 if (!dashCols.includes('gap_y')) db.exec("ALTER TABLE dashboards ADD COLUMN gap_y INT NOT NULL DEFAULT 12")
+if (!dashCols.includes('card_style')) db.exec("ALTER TABLE dashboards ADD COLUMN card_style TEXT NOT NULL DEFAULT '{}'")
 
 /**
  * 为数据集动态创建数据表（单引号表名转义策略：表名由系统生成，安全）

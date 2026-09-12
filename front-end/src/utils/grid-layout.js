@@ -12,6 +12,37 @@ export function normGap(gap) {
   }
 }
 
+/* ---- 卡片全局样式（看板级） ---- */
+
+export const DEFAULT_CARD_STYLE = {
+  border: true,
+  radius: 6,
+  titleHeight: 34,
+  titleFontSize: 13,
+  titleUnderline: true,
+  showTitle: true,
+}
+
+const CARD_STYLE_RANGES = {
+  radius: [0, 20, 6],
+  titleHeight: [24, 52, 34],
+  titleFontSize: [12, 20, 13],
+}
+
+/** 规范化卡片全局样式：越界取默认值，布尔缺省为打开 */
+export function normCardStyle(cs) {
+  const next = { ...DEFAULT_CARD_STYLE }
+  if (!cs || typeof cs !== 'object') return next
+  Object.entries(CARD_STYLE_RANGES).forEach(([k, [lo, hi, dflt]]) => {
+    const v = Number(cs[k])
+    next[k] = Number.isFinite(v) ? clamp(v, lo, hi) : dflt
+  })
+  next.border = cs.border !== false
+  next.titleUnderline = cs.titleUnderline !== false
+  next.showTitle = cs.showTitle !== false
+  return next
+}
+
 export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n))
 }
