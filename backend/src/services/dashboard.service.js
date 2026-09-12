@@ -37,12 +37,12 @@ function renderDash(d) {
   };
 }
 
-function listDashboards() {
+function listDashboards(where = '') {
   return db
     .prepare(`
       SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY, card_style AS cardStyle,
              created_at AS createdAt, updated_at AS updatedAt
-      FROM dashboards ORDER BY updated_at DESC
+      FROM dashboards${where ? ' WHERE ' + where : ''} ORDER BY updated_at DESC
     `)
     .all()
     .map(renderDash);
@@ -79,12 +79,12 @@ function validateLayout(layout) {
   return layout;
 }
 
-function createDashboard(name) {
+function createDashboard(name, ownerId = null) {
   const n = String(name || '').trim().slice(0, 100);
   if (!n) throw new HttpError(400, '看板名称不能为空');
   const info = db
-    .prepare('INSERT INTO dashboards (name, layout) VALUES (?, ?)')
-    .run(n, '[]');
+    .prepare('INSERT INTO dashboards (name, layout, owner_id) VALUES (?, ?, ?)')
+    .run(n, '[]', ownerId == null ? null : Number(ownerId));
   return getDashboard(Number(info.lastInsertRowid));
 }
 

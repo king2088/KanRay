@@ -45,8 +45,9 @@ function nextTableName() {
   return `ds_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 }
 
-function listDatasets() {
-  return db.prepare('SELECT * FROM datasets ORDER BY created_at DESC, id DESC').all();
+function listDatasets(where = '') {
+  const sql = `SELECT * FROM datasets${where ? ' WHERE ' + where : ''} ORDER BY created_at DESC, id DESC`;
+  return db.prepare(sql).all();
 }
 
 function getDataset(id) {
@@ -71,7 +72,7 @@ function getFieldsOrThrow(datasetId) {
 /**
  * 创建数据集：调用方传入已解析好的 { name, header, rows }
  */
-function createDataset(name, header, rows) {
+function createDataset(name, header, rows, ownerId = null) {
   const tableName = nextTableName();
   const fields = header.map((h, i) => ({ ...h, position: i }));
   const sqlTypes = fields.map((f) => sqlType(f));
@@ -93,8 +94,8 @@ function createDataset(name, header, rows) {
 
   // 记录数据集
   const info = db
-    .prepare('INSERT INTO datasets (name, original_file, row_count, column_count, table_name) VALUES (?, ?, ?, ?, ?)')
-    .run(name, name, rows.length, fields.length, tableName);
+    .prepare('INSERT INTO datasets (name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(name, name, rows.length, fields.length, tableName, ownerId == null ? null : Number(ownerId));
   const datasetId = info.lastInsertRowid;
 
   // 字段元数据
@@ -124,9 +125,9 @@ async function previewExcel(filePath) {
 /**
  * 全量导入（用于真正创建数据集），返回预览信息 + 可随后调用 create
  */
-async function parseAndCreate(name, filePath) {
+async function parseAndCreate(name, filePath, ownerId = null) {
   const { header, rows } = await parseExcelFile(filePath);
-  const ds = createDataset(name, header, rows);
+  const ds = createDataset(name, header, rows, ownerId);
   ds.previewRows = rows.slice(0, config.upload.previewRows);
   return ds;
 }

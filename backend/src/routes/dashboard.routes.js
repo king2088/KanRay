@@ -2,33 +2,42 @@ const express = require('express');
 const { z } = require('zod');
 const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
+const { requireUser } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/permission');
 const dashboardService = require('../services/dashboard.service');
+const access = require('../services/access.service');
+const rbac = require('../services/rbac.service');
 const { parsePageQuery, paginate } = require('../utils/pagination');
 
 const router = express.Router();
 
 // GET /api/dashboards  (可选 page/pageSize -> {list,total}，否则返回全量数组)
-router.get('/', (req, res) => {
-  const items = dashboardService.listDashboards();
+// 管理员全量；其余仅可见自己的看板
+router.get('/', requireUser, requirePermission('dashboard', 'read'), (req, res) => {
+  const items = dashboardService.listDashboards(access.scopedWhere('dashboard', req.user, rbac));
   const page = parsePageQuery(req.query);
   ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // GET /api/dashboards/:id
-router.get('/:id', (req, res) => {
-  ok(res, dashboardService.getDashboardOrThrow(Number(req.params.id)));
+router.get('/:id', requireUser, requirePermission('dashboard', 'read'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dashboard', id, req.user, rbac);
+  ok(res, dashboardService.getDashboardOrThrow(id));
 });
 
 // POST /api/dashboards  { name }
-router.post('/', (req, res) => {
+router.post('/', requireUser, requirePermission('dashboard', 'create'), (req, res) => {
   const schema = z.object({ name: z.string().trim().min(1).max(100) }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '看板名称不能为空且不超过 100 字符');
-  ok(res, dashboardService.createDashboard(parsed.data.name), '看板创建成功');
+  ok(res, dashboardService.createDashboard(parsed.data.name, req.user.id), '看板创建成功');
 });
 
 // PATCH /api/dashboards/:id  { name?, layout?, gap?, cardStyle? }
-router.patch('/:id', (req, res) => {
+router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dashboard', id, req.user, rbac);
   const schema = z.object({
     name: z.string().trim().min(1).max(100).optional(),
     layout: z.array(z.any()).optional(),
@@ -51,12 +60,14 @@ router.patch('/:id', (req, res) => {
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '看板参数不正确', parsed.error.flatten());
-  ok(res, dashboardService.updateDashboard(Number(req.params.id), parsed.data), '看板更新成功');
+  ok(res, dashboardService.updateDashboard(id, parsed.data), '看板更新成功');
 });
 
 // DELETE /api/dashboards/:id
-router.delete('/:id', (req, res) => {
-  dashboardService.deleteDashboard(Number(req.params.id));
+router.delete('/:id', requireUser, requirePermission('dashboard', 'delete'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dashboard', id, req.user, rbac);
+  dashboardService.deleteDashboard(id);
   ok(res, true, '删除成功');
 });
 

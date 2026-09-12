@@ -7,7 +7,11 @@ const { z } = require('zod');
 const config = require('../config');
 const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
+const { requireUser } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/permission');
 const datasetService = require('../services/dataset.service');
+const access = require('../services/access.service');
+const rbac = require('../services/rbac.service');
 const queryEngine = require('../engines/query-engine');
 const { parsePageQuery, paginate } = require('../utils/pagination');
 
@@ -39,20 +43,22 @@ function cleanup(filePath) {
 }
 
 // GET /api/datasets  (可选 page/pageSize -> {list,total}，否则返回全量数组)
-router.get('/', (req, res) => {
-  const items = datasetService.listDatasets();
+// 管理员全量；其余仅可见自己的数据集
+router.get('/', requireUser, (req, res) => {
+  const items = datasetService.listDatasets(access.scopedWhere('dataset', req.user, rbac));
   const page = parsePageQuery(req.query);
   ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // GET /api/datasets/:id  (含字段)
-router.get('/:id', (req, res) => {
-  const ds = datasetService.getDatasetOrThrow(Number(req.params.id));
-  ok(res, ds);
+router.get('/:id', requireUser, requirePermission('dataset', 'read'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dataset', id, req.user, rbac);
+  ok(res, datasetService.getDatasetOrThrow(id));
 });
 
 // POST /api/datasets/preview  (上传并预览，不落库)
-router.post('/preview', upload.single('file'), async (req, res) => {
+router.post('/preview', requireUser, requirePermission('dataset', 'create'), upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, '请上传文件');
   try {
     const preview = await datasetService.previewExcel(req.file.path);
@@ -63,13 +69,13 @@ router.post('/preview', upload.single('file'), async (req, res) => {
 });
 
 // POST /api/datasets  (上传并正式创建)
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', requireUser, requirePermission('dataset', 'create'), upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, '请上传文件');
   const nameSchema = z.string().trim().min(1).max(100);
   const parsed = nameSchema.safeParse(req.body.name);
   try {
     if (!parsed.success) throw new HttpError(400, '数据集名称不能为空且不超过 100 字符');
-    const ds = await datasetService.parseAndCreate(parsed.data, req.file.path);
+    const ds = await datasetService.parseAndCreate(parsed.data, req.file.path, req.user.id);
     ok(res, ds, '数据集创建成功');
   } finally {
     cleanup(req.file.path);
@@ -77,34 +83,41 @@ router.post('/', upload.single('file'), async (req, res) => {
 });
 
 // DELETE /api/datasets/:id
-router.delete('/:id', (req, res) => {
-  datasetService.deleteDataset(Number(req.params.id));
+router.delete('/:id', requireUser, requirePermission('dataset', 'delete'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dataset', id, req.user, rbac);
+  datasetService.deleteDataset(id);
   ok(res, true, '删除成功');
 });
 
 // PATCH /api/datasets/:id  (重命名)
-router.patch('/:id', (req, res) => {
+router.patch('/:id', requireUser, requirePermission('dataset', 'update'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dataset', id, req.user, rbac);
   const schema = z.object({ name: z.string().trim().min(1).max(100) });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '数据集名称不能为空且不超过 100 字符');
-  const ds = datasetService.renameDataset(Number(req.params.id), parsed.data.name);
+  const ds = datasetService.renameDataset(id, parsed.data.name);
   ok(res, ds, '重命名成功');
 });
 
 // GET /api/datasets/:id/rows  (分页预览数据)
-router.get('/:id/rows', (req, res) => {
+router.get('/:id/rows', requireUser, requirePermission('dataset', 'read'), (req, res) => {
   const id = Number(req.params.id);
+  access.assertResource('dataset', id, req.user, rbac);
   const page = Math.max(1, parseInt(req.query.page || '1', 10));
   const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize || '50', 10)));
   ok(res, datasetService.paginateRows(id, page, pageSize));
 });
 
 // PATCH /api/datasets/:id/fields/:fieldId  (更新字段别名)
-router.patch('/:id/fields/:fieldId', (req, res) => {
+router.patch('/:id/fields/:fieldId', requireUser, requirePermission('dataset', 'update'), (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('dataset', id, req.user, rbac);
   const schema = z.object({ label: z.string().trim().min(1).max(100) }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '字段别名不能为空且不超过 100 字符');
-  const field = datasetService.updateFieldLabel(Number(req.params.id), Number(req.params.fieldId), parsed.data.label);
+  const field = datasetService.updateFieldLabel(id, Number(req.params.fieldId), parsed.data.label);
   ok(res, field, '字段更新成功');
 });
 
@@ -130,8 +143,9 @@ const querySchema = z.object({
   groupLimit: z.number().int().positive().optional(),
 }).strict();
 
-router.post('/:id/query', (req, res) => {
+router.post('/:id/query', requireUser, requirePermission('dataset', 'read'), (req, res) => {
   const id = Number(req.params.id);
+  access.assertResource('dataset', id, req.user, rbac);
   const parsed = querySchema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '查询参数不正确', parsed.error.flatten());
   const result = queryEngine.aggregate({ datasetId: id, ...parsed.data });

@@ -59,6 +59,10 @@ function buildWhere(opts = {}) {
     where.push(`c.id NOT IN (${excludeList.map(() => '?').join(',')})`)
     params.push(...excludeList)
   }
+  const scope = String(opts.scope || '').trim()
+  if (scope) {
+    where.push(`(${scope})`)
+  }
   return { whereSql: where.length ? ` WHERE ${where.join(' AND ')}` : '', params }
 }
 
@@ -126,11 +130,11 @@ function validateChartPayload(body) {
   };
 }
 
-function createChart(body) {
+function createChart(body, ownerId = null) {
   const c = validateChartPayload(body);
   const info = db
-    .prepare('INSERT INTO charts (name, dataset_id, chart_type, config) VALUES (?, ?, ?, ?)')
-    .run(c.name, c.datasetId, c.chartType, JSON.stringify(c.config));
+    .prepare('INSERT INTO charts (name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
+    .run(c.name, c.datasetId, c.chartType, JSON.stringify(c.config), ownerId == null ? null : Number(ownerId));
   return getChart(Number(info.lastInsertRowid));
 }
 
