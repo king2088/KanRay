@@ -87,6 +87,7 @@ function onCategoryChange(val) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+  padding-right: 10px;
 }
 
 .chart-type-item {

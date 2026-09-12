@@ -699,7 +699,7 @@ onMounted(async () => {
 }
 
 .right-types {
-  flex: 0 1 calc(44% - 18px);
+  flex: 0 1 calc(44% - 16px);
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -718,7 +718,7 @@ onMounted(async () => {
 }
 
 .right-config-view {
-  padding-bottom: 16px;
+  padding: 0 10px 16px;
 }
 
 
