@@ -20,19 +20,21 @@
     </div>
 
     <!-- 图表类型网格 -->
-    <div class="chart-type-grid">
-      <div
-        v-for="t in filteredTypes"
-        :key="t.value"
-        class="chart-type-item"
-        :class="{ active: chartType === t.value }"
-        @click="$emit('update:chartType', t.value)"
-        :title="t.label"
-      >
-        <ChartTypeIcon :name="t.value" :size="50" />
-        <span>{{ t.label }}</span>
+    <el-scrollbar class="chart-type-scroll">
+      <div class="chart-type-grid">
+        <div
+          v-for="t in filteredTypes"
+          :key="t.value"
+          class="chart-type-item"
+          :class="{ active: chartType === t.value }"
+          @click="$emit('update:chartType', t.value)"
+          :title="t.label"
+        >
+          <ChartTypeIcon :name="t.value" :size="50" />
+          <span>{{ t.label }}</span>
+        </div>
       </div>
-    </div>
+    </el-scrollbar>
 
     <div v-if="filteredTypes.length === 0" class="empty-hint">
       该分类暂无图表类型
@@ -76,13 +78,15 @@ function onCategoryChange(val) {
   margin-bottom: 10px;
 }
 
+.chart-type-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
 .chart-type-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
 }
 
 .chart-type-item {

@@ -2,39 +2,43 @@
   <div class="chart-builder">
     <!-- 左侧：数据源 + 字段-->
     <div class="builder-left">
-        <DataSourcePanel
-          :datasets="datasets"
-          :datasetId="datasetId"
-          @update:datasetId="datasetId = $event"
-          @datasetChange="onDatasetChange"
-        />
-        <el-divider style="margin: 8px 0" />
-        <FieldConfigPanel
-          :fields="fields"
-          :dims="dims"
-          :metrics="metrics"
-          :chart-type="chartType"
-        />
-        <!-- 显示选项（排序等） -->
-        <div class="left-extra">
-          <div class="panel-title">显示选项</div>
-          <el-form label-width="70px">
-            <el-form-item label="显示数量">
-              <el-input-number v-model="showOptions.groupLimit" :min="1" :max="500" style="width: 120px" />
-            </el-form-item>
-            <el-form-item label="排序方式">
-              <el-select v-model="sortConfig.field" style="width: 45%">
-                <el-option label="不排序" value="" />
-                <el-option label="按指标" value="metric" />
-                <el-option label="按维度" value="dim" />
-              </el-select>
-              <el-select v-model="sortConfig.order" style="width: 45%; margin-left: 8px">
-                <el-option label="升序" value="asc" />
-                <el-option label="降序" value="desc" />
-              </el-select>
-            </el-form-item>
-          </el-form>
+      <el-scrollbar class="builder-left-scroll">
+        <div class="builder-left-view">
+          <DataSourcePanel
+            :datasets="datasets"
+            :datasetId="datasetId"
+            @update:datasetId="datasetId = $event"
+            @datasetChange="onDatasetChange"
+          />
+          <el-divider style="margin: 8px 0" />
+          <FieldConfigPanel
+            :fields="fields"
+            :dims="dims"
+            :metrics="metrics"
+            :chart-type="chartType"
+          />
+          <!-- 显示选项（排序等） -->
+          <div class="left-extra">
+            <div class="panel-title">显示选项</div>
+            <el-form label-width="70px">
+              <el-form-item label="显示数量">
+                <el-input-number v-model="showOptions.groupLimit" :min="1" :max="500" style="width: 120px" />
+              </el-form-item>
+              <el-form-item label="排序方式">
+                <el-select v-model="sortConfig.field" style="width: 45%">
+                  <el-option label="不排序" value="" />
+                  <el-option label="按指标" value="metric" />
+                  <el-option label="按维度" value="dim" />
+                </el-select>
+                <el-select v-model="sortConfig.order" style="width: 45%; margin-left: 8px">
+                  <el-option label="升序" value="asc" />
+                  <el-option label="降序" value="desc" />
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </div>
         </div>
+      </el-scrollbar>
       </div>
 
     <!-- 右侧主区：工具栏 + 预览 + 配置 -->
@@ -160,7 +164,11 @@
         <el-divider style="margin: 8px 0" />
         <div class="right-section right-config">
           <div class="right-section-title">显示配置</div>
-          <ChartConfigPanel :chart-type="chartType" :config="displayConfig" :series-names="chartSeriesNames" @update:config="displayConfig = $event" />
+          <el-scrollbar class="right-config-scroll">
+            <div class="right-config-view">
+              <ChartConfigPanel :chart-type="chartType" :config="displayConfig" :series-names="chartSeriesNames" @update:config="displayConfig = $event" />
+            </div>
+          </el-scrollbar>
         </div>
       </div>
       </div>
@@ -516,11 +524,22 @@ onMounted(async () => {
 
 .builder-left {
   width: 300px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: var(--app-card);
   border-right: 1px solid var(--app-border-light);
-  padding: 4px 16px 16px;
   flex-shrink: 0;
+}
+
+.builder-left-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.builder-left-view {
+  padding: 4px 16px 16px;
 }
 
 .panel-title {
@@ -680,7 +699,7 @@ onMounted(async () => {
 }
 
 .right-types {
-  flex: 0 1 44%;
+  flex: 0 1 calc(44% - 18px);
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -689,7 +708,16 @@ onMounted(async () => {
 .right-config {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-config-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.right-config-view {
   padding-bottom: 16px;
 }
 
