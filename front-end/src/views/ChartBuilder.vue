@@ -709,6 +709,7 @@ onMounted(async () => {
 
 .rsec-icon {
   display: inline-flex;
+  color: var(--app-text-secondary);
 }
 
 .rsec-icon :deep(svg) {

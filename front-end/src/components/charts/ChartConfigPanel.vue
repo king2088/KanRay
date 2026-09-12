@@ -183,6 +183,7 @@ function groupIcon(label) {
 
 .cfg-icon {
   display: inline-flex;
+  color: var(--app-text-secondary);
 }
 
 .cfg-icon :deep(svg) {
