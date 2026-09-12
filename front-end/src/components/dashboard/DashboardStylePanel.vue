@@ -41,7 +41,7 @@
         <span class="ds-val">{{ cardStyle.titleFontSize }}px</span>
       </div>
       <div class="ds-row">
-        <span class="ds-label">标题底部线条</span>
+        <span class="ds-label">标题底部线</span>
         <el-switch v-model="cardStyle.titleUnderline" />
       </div>
     </div>
