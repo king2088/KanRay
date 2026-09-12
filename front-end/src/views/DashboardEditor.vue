@@ -1,47 +1,49 @@
 <template>
   <div class="dashboard-editor">
-    <div class="editor-toolbar">
-      <div class="et-left">
-        <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
-        <el-input v-model="dashName" placeholder="看板名称" style="width: 220px" maxlength="100" @change="onNameChange" />
-        <el-tag v-if="dashId" type="warning" effect="light">编辑中</el-tag>
-      </div>
-      <div class="et-right">
-        <span class="et-gap-label">左右</span>
-        <el-input-number v-model="gap.x" :min="4" :max="96" size="small" controls-position="right" style="width: 86px" />
-        <span class="et-gap-label">上下</span>
-        <el-input-number v-model="gap.y" :min="4" :max="96" size="small" controls-position="right" style="width: 86px" />
-        <el-dropdown trigger="click" @command="onAddComponent">
-          <el-button>
-            <el-icon style="margin-right: 4px"><Plus /></el-icon>组件
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="text">添加文本</el-dropdown-item>
-              <el-dropdown-item command="filter">添加筛选</el-dropdown-item>
-              <el-dropdown-item command="container">添加容器</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-button @click="$router.push(`/dashboards/${dashId}`)">
-          <el-icon style="margin-right: 4px"><View /></el-icon>预览
-        </el-button>
-        <el-button type="primary" :loading="saving" @click="save">
-          <el-icon style="margin-right: 4px"><Check /></el-icon>保存
-        </el-button>
-      </div>
-    </div>
-
     <div class="editor-body">
-      <DashboardCanvas
-        ref="canvasRef"
-        :items="items"
-        :charts="charts"
-        editable
-        :gap="gap"
-        @update:items="items = $event"
-      />
+      <div class="editor-canvas-col">
+        <div class="editor-toolbar">
+          <div class="et-left">
+            <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
+            <el-input v-model="dashName" placeholder="看板名称" style="width: 220px" maxlength="100" @change="onNameChange" />
+            <el-tag v-if="dashId" type="warning" effect="light">编辑中</el-tag>
+          </div>
+          <div class="et-right">
+            <span class="et-gap-label">左右</span>
+            <el-input-number v-model="gap.x" :min="4" :max="96" size="small" controls-position="right" style="width: 86px" />
+            <span class="et-gap-label">上下</span>
+            <el-input-number v-model="gap.y" :min="4" :max="96" size="small" controls-position="right" style="width: 86px" />
+            <el-dropdown trigger="click" @command="onAddComponent">
+              <el-button>
+                <el-icon style="margin-right: 4px"><Plus /></el-icon>组件
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="text">添加文本</el-dropdown-item>
+                  <el-dropdown-item command="filter">添加筛选</el-dropdown-item>
+                  <el-dropdown-item command="container">添加容器</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-button @click="$router.push(`/dashboards/${dashId}`)">
+              <el-icon style="margin-right: 4px"><View /></el-icon>预览
+            </el-button>
+            <el-button type="primary" :loading="saving" @click="save">
+              <el-icon style="margin-right: 4px"><Check /></el-icon>保存
+            </el-button>
+          </div>
+        </div>
+
+        <DashboardCanvas
+          ref="canvasRef"
+          :items="items"
+          :charts="charts"
+          editable
+          :gap="gap"
+          @update:items="items = $event"
+        />
+      </div>
       <ChartLibraryPanel :charts="charts" :items="items" @add-chart="onAddChart" />
     </div>
 
@@ -191,7 +193,8 @@ onMounted(load)
 .editor-toolbar {
   height: var(--app-header-height);
   background: var(--app-card);
-  border-bottom: 1px solid var(--app-border-light);
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -221,8 +224,16 @@ onMounted(load)
   overflow: hidden;
 }
 
-.editor-body :deep(.dash-canvas) {
+.editor-canvas-col {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor-body :deep(.dash-canvas) {
+  flex: 1;
+  min-height: 0;
 }
 </style>

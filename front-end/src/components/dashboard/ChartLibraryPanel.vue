@@ -1,46 +1,55 @@
 <template>
   <aside class="chart-library-panel">
-    <div class="clp-section">
+    <div class="clp-header">
       <div class="clp-title"><el-icon :size="15"><PieChart /></el-icon> 图表库</div>
-
-      <div v-if="available.length" class="clp-list">
-        <div
-          v-for="c in available"
-          :key="c.id"
-          class="chart-palette-item"
-          draggable="true"
-          @dragstart="onPaletteDrag($event, c)"
-          @click="$emit('add-chart', c)"
-        >
-          <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
-          <div class="clp-body">
-            <span class="clp-name">{{ c.name }}</span>
-            <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
-            <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
-          </div>
-        </div>
-      </div>
-      <div v-else class="clp-empty">
-        <el-empty description="没有可用图表" :image-size="46" />
-      </div>
-
-      <div v-if="used.length" class="clp-list clp-list--used">
-        <div v-for="c in used" :key="c.id" class="chart-palette-item is-used">
-          <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
-          <div class="clp-body">
-            <span class="clp-name">{{ c.name }}</span>
-            <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
-            <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
-          </div>
-          <el-tag size="small" type="info">已在看板</el-tag>
-        </div>
-      </div>
+      <el-select v-model="dsFilter" clearable placeholder="按数据源筛选" class="clp-select">
+        <el-option v-for="d in datasetOptions" :key="d" :label="d" :value="d" />
+      </el-select>
+      <el-input v-model="keyword" clearable placeholder="搜索图表名称" :prefix-icon="Search" class="clp-search" />
     </div>
+
+    <el-scrollbar class="clp-scroll">
+      <div class="clp-lists">
+        <div v-if="available.length" class="clp-list">
+          <div
+            v-for="c in available"
+            :key="c.id"
+            class="chart-palette-item"
+            draggable="true"
+            @dragstart="onPaletteDrag($event, c)"
+            @click="$emit('add-chart', c)"
+          >
+            <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
+            <div class="clp-body">
+              <span class="clp-name">{{ c.name }}</span>
+              <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+              <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="clp-empty">
+          <el-empty description="没有可用图表" :image-size="46" />
+        </div>
+
+        <div v-if="used.length" class="clp-list clp-list--used">
+          <div v-for="c in used" :key="c.id" class="chart-palette-item is-used">
+            <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
+            <div class="clp-body">
+              <span class="clp-name">{{ c.name }}</span>
+              <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+              <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+            </div>
+            <el-tag size="small" type="info">已在看板</el-tag>
+          </div>
+        </div>
+      </div>
+    </el-scrollbar>
   </aside>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { Search, PieChart } from '@element-plus/icons-vue'
 import { flattenItems } from '@/utils/grid-layout'
 import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
 
@@ -50,6 +59,20 @@ const props = defineProps({
 })
 
 defineEmits(['add-chart'])
+
+const dsFilter = ref('')
+const keyword = ref('')
+
+const datasetOptions = computed(() => [...new Set((props.charts || []).map((c) => c.datasetName || '未绑定数据源').filter(Boolean))])
+
+function matchesFilter(c) {
+  if (dsFilter.value && (c.datasetName || '未绑定数据源') !== dsFilter.value) return false
+  if (keyword.value.trim()) {
+    const kw = keyword.value.trim().toLowerCase()
+    if (!c.name.toLowerCase().includes(kw) && !(c.datasetName || '').toLowerCase().includes(kw)) return false
+  }
+  return true
+}
 
 function formatDate(s) {
   return s ? String(s).replace('T', ' ').slice(0, 16) : '-'
@@ -61,12 +84,12 @@ function usedChartIds() {
 
 const used = computed(() => {
   const ids = usedChartIds()
-  return props.charts.filter((c) => ids.has(c.id))
+  return props.charts.filter((c) => ids.has(c.id) && matchesFilter(c))
 })
 
 const available = computed(() => {
   const ids = usedChartIds()
-  return props.charts.filter((c) => !ids.has(c.id))
+  return props.charts.filter((c) => !ids.has(c.id) && matchesFilter(c))
 })
 
 function onPaletteDrag(e, chart) {
@@ -83,16 +106,35 @@ function onPaletteDrag(e, chart) {
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   padding: 12px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+  overflow: hidden;
+  min-height: 0;
 }
 
-.clp-section {
+.clp-header {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.clp-select,
+.clp-search {
+  width: 100%;
+}
+
+.clp-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.clp-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 8px 4px 0;
 }
 
 .clp-title {
@@ -111,7 +153,8 @@ function onPaletteDrag(e, chart) {
 }
 
 .clp-list--used {
-  margin-top: 2px;
+  border-top: 1px solid var(--app-border-light);
+  padding-top: 14px;
 }
 
 .clp-name {
