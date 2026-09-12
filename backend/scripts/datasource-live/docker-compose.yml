@@ -1,0 +1,116 @@
+# M2 数据源接入 live 实测环境（7 容器）
+# 用法：
+#   预下载镜像：docker compose -f backend/scripts/datasource-live/docker-compose.yml pull
+#   启动：       docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d
+#   查看状态：   docker compose -f backend/scripts/datasource-live/docker-compose.yml ps
+#   停止清理：   docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v
+# 说明：全部映射高位端口避免与本机冲突；统一测试密码 Kanban@123（仅本机测试用）。
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: kanban-live-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Kanban@123
+      MYSQL_DATABASE: testdb
+    ports:
+      - "13306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pKanban@123"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  mariadb:
+    image: mariadb:11
+    container_name: kanban-live-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: Kanban@123
+      MARIADB_DATABASE: testdb
+    ports:
+      - "13307:3306"
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-pKanban@123"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  postgres:
+    image: postgres:16
+    container_name: kanban-live-postgres
+    environment:
+      POSTGRES_PASSWORD: Kanban@123
+      POSTGRES_DB: testdb
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: kanban-live-clickhouse
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: Kanban@123
+      CLICKHOUSE_DB: testdb
+    ports:
+      - "18123:8123"   # HTTP 接口（provider 走这个）
+      - "19000:9000"   # native 接口（备用）
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--password", "Kanban@123", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: kanban-live-mssql
+    platform: linux/amd64   # Apple Silicon 走 Rosetta 仿真；镜像较大（约 1.5GB），首次启动较慢
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: Kanban@123
+    ports:
+      - "11433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -C -l 5"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  tidb:
+    image: pingcap/tidb:v8.5.1
+    container_name: kanban-live-tidb
+    # 单容器开发形态：内嵌 unistore 存储，免 PD/TiKV；MySQL 协议在 4000 端口
+    command: ["-store=unistore", "-path=/tmp/tidb"]
+    ports:
+      - "14000:4000"   # MySQL 协议
+      - "14080:10080"  # 状态接口
+    healthcheck:
+      test: ["CMD-SHELL", "</dev/tcp/127.0.0.1/4000"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  elasticsearch:
+    image: elasticsearch:8.15.3
+    container_name: kanban-live-es
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"   # 测试环境关闭认证
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "19200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
