@@ -132,6 +132,8 @@ function onSeriesStyleUpdate(nm, newVal) {
   top: 0;
   z-index: 5;
   background: var(--app-card);
+  box-sizing: border-box;
+  width: calc(100% + 20px);
   margin: 0 -10px;
   padding-left: 10px;
   padding-right: 10px;
