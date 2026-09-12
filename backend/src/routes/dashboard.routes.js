@@ -11,6 +11,15 @@ const { parsePageQuery, paginate } = require('../utils/pagination');
 
 const router = express.Router();
 
+// 校验看板布局中引用的图表均归当前用户所有（管理员放行）
+function assertLayoutOwnership(layout, user) {
+  for (const comp of layout || []) {
+    if (comp && typeof comp === 'object' && comp.type === 'chart' && comp.chartId !== undefined && comp.chartId !== null) {
+      access.assertResource('chart', Number(comp.chartId), user, rbac);
+    }
+  }
+}
+
 // GET /api/dashboards  (可选 page/pageSize -> {list,total}，否则返回全量数组)
 // 管理员全量；其余仅可见自己的看板
 router.get('/', requireUser, requirePermission('dashboard', 'read'), (req, res) => {
@@ -60,6 +69,7 @@ router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), (req
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '看板参数不正确', parsed.error.flatten());
+  if (parsed.data.layout !== undefined) assertLayoutOwnership(parsed.data.layout, req.user);
   ok(res, dashboardService.updateDashboard(id, parsed.data), '看板更新成功');
 });
 

@@ -103,3 +103,12 @@ test('setUserActive 启停', () => {
   rbac.setUserActive(u.id, false);
   assert.equal(db.prepare('SELECT is_active FROM users WHERE id = ?').get(u.id).is_active, 0);
 });
+
+test('isAdmin：非内置 admin 角色的 user:read+role:read 不算管理员', () => {
+  resetDb();
+  const r = rbac.createRole('usermgr', '用户管理', ['user:read', 'role:read', 'user:update']);
+  const u = rbac.createUser('um@x.com', 'Password123!', 'UM', [r.id]);
+  assert.equal(access.isAdmin({ id: u.id }, rbac), false);
+  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanban.local');
+  assert.equal(access.isAdmin({ id: admin.id }, rbac), true);
+});

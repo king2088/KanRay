@@ -44,7 +44,7 @@ function cleanup(filePath) {
 
 // GET /api/datasets  (可选 page/pageSize -> {list,total}，否则返回全量数组)
 // 管理员全量；其余仅可见自己的数据集
-router.get('/', requireUser, (req, res) => {
+router.get('/', requireUser, requirePermission('dataset', 'read'), (req, res) => {
   const items = datasetService.listDatasets(access.scopedWhere('dataset', req.user, rbac));
   const page = parsePageQuery(req.query);
   ok(res, page ? paginate(items, page.page, page.pageSize) : items);

@@ -168,21 +168,26 @@ function aggregate(query) {
     sql += ` GROUP BY ${dimGroups.join(', ')}`;
   }
 
-  // 排序：优先按用户指定的指标下标或维度列名
+  // 排序：仅允许整数指标下标或 'dim'（首维度）；其余一律 400
   if (query.sortBy !== undefined && query.sortBy !== null) {
     const sortOrder = query.sortOrder === 'desc' ? 'DESC' : 'ASC';
-    if (Number.isInteger(query.sortBy)) {
-      // 指标下标
-      if (query.sortBy >= 0 && query.sortBy < metricAliases.length) {
-        sql += ` ORDER BY ${metricAliases[query.sortBy]} ${sortOrder}`;
+    const resolveSort = (entry) => {
+      if (Number.isInteger(entry) && entry >= 0 && entry < metricAliases.length) return metricAliases[entry];
+      if (typeof entry === 'string' && entry === 'dim') {
+        if (dimensions.length === 0) return null;
+        return `__dim_${String(dimensions[0].field).replace(/"/g, '""')}__`;
       }
+      throw new HttpError(400, `不支持的排序字段: ${entry}`);
+    };
+    let parts = [];
+    if (Number.isInteger(query.sortBy)) {
+      parts = [resolveSort(query.sortBy)];
     } else if (Array.isArray(query.sortBy)) {
-      const parts = query.sortBy.map((s) => {
-        if (Number.isInteger(s) && s >= 0 && s < metricAliases.length) return metricAliases[s];
-        return s;
-      });
-      sql += ` ORDER BY ${parts.join(', ')} ${sortOrder}`;
+      parts = query.sortBy.map(resolveSort).filter((x) => x !== null);
+    } else if (typeof query.sortBy === 'string') {
+      parts = [resolveSort(query.sortBy)].filter((x) => x !== null);
     }
+    if (parts.length) sql += ` ORDER BY ${parts.join(', ')} ${sortOrder}`;
   }
 
   // 分组限制

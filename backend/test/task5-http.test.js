@@ -4,6 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { db, resetDb } = require('./helpers/db');
 const authService = require('../src/services/auth.service');
+const rbac = require('../src/services/rbac.service');
 const { seed } = require('../src/seeds');
 
 let server; let base;
@@ -234,6 +235,66 @@ test('列表按 owner 过滤（路由 scoping）：各自只见自己的资源�
   const all = await api('/api/dashboards', { method: 'GET', token: adminAt });
   assert.equal(all.status, 200);
   assert.ok(all.json.data.some((x) => x.id === dashboardIdA) && all.json.data.some((x) => x.id === dashboardIdB));
+});
+
+test('C1 回归：B 无法用 A 的数据集创建图表', async () => {
+  const bat = await login('b5@x.com', 'Password123!');
+  const r = await api('/api/charts', {
+    method: 'POST', token: bat,
+    body: {
+      name: '越权图表', chartType: 'bar', datasetId: datasetIdA,
+      config: { metrics: [{ field: 'amount', agg: 'sum' }], dimensions: [{ field: 'name' }], filters: [] },
+    },
+  });
+  assert.equal(r.status, 403, JSON.stringify(r.json));
+});
+
+test('C1 回归：遗留图表引用外部数据集时，B 读取与 /data 均被拒', async () => {
+  const bUser = db.prepare("SELECT id FROM users WHERE email = 'b5@x.com'").get();
+  const info = db.prepare('INSERT INTO charts (name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
+    .run('遗留图表', datasetIdA, 'bar', JSON.stringify({ metrics: [{ field: 'amount', agg: 'sum' }], dimensions: [{ field: 'name' }], filters: [] }), bUser.id);
+  const leakId = Number(info.lastInsertRowid);
+  const bat = await login('b5@x.com', 'Password123!');
+
+  const g = await api(`/api/charts/${leakId}`, { method: 'GET', token: bat });
+  assert.equal(g.status, 403, JSON.stringify(g.json));
+
+  const d = await api(`/api/charts/${leakId}/data`, { method: 'POST', token: bat, body: {} });
+  assert.equal(d.status, 403, JSON.stringify(d.json));
+});
+
+test('I2 回归：账号被禁用后旧令牌立即失效（401/403）', async () => {
+  const cRes = await api('/api/auth/register', { body: { email: 'c5@x.com', password: 'Password123!', name: 'C' } });
+  assert.equal(cRes.status, 200);
+  const cid = cRes.json.data.id;
+  const cat = await login('c5@x.com', 'Password123!');
+  assert.ok(cat);
+  rbac.setUserActive(cid, false);
+  const r = await api('/api/dashboards', { method: 'GET', token: cat });
+  assert.ok([401, 403].includes(r.status), `status=${r.status} ${JSON.stringify(r.json)}`);
+  assert.equal(r.json.code, r.status);
+});
+
+test('I3 回归：仅有 dashboard:read 的角色访问数据集列表 → 403', async () => {
+  rbac.createRole('dashview', '仅看板', ['dashboard:read']);
+  const dRes = await api('/api/auth/register', { body: { email: 'd5@x.com', password: 'Password123!', name: 'D' } });
+  assert.equal(dRes.status, 200);
+  setRole(dRes.json.data.id, 'dashview');
+  const dat = await login('d5@x.com', 'Password123!');
+  const r = await api('/api/datasets', { method: 'GET', token: dat });
+  assert.equal(r.status, 403, JSON.stringify(r.json));
+  assert.match(r.json.message, /dataset:read/);
+});
+
+test('I4 回归：自定义 user:read+role:read 角色不再有管理员越权视野', async () => {
+  rbac.createRole('mgmt', '用户与角色管理', ['user:read', 'role:read', 'dashboard:read']);
+  const fRes = await api('/api/auth/register', { body: { email: 'f5@x.com', password: 'Password123!', name: 'F' } });
+  assert.equal(fRes.status, 200);
+  setRole(fRes.json.data.id, 'mgmt');
+  const fat = await login('f5@x.com', 'Password123!');
+  const r = await api('/api/dashboards', { method: 'GET', token: fat });
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  assert.ok(!r.json.data.some((x) => x.id === dashboardIdA), '不应看到他人看板');
 });
 
 test('关闭临时 HTTP 服务', () => { server?.close(); });

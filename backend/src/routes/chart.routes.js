@@ -43,12 +43,17 @@ router.get('/', requireUser, requirePermission('chart', 'read'), (req, res) => {
 router.get('/:id', requireUser, requirePermission('chart', 'read'), (req, res) => {
   const id = Number(req.params.id);
   access.assertResource('chart', id, req.user, rbac);
-  ok(res, chartService.getChartOrThrow(id));
+  const chart = chartService.getChartOrThrow(id);
+  // 图表引用的数据集必须同样可访问，防止越权读取外部数据集
+  access.assertResource('dataset', chart.datasetId, req.user, rbac);
+  ok(res, chart);
 });
 
 // POST /api/charts
 router.post('/', requireUser, requirePermission('chart', 'create'), (req, res) => {
-  const chart = chartService.createChart(req.body, req.user.id);
+  const c = chartService.validateChartPayload(req.body);
+  access.assertResource('dataset', c.datasetId, req.user, rbac);
+  const chart = chartService.createChart(c, req.user.id);
   ok(res, chart, '图表创建成功');
 });
 
@@ -56,7 +61,9 @@ router.post('/', requireUser, requirePermission('chart', 'create'), (req, res) =
 router.patch('/:id', requireUser, requirePermission('chart', 'update'), (req, res) => {
   const id = Number(req.params.id);
   access.assertResource('chart', id, req.user, rbac);
-  const chart = chartService.updateChart(id, req.body);
+  const c = chartService.validateChartPayload(req.body);
+  access.assertResource('dataset', c.datasetId, req.user, rbac);
+  const chart = chartService.updateChart(id, c);
   ok(res, chart, '图表更新成功');
 });
 
@@ -77,6 +84,8 @@ router.post('/:id/data', requireUser, requirePermission('chart', 'read'), (req, 
   const id = Number(req.params.id);
   access.assertResource('chart', id, req.user, rbac);
   const chart = chartService.getChartOrThrow(id);
+  // 数据出口：图表引用的数据集必须可访问，防止经 /data 越权读取外部数据集
+  access.assertResource('dataset', chart.datasetId, req.user, rbac);
   const parsed = dataSchema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '参数不正确');
   const result = queryEngine.aggregate({

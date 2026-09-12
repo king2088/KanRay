@@ -158,6 +158,7 @@ module.exports = {
   countCharts,
   getChart,
   getChartOrThrow,
+  validateChartPayload,
   createChart,
   updateChart,
   deleteChart,
