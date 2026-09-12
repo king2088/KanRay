@@ -10,16 +10,31 @@
       <el-icon><component :is="item.icon" /></el-icon>
       <template #title>{{ item.title }}</template>
     </el-menu-item>
+    <el-sub-menu v-if="adminMenus.length" index="admin-root">
+      <template #title>
+        <el-icon><Setting /></el-icon>
+        <span>系统管理</span>
+      </template>
+      <el-menu-item v-for="m in adminMenus" :key="m.path" :index="m.path">
+        <el-icon><component :is="m.icon" /></el-icon>
+        <template #title>{{ m.title }}</template>
+      </el-menu-item>
+    </el-sub-menu>
   </el-menu>
 </template>
 
 <script setup>
-import { MENU_ITEMS } from '@/router/menu'
+import { computed } from 'vue'
+import { MENU_ITEMS, visibleAdminMenus } from '@/router/menu'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
   activeMenu: { type: String, required: true },
 })
+
+const auth = useAuthStore()
+const adminMenus = computed(() => visibleAdminMenus(auth))
 </script>
 
 <style scoped>

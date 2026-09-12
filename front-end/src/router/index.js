@@ -27,6 +27,9 @@ const routes = [
       { path: 'dashboards', name: 'dashboards', component: () => import('../views/DashboardList.vue'), meta: { title: '看板中心' } },
       { path: 'dashboards/:id', name: 'dashboard-view', component: () => import('../views/DashboardView.vue'), meta: { title: '看板查看' } },
       { path: 'dashboards/:id/edit', name: 'dashboard-edit', component: () => import('../views/DashboardEditor.vue'), meta: { title: '编辑看板' } },
+      { path: 'admin/users', name: 'admin-users', component: () => import('../views/admin/UserAdmin.vue'), meta: { title: '用户管理' } },
+      { path: 'admin/roles', name: 'admin-roles', component: () => import('../views/admin/RoleAdmin.vue'), meta: { title: '角色管理' } },
+      { path: 'admin/audit', name: 'admin-audit', component: () => import('../views/admin/AuditView.vue'), meta: { title: '操作审计' } },
     ],
   },
 ]
