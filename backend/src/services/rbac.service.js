@@ -119,4 +119,28 @@ function setUserActive(userId, active) {
   return rbacUser(userId);
 }
 
-module.exports = { permissionsOf, hasPermission, listPermissions, listRoles, createRole, updateRole, deleteRole, listUsers, createUser, assignRoles, setUserActive, rolesOf, rbacUser, BUILTIN_CODES };
+function updateUserProfile(userId, { name } = {}) {
+  if (!db.prepare('SELECT id FROM users WHERE id = ?').get(userId)) throw new HttpError(404, '用户不存在');
+  if (name !== undefined) db.prepare('UPDATE users SET name = ?, updated_at = datetime(?) WHERE id = ?').run(String(name).slice(0, 50), new Date().toISOString(), userId);
+  return rbacUser(userId);
+}
+
+function resetPassword(userId, newPassword) {
+  if (!db.prepare('SELECT id FROM users WHERE id = ?').get(userId)) throw new HttpError(404, '用户不存在');
+  if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(String(newPassword || ''))) throw new HttpError(400, '新密码至少 8 位且包含字母和数字');
+  db.prepare('UPDATE users SET password_hash = ?, updated_at = datetime(?) WHERE id = ?').run(bcrypt.hashSync(String(newPassword), 10), new Date().toISOString(), userId);
+  db.prepare('UPDATE refresh_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL').run(new Date().toISOString(), userId);
+  return rbacUser(userId);
+}
+
+function deleteUser(userId) {
+  if (!db.prepare('SELECT id FROM users WHERE id = ?').get(userId)) throw new HttpError(404, '用户不存在');
+  const t = db.transaction(() => {
+    db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  });
+  t();
+  return true;
+}
+
+module.exports = { permissionsOf, hasPermission, listPermissions, listRoles, createRole, updateRole, deleteRole, listUsers, createUser, assignRoles, setUserActive, rolesOf, rbacUser, BUILTIN_CODES, updateUserProfile, resetPassword, deleteUser };
