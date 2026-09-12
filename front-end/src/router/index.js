@@ -2,6 +2,18 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('../views/Login.vue'),
+    meta: { title: '登录' },
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import('../views/Register.vue'),
+    meta: { title: '注册' },
+  },
+  {
     path: '/',
     component: () => import('../views/MainLayout.vue'),
     redirect: '/datasets',
@@ -22,6 +34,21 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.beforeEach(async (to) => {
+  const { useAuthStore } = await import('@/stores/auth')
+  const auth = useAuthStore()
+  const publicPages = ['/login', '/register']
+  if (publicPages.includes(to.path)) {
+    if (auth.isLoggedIn) return '/'
+    return true
+  }
+  if (!auth.isLoggedIn) return `/login?redirect=${encodeURIComponent(to.fullPath)}`
+  if (!auth.user?.permissions?.length) {
+    try { await auth.me() } catch (e) { /* 拦截器已处理 */ }
+  }
+  return true
 })
 
 router.afterEach((to) => {

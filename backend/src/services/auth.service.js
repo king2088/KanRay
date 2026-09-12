@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const HttpError = require('../utils/http-error');
 const jwtUtil = require('../utils/jwt');
+const { PERMISSIONS } = require('../seeds');
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -26,10 +27,21 @@ function rolesOf(userId) {
   ).all(userId);
 }
 
+function permissionsOf(userId) {
+  const isAdmin = db.prepare(
+    `SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ? AND r.code = 'admin' LIMIT 1`
+  ).get(userId);
+  if (isAdmin) return PERMISSIONS.map((p) => p[0]);
+  return db.prepare(
+    `SELECT DISTINCT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id
+     JOIN user_roles ur ON ur.role_id = rp.role_id WHERE ur.user_id = ? ORDER BY p.code`
+  ).all(userId).map((r) => r.code);
+}
+
 function userWithRoles(userId) {
   const row = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!row) throw new HttpError(404, '用户不存在');
-  return { ...publicUser(row), roles: rolesOf(userId) };
+  return { ...publicUser(row), roles: rolesOf(userId), permissions: permissionsOf(userId) };
 }
 
 function register({ email, password, name = '', roleCode }) {
@@ -102,4 +114,4 @@ function updateProfile(userId, { name }) {
   return userWithRoles(userId);
 }
 
-module.exports = { register, login, refresh, logout, changePassword, updateProfile, userWithRoles, rolesOf, hashToken, assertStrongPassword, publicUser };
+module.exports = { register, login, refresh, logout, changePassword, updateProfile, userWithRoles, rolesOf, permissionsOf, hashToken, assertStrongPassword, publicUser };

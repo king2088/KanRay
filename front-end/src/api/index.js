@@ -44,3 +44,26 @@ export const dashboardApi = {
   update: (id, payload) => http.patch(`/dashboards/${id}`, payload),
   remove: (id) => http.delete(`/dashboards/${id}`),
 }
+
+export const authApi = {
+  register: (payload) => http.post('/auth/register', payload),
+  login: (payload) => http.post('/auth/login', payload),
+  refresh: (payload) => http.post('/auth/refresh', payload),
+  logout: () => http.post('/auth/logout'),
+  me: () => http.get('/auth/me'),
+  updateProfile: (payload) => http.patch('/auth/me', payload),
+  changePassword: (payload) => http.put('/auth/password', payload),
+}
+
+export const adminApi = {
+  users: (params) => http.get('/admin/users', { params }),
+  createUser: (payload) => http.post('/admin/users', payload),
+  updateUser: (id, payload) => http.patch(`/admin/users/${id}`, payload),
+  deleteUser: (id) => http.delete(`/admin/users/${id}`),
+  roles: () => http.get('/admin/roles'),
+  createRole: (payload) => http.post('/admin/roles', payload),
+  updateRole: (id, payload) => http.patch(`/admin/roles/${id}`, payload),
+  deleteRole: (id) => http.delete(`/admin/roles/${id}`),
+  permissions: () => http.get('/admin/permissions'),
+  audit: (params) => http.get('/admin/audit', { params }),
+}
