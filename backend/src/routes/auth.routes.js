@@ -1,5 +1,6 @@
 const express = require('express');
 const { z } = require('zod');
+const rateLimit = require('express-rate-limit');
 const HttpError = require('../utils/http-error');
 const { ok } = require('../middleware/response');
 const authService = require('../services/auth.service');
@@ -8,7 +9,16 @@ const audit = require('../services/audit.service');
 
 const router = express.Router();
 
-router.post('/register', (req, res) => {
+// 认证接口限流：避免暴力破解/滥用（登录/注册/刷新，登出与个人中心不限制）
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 429, message: '请求过于频繁，请稍后再试', data: null },
+});
+
+router.post('/register', authLimiter, (req, res) => {
   const s = z.object({ email: z.string().min(1), password: z.string().min(1), name: z.string().optional().default('') }).strict();
   const p = s.safeParse(req.body);
   if (!p.success) throw new HttpError(400, '注册信息不完整');
@@ -17,16 +27,21 @@ router.post('/register', (req, res) => {
   ok(res, user, '注册成功');
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', authLimiter, (req, res) => {
   const s = z.object({ email: z.string().min(1), password: z.string().min(1) });
   const p = s.safeParse(req.body);
   if (!p.success) throw new HttpError(400, '请输入邮箱和密码');
-  const r = authService.login(p.data.email, p.data.password);
-  audit.log({ userId: r.user.id, email: r.user.email, action: 'login' }, req);
-  ok(res, r, '登录成功');
+  try {
+    const r = authService.login(p.data.email, p.data.password);
+    audit.log({ userId: r.user.id, email: r.user.email, action: 'login' }, req);
+    ok(res, r, '登录成功');
+  } catch (e) {
+    if (e.status === 401 || e.status === 403) audit.log({ email: String(p.data.email || ''), action: 'login_failed' }, req);
+    throw e;
+  }
 });
 
-router.post('/refresh', (req, res) => {
+router.post('/refresh', authLimiter, (req, res) => {
   const s = z.object({ refreshToken: z.string().min(1) });
   const p = s.safeParse(req.body);
   if (!p.success) throw new HttpError(400, '缺少 refreshToken');
@@ -35,7 +50,7 @@ router.post('/refresh', (req, res) => {
 });
 
 router.post('/logout', requireUser, (req, res) => {
-  authService.logout(req.user);
+  authService.logout({ sub: req.user.id });
   audit.log({ userId: req.user.id, action: 'logout' }, req);
   ok(res, true, '已退出登录');
 });

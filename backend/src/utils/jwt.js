@@ -13,7 +13,7 @@ const ACCESS_MAX_AGE_SEC = ((exp) => {
 
 // 签发访问令牌
 function signAccess(payload, expiresInOverride) {
-  return jwt.sign(payload, config.auth.jwtSecret, {
+  return jwt.sign({ ...payload, type: 'access' }, config.auth.jwtSecret, {
     expiresIn: expiresInOverride !== undefined ? expiresInOverride : ACCESS_MAX_AGE_SEC,
   });
 }
@@ -21,7 +21,9 @@ function signAccess(payload, expiresInOverride) {
 // 校验访问令牌，失败统一抛出 401 HttpError（区分过期/无效，便于错误提示）
 function verifyAccess(token) {
   try {
-    return jwt.verify(token, config.auth.jwtSecret);
+    const decoded = jwt.verify(token, config.auth.jwtSecret);
+    if (decoded.type !== 'access') throw new HttpError(401, '令牌无效');
+    return decoded;
   } catch (e) {
     if (e.name === 'TokenExpiredError') throw new HttpError(401, '令牌已过期');
     throw new HttpError(401, '令牌无效');
@@ -42,7 +44,9 @@ function signRefresh(payload, ttlMs = REFRESH_TTL_MS) {
 // 校验刷新令牌
 function verifyRefresh(token) {
   try {
-    return jwt.verify(token, config.auth.jwtSecret);
+    const decoded = jwt.verify(token, config.auth.jwtSecret);
+    if (decoded.type !== 'refresh') throw new HttpError(401, '刷新令牌无效');
+    return decoded;
   } catch (e) {
     throw new HttpError(401, '刷新令牌无效');
   }
