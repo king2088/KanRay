@@ -675,7 +675,7 @@ onMounted(async () => {
 }
 
 .builder-right {
-  width: 340px;
+  width: 350px;
   display: flex;
   flex-direction: column;
   min-height: 0;

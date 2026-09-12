@@ -214,11 +214,11 @@ watch(() => props.value, () => { hoverLabel.value = activeGridLabel() })
 .icon-btn-group {
   display: inline-flex;
 }
-.icon-btn-group :deep(.el-tooltip__trigger:not(:last-child) .el-button) {
+.icon-btn-group :deep(.el-button.el-tooltip__trigger:not(:last-child)) {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
-.icon-btn-group :deep(.el-tooltip__trigger:not(:first-child) .el-button) {
+.icon-btn-group :deep(.el-button.el-tooltip__trigger:not(:first-child)) {
   margin-left: -1px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
