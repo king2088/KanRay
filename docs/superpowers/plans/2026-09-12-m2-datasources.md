@@ -63,7 +63,7 @@
 - Create: `backend/test/task12-crypto.test.js`
 - Create: `backend/test/task13-dialects.test.js`
 
-- [ ] **Step 1: Write failing test for drivers registry**
+- [x] **Step 1: Write failing test for drivers registry**
 
 Create `backend/test/task11-drivers.test.js`:
 
@@ -117,12 +117,12 @@ test('field schemas have name, label, type, required', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test backend/test/task11-drivers.test.js`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Write driver registry**
+- [x] **Step 3: Write driver registry**
 
 Create `backend/src/datasources/drivers.js`:
 
@@ -281,12 +281,12 @@ module.exports = [
 ];
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --test backend/test/task11-drivers.test.js`
 Expected: PASS
 
-- [ ] **Step 5: Write failing test for crypto**
+- [x] **Step 5: Write failing test for crypto**
 
 Create `backend/test/task12-crypto.test.js`:
 
@@ -320,12 +320,12 @@ test('mask hides password', () => {
 });
 ```
 
-- [ ] **Step 6: Run test to verify it fails**
+- [x] **Step 6: Run test to verify it fails**
 
 Run: `node --test backend/test/task12-crypto.test.js`
 Expected: FAIL — module not found
 
-- [ ] **Step 7: Write crypto module**
+- [x] **Step 7: Write crypto module**
 
 Create `backend/src/datasources/crypto.js`:
 
@@ -378,12 +378,12 @@ function mask(plain) {
 module.exports = { encrypt, decrypt, mask };
 ```
 
-- [ ] **Step 8: Run crypto test to verify it passes**
+- [x] **Step 8: Run crypto test to verify it passes**
 
 Run: `node --test backend/test/task12-crypto.test.js`
 Expected: PASS
 
-- [ ] **Step 9: Write failing test for dialects**
+- [x] **Step 9: Write failing test for dialects**
 
 Create `backend/test/task13-dialects.test.js`:
 
@@ -450,12 +450,12 @@ test('all dialects have quoteIdent, limit, dateTrunc, typeMapping, placeholder',
 });
 ```
 
-- [ ] **Step 10: Run test to verify it fails**
+- [x] **Step 10: Run test to verify it fails**
 
 Run: `node --test backend/test/task13-dialects.test.js`
 Expected: FAIL — module not found
 
-- [ ] **Step 11: Write dialects module**
+- [x] **Step 11: Write dialects module**
 
 Create `backend/src/datasources/dialects.js`:
 
@@ -515,12 +515,12 @@ const mssql = {
 module.exports = { mysql, pg, clickhouse, mssql };
 ```
 
-- [ ] **Step 12: Run dialects test to verify it passes**
+- [x] **Step 12: Run dialects test to verify it passes**
 
 Run: `node --test backend/test/task13-dialects.test.js`
 Expected: PASS
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add backend/src/datasources/ backend/test/task11-drivers.test.js backend/test/task12-crypto.test.js backend/test/task13-dialects.test.js
@@ -540,7 +540,7 @@ git commit -m "feat(m2): driver registry + AES-256-GCM crypto + SQL dialects"
 - Modify: `backend/test/helpers/db.js` (add data_sources DELETE to resetDb)
 - Create: `backend/test/task14-datasource-api.test.js`
 
-- [ ] **Step 1: Add data_sources table + datasets ALTER to db.js**
+- [x] **Step 1: Add data_sources table + datasets ALTER to db.js**
 
 Add at the end of the existing db.exec block in `backend/src/db.js` (after the refresh_tokens index), before the `ensureDatasetTable` function:
 
@@ -572,7 +572,7 @@ if (!dsCols.includes('schema_name')) db.exec("ALTER TABLE datasets ADD COLUMN sc
 if (!dsCols.includes('table_name_ext')) db.exec("ALTER TABLE datasets ADD COLUMN table_name_ext TEXT");
 ```
 
-- [ ] **Step 2: Add datasource to access.service.js RESOURCE_TABLES**
+- [x] **Step 2: Add datasource to access.service.js RESOURCE_TABLES**
 
 In `backend/src/services/access.service.js`, add `datasource` entries:
 
@@ -585,7 +585,7 @@ const RESOURCE_TABLES = {
 };
 ```
 
-- [ ] **Step 3: Update test helpers resetDb**
+- [x] **Step 3: Update test helpers resetDb**
 
 In `backend/test/helpers/db.js`, add `data_sources` DELETE:
 
@@ -601,7 +601,7 @@ function resetDb() {
 }
 ```
 
-- [ ] **Step 4: Create datasource service**
+- [x] **Step 4: Create datasource service**
 
 Create `backend/src/services/datasource.service.js`:
 
@@ -792,7 +792,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 5: Create datasource routes**
+- [x] **Step 5: Create datasource routes**
 
 Create `backend/src/routes/datasource.routes.js`:
 
@@ -900,7 +900,7 @@ router.get('/:id/schemas/:schema/tables/:table/columns', requireUser, requirePer
 module.exports = router;
 ```
 
-- [ ] **Step 6: Mount datasource routes in app.js**
+- [x] **Step 6: Mount datasource routes in app.js**
 
 In `backend/src/app.js`, add after the existing route imports:
 
@@ -914,7 +914,7 @@ And add after the `adminRoutes` mount:
 app.use('/api/datasources', datasourceRoutes);
 ```
 
-- [ ] **Step 7: Write failing test for datasource API**
+- [x] **Step 7: Write failing test for datasource API**
 
 Create `backend/test/task14-datasource-api.test.js`:
 
@@ -1047,12 +1047,12 @@ test('关闭临时 HTTP 服务', () => {
 });
 ```
 
-- [ ] **Step 8: Run test to verify it fails**
+- [x] **Step 8: Run test to verify it fails**
 
 Run: `node --test backend/test/task14-datasource-api.test.js`
 Expected: FAIL — providers module not found
 
-- [ ] **Step 9: Write stub providers**
+- [x] **Step 9: Write stub providers**
 
 Create `backend/src/datasources/providers/index.js`:
 
@@ -1560,12 +1560,12 @@ async function testConnection(cfg) {
 module.exports = { testConnection };
 ```
 
-- [ ] **Step 10: Run test to verify it passes**
+- [x] **Step 10: Run test to verify it passes**
 
 Run: `node --test backend/test/task14-datasource-api.test.js`
 Expected: PASS
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add backend/src/db.js backend/src/services/access.service.js backend/src/services/datasource.service.js backend/src/routes/datasource.routes.js backend/src/app.js backend/test/helpers/db.js backend/test/task14-datasource-api.test.js backend/src/datasources/providers/
@@ -1664,7 +1664,7 @@ test().catch(console.error);
 
 Expected: All return data, testConnection {ok:true}
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit --allow-empty -m "feat(m2): clickhouse/mssql providers verified against live Docker"
@@ -1721,7 +1721,7 @@ git commit --allow-empty -m "feat(m2): ES/API providers verified against live Do
 - Modify: `backend/src/engines/query-engine.js` (dispatch by source_type)
 - Create: `backend/test/task15-engine-sql.test.js`
 
-- [ ] **Step 1: Write SqlDataProvider**
+- [x] **Step 1: Write SqlDataProvider**
 
 Create `backend/src/datasources/sql-data-provider.js`:
 
@@ -1818,7 +1818,7 @@ async function query(dataset, { dimensions, metrics, filters, sort, limit }) {
 module.exports = { query };
 ```
 
-- [ ] **Step 2: Add registerSqlDataset to dataset.service.js**
+- [x] **Step 2: Add registerSqlDataset to dataset.service.js**
 
 Add to `backend/src/services/dataset.service.js`:
 
@@ -1844,7 +1844,7 @@ function registerSqlDataset(name, datasourceId, schemaName, tableName, fields, o
 
 And add `registerSqlDataset` to the module.exports.
 
-- [ ] **Step 3: Add register-table endpoint to datasource routes**
+- [x] **Step 3: Add register-table endpoint to datasource routes**
 
 Add to `backend/src/routes/datasource.routes.js`:
 
@@ -1865,7 +1865,7 @@ router.post('/:id/register-table', requireUser, requirePermission('datasource', 
 });
 ```
 
-- [ ] **Step 4: Modify query-engine.js for source_type dispatch**
+- [x] **Step 4: Modify query-engine.js for source_type dispatch**
 
 In `backend/src/engines/query-engine.js`, modify the `aggregate` function to dispatch by `source_type`:
 
@@ -1887,7 +1887,7 @@ function aggregate(query) {
 
 Insert the `if (ds.source_type === 'sql')` block after getting `ds` and before getting `fields`.
 
-- [ ] **Step 5: Write failing test for SqlDataProvider**
+- [x] **Step 5: Write failing test for SqlDataProvider**
 
 Create `backend/test/task15-engine-sql.test.js`:
 
@@ -1939,12 +1939,12 @@ test('existing aggregate still works for excel datasets', () => {
 });
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `node --test backend/test/task15-engine-sql.test.js`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/src/datasources/sql-data-provider.js backend/src/services/dataset.service.js backend/src/routes/datasource.routes.js backend/src/engines/query-engine.js backend/test/task15-engine-sql.test.js
