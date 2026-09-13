@@ -71,23 +71,25 @@ async function load() {
 }
 
 async function loadNode(node, resolve) {
-  const id = route.params.id
-  const data = node.data || {}
-  if (!data.type) {
-    resolve(schemaTree.value)
-  } else if (data.type === 'schema') {
-    const tables = await datasourceApi.tables(id, data.label)
-    resolve(tables.map((t) => ({
-      id: `${data.label}-${t.name}`, label: t.name, type: 'table', schema: data.label, children: [],
-    })))
-  } else if (data.type === 'table') {
-    const cols = await datasourceApi.columns(id, data.schema, data.label)
-    resolve(cols.map((c) => ({
-      id: `${data.schema}-${data.label}-${c.name}`, label: `${c.name} (${c.type})`, type: 'column', isLeaf: true,
-    })))
-  } else {
-    resolve([])
-  }
+  try {
+    const id = route.params.id
+    const data = node.data || {}
+    if (!data.type) {
+      resolve(schemaTree.value)
+    } else if (data.type === 'schema') {
+      const tables = await datasourceApi.tables(id, data.label)
+      resolve(tables.map((t) => ({
+        id: `${data.label}-${t.name}`, label: t.name, type: 'table', schema: data.label, children: [],
+      })))
+    } else if (data.type === 'table') {
+      const cols = await datasourceApi.columns(id, data.schema, data.label)
+      resolve(cols.map((c) => ({
+        id: `${data.schema}-${data.label}-${c.name}`, label: `${c.name} (${c.type})`, type: 'column', isLeaf: true,
+      })))
+    } else {
+      resolve([])
+    }
+  } catch (e) { /* 拦截器已提示，避免节点卡在加载中 */ resolve([]) }
 }
 
 async function doTest() {
@@ -100,9 +102,12 @@ async function doTest() {
 }
 
 async function createDataset(data) {
-  const { value: dsName } = await ElMessageBox.prompt('请输入数据集名称', '创建数据集', {
-    inputValue: data.label, confirmButtonText: '创建', cancelButtonText: '取消', inputValidator: (v) => !!v?.trim() || '名称不能为空',
-  })
+  let dsName
+  try {
+    dsName = (await ElMessageBox.prompt('请输入数据集名称', '创建数据集', {
+      inputValue: data.label, confirmButtonText: '创建', cancelButtonText: '取消', inputValidator: (v) => !!v?.trim() || '名称不能为空',
+    })).value
+  } catch (e) { return }
   const created = await datasourceApi.registerTable(route.params.id, { schema: data.schema, table: data.label, name: dsName.trim() })
   ElMessage.success('数据集创建成功')
   if (created?.id) router.push(`/datasets/${created.id}`)

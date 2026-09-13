@@ -19,7 +19,6 @@ const routes = [
     redirect: '/datasets',
     children: [
       { path: 'datasources', name: 'datasources', component: () => import('../views/DataSourceList.vue'), meta: { title: '数据源' } },
-      { path: 'datasources/new', name: 'datasource-new', component: () => import('../views/DataSourceDetail.vue'), meta: { title: '新建数据源' } },
       { path: 'datasources/:id', name: 'datasource-detail', component: () => import('../views/DataSourceDetail.vue'), meta: { title: '数据源详情' } },
       { path: 'datasets', name: 'datasets', component: () => import('../views/DatasetList.vue'), meta: { title: '数据管理' } },
       { path: 'datasets/new', name: 'dataset-upload', component: () => import('../views/DatasetUpload.vue'), meta: { title: '上传数据' } },

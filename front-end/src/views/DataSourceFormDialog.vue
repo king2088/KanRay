@@ -67,10 +67,10 @@ watch(() => props.editRow, (row) => {
     form.value = { name: '', type: '', config: {} }
   }
   testResult.value = null
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
 async function loadDrivers() {
-  drivers.value = await datasourceApi.drivers()
+  try { drivers.value = await datasourceApi.drivers() } catch (e) { /* 拦截器已提示 */ }
 }
 
 async function doTest() {

@@ -51,7 +51,7 @@
         <el-table-column label="操作" width="260" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="$router.push(`/datasources/${row.id}`)">详情</el-button>
-            <el-button link type="primary" size="small" @click="editRow = row; showForm = true">编辑</el-button>
+            <el-button link type="primary" size="small" @click="editRow = { ...row }; showForm = true">编辑</el-button>
             <el-button link type="primary" size="small" @click="testOne(row)" :loading="testingId === row.id">测试</el-button>
             <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
@@ -105,10 +105,12 @@ async function testOne(row) {
 }
 
 async function remove(row) {
-  await ElMessageBox.confirm(`确定删除数据源「${row.name}」？`, '删除确认', { type: 'warning' })
-  await datasourceApi.remove(row.id)
-  ElMessage.success('删除成功')
-  load()
+  try {
+    await ElMessageBox.confirm(`确定删除数据源「${row.name}」？`, '删除确认', { type: 'warning' })
+    await datasourceApi.remove(row.id)
+    ElMessage.success('删除成功')
+    load()
+  } catch (e) { /* 用户取消或出错，忽略 */ }
 }
 
 function onSaved() { showForm.value = false; editRow.value = null; load() }

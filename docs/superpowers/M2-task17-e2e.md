@@ -24,7 +24,7 @@ dev stack (backend + vite proxy + headless Chrome).
 
 ## E2E results (CDP probe `/tmp/probe-dslist.cjs`)
 
-All 20/20 steps passed:
+All 17/17 steps passed:
 
 1. Auth boot — login via `/api/auth/login` from the page context, token written to
    `localStorage` (`kanban_access`/`kanban_refresh`/`kanban_user`), navigate to `/datasources`. PASS
