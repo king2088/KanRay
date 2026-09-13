@@ -211,10 +211,10 @@ router.post('/:id/build/preview-node', requireUser, requirePermission('datasourc
   const catalog = await resolveBuildContext(id, req, tables);
   const { nodeSql } = buildSql.compileEtl(definition, dialect, catalog);
   try {
-    const { sql, fields } = nodeSql(nodeId);
+    const { sql, params, fields } = nodeSql(nodeId);
     const n = Math.min(200, Math.max(1, Number(limit) || 200));
     const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
-    const rows = await provider.runQuery(cfg, execSql, []);
+    const rows = await provider.runQuery(cfg, execSql, params);
     ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
   } catch (e) {
     if (e instanceof HttpError) throw e;
