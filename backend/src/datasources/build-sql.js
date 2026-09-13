@@ -34,10 +34,6 @@ function buildCatalogIndex(catalog) {
   return idx;
 }
 
-function quote(dialect, name) {
-  return dialect.quoteIdent(String(name));
-}
-
 /**
  * 编译明细宽表 SQL。
  * @param {object} def build_definition
@@ -46,7 +42,6 @@ function quote(dialect, name) {
  * @returns {{ sql, params, fields }}
  */
 function compileDetail(def, dialect, catalog) {
-  const idx = buildCatalogIndex(catalog);
   const quote = (name) => dialect.quoteIdent(String(name));
 
   // 纯 SQL：白名单 SELECT 只读；字段来自定义 fields（前端预览后导入）
@@ -73,14 +68,13 @@ function compileDetail(def, dialect, catalog) {
 
   const selectFields = (def.fields && def.fields.length ? def.fields : []);
   const fromParts = [`${qualified(tables[0])} ${quote(tables[0].alias)}`];
-  const joins = (def.joins || []).map((j, i) => {
+  (def.joins || []).forEach((j) => {
     const from = toFieldRef(j.from, tables[0].alias);
     const to = toFieldRef(j.to, null);
     const jt = (j.type === 'left' ? 'LEFT ' : j.type === 'right' ? 'RIGHT ' : '') + 'JOIN';
     const target = byAlias[to.alias];
     if (!target) throw new HttpError(400, `关联目标别名不存在: ${to.alias}`);
     fromParts.push(`${jt} ${qualified(target)} ${quote(to.alias)} ON ${quote(from.alias)}.${quote(from.field)} = ${quote(to.alias)}.${quote(to.field)}`);
-    return `join_${i}`;
   });
 
   // 明细输出列
@@ -95,15 +89,10 @@ function compileDetail(def, dialect, catalog) {
   });
   const whereSql = buildWhere(def.filters, dialect, byAlias, params);
 
-  const fieldsMeta = (agg) => agg
-    ? compileAggExprs(def, dialect, byAlias, agg, params)
-    : colRefs.map((c) => ({ name: c.alias, label: c.label, type: c.type }));
-
   let sql = `SELECT ${colRefs.map((c) => `${c.sql} AS ${quote(c.alias)}`).join(', ')} FROM ${fromParts.join(' ')}${whereSql.where ? ` ${whereSql.where}` : ''}`;
 
   // 聚合
   const agg = def.aggregation && (def.aggregation.groupBy || def.aggregation.metrics) ? def.aggregation : null;
-  const selectOut = agg ? [] : colRefs.map((c) => c.alias);
   if (agg) {
     const dims = (agg.groupBy || []).map((g, i) => {
       const r = toFieldRef(g, tables[0].alias);
@@ -120,7 +109,7 @@ function compileDetail(def, dialect, catalog) {
       const t = byAlias[r.alias];
       if (!t) throw new HttpError(400, `字段别名不存在: ${r.alias}`);
       let expr;
-      if (m.agg === 'count_distinct') expr = `${fn} ${quote(r.alias)}.${quote(r.field)})`;
+      if (m.agg === 'count_distinct') expr = `${fn.includes('(') ? `${fn} ` : `${fn}(`}${quote(r.alias)}.${quote(r.field)})`;
       else expr = `${fn}(${quote(r.alias)}.${quote(r.field)})`;
       return `${expr} AS ${quote('m_' + i)}`;
     });
@@ -135,8 +124,9 @@ function compileDetail(def, dialect, catalog) {
       ],
     };
   }
-  if (def.limit) sql = dialect.limit ? dialect.limit(sql, Number(def.limit)) : `${sql} LIMIT ${Number(def.limit)}`;
-  return { sql, params, fields: selectOut.map((x) => ({ name: x, label: x, type: 'string' })) };
+  const n = Number(def.limit);
+  if (Number.isFinite(n) && n > 0) sql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+  return { sql, params, fields: colRefs.map((c) => ({ name: c.alias, label: c.label, type: c.type })) };
 }
 
 /** 构建 WHERE 子句（仅 detail 前置筛选；聚合自带 groupBy）——占位符通用实现 */
@@ -171,7 +161,7 @@ function compileAggExprs(def, dialect, byAlias, agg, params) {
 /**
  * 编译 ETL 节点链（源 → join → filter → aggregate → output）。
  * 链式累积：每个节点在上一节点 SELECT 结果上变换。
- * @returns { node => {sql, params, fields, fieldMap} }
+ * @returns { node => {sql, params, fields} }
  */
 function compileEtl(def, dialect, catalog) {
   const idx = buildCatalogIndex(catalog);
@@ -180,14 +170,10 @@ function compileEtl(def, dialect, catalog) {
 
   let currentSql = null;
   let currentFields = [];       // { name, label, type }
-  let fieldMap = {};            // 'alias.field' -> 输出列名
+  let params = [];
 
-  const stack = [];
-  const nodes = [];
   const byId = {};
-  (def.nodes || []).forEach((n) => { byId[n.nodeId] = n; nodes.push(n); });
-
-  function push(rep) { stack.push(rep); }
+  (def.nodes || []).forEach((n) => { byId[n.nodeId] = n; });
 
   const walk = (node) => {
     const prev = node.sourceNode ? byId[node.sourceNode] : null;
@@ -204,7 +190,6 @@ function compileEtl(def, dialect, catalog) {
             const col = (meta.columns || []).find((x) => x.name === c) || {};
             return { name: `__${node.alias}__${c}`, label: `${node.alias}.${c}`, type: guessType(col.type) };
           });
-          cols.forEach((c) => { fieldMap[`${node.alias}.${c}`] = `__${node.alias}__${c}`; });
         } else {
           currentSql = `SELECT * FROM ${node.schema ? `${q(node.schema)}.${q(node.table)}` : q(node.table)} ${q(node.alias)}`;
           currentFields = [];
@@ -228,15 +213,14 @@ function compileEtl(def, dialect, catalog) {
           const col = (meta.columns || []).find((x) => x.name === c) || {};
           return { name: `__${node.to.alias}__${c}`, label: `${node.to.alias}.${c}`, type: guessType(col.type) };
         })];
-        newCols.forEach((c) => { fieldMap[`${node.to.alias}.${c}`] = `__${node.to.alias}__${c}`; });
         currentSql = `SELECT ${[...prevFields.map((f) => q(f.name)), ...newExprs].join(', ')} FROM ${wrap(currentSql, 'j0')} ${jt} ${node.to.schema ? `${q(node.to.schema)}.${q(node.to.table)}` : q(node.to.table)} ${q(node.to.alias)} ON ${onList.join(' AND ')}`;
         break;
       }
       case 'filter': {
         if (!prev) throw new HttpError(400, 'filter 节点必须指定 sourceNode');
-        const params = [];
         const preds = (node.conditions || []).map((c) => {
           const r = toFieldRef(c.field, null);
+          if (!r.alias) throw new HttpError(400, '筛选字段缺少别名');
           const col = `${q(mapOut(r))}`;
           const op = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE' }[c.op];
           if (!op) throw new HttpError(400, `不支持的筛选操作: ${c.op}`);
@@ -261,14 +245,14 @@ function compileEtl(def, dialect, catalog) {
             ? { alias: m.alias || m.source, field: m.field }
             : toFieldRef(m.field || m.source, null);
           const col = q(mapOut(r));
-          if (m.agg === 'count_distinct') return `${fn.includes('(') ? fn : fn + '('}${col}) AS ${q(`m_${i}`)}`;
+          if (m.agg === 'count_distinct') return `${fn.includes('(') ? `${fn} ` : `${fn}(`}${col}) AS ${q(`m_${i}`)}`;
           return `${fn}(${col}) AS ${q(`m_${i}`)}`;
         });
         currentFields = [
           ...dims.map((d) => ({ name: d.dim, label: d.dim, type: 'string' })),
           ...(node.metrics || []).map((m, i) => ({ name: `m_${i}`, label: m.label || `${m.field}(${m.agg})`, type: 'number' })),
         ];
-        currentSql = `SELECT ${dims.map((d) => `${d.out} AS ${q(d.dim)}`).concat(metricSqls).join(', ')} FROM ${wrap(currentSql, 'a0')} GROUP BY ${dims.map((d) => d.out).join(', ')}`;
+        currentSql = `SELECT ${dims.map((d) => `${d.out} AS ${q(d.dim)}`).concat(metricSqls).join(', ')} FROM ${wrap(currentSql, 'a0')}${dims.length ? ` GROUP BY ${dims.map((d) => d.out).join(', ')}` : ''}`;
         break;
       }
       case 'output': {
@@ -287,17 +271,16 @@ function compileEtl(def, dialect, catalog) {
     const target = byId[nodeId];
     if (!target) throw new HttpError(404, `节点不存在: ${nodeId}`);
     // 重建链（从链头依次应用）
-    const ordered = [];
-    const seen = new Set();
-    let cur = target;
     const chain = [];
+    let cur = target;
     while (cur) {
       chain.unshift(cur);
       if (!cur.sourceNode) break;
       cur = byId[cur.sourceNode];
     }
+    params = [];
     for (const n of chain) walk(n);
-    return { sql: currentSql, fields: [...currentFields] };
+    return { sql: currentSql, params: [...params], fields: [...currentFields] };
   };
 
   return { nodeSql };
