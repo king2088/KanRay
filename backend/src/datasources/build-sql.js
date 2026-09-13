@@ -220,7 +220,7 @@ function compileEtl(def, dialect, catalog) {
         const onList = (node.on || []).map((o) => {
           const a = toFieldRef(o.from, null);
           const b = toFieldRef(o.to, null);
-          return `${q(mapOut(a))} = ${q(mapOut(b))}`;
+          return `${q(mapOut(a))} = ${q(node.to.alias)}.${q(b.field)}`;
         });
         const jt = (node.on && node.on[0] && node.on[0].joinType === 'left') ? 'LEFT JOIN' : 'JOIN';
         const prevFields = [...currentFields];
@@ -268,7 +268,7 @@ function compileEtl(def, dialect, catalog) {
           ...dims.map((d) => ({ name: d.dim, label: d.dim, type: 'string' })),
           ...(node.metrics || []).map((m, i) => ({ name: `m_${i}`, label: m.label || `${m.field}(${m.agg})`, type: 'number' })),
         ];
-        currentSql = `SELECT ${dims.map((d) => `${d.out} AS ${q(d.dim)}`).concat(metricSqls).join(', ')} FROM ${wrap(currentSql, 'a0')} GROUP BY ${dims.map((d) => q(d.dim)).join(', ')}`;
+        currentSql = `SELECT ${dims.map((d) => `${d.out} AS ${q(d.dim)}`).concat(metricSqls).join(', ')} FROM ${wrap(currentSql, 'a0')} GROUP BY ${dims.map((d) => d.out).join(', ')}`;
         break;
       }
       case 'output': {
