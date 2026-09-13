@@ -13,7 +13,7 @@ M3 已交付可用的数据集构建器：纯SQL（textarea）/ 拖拉拽（点�
 3. ETL 期望观远 BI Smart ETL 的画布交互：左侧算子托盘 → 拖入画布 → 连线 → 点击节点配置 → 任意节点实时预览。
 4. 「纯SQL、库、表格、字段拖拉拽、以及ETL设计」整体观感不佳，需要精修。
 
-本计划在 **后端 `build_definition` 契约零改动** 的前提下重做前端交互与视觉。
+本计划重做前端交互与视觉，后端仅一处按前端需求做最小扩展（ETL JOIN 的 `right`，见 §5.6），其余 `build_definition` 契约不变。
 
 ## 2. 范围决策（brainstorming 确认）
 
@@ -74,11 +74,26 @@ M3 已交付可用的数据集构建器：纯SQL（textarea）/ 拖拉拽（点�
 - `editDefinition.type` → tab：`sql → 'sql'`、`builder → 'drag'`、`etl → 'etl'`；无 `build_definition` 或未知 type → 默认 `'sql'`。
 - 修复现 bug：目前直接 `activeMode = editDefinition.type`，`'builder'` 不是合法 tab 名会导致无选中。
 
-## 6. 数据流与契约（零后端改动）
+## 6. 后端改动核对（逐项过了一遍，前端新设置 × 后端能力）
+
+| 前端新设置 | 是否需要后端改动 | 说明 |
+| --- | --- | --- |
+| 别名重命名 / 维度·指标切换 | **否** | drag 定义已携带 `fields:[{source,field,label,type}]`；保存路由仅在 `fields` 为空时用目录回填，因此 `label`/`type` 直接透传进 `dataset_fields`（无 role 列，维度/指标以 type 刻画：metric→number、dimension→string/date，与 register-table 现有映射一致；图表侧按 type 做默认聚合提示） |
+| 字段拖拽排序 | **否** | 顺序由 `fields` 数组次序 + `insertDatasetFields` 的 position 决定 |
+| ETL JOIN 选择 RIGHT | **是（唯一改动）** | 见 §5.6 |
+| SQL 自动补全 / 预览 / 导入字段 | **否** | 走 `sql-assist` + `preview-detail` |
+| ETL 画布增删节点 / 逐节点预览 / 还原 | **否** | 走 `nodeSql` 链 + `preview-node`，`nodes`/`sourceNode` 结构不变 |
+
+## 6.1 数据流与契约（保持）
 
 - 三 tab 各自维护本地定义与 `getDefinition()`；`@change` 更新 `liveDefinition`；保存走 `currentDefinition()` 现有逻辑（含 §5.5 映射）。
 - 预览全部走现有接口：`preview-detail` / `preview-aggregate` / `preview-node`；
 - 字段注册、`f_<i>` / `__alias__col` 命名、`deriveRegistryFields`、`nodeSql`、`saveBuiltDataset` 均不变。
+
+### 5.6 后端最小扩展：ETL JOIN 支持 RIGHT
+- **动因**：新版 ETL join 面板提供 INNER / LEFT / RIGHT 三选（与 drag tab 对齐，dataEase 线也提供）。现有 `compileEtl` join 分支只识别 `node.on[0].joinType === 'left'`，`right` 无法表达。
+- **方案**：ETL join 节点定义增加可选字段 `joinType: 'inner' | 'left' | 'right'`（缺省 `inner`，向后兼容旧数据）；`compileEtl` 据此映射 `RIGHT JOIN`（`left→LEFT JOIN`、`right→RIGHT JOIN`、其余→`JOIN`），并删除单读 `on[0].joinType` 的分支。ETL UI join 面板改为三态下拉。
+- **配套**：`backend/test/task19-builder.test.js` 补一个 `right` join 断言（含 `RIGHT JOIN` 子串与输出字段）。
 
 ## 7. 错误处理
 
