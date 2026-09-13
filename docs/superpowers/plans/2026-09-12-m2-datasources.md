@@ -1630,11 +1630,11 @@ git commit -m "feat(m2): mysql/pg family providers verified against live Docker"
 
 ## Task 14: ClickHouse + MSSQL Providers (Live Docker)
 
-- [ ] **Step 1: Start Docker containers (user runs manually)**
+- [x] **Step 1: Start Docker containers (user runs manually)**
 
 User: `docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d clickhouse mssql`
 
-- [ ] **Step 2: Live smoke test — clickhouse**
+- [x] **Step 2: Live smoke test — clickhouse**
 
 User runs: `node -e "
 const ch = require('./backend/src/datasources/providers/clickhouse');
@@ -1649,7 +1649,7 @@ test().catch(console.error);
 
 Expected: All return data, testConnection {ok:true}
 
-- [ ] **Step 3: Live smoke test — mssql**
+- [x] **Step 3: Live smoke test — mssql**
 
 User runs: `node -e "
 const mssqlProvider = require('./backend/src/datasources/providers/mssql');
