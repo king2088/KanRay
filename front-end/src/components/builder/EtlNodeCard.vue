@@ -1,0 +1,39 @@
+<template>
+  <div class="etl-node-card" :class="{ 'etl-node-card--selected': selected, 'etl-node-card--error': error }">
+    <div class="etl-node-card__icon" :style="{ background: nodeColor }">{{ NODE_ICON[node.nodeType] }}</div>
+    <div class="etl-node-card__body">
+      <div class="etl-node-card__title">{{ NODE_TITLE[node.nodeType] }}</div>
+      <div class="etl-node-card__desc">{{ desc }}</div>
+      <div v-if="error" class="etl-node-card__error">{{ error }}</div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({ node: { type: Object, required: true }, error: { type: String, default: null }, selected: { type: Boolean, default: false }, nodeColor: { type: String, default: '#409eff' } })
+
+const NODE_ICON = { source: '源', join: '联', filter: '筛', aggregate: '聚', output: '出' }
+const NODE_TITLE = { source: '数据源', join: '关联', filter: '筛选', aggregate: '聚合', output: '输出' }
+
+const desc = computed(() => {
+  const n = props.node
+  if (n.nodeType === 'source') return `${n.schema || '-'}.${n.table || '-'}`
+  if (n.nodeType === 'join') return `${n.joinType || 'inner'} JOIN ${n.to?.schema || '-'}.${n.to?.table || '-'}`
+  if (n.nodeType === 'filter') return `${(n.conditions || []).length} 个条件`
+  if (n.nodeType === 'aggregate') return `${(n.metrics || []).length} 指标`
+  return `LIMIT ${n.limit}`
+})
+</script>
+
+<style scoped>
+.etl-node-card { display: flex; gap: 8px; align-items: center; background: var(--app-card); border: 1px solid var(--app-border); border-radius: 8px; padding: 8px 10px; width: 180px; cursor: grab; transition: box-shadow .15s, border-color .15s; }
+.etl-node-card--selected, .etl-node-card:hover { border-color: var(--app-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
+.etl-node-card--error { border-color: var(--el-color-danger); }
+.etl-node-card__icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600; }
+.etl-node-card__body { min-width: 0; }
+.etl-node-card__title { font-size: 13px; font-weight: 600; color: var(--app-text-primary); }
+.etl-node-card__desc { font-size: 11px; color: var(--app-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.etl-node-card__error { font-size: 11px; color: var(--el-color-danger); margin-top: 2px; }
+</style>
