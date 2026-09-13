@@ -8,6 +8,11 @@ const rbac = require('../services/rbac.service');
 const datasourceService = require('../services/datasource.service');
 const datasetService = require('../services/dataset.service');
 const drivers = require('../datasources/drivers');
+const db = require('../db');
+const dialects = require('../datasources/dialects');
+const providers = require('../datasources/providers');
+const buildSql = require('../datasources/build-sql');
+const { decryptConfig, getDriverMeta } = datasourceService;
 
 const router = express.Router();
 
@@ -110,6 +115,166 @@ router.post('/:id/register-table', requireUser, requirePermission('datasource', 
     req.user.id
   );
   ok(res, ds, '数据集创建成功');
+});
+
+// M3 构建：运行时加载（raw 行 + 明文配置 + 方言 + provider）
+function loadRuntime(id) {
+  const raw = db.prepare('SELECT * FROM data_sources WHERE id = ?').get(id);
+  if (!raw) throw new HttpError(404, '数据源不存在');
+  if (!raw.is_active) throw new HttpError(400, '数据源已停用');
+  const driverMeta = getDriverMeta(raw.type);
+  const dialect = dialects[driverMeta.family];
+  if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
+  const cfg = decryptConfig(JSON.parse(raw.config));
+  const provider = providers.getProvider(driverMeta.family);
+  if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, '该数据源不支持查询');
+  return { raw, driverMeta, dialect, cfg, provider };
+}
+
+// 汇总定义涉及的表元数据；元数据缺失时降级为空列集（编译仍可产出）
+async function resolveBuildContext(id, req, tables) {
+  const catalog = [];
+  for (const t of tables || []) {
+    if (!t || !t.table) continue;
+    try {
+      const columns = await datasourceService.listColumns(id, t.schema || null, t.table, req);
+      catalog.push({ schema: t.schema || null, table: t.table, columns });
+    } catch (e) {
+      catalog.push({ schema: t.schema || null, table: t.table, columns: [] });
+    }
+  }
+  return catalog;
+}
+
+// GET /api/datasources/:id/sql-assist —— 构建器元数据树
+router.get('/:id/sql-assist', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const schemas = await datasourceService.listSchemas(id, req);
+  const trees = [];
+  for (const s of schemas) {
+    const schema = s.name;
+    const tables = await datasourceService.listTables(id, schema, req);
+    const entries = [];
+    for (const t of tables.slice(0, 500)) {
+      const columns = await datasourceService.listColumns(id, schema, t.name, req);
+      entries.push({ schema, table: t.name, type: t.type, columns });
+    }
+    trees.push({ schema, tables: entries });
+  }
+  ok(res, trees);
+});
+
+// POST /api/datasources/:id/build/preview-detail —— 明细预览
+router.post('/:id/build/preview-detail', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const { definition, limit } = req.body || {};
+  if (!definition) throw new HttpError(400, '缺少构建定义');
+  const { dialect, cfg, provider } = loadRuntime(id);
+  const catalog = await resolveBuildContext(id, req, definition.tables || []);
+  const { sql, params, fields } = buildSql.compileDetail(definition, dialect, catalog);
+  const n = Math.min(200, Math.max(1, Number(limit) || 200));
+  const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+  const rows = await provider.runQuery(cfg, execSql, params);
+  ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
+});
+
+// POST /api/datasources/:id/build/preview-aggregate —— 聚合预览
+router.post('/:id/build/preview-aggregate', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const { definition, aggregation, limit } = req.body || {};
+  if (!definition) throw new HttpError(400, '缺少构建定义');
+  const merged = { ...definition, aggregation: aggregation || definition.aggregation };
+  const { dialect, cfg, provider } = loadRuntime(id);
+  const catalog = await resolveBuildContext(id, req, definition.tables || []);
+  const { sql, params, fields } = buildSql.compileDetail(merged, dialect, catalog);
+  const n = Math.min(1000, Math.max(1, Number(limit) || 1000));
+  const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+  const rows = await provider.runQuery(cfg, execSql, params);
+  ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
+});
+
+// POST /api/datasources/:id/build/preview-node —— ETL 节点预览
+router.post('/:id/build/preview-node', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const { definition, nodeId, limit } = req.body || {};
+  if (!definition || !nodeId) throw new HttpError(400, '缺少定义或节点');
+  const { dialect, cfg, provider } = loadRuntime(id);
+  const tables = [];
+  for (const n of definition.nodes || []) {
+    if (n.nodeType === 'source') tables.push({ schema: n.schema || null, table: n.table });
+    else if (n.nodeType === 'join' && n.to) tables.push({ schema: n.to.schema || null, table: n.to.table });
+  }
+  const catalog = await resolveBuildContext(id, req, tables);
+  const { nodeSql } = buildSql.compileEtl(definition, dialect, catalog);
+  try {
+    const { sql, fields } = nodeSql(nodeId);
+    const n = Math.min(200, Math.max(1, Number(limit) || 200));
+    const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+    const rows = await provider.runQuery(cfg, execSql, []);
+    ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    throw new HttpError(500, `ETL节点执行失败: ${e.message}`);
+  }
+});
+
+// POST /api/datasources/:id/build/save —— 保存构建定义（缺失字段时 server 端回填）
+router.post('/:id/build/save', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const { name, definition, datasetId } = req.body || {};
+  if (!definition) throw new HttpError(400, '缺少构建定义');
+  let def = definition;
+  const defType = definition.type;
+  if ((!definition.fields || !definition.fields.length) && (defType === 'builder' || defType === 'etl')) {
+    const { dialect } = loadRuntime(id);
+    let fields = [];
+    if (defType === 'builder') {
+      const catalog = await resolveBuildContext(id, req, definition.tables || []);
+      ({ fields } = buildSql.compileDetail(definition, dialect, catalog));
+    } else {
+      const tables = [];
+      for (const n of definition.nodes || []) {
+        if (n.nodeType === 'source') tables.push({ schema: n.schema || null, table: n.table });
+        else if (n.nodeType === 'join' && n.to) tables.push({ schema: n.to.schema || null, table: n.to.table });
+      }
+      const catalog = await resolveBuildContext(id, req, tables);
+      const { nodeSql } = buildSql.compileEtl(definition, dialect, catalog);
+      const last = (definition.nodes || [])[definition.nodes.length - 1];
+      if (last && last.nodeId) ({ fields } = nodeSql(last.nodeId));
+    }
+    if (fields && fields.length) def = { ...definition, fields };
+  }
+  const ds = datasetService.saveBuiltDataset({
+    name,
+    definition: def,
+    datasourceId: id,
+    datasetId: datasetId ? Number(datasetId) : null,
+    ownerId: req.user.id,
+    admin: access.isAdmin(req.user, rbac),
+  });
+  ok(res, ds, datasetId ? '数据集已更新' : '数据集创建成功');
+});
+
+// POST /api/datasources/:id/build/validate —— 语义校验
+router.post('/:id/build/validate', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const { definition } = req.body || {};
+  if (!definition) throw new HttpError(400, '缺少构建定义');
+  const { dialect } = loadRuntime(id);
+  const result = { valid: true, errors: [] };
+  try {
+    buildSql.compileDetail(definition, dialect, []);
+  } catch (e) {
+    result.valid = false;
+    result.errors.push(e.message);
+  }
+  ok(res, result);
 });
 
 module.exports = router;
