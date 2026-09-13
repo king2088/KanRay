@@ -1,18 +1,23 @@
 <template>
   <div class="drag-builder">
     <div class="drag-builder__left">
-      <div class="drag-builder__panel-title">目录 · 拖「上架」进画布</div>
+      <div class="drag-builder__panel-title">目录 · 拖「表」进画布</div>
       <SchemaTree
         :catalog="schemas"
+        :show-fields="false"
         @mount-table="mountTable"
         @drop.prevent
       />
-      <div class="dropzone" @dragover.prevent @drop="onDropTable">
-        <el-icon><Plus /></el-icon> 把表拖到这里，或点上架
-      </div>
     </div>
 
-    <div class="drag-builder__mid">
+    <div
+      class="drag-builder__mid"
+      :class="{ 'drag-builder__mid--over': dragOver }"
+      @dragover.prevent="onDragOver"
+      @drop="onMidDrop"
+      @dragleave="dragOver = false"
+    >
+      <div v-if="dragOver" class="drag-builder__mid--overlay">松开以加入表</div>
       <el-tabs v-model="activeTab" type="card" size="small">
         <!-- 选字段 -->
         <el-tab-pane label="选字段" name="fields">
@@ -111,7 +116,6 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
 import Sortable from 'sortablejs'
 import { buildApi } from '@/api'
 import { allFields, AGG_OPTIONS } from '@/utils/catalog'
@@ -137,6 +141,18 @@ const lastError = ref('')
 const previewLimit = 200
 const sortables = {}
 const aliasMemory = {}
+const dragOver = ref(false)
+
+function onDragOver(evt) {
+  dragOver.value = evt.dataTransfer.types.includes('text/plain')
+}
+
+function onMidDrop(evt) {
+  dragOver.value = false
+  const tableId = evt.dataTransfer.getData('text/plain')
+  if (!tableId) return
+  mountTable(tableId)
+}
 
 function tableKey(t) { return `${t.schema}:${t.table}` }
 
@@ -190,11 +206,6 @@ function mountTable(id, keepAlias = false) {
   tables.value.push({ alias: keepAlias ? keepAlias : `t${tables.value.length}`, schema: meta.schema, table: meta.table })
   tryPreJoin()
   emitChange()
-}
-
-function onDropTable(e) {
-  const id = e.dataTransfer.getData('text/plain')
-  if (id && id.includes(':')) mountTable(id)
 }
 
 function rememberAlias(t) { aliasMemory[tableKey(t)] = t.alias }
@@ -343,8 +354,9 @@ defineExpose({ getDefinition: () => definition.value })
 .drag-builder { display: flex; gap: 12px; height: 100%; }
 .drag-builder__left { flex: 0 0 260px; border: 1px solid var(--el-border-color); border-radius: 8px; overflow: auto; padding: 8px; }
 .drag-builder__panel-title { font-size: 13px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 8px; }
-.dropzone { margin-top: 12px; border: 1px dashed var(--el-border-color); border-radius: 6px; padding: 14px; text-align: center; font-size: 12px; color: var(--app-text-secondary); display: flex; align-items: center; justify-content: center; gap: 4px; }
-.drag-builder__mid { flex: 1; min-width: 480px; overflow: auto; }
+.drag-builder__mid { flex: 1; min-width: 480px; overflow: auto; position: relative; }
+.drag-builder__mid--over { border: 1px dashed var(--el-color-primary); border-radius: 8px; }
+.drag-builder__mid--overlay { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--el-color-primary); background: var(--el-color-primary-light-9); border-radius: 8px; pointer-events: none; }
 .drag-builder__preview { flex: 0 0 40%; min-width: 360px; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 8px; overflow: auto; }
 .drag-builder__preview-btn { margin-bottom: 8px; }
 .drag-builder__error { font-size: 12px; color: var(--el-color-danger); }

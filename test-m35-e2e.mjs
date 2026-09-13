@@ -227,6 +227,61 @@ try {
     const eSize = fs.existsSync(path.join(OUT, 'etl-light.png')) ? fs.statSync(path.join(OUT, 'etl-light.png')).size : 0
     record('screenshot etl-light.png', eSize > 0, `size=${eSize}B`)
   })
+
+  // ---- 10. drag builder: tables-only left tree + drop table into mid canvas ----
+  await runCase('drag builder: nav list → detail → builder → drag tab', async () => {
+    await page.goto(`${BASE}/datasources`)
+    await stripOverlay()
+    await page.waitForSelector('.el-table__row', { timeout: 10000 })
+    const dsList = await api(tok, '/datasources')
+    const ds = (dsList.body.data || []).find((x) => x.id === 1)
+    if (!ds) throw new Error('datasource id=1 missing from list')
+    const dsNameRe = new RegExp('^' + ds.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
+    await page.locator('.cell-name .el-link').filter({ hasText: dsNameRe }).click()
+    await page.waitForURL((url) => /\/datasources\/1$/.test(new URL(url).pathname), { timeout: 10000 })
+    await page.getByRole('button', { name: '新建构建' }).first().click()
+    await page.waitForURL((url) => /\/datasources\/1\/builder/.test(new URL(url).pathname), { timeout: 10000 })
+    await page.waitForSelector('.builder-page', { timeout: 10000 })
+    await page.locator('.el-tabs__item', { hasText: '拖拉拽' }).click()
+    await page.locator('.schema-tree__node').first().waitFor({ state: 'visible', timeout: 10000 })
+    record('drag builder: nav list → detail → builder → drag tab', true, 'path=' + new URL(page.url()).pathname)
+  })
+
+  await runCase('drag builder: tables-only left tree (showFields=false)', async () => {
+    const salesNode = page.locator('.schema-tree__node').filter({ has: page.getByText('sales', { exact: true }) }).first()
+    const salesVisible = await salesNode.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false)
+    const openBtns = await page.locator('.schema-tree__actions .el-button', { hasText: '打开' }).count()
+    const insertBtns = await page.locator('.schema-tree__actions .el-button', { hasText: '插入' }).count()
+    const ok = salesVisible && openBtns === 0 && insertBtns === 0
+    record('drag builder: tables-only left tree (showFields=false)', ok, `sales=${salesVisible} 打开=${openBtns} 插入=${insertBtns}`)
+    if (!ok) throw new Error('left tree should show tables only')
+  })
+
+  await runCase('drag builder: drop sales into mid renders field-card + screenshot', async () => {
+    const salesNode = page.locator('.schema-tree__node').filter({ has: page.getByText('sales', { exact: true }) }).first()
+    await salesNode.scrollIntoViewIfNeeded()
+    const dispatched = await page.evaluate(() => {
+      const node = Array.from(document.querySelectorAll('.schema-tree__node')).find((el) => el.getAttribute('draggable') === 'true' && el.querySelector('.schema-tree__label')?.textContent === 'sales')
+      const mid = document.querySelector('.drag-builder__mid')
+      if (!node || !mid) return 'missing-node-or-mid'
+      const dt = new DataTransfer()
+      node.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }))
+      mid.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }))
+      mid.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }))
+      mid.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }))
+      return 'dispatched'
+    })
+    if (dispatched !== 'dispatched') throw new Error(`dispatch failed: ${dispatched}`)
+    const card = page.locator('.drag-builder__mid .field-card:has-text("testdb.sales")')
+    const cardCount = await card.waitFor({ state: 'visible', timeout: 10000 }).then(() => card.count()).catch(() => 0)
+    const pErr = await pageErrorNote()
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: path.join(OUT, 'drag-drop-in-mid.png') })
+    const shot = fs.existsSync(path.join(OUT, 'drag-drop-in-mid.png')) ? fs.statSync(path.join(OUT, 'drag-drop-in-mid.png')).size : 0
+    const ok = cardCount >= 1 && !pErr && shot > 0
+    record('drag builder: drop sales into mid renders field-card', ok, `cards=${cardCount}${pErr ? ` pageErrors=${pErr}` : ''} shot=${shot}B`)
+    if (!ok) throw new Error('field-card did not render after drop')
+  })
 } catch (e) {
   console.error(`[fatal] ${e.message || e}`)
   fatal = true
