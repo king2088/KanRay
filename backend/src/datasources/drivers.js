@@ -112,7 +112,7 @@ const drivers = [
   },
   {
     type: 'api',
-    name: 'HTTP API',
+    name: 'API/Web Service',
     category: '其他',
     family: 'http',
     status: 'tested',
@@ -191,7 +191,7 @@ const drivers = [
   },
   {
     type: 'gaussdb',
-    name: '华为 GaussDB',
+    name: 'GaussDB',
     category: '国产',
     family: 'pg',
     status: 'compatible',
@@ -239,7 +239,7 @@ const drivers = [
   },
   {
     type: 'db2',
-    name: 'IBM DB2',
+    name: 'DB2',
     category: '关系型',
     family: 'none',
     status: 'planned',
@@ -270,7 +270,7 @@ const drivers = [
   },
   {
     type: 'gbase',
-    name: '南大通用 GBase',
+    name: '南大通用 GBASE',
     category: '国产',
     family: 'none',
     status: 'planned',
@@ -314,7 +314,7 @@ const drivers = [
   },
   {
     type: 'presto',
-    name: 'Presto / Trino',
+    name: 'Presto',
     category: '分析型',
     family: 'none',
     status: 'planned',
@@ -329,7 +329,7 @@ const drivers = [
   },
   {
     type: 'maxcompute',
-    name: 'MaxCompute',
+    name: '阿里云 MaxCompute',
     category: '其他',
     family: 'none',
     status: 'planned',
