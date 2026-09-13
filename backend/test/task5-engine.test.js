@@ -26,23 +26,23 @@ function makeFixture() {
   dsId = ds.id;
 }
 
-test('sortBy：合法整数指标下标可排序', () => {
+test('sortBy：合法整数指标下标可排序', async () => {
   resetDb();
   makeFixture();
-  const r = queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 0, sortOrder: 'desc' });
+  const r = await queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 0, sortOrder: 'desc' });
   assert.equal(r.rows[0].name, 'b');
 });
 
-test('sortBy：字符串 dim 按首维度排序', () => {
-  const r = queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 'dim' });
+test('sortBy：字符串 dim 按首维度排序', async () => {
+  const r = await queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 'dim' });
   assert.equal(r.rows[0].name, 'a');
   assert.equal(r.rows[1].name, 'b');
 });
 
-test('sortBy：数组内恶意字符串被拒绝', () => {
-  assert.throws(() => queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: ['(SELECT 1)'] }), /不支持的排序字段/);
+test('sortBy：数组内恶意字符串被拒绝', async () => {
+  await assert.rejects(() => queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: ['(SELECT 1)'] }), /不支持的排序字段/);
 });
 
-test('sortBy：未知字符串被拒绝', () => {
-  assert.throws(() => queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 'amount' }), /不支持的排序字段/);
+test('sortBy：未知字符串被拒绝', async () => {
+  await assert.rejects(() => queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 'amount' }), /不支持的排序字段/);
 });

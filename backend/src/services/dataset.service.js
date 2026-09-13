@@ -173,6 +173,27 @@ function paginateRows(id, page, pageSize) {
   };
 }
 
+/**
+ * 注册外部数据库表为 SQL 数据集（不落库数据，仅登记元数据）
+ */
+function registerSqlDataset(name, datasourceId, schemaName, tableName, fields, ownerId) {
+  const ins = db.prepare(
+    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, owner_id)
+     VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?)`
+  );
+  const info = ins.run(String(name || tableName).trim().slice(0, 100), name, fields.length, tableName, datasourceId, schemaName, tableName, ownerId);
+  const datasetId = Number(info.lastInsertRowid);
+
+  const insField = db.prepare(
+    'INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)'
+  );
+  fields.forEach((f, i) => {
+    insField.run(datasetId, f.name, f.label || f.name, f.type || 'string', i);
+  });
+
+  return getDataset(datasetId);
+}
+
 module.exports = {
   listDatasets,
   getDataset,
@@ -185,4 +206,5 @@ module.exports = {
   renameDataset,
   updateFieldLabel,
   paginateRows,
+  registerSqlDataset,
 };

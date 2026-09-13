@@ -143,12 +143,12 @@ const querySchema = z.object({
   groupLimit: z.number().int().positive().optional(),
 }).strict();
 
-router.post('/:id/query', requireUser, requirePermission('dataset', 'read'), (req, res) => {
+router.post('/:id/query', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
   const id = Number(req.params.id);
   access.assertResource('dataset', id, req.user, rbac);
   const parsed = querySchema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '查询参数不正确', parsed.error.flatten());
-  const result = queryEngine.aggregate({ datasetId: id, ...parsed.data });
+  const result = await queryEngine.aggregate({ datasetId: id, ...parsed.data });
   ok(res, result);
 });
 

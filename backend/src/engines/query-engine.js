@@ -1,6 +1,7 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow, getFieldsOrThrow } = require('../services/dataset.service');
+const sqlDataProvider = require('../datasources/sql-data-provider');
 
 const AGG_FUNCS = {
   sum: 'SUM',
@@ -113,8 +114,14 @@ function buildWhere(filters, fieldsByName) {
  *    filters: [{field,op,value}], groupLimit, sortBy, sortOrder
  *  }
  */
-function aggregate(query) {
+async function aggregate(query) {
   const ds = getDatasetOrThrow(query.datasetId);
+
+  // SQL 数据集走 SqlDataProvider
+  if (ds.source_type === 'sql') {
+    return sqlDataProvider.query(ds, query);
+  }
+
   const fields = getFieldsOrThrow(query.datasetId);
   const fieldsByName = {};
   fields.forEach((f) => { fieldsByName[f.name] = f; });

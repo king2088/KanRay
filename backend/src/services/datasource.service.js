@@ -185,6 +185,6 @@ async function listColumns(id, schema, table, req) {
 }
 
 module.exports = {
-  getDriverMeta, list, get, create, update, remove,
+  getDriverMeta, decryptConfig, list, get, create, update, remove,
   testConfig, testSaved, listSchemas, listTables, listColumns,
 };

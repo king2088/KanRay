@@ -96,4 +96,20 @@ router.get('/:id/schemas/:schema/tables/:table/columns', requireUser, requirePer
   ok(res, await datasourceService.listColumns(id, req.params.schema, req.params.table, req));
 });
 
+// POST /api/datasources/:id/register-table —— 注册外部表为 SQL 数据集
+router.post('/:id/register-table', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
+  const id = Number(req.params.id);
+  access.assertResource('datasource', id, req.user, rbac);
+  const { schema, table, name } = req.body || {};
+  if (!table) throw new HttpError(400, '缺少表名');
+  const columns = await datasourceService.listColumns(id, schema, table, req);
+  const datasetService = require('../services/dataset.service');
+  const ds = datasetService.registerSqlDataset(
+    name || table, id, schema, table,
+    columns.map((c) => ({ name: c.name, label: c.name, type: c.role === 'metric' ? 'number' : 'string' })),
+    req.user.id
+  );
+  ok(res, ds, '数据集创建成功');
+});
+
 module.exports = router;

@@ -80,7 +80,7 @@ const dataSchema = z.object({
   filters: z.array(z.object({ field: z.string(), op: z.string(), value: z.any() })).optional().default([]),
 }).strict();
 
-router.post('/:id/data', requireUser, requirePermission('chart', 'read'), (req, res) => {
+router.post('/:id/data', requireUser, requirePermission('chart', 'read'), async (req, res) => {
   const id = Number(req.params.id);
   access.assertResource('chart', id, req.user, rbac);
   const chart = chartService.getChartOrThrow(id);
@@ -88,7 +88,7 @@ router.post('/:id/data', requireUser, requirePermission('chart', 'read'), (req, 
   access.assertResource('dataset', chart.datasetId, req.user, rbac);
   const parsed = dataSchema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '参数不正确');
-  const result = queryEngine.aggregate({
+  const result = await queryEngine.aggregate({
     datasetId: chart.datasetId,
     ...chart.config,
     filters: parsed.data.filters.concat(chart.config.filters || []),
