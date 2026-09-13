@@ -55,8 +55,7 @@ async function testConnection(cfg) {
 }
 
 async function listSchemas(cfg) {
-  const rows = await q(cfg, "SELECT name FROM system.databases ORDER BY name");
-  return rows.map((r) => ({ name: String(r.name) }));
+  return cfg.database ? [{ name: cfg.database }] : [];
 }
 
 async function listTables(cfg, type, schema) {

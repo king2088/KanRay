@@ -22,13 +22,7 @@ async function testConnection(cfg) {
 }
 
 async function listSchemas(cfg) {
-  const conn = await makeConn(cfg);
-  try {
-    const [rows] = await conn.query("SELECT SCHEMA_NAME AS name FROM information_schema.SCHEMATA");
-    return rows.map((r) => ({ name: r.name }));
-  } finally {
-    await conn.end().catch(() => {});
-  }
+  return cfg.database ? [{ name: cfg.database }] : [];
 }
 
 async function listTables(cfg, type, schema) {

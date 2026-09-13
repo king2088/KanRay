@@ -23,16 +23,8 @@ async function testConnection(cfg) {
   }
 }
 
-async function listSchemas(cfg) {
-  const pool = makePool(cfg);
-  try {
-    const { rows } = await pool.query(
-      "SELECT schema_name AS name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog','information_schema') ORDER BY schema_name"
-    );
-    return rows.map((r) => ({ name: r.name }));
-  } finally {
-    await pool.end();
-  }
+async function listSchemas() {
+  return [{ name: 'public' }];
 }
 
 async function listTables(cfg, type, schema) {

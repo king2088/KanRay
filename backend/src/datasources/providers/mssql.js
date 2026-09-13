@@ -20,16 +20,8 @@ async function testConnection(cfg) {
   }
 }
 
-async function listSchemas(cfg) {
-  const pool = await sql.connect(makeConfig(cfg));
-  try {
-    const result = await pool.request().query(
-      "SELECT name FROM sys.schemas WHERE name NOT IN ('sys','guest','INFORMATION_SCHEMA','db_owner','db_accessadmin','db_securityadmin','db_ddladmin','db_backupoperator','db_datareader','db_datawriter','db_denydatareader','db_denydatawriter') ORDER BY name"
-    );
-    return result.recordset.map((r) => ({ name: r.name }));
-  } finally {
-    await pool.close();
-  }
+async function listSchemas() {
+  return [{ name: 'dbo' }];
 }
 
 async function listTables(cfg, type, schema) {
