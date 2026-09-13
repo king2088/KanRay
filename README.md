@@ -172,6 +172,34 @@ docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v # �
 - **在创建首个数据源之前固定 `DATASOURCE_SECRET`**，密钥变更会导致历史密码无法解密；轮换需重新保存各数据源密码。
 - SQL 拼装全程使用标识符引用 + 参数化占位符，表/字段名来源于连接元数据而非用户自由输入，避免 SQL 注入。
 
+## 数据集构建器（M3）
+
+在 M2 数据源接入基础上，构建器支持三种形态将外部数据库表组合为可分析数据集：纯 SQL（CodeMirror 6 代码编辑）、拖拉拽（勾选表与字段、自动/手动关联生成明细宽表）、ETL（Vue Flow 可视化算子画布，支持 JOIN / 过滤 / 聚合，每个节点可独立预览真实查询结果）。
+
+### 构建器接口
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/datasources/:id/build/preview-detail` | 明细预览（多表宽表，不聚合） |
+| POST | `/api/datasources/:id/build/preview-aggregate` | 聚合预览（GROUP BY 汇总） |
+| POST | `/api/datasources/:id/build/preview-node` | ETL 单节点预览（查询链截至该节点的真实结果） |
+| POST | `/api/datasources/:id/build/save` | 保存构建定义（持久化 `build_definition` JSON，注册/更新字段元数据） |
+| POST | `/api/datasources/:id/build/validate` | 构建定义语义校验（表/字段存在性检查，返回错误列表） |
+
+### 架构要点
+
+- **构建定义** `build_definition` 存于 `datasets` 表，类型区分 `sql` / `drag` / `etl`；老单表数据集（无 `build_definition`）完全兼容，零迁移。
+- **编译层** `backend/src/datasources/build-sql.js`：根据定义生成方言 SQL（MySQL/PostgreSQL/ClickHouse/SQL Server），详情模式为多表 JOIN 全列明细，聚合模式嵌套子查询；ETL 编译为节点链式 SQL。
+- **字段注册**：保存时由编译器输出字段清单，后端回填 `dataset_fields` 表；字段类型自动推断（数值/字符串/时间）。
+- **单表快捷**：`/api/datasources/:id/register-table` 保留，一键注册单表数据集，与构建器共存。
+- **安全边界**：表名、字段名全部取自 `listSchemas` / `listTables` / `listColumns` 元数据结果，不允许用户自由输入任意标识符；SQL 全部参数化执行。
+- **驱动能力门槛**：仅 `capabilities.dataset === true` 的数据源可使用构建器（MySQL / PostgreSQL / SQL Server / ClickHouse，含同族兼容驱动）。
+
+### 生产注意事项
+
+- 构建器生成的 SQL 全部走外部数据源执行，不在本地 SQLite 存储数据行；长查询需关注数据源端超时与负载。
+- `DATASOURCE_SECRET` 同样控制构建器加密存取的数据源连接密码，生产环境务必替换默认值。
+
 ## 已知限制
 
 - 共享授权（grants）、看板级访问控制、RLS 规划于后续里程碑（M3/M4，见 `需求清单-第二阶段.md`）
