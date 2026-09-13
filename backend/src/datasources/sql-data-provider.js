@@ -5,6 +5,9 @@ const { getDriverMeta, decryptConfig } = require('../services/datasource.service
 
 const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE', in: 'IN' };
 
+const catalogCache = new Map();
+const CATALOG_TTL_MS = 60_000;
+
 /**
  * 加载数据集连接上下文：db 行、数据源配置、方言、provider、解密配置。
  * @returns {{ ds, dsConfig, driverMeta, dialect, provider, cfg }}
@@ -30,10 +33,18 @@ function loadDataSourceContext(dataset) {
  * ETL 链涉及的物理表元数据（query/paginate 阶段需真实列，保证 __alias__col 输出列名与注册字段一致）
  */
 async function resolveEtlCatalog(dsConfig, provider, cfg, def) {
+  const now = Date.now();
+  const prefix = `${dsConfig.id}:${dsConfig.type}/`;
+  const getTab = (schema, table) => {
+    const key = `${prefix}${(schema || '')}.${table}`;
+    const hit = catalogCache.get(key);
+    if (hit && now - hit.at < CATALOG_TTL_MS) return hit.columns;
+    return undefined;
+  };
   const seen = new Set();
   const tables = [];
   const push = (schema, table) => {
-    const key = `${schema}.${table}`;
+    const key = `${(schema || '')}.${table}`;
     if (!table || seen.has(key)) return;
     seen.add(key);
     tables.push({ schema: schema || null, table });
@@ -44,9 +55,17 @@ async function resolveEtlCatalog(dsConfig, provider, cfg, def) {
   }
   const catalog = [];
   for (const t of tables) {
+    const cached = getTab(t.schema, t.table);
+    if (cached) {
+      catalog.push({ schema: t.schema, table: t.table, columns: cached });
+      continue;
+    }
     try {
-      catalog.push({ schema: t.schema, table: t.table, columns: await provider.listColumns(cfg, dsConfig.type, t.schema, t.table) });
+      const columns = await provider.listColumns(cfg, dsConfig.type, t.schema, t.table);
+      catalogCache.set(`${prefix}${(t.schema || '')}.${t.table}`, { at: now, columns });
+      catalog.push({ schema: t.schema, table: t.table, columns });
     } catch (e) {
+      console.error(`[m3] ETL 目录解析失败: ${t.schema || '(默认)'}.${t.table} :: ${e.message}`);
       catalog.push({ schema: t.schema, table: t.table, columns: [] });
     }
   }
@@ -276,11 +295,10 @@ async function paginate(dataset, page, pageSize) {
       detail = require('./build-sql').compileDetail({ ...def, aggregation: null }, dialect, []);
     }
     const size = Math.min(100, Math.max(1, Number(pageSize) || 50));
+    // 外层包一层派生表再限行：避免 output 节点自带 LIMIT 造成双重 LIMIT（mssql 用 TOP 替换首行 SELECT，同样安全）。
+    // 已知限制：type=sql 且以 WITH 开头的语句，wrapped 派生表包裹在 mysql/mssql 非法，预览请改用 preview-detail。
     const wrapped = `SELECT * FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`;
-    const rowsSql = dialect === dialects.mssql
-      ? wrapped.replace(/^SELECT\s+/i, `SELECT TOP (${size}) `)
-      : `${wrapped} LIMIT ${size}`;
-    const rows = await provider.runQuery(cfg, rowsSql, detail.params || []);
+    const rows = await provider.runQuery(cfg, dialect.limit(wrapped, size), detail.params || []);
     const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS __total FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`, detail.params || []);
     const total = countRows.length ? Number(countRows[0].__total ?? 0) : 0;
     return { rows, total };

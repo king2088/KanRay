@@ -194,8 +194,8 @@ async function paginateRows(id, page, pageSize) {
  */
 /**
  * 构建定义 fields → 注册字段清单
- * builder/sql 定义的 fields 条目是来源引用 {source/alias, field, label?, type?}，注册名取编译输出的 f_<i> 顺序名；
- * etl/sql 已由编译端给出 {name, label, type} 时直接透传（真实入库名与查询期输出列一致）。
+ * builder 定义的 fields 是来源引用 {source, field, label?, type?}，编译输出恒为 f_<i>（compileDetail 忽略 name），故注册名必须取 f_<i>；
+ * sql/etl 的定义由编译端给出 {name, label, type}，直接透传（真实入库名与查询期输出列一致）。
  */
 function deriveRegistryFields(definition) {
   const src = Array.isArray(definition.fields) ? definition.fields : [];
@@ -206,9 +206,16 @@ function deriveRegistryFields(definition) {
       type: f.type || 'string',
     }));
   }
+  if (definition.type === 'sql') {
+    return src.map((f, i) => ({
+      name: f.name != null ? f.name : `f_${i}`,
+      label: f.label || f.name || f.field || '',
+      type: f.type || 'string',
+    }));
+  }
   return src.map((f, i) => ({
-    name: f.name != null ? f.name : `f_${i}`,
-    label: f.label || f.field || f.name || '',
+    name: `f_${i}`,
+    label: f.label || f.field || '',
     type: f.type || 'string',
   }));
 }
