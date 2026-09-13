@@ -37,9 +37,16 @@
         :load="loadNode"
         node-key="id"
       >
-        <template #default="{ node, data }">
-          <span>{{ data.label }}</span>
-          <el-button v-if="data.type === 'table'" link type="primary" size="small" style="margin-left: 8px" @click.stop="createDataset(data)">创建数据集</el-button>
+        <template #default="{ data }">
+          <span class="tree-node">
+            <el-icon :size="14" class="tree-node__icon"><component :is="iconOf(data.type)" /></el-icon>
+            <span class="tree-node__label">{{ data.label }}</span>
+            <el-tag v-if="data.type === 'column' && typeBadge(data)" size="small" effect="plain" :type="typeBadge(data).type">{{ typeBadge(data).text }}</el-tag>
+            <span class="tree-node__actions">
+              <el-button v-if="data.type === 'table'" link size="small" type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">新建构建</el-button>
+              <el-button v-if="data.type === 'table'" link size="small" @click.stop="createDataset(data)">创建数据集</el-button>
+            </span>
+          </span>
         </template>
       </el-tree>
       <el-empty v-else description="暂无 Schema 数据" />
@@ -51,6 +58,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Folder, Grid, Rank } from '@element-plus/icons-vue'
 import { datasourceApi } from '@/api'
 
 const route = useRoute()
@@ -89,12 +97,22 @@ async function loadNode(node, resolve) {
     } else if (data.type === 'table') {
       const cols = await datasourceApi.columns(id, data.schema, data.label)
       resolve(cols.map((c) => ({
-        id: `${data.schema}-${data.label}-${c.name}`, label: `${c.name} (${c.type})`, type: 'column', isLeaf: true,
+        id: `${data.schema}-${data.label}-${c.name}`, label: c.name, type: 'column', rawType: c.type, isLeaf: true,
       })))
     } else {
       resolve([])
     }
   } catch (e) { /* 拦截器已提示，避免节点卡在加载中 */ resolve([]) }
+}
+
+function iconOf(type) {
+  return type === 'schema' ? Folder : type === 'table' ? Grid : Rank
+}
+
+function typeBadge(data) {
+  const raw = data.rawType || ''
+  const t = raw.startsWith('int') || /decimal|numeric|double|float/.test(raw) ? { type: 'primary', text: '数值' } : /date|time/.test(raw) ? { type: 'warning', text: '时间' } : { type: 'success', text: '文本' }
+  return t
 }
 
 async function doTest() {
@@ -117,3 +135,12 @@ function createDataset(data) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.tree-node { display: flex; align-items: center; gap: 6px; font-size: 12px; min-width: 0; }
+.tree-node__icon { color: var(--app-text-secondary); }
+.tree-node__label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree-node__actions { display: none; gap: 2px; }
+.el-tree-node__content:hover .tree-node__actions { display: flex; }
+:deep(.el-tree-node__content:hover) { background: var(--app-hover); border-radius: 4px; }
+</style>
