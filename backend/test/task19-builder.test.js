@@ -33,11 +33,13 @@ function insertDatasource(name) {
 before(() => { resetDb(); });
 
 test('compileDetail builder: single table no aggregation', () => {
-  const def = { type: 'builder', tables: [{ alias: 'o', schema: 'testdb', table: 'orders' }], joins: [], fields: [{ source: 'o', field: 'amount', label: '金额' }], aggregation: null };
+  // field 带自定义 name：实现恒输出 f_<i>（builder 忽略定义 name）
+  const def = { type: 'builder', tables: [{ alias: 'o', schema: 'testdb', table: 'orders' }], joins: [], fields: [{ source: 'o', field: 'amount', name: 'custom', label: '金额' }], aggregation: null };
   const { sql, fields, params } = buildSql.compileDetail(def, mysql, catalog());
   assert.match(sql, /FROM `testdb`.`orders` `o`/);
   assert.ok(sql.includes('AS `f_0`'));
   assert.equal(fields.length, 1);
+  assert.equal(fields[0].name, 'f_0');
   assert.equal(params.length, 0);
 });
 
@@ -92,6 +94,11 @@ test('compileDetail pure SQL whitelist + fields passthrough', () => {
   assert.deepEqual(fields, [{ name: 'a', label: 'A', type: 'number' }]);
 });
 
+test('compileDetail pure SQL accepts WITH', () => {
+  const { sql } = buildSql.compileDetail({ type: 'sql', sql: 'WITH c AS (SELECT 1 AS a) SELECT a FROM c', fields: [{ name: 'a', label: 'A', type: 'number' }] }, mysql, []);
+  assert.equal(sql, 'WITH c AS (SELECT 1 AS a) SELECT a FROM c');
+});
+
 test('compileDetail pure SQL rejects non-select', () => {
   assert.throws(() => buildSql.compileDetail({ type: 'sql', sql: 'DELETE FROM x' }, mysql, []), /SELECT|WITH/);
 });
@@ -119,8 +126,10 @@ test('compileEtl chain to aggregate node is cumulative', () => {
   const n4 = nodeSql('n4');
   assert.ok(n4.sql.includes('SUM(`__o__amount`)'));
   assert.ok(n4.sql.includes('GROUP BY `__c__name`'));
-  assert.ok(n4.fields.some((f) => f.name === 'd_0'));
-  assert.ok(n4.fields.some((f) => f.name === 'm_0' && f.type === 'number'));
+  assert.equal(n4.fields[0].name, 'd_0');
+  assert.equal(n4.fields[0].type, 'string');
+  assert.equal(n4.fields[1].name, 'm_0');
+  assert.equal(n4.fields[1].type, 'number');
   assert.deepEqual(n4.params, [100]);
 });
 
@@ -178,7 +187,7 @@ test('saveBuiltDataset enforces owner/datasource/existence guards', () => {
   // 他人（ownerId=3）更新 → 403 无权限
   assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3 }), /无权限/);
   // datasource 错配（owner 正确但 datasourceId=999999）→ 400 不属于
-  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: 999999, datasetId: created.id, ownerId: 2 }), /不属于|不存在/);
+  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: 999999, datasetId: created.id, ownerId: 2 }), /不属于该数据源/);
   // datasetId 不存在 → 404
   assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: 999999, ownerId: 2 }), /不存在/);
   // admin 可跨用户编辑
@@ -209,6 +218,9 @@ test('deleteDataset skips DROP TABLE for external sql datasets', () => {
 });
 
 test('deleteDataset still deletes excel datasets (local table)', () => {
+  // 先真实建本地表，才能验证 deleteDataset 确实执行了 DROP
+  db.exec('CREATE TABLE data_1 (id INTEGER)');
+  db.exec("INSERT INTO data_1 (id) VALUES (1)");
   const info = db.prepare(
     `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, owner_id)
      VALUES (?, ?, 0, 0, 'data_1', 'excel', 1)`
@@ -217,7 +229,7 @@ test('deleteDataset still deletes excel datasets (local table)', () => {
 
   assert.equal(datasetService.deleteDataset(id), true);
   assert.equal(datasetService.getDataset(id), null);
-  // 本地 excel 表应被清理（IF EXISTS 对不存在表静默）
+  // 本地 excel 表应被清理
   const t = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'data_1'").get();
   assert.equal(t, undefined);
 });
