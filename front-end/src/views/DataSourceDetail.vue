@@ -110,9 +110,8 @@ function iconOf(type) {
 }
 
 function typeBadge(data) {
-  const raw = data.rawType || ''
-  const t = raw.startsWith('int') || /decimal|numeric|double|float/.test(raw) ? { type: 'primary', text: '数值' } : /date|time/.test(raw) ? { type: 'warning', text: '时间' } : { type: 'success', text: '文本' }
-  return t
+  const raw = (data.rawType || '').toLowerCase()
+  return /int|float|double|decimal|numeric/.test(raw) ? { type: 'primary', text: '数值' } : /date|time/.test(raw) ? { type: 'warning', text: '时间' } : { type: 'success', text: '文本' }
 }
 
 async function doTest() {
@@ -140,7 +139,8 @@ onMounted(load)
 .tree-node { display: flex; align-items: center; gap: 6px; font-size: 12px; min-width: 0; }
 .tree-node__icon { color: var(--app-text-secondary); }
 .tree-node__label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tree-node__actions { display: none; gap: 2px; }
-.el-tree-node__content:hover .tree-node__actions { display: flex; }
+.tree-node__actions { display: none; gap: 2px; flex: 0 0 auto; white-space: nowrap; }
+.el-tree-node__content:hover .tree-node__actions,
+.el-tree-node__content:focus-within .tree-node__actions { display: flex; }
 :deep(.el-tree-node__content:hover) { background: var(--app-hover); border-radius: 4px; }
 </style>
