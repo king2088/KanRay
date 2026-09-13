@@ -147,6 +147,32 @@ test('compileEtl join honors right joinType', () => {
   assert.ok(sql.includes('ON `__s__id` = `c`.`id`'), '右表列应直接引用别名: ' + sql);
 });
 
+test('compileEtl join honors legacy on[0].joinType left', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 's', schema: 'testdb', table: 'sales' },
+      { nodeId: 'n2', nodeType: 'join', sourceNode: 'n1', to: { alias: 'c', schema: 'testdb', table: 'sales' }, on: [{ joinType: 'left', from: { alias: 's', field: 'id' }, to: { alias: 'c', field: 'id' } }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const sql = nodeSql('n2').sql;
+  assert.ok(sql.trim().includes('LEFT JOIN'), 'legacy left join not compiled: ' + sql);
+});
+
+test('compileEtl join honors node.joinType left', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 's', schema: 'testdb', table: 'sales' },
+      { nodeId: 'n2', nodeType: 'join', joinType: 'left', sourceNode: 'n1', to: { alias: 'c', schema: 'testdb', table: 'sales' }, on: [{ from: { alias: 's', field: 'id' }, to: { alias: 'c', field: 'id' } }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const sql = nodeSql('n2').sql;
+  assert.ok(sql.trim().includes('LEFT JOIN'), 'node.joinType left not compiled: ' + sql);
+});
+
 test('compileEtl unknown node throws', () => {
   const def = { type: 'etl', nodes: [{ nodeId: 'n1', nodeType: 'badthing' }] };
   const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
