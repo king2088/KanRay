@@ -6,6 +6,7 @@ const { requirePermission } = require('../middleware/permission');
 const access = require('../services/access.service');
 const rbac = require('../services/rbac.service');
 const datasourceService = require('../services/datasource.service');
+const datasetService = require('../services/dataset.service');
 const drivers = require('../datasources/drivers');
 
 const router = express.Router();
@@ -103,7 +104,6 @@ router.post('/:id/register-table', requireUser, requirePermission('datasource', 
   const { schema, table, name } = req.body || {};
   if (!table) throw new HttpError(400, '缺少表名');
   const columns = await datasourceService.listColumns(id, schema, table, req);
-  const datasetService = require('../services/dataset.service');
   const ds = datasetService.registerSqlDataset(
     name || table, id, schema, table,
     columns.map((c) => ({ name: c.name, label: c.name, type: c.role === 'metric' ? 'number' : 'string' })),

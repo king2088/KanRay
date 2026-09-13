@@ -43,7 +43,7 @@ const mssql = {
     return `DATETRUNC('${map[unit] || 'month'}', ${mssql.quoteIdent(field)})`;
   },
   typeMapping: { integer: 'BIGINT', number: 'FLOAT', string: 'NVARCHAR(MAX)', date: 'DATE', boolean: 'BIT' },
-  placeholder: () => `@p0`,
+  placeholder: (i) => '@p' + Math.max(0, i - 1),
   agg: { count: 'COUNT', count_distinct: 'COUNT(DISTINCT', sum: 'SUM', avg: 'AVG', max: 'MAX', min: 'MIN' },
 };
 

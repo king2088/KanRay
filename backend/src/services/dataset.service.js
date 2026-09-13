@@ -181,7 +181,8 @@ function registerSqlDataset(name, datasourceId, schemaName, tableName, fields, o
     `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, owner_id)
      VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?)`
   );
-  const info = ins.run(String(name || tableName).trim().slice(0, 100), name, fields.length, tableName, datasourceId, schemaName, tableName, ownerId);
+  const safeName = String(name || tableName).trim().slice(0, 100);
+  const info = ins.run(safeName, safeName, fields.length, tableName, datasourceId, schemaName, tableName, ownerId);
   const datasetId = Number(info.lastInsertRowid);
 
   const insField = db.prepare(

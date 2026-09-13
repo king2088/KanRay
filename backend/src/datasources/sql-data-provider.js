@@ -8,7 +8,8 @@ const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contain
 async function query(dataset, queryObj) {
   const db = require('../db');
   const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
-  if (!ds || ds.source_type !== 'sql') throw new Error('Not a SQL dataset');
+  if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
+  if (!(queryObj.metrics || []).length) throw new HttpError(400, '至少需要一个指标');
 
   const dsConfig = ds.datasource_id
     ? db.prepare('SELECT * FROM data_sources WHERE id = ?').get(ds.datasource_id)
