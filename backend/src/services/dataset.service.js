@@ -191,12 +191,19 @@ async function paginateRows(id, page, pageSize) {
  * 注册外部数据库表为 SQL 数据集（不落库数据，仅登记元数据）
  */
 function registerSqlDataset(name, datasourceId, schemaName, tableName, fields, ownerId) {
-  const ins = db.prepare(
-    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, owner_id)
-     VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?)`
-  );
   const safeName = String(name || tableName).trim().slice(0, 100);
-  const info = ins.run(safeName, safeName, fields.length, tableName, datasourceId, schemaName, tableName, ownerId);
+  const defJson = JSON.stringify({
+    type: 'builder',
+    tables: [{ alias: 't0', schema: schemaName || null, table: tableName }],
+    joins: [],
+    fields: fields.map((f, i) => ({ source: 't0', field: f.name, label: f.label || f.name, type: f.type || 'string' })),
+    aggregation: null,
+  });
+  const ins = db.prepare(
+    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, build_definition, owner_id)
+     VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?, ?)`
+  );
+  const info = ins.run(safeName, safeName, fields.length, tableName, datasourceId, schemaName, tableName, defJson, ownerId == null ? null : Number(ownerId));
   const datasetId = Number(info.lastInsertRowid);
 
   const insField = db.prepare(
@@ -207,6 +214,63 @@ function registerSqlDataset(name, datasourceId, schemaName, tableName, fields, o
   });
 
   return getDataset(datasetId);
+}
+
+/**
+ * 保存构建形态定义（sql/builder/etl）：新建或更新已有的 SQL 数据集，并重建字段元数据
+ */
+function saveBuiltDataset({ name, definition, datasourceId, datasetId, ownerId }) {
+  if (!definition || !definition.type) throw new HttpError(400, '构建定义不合法');
+  if (!['sql', 'builder', 'etl'].includes(definition.type)) throw new HttpError(400, `不支持的构建形态: ${definition.type}`);
+  if (datasetId) {
+    // 更新：校验存在 + datasource 一致 + owner 一致
+    const exist = getDataset(datasetId);
+    if (!exist) throw new HttpError(404, `数据集不存在: id=${datasetId}`);
+    if (exist.source_type !== 'sql') throw new HttpError(400, '仅 SQL 数据集可编辑');
+    if (exist.datasource_id !== datasourceId) throw new HttpError(400, '数据集不属于该数据源');
+    if (ownerId && exist.owner_id !== ownerId) throw new HttpError(403, '无权限修改该数据集');
+    const defJson = JSON.stringify(definition);
+    if (defJson.length > 1_000_000) throw new HttpError(400, '构建定义过大');
+    db.prepare(
+      `UPDATE datasets SET name = ?, build_definition = ?, column_count = ? WHERE id = ?`
+    ).run(
+      String(name || exist.name || '未命名数据集').trim().slice(0, 100),
+      defJson,
+      (definition.fields || []).length,
+      datasetId
+    );
+    // 重建字段
+    db.prepare('DELETE FROM dataset_fields WHERE dataset_id = ?').run(datasetId);
+    const insField = db.prepare('INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)');
+    (definition.fields || []).forEach((f, i) => {
+      insField.run(datasetId, f.name, f.label || f.name, f.type || 'string', i);
+    });
+    return getDataset(datasetId);
+  }
+  // 新建
+  const safeName = String(name || '未命名数据集').trim().slice(0, 100);
+  const defJson = JSON.stringify(definition);
+  if (defJson.length > 1_000_000) throw new HttpError(400, '构建定义过大');
+  const firstTable = (definition.tables && definition.tables[0]) || null;
+  const info = db.prepare(
+    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, build_definition, owner_id)
+     VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?, ?)`
+  ).run(
+    safeName, safeName,
+    (definition.fields || []).length,
+    (firstTable ? firstTable.table : safeName),
+    datasourceId,
+    (firstTable ? firstTable.schema : null),
+    (firstTable ? firstTable.table : null),
+    defJson,
+    ownerId == null ? null : Number(ownerId)
+  );
+  const datasetId2 = Number(info.lastInsertRowid);
+  const insField = db.prepare('INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)');
+  (definition.fields || []).forEach((f, i) => {
+    insField.run(datasetId2, f.name, f.label || f.name, f.type || 'string', i);
+  });
+  return getDataset(datasetId2);
 }
 
 module.exports = {
@@ -222,4 +286,5 @@ module.exports = {
   updateFieldLabel,
   paginateRows,
   registerSqlDataset,
+  saveBuiltDataset,
 };
