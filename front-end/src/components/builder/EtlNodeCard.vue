@@ -23,7 +23,7 @@ const desc = computed(() => {
   if (n.nodeType === 'join') return `${n.joinType || 'inner'} JOIN ${n.to?.schema || '-'}.${n.to?.table || '-'}`
   if (n.nodeType === 'filter') return `${(n.conditions || []).length} 个条件`
   if (n.nodeType === 'aggregate') return `${(n.metrics || []).length} 指标`
-  return `LIMIT ${n.limit}`
+  return n.limit != null ? `LIMIT ${n.limit}` : '输出'
 })
 </script>
 
