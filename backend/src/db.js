@@ -114,6 +114,22 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   ip TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS data_sources (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  config TEXT NOT NULL DEFAULT '{}',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  owner_id INTEGER,
+  last_test_at TEXT,
+  last_test_ok INTEGER,
+  last_test_msg TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_data_sources_owner ON data_sources(owner_id);
+CREATE INDEX IF NOT EXISTS idx_data_sources_type ON data_sources(type);
 `)
 
 // 旧库迁移：补齐 gap_x/gap_y/card_style（幂等，已存在则跳过）
@@ -128,6 +144,13 @@ if (!dashCols.includes('card_style')) db.exec("ALTER TABLE dashboards ADD COLUMN
   if (!cols.includes('owner_id')) db.exec(`ALTER TABLE ${t} ADD COLUMN owner_id INTEGER`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_${t}_owner ON ${t}(owner_id);`);
 });
+
+// M2: datasets 增列（幂等 ALTER，source_type=excel 兼容既有数据）
+const dsCols = db.prepare("PRAGMA table_info('datasets')").all().map((c) => c.name);
+if (!dsCols.includes('source_type')) db.exec("ALTER TABLE datasets ADD COLUMN source_type TEXT NOT NULL DEFAULT 'excel'");
+if (!dsCols.includes('datasource_id')) db.exec("ALTER TABLE datasets ADD COLUMN datasource_id INTEGER");
+if (!dsCols.includes('schema_name')) db.exec("ALTER TABLE datasets ADD COLUMN schema_name TEXT");
+if (!dsCols.includes('table_name_ext')) db.exec("ALTER TABLE datasets ADD COLUMN table_name_ext TEXT");
 
 // 刷新令牌哈希检索索引
 db.exec('CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);');

@@ -19,7 +19,10 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "^9.0.3",
+    "mssql": "^12.7.2",
     "multer": "^2.0.2",
+    "mysql2": "^3.24.4",
+    "pg": "^8.23.0",
     "read-excel-file": "^9.3.10",
     "zod": "^3.25.76"
   },

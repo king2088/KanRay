@@ -8,6 +8,7 @@ const chartRoutes = require('./routes/chart.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
+const datasourceRoutes = require('./routes/datasource.routes');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/charts', chartRoutes);
 app.use('/api/dashboards', dashboardRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/datasources', datasourceRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
