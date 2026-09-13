@@ -94,4 +94,4 @@ viewer 注册/登录 → 只见 owner 空看板 → `/api/admin/users` 403 → `
 ## 8. Commits
 
 1. `3a54d10` — `docs(m2): README + requirements checklist update`
-2. <!--FINAL_COMMIT_SHA--> — `chore(m2): final regression pass`（含代码修复 + 测试通过 + 计划勾选 + 本报告）
+2. `b320210` — `chore(m2): final regression pass`（含代码修复 + 测试通过 + 计划勾选 + 本报告）
