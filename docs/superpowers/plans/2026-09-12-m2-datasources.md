@@ -1674,11 +1674,11 @@ git commit --allow-empty -m "feat(m2): clickhouse/mssql providers verified again
 
 ## Task 15: ES + API Providers (Live Docker)
 
-- [ ] **Step 1: Start Docker containers (user runs manually)**
+- [x] **Step 1: Start Docker containers (user runs manually)**
 
 User: `docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d elasticsearch`
 
-- [ ] **Step 2: Live smoke test — elasticsearch**
+- [x] **Step 2: Live smoke test — elasticsearch**
 
 User runs: `node -e "
 const es = require('./backend/src/datasources/providers/elasticsearch');
@@ -1692,7 +1692,7 @@ test().catch(console.error);
 
 Expected: testConnection {ok:true, message containing '集群状态'}
 
-- [ ] **Step 3: Live smoke test — API service**
+- [x] **Step 3: Live smoke test — API service**
 
 User runs: `node -e "
 const api = require('./backend/src/datasources/providers/api-service');
@@ -1704,7 +1704,7 @@ test().catch(console.error);
 
 Expected: testConnection {ok:true}
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit --allow-empty -m "feat(m2): ES/API providers verified against live Docker"
