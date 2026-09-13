@@ -1576,11 +1576,11 @@ git commit -m "feat(m2): datasource CRUD API + RBAC + provider stubs"
 
 ## Task 13: MySQL/PG Family Providers (Live Docker)
 
-- [ ] **Step 1: Start Docker containers (user runs manually)**
+- [x] **Step 1: Start Docker containers (user runs manually)**
 
 User: `docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d mysql postgres mariadb tidb`
 
-- [ ] **Step 2: Live smoke test — mysql-family**
+- [x] **Step 2: Live smoke test — mysql-family**
 
 User runs: `node -e "
 const mysqlFamily = require('./backend/src/datasources/providers/mysql-family');
@@ -1596,7 +1596,7 @@ test().catch(console.error);
 
 Expected: All return data, testConnection {ok:true}
 
-- [ ] **Step 3: Live smoke test — postgres**
+- [x] **Step 3: Live smoke test — postgres**
 
 User runs: `node -e "
 const pgFamily = require('./backend/src/datasources/providers/pg-family');
@@ -1611,15 +1611,15 @@ test().catch(console.error);
 
 Expected: All return data, testConnection {ok:true}
 
-- [ ] **Step 4: Live smoke test — mariadb (mysql family)**
+- [x] **Step 4: Live smoke test — mariadb (mysql family)**
 
 Same as mysql but port 13307. Expected: all pass.
 
-- [ ] **Step 5: Live smoke test — tidb (mysql family)**
+- [x] **Step 5: Live smoke test — tidb (mysql family)**
 
 Same as mysql but port 14000, password ''. Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/src/datasources/providers/mysql-family.js backend/src/datasources/providers/pg-family.js
