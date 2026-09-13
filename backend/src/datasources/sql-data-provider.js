@@ -276,7 +276,11 @@ async function paginate(dataset, page, pageSize) {
       detail = require('./build-sql').compileDetail({ ...def, aggregation: null }, dialect, []);
     }
     const size = Math.min(100, Math.max(1, Number(pageSize) || 50));
-    const rows = await provider.runQuery(cfg, dialect.limit(detail.sql, size), detail.params || []);
+    const wrapped = `SELECT * FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`;
+    const rowsSql = dialect === dialects.mssql
+      ? wrapped.replace(/^SELECT\s+/i, `SELECT TOP (${size}) `)
+      : `${wrapped} LIMIT ${size}`;
+    const rows = await provider.runQuery(cfg, rowsSql, detail.params || []);
     const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS __total FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`, detail.params || []);
     const total = countRows.length ? Number(countRows[0].__total ?? 0) : 0;
     return { rows, total };

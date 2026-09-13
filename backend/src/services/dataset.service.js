@@ -134,8 +134,10 @@ async function parseAndCreate(name, filePath, ownerId = null) {
 
 function deleteDataset(id) {
   const ds = getDatasetOrThrow(id);
+  if (ds.source_type !== 'sql') {
+    db.exec(`DROP TABLE IF EXISTS ${ds.table_name}`);
+  }
   db.prepare('DELETE FROM datasets WHERE id = ?').run(id);
-  db.exec(`DROP TABLE IF EXISTS ${ds.table_name}`);
   return true;
 }
 
@@ -190,6 +192,27 @@ async function paginateRows(id, page, pageSize) {
 /**
  * 注册外部数据库表为 SQL 数据集（不落库数据，仅登记元数据）
  */
+/**
+ * 构建定义 fields → 注册字段清单
+ * builder/sql 定义的 fields 条目是来源引用 {source/alias, field, label?, type?}，注册名取编译输出的 f_<i> 顺序名；
+ * etl/sql 已由编译端给出 {name, label, type} 时直接透传（真实入库名与查询期输出列一致）。
+ */
+function deriveRegistryFields(definition) {
+  const src = Array.isArray(definition.fields) ? definition.fields : [];
+  if (definition.type === 'etl') {
+    return src.map((f, i) => ({
+      name: f.name != null ? f.name : (f.field != null ? f.field : `f_${i}`),
+      label: f.label || f.field || f.name || '',
+      type: f.type || 'string',
+    }));
+  }
+  return src.map((f, i) => ({
+    name: f.name != null ? f.name : `f_${i}`,
+    label: f.label || f.field || f.name || '',
+    type: f.type || 'string',
+  }));
+}
+
 /**
  * 按定义顺序重建数据集字段元数据
  */
@@ -257,7 +280,7 @@ function saveBuiltDataset({ name, definition, datasourceId, datasetId, ownerId, 
         datasetId
       );
       delFields.run(datasetId);
-      insertDatasetFields(datasetId, definition.fields);
+      insertDatasetFields(datasetId, deriveRegistryFields(definition));
     })();
     return getDataset(datasetId);
   }
@@ -282,7 +305,7 @@ function saveBuiltDataset({ name, definition, datasourceId, datasetId, ownerId, 
       ownerId == null ? null : Number(ownerId)
     );
     const id = Number(info.lastInsertRowid);
-    insertDatasetFields(id, definition.fields);
+    insertDatasetFields(id, deriveRegistryFields(definition));
     return id;
   })();
   return getDataset(datasetId2);
