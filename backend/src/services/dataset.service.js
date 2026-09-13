@@ -251,9 +251,9 @@ function saveBuiltDataset({ name, definition, datasourceId, datasetId, ownerId, 
       upd.run(
         safeName, defJson,
         (definition.fields || []).length,
-        (firstTable ? firstTable.table : null),
+        (firstTable ? firstTable.table : exist.table_name),
         (firstTable ? firstTable.schema : null),
-        (firstTable ? firstTable.table : null),
+        (firstTable ? firstTable.table : exist.table_name),
         datasetId
       );
       delFields.run(datasetId);
