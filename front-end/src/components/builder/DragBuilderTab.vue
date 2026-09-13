@@ -6,7 +6,6 @@
         :catalog="schemas"
         :show-fields="false"
         @mount-table="mountTable"
-        @drop.prevent
       />
     </div>
 
@@ -144,7 +143,7 @@ const aliasMemory = {}
 const dragOver = ref(false)
 
 function onDragOver(evt) {
-  dragOver.value = evt.dataTransfer.types.includes('text/plain')
+  dragOver.value = [].includes.call(evt.dataTransfer.types, 'text/plain')
 }
 
 function onMidDrop(evt) {
