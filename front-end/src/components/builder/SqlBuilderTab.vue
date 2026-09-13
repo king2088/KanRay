@@ -97,8 +97,8 @@ defineExpose({ preview: runPreview, getDefinition: () => ({ type: 'sql', sql: sq
 
 <style scoped>
 .sql-builder { display: flex; gap: 12px; height: 100%; }
-.sql-builder__left { flex: 0 0 260px; border: 1px solid var(--el-border-color); border-radius: 8px; overflow: auto; padding: 8px; }
-.sql-builder__panel-title { font-size: 13px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 8px; }
+.sql-builder__left { flex: 0 0 260px; display: flex; flex-direction: column; border: 1px solid var(--el-border-color); border-radius: 8px; overflow: hidden; padding: 8px; }
+.sql-builder__panel-title { font-size: 13px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 8px; flex-shrink: 0; }
 .sql-builder__main { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .sql-builder__toolbar { display: flex; align-items: center; gap: 8px; }
 .sql-builder__error { font-size: 12px; color: var(--el-color-danger); }
