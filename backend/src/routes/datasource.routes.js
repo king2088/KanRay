@@ -119,7 +119,7 @@ router.post('/:id/register-table', requireUser, requirePermission('datasource', 
 
 // M3 构建：运行时加载（raw 行 + 明文配置 + 方言 + provider）
 function loadRuntime(id) {
-  const raw = db.prepare('SELECT * FROM data_sources WHERE id = ?').get(id);
+  const raw = db.prepare('SELECT type, is_active, config FROM data_sources WHERE id = ?').get(id);
   if (!raw) throw new HttpError(404, '数据源不存在');
   if (!raw.is_active) throw new HttpError(400, '数据源已停用');
   const driverMeta = getDriverMeta(raw.type);
@@ -128,7 +128,54 @@ function loadRuntime(id) {
   const cfg = decryptConfig(JSON.parse(raw.config));
   const provider = providers.getProvider(driverMeta.family);
   if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, '该数据源不支持查询');
-  return { raw, driverMeta, dialect, cfg, provider };
+  return { dialect, cfg, provider };
+}
+
+// ETL 链涉及的全部物理表
+function collectEtlTables(nodes) {
+  const tables = [];
+  for (const n of nodes || []) {
+    if (n.nodeType === 'source') tables.push({ schema: n.schema || null, table: n.table });
+    else if (n.nodeType === 'join' && n.to) tables.push({ schema: n.to.schema || null, table: n.to.table });
+  }
+  return tables;
+}
+
+// 引用表元数据是否全部解析（部分缺失时不做字段回填，避免字段集不完整）
+function catalogKeyed(catalog) {
+  const keyed = {};
+  for (const t of catalog || []) keyed[`${t.schema}.${t.table}`] = t;
+  return keyed;
+}
+
+// 引用的物理表是否全部解析出元数据列
+function catalogResolved(keyed, tables) {
+  for (const t of tables || []) {
+    const meta = keyed[`${t.schema}.${t.table}`];
+    if (!meta || !meta.columns || !meta.columns.length) return false;
+  }
+  return true;
+}
+
+// builder 字段缺失时按目录推导默认字段集；任一引用表元数据缺失则整体不回填
+function deriveBuilderFields(definition, catalog) {
+  const keyed = catalogKeyed(catalog);
+  const refs = (definition.tables || []).map((t, i) => ({ alias: t.alias || `t${i}`, schema: t.schema || null, table: t.table }));
+  (definition.joins || []).forEach((j) => {
+    if (j.to && j.to.alias) refs.push({ alias: j.to.alias, schema: j.to.schema || null, table: j.to.table });
+  });
+  for (const ref of refs) {
+    const meta = keyed[`${ref.schema}.${ref.table}`];
+    if (!meta || !meta.columns || !meta.columns.length) return [];
+  }
+  const fields = [];
+  for (const ref of refs) {
+    const meta = keyed[`${ref.schema}.${ref.table}`];
+    for (const c of meta.columns) {
+      fields.push({ source: ref.alias, field: c.name, label: `${ref.alias}.${c.name}`, type: buildSql.guessType(c.type) });
+    }
+  }
+  return fields;
 }
 
 // 汇总定义涉及的表元数据；元数据缺失时降级为空列集（编译仍可产出）
@@ -174,7 +221,7 @@ router.post('/:id/build/preview-detail', requireUser, requirePermission('datasou
   const { dialect, cfg, provider } = loadRuntime(id);
   const catalog = await resolveBuildContext(id, req, definition.tables || []);
   const { sql, params, fields } = buildSql.compileDetail(definition, dialect, catalog);
-  const n = Math.min(200, Math.max(1, Number(limit) || 200));
+  const n = Math.min(200, Math.max(1, Math.floor(Number(limit) || 200)));
   const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
   const rows = await provider.runQuery(cfg, execSql, params);
   ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
@@ -190,7 +237,7 @@ router.post('/:id/build/preview-aggregate', requireUser, requirePermission('data
   const { dialect, cfg, provider } = loadRuntime(id);
   const catalog = await resolveBuildContext(id, req, definition.tables || []);
   const { sql, params, fields } = buildSql.compileDetail(merged, dialect, catalog);
-  const n = Math.min(1000, Math.max(1, Number(limit) || 1000));
+  const n = Math.min(1000, Math.max(1, Math.floor(Number(limit) || 1000)));
   const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
   const rows = await provider.runQuery(cfg, execSql, params);
   ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
@@ -203,22 +250,18 @@ router.post('/:id/build/preview-node', requireUser, requirePermission('datasourc
   const { definition, nodeId, limit } = req.body || {};
   if (!definition || !nodeId) throw new HttpError(400, '缺少定义或节点');
   const { dialect, cfg, provider } = loadRuntime(id);
-  const tables = [];
-  for (const n of definition.nodes || []) {
-    if (n.nodeType === 'source') tables.push({ schema: n.schema || null, table: n.table });
-    else if (n.nodeType === 'join' && n.to) tables.push({ schema: n.to.schema || null, table: n.to.table });
-  }
-  const catalog = await resolveBuildContext(id, req, tables);
+  const catalog = await resolveBuildContext(id, req, collectEtlTables(definition.nodes || []));
   const { nodeSql } = buildSql.compileEtl(definition, dialect, catalog);
   try {
     const { sql, params, fields } = nodeSql(nodeId);
-    const n = Math.min(200, Math.max(1, Number(limit) || 200));
+    const n = Math.min(200, Math.max(1, Math.floor(Number(limit) || 200)));
     const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
     const rows = await provider.runQuery(cfg, execSql, params);
     ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
   } catch (e) {
     if (e instanceof HttpError) throw e;
-    throw new HttpError(500, `ETL节点执行失败: ${e.message}`);
+    console.error('[build] ETL 节点预览失败', e);
+    throw new HttpError(500, 'ETL节点执行失败');
   }
 });
 
@@ -229,23 +272,21 @@ router.post('/:id/build/save', requireUser, requirePermission('datasource', 'upd
   const { name, definition, datasetId } = req.body || {};
   if (!definition) throw new HttpError(400, '缺少构建定义');
   let def = definition;
-  const defType = definition.type;
-  if ((!definition.fields || !definition.fields.length) && (defType === 'builder' || defType === 'etl')) {
+  if ((!definition.fields || !definition.fields.length) && (definition.type === 'builder' || definition.type === 'etl')) {
     const { dialect } = loadRuntime(id);
     let fields = [];
-    if (defType === 'builder') {
+    if (definition.type === 'builder') {
       const catalog = await resolveBuildContext(id, req, definition.tables || []);
-      ({ fields } = buildSql.compileDetail(definition, dialect, catalog));
+      fields = deriveBuilderFields(definition, catalog);
     } else {
-      const tables = [];
-      for (const n of definition.nodes || []) {
-        if (n.nodeType === 'source') tables.push({ schema: n.schema || null, table: n.table });
-        else if (n.nodeType === 'join' && n.to) tables.push({ schema: n.to.schema || null, table: n.to.table });
-      }
+      const tables = collectEtlTables(definition.nodes || []);
       const catalog = await resolveBuildContext(id, req, tables);
-      const { nodeSql } = buildSql.compileEtl(definition, dialect, catalog);
-      const last = (definition.nodes || [])[definition.nodes.length - 1];
-      if (last && last.nodeId) ({ fields } = nodeSql(last.nodeId));
+      if (catalogResolved(catalogKeyed(catalog), tables)) {
+        const { nodeSql } = buildSql.compileEtl(definition, dialect, catalog);
+        const nodes = definition.nodes || [];
+        const last = nodes[nodes.length - 1];
+        if (last && last.nodeId) ({ fields } = nodeSql(last.nodeId));
+      }
     }
     if (fields && fields.length) def = { ...definition, fields };
   }
@@ -269,7 +310,14 @@ router.post('/:id/build/validate', requireUser, requirePermission('datasource', 
   const { dialect } = loadRuntime(id);
   const result = { valid: true, errors: [] };
   try {
-    buildSql.compileDetail(definition, dialect, []);
+    if (definition.type === 'etl') {
+      const nodes = definition.nodes || [];
+      if (!nodes.length) throw new Error('ETL 定义缺少节点');
+      const { nodeSql } = buildSql.compileEtl(definition, dialect, []);
+      for (const n of nodes) nodeSql(n.nodeId);
+    } else {
+      buildSql.compileDetail(definition, dialect, []);
+    }
   } catch (e) {
     result.valid = false;
     result.errors.push(e.message);
