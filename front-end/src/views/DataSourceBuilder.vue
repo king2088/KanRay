@@ -13,7 +13,7 @@
     </div>
 
     <el-card shadow="never">
-      <el-tabs v-model="activeMode" @tab-change="onModeChange">
+      <el-tabs v-model="activeMode" @tab-change="onTabChange">
         <el-tab-pane label="纯 SQL" name="sql" />
         <el-tab-pane label="拖拉拽" name="drag" />
         <el-tab-pane label="ETL" name="etl" />
@@ -57,19 +57,24 @@ const dragRef = ref(null)
 const etlRef = ref(null)
 
 const MODE_MAP = { sql: 'sql', builder: 'drag', etl: 'etl' }
+const lastMode = ref(activeMode.value)
 
 function onChange(payload) {
   liveDefinition.value = payload.definition
 }
 
 function currentDefinition() {
-  const tabs = liveDefinition.value && liveDefinition.value.type === activeMode.value ? liveDefinition.value : null
-  return tabs || liveDefinition.value || (activeMode.value === 'sql' ? sqlRef.value?.getDefinition?.() : activeMode.value === 'drag' ? dragRef.value?.getDefinition?.() : etlRef.value?.getDefinition?.())
+  if (liveDefinition.value && MODE_MAP[liveDefinition.value.type] === activeMode.value) return liveDefinition.value
+  const ref = activeMode.value === 'sql' ? sqlRef.value : activeMode.value === 'drag' ? dragRef.value : etlRef.value
+  return ref?.getDefinition?.() ?? null
 }
 
-function onModeChange() {
-  const d = activeMode.value === 'sql' ? sqlRef.value?.getDefinition?.() : activeMode.value === 'drag' ? dragRef.value?.getDefinition?.() : etlRef.value?.getDefinition?.()
+function onTabChange() {
+  const prev = lastMode.value
+  const ref = prev === 'sql' ? sqlRef.value : prev === 'drag' ? dragRef.value : etlRef.value
+  const d = ref?.getDefinition?.()
   if (d) liveDefinition.value = d
+  lastMode.value = activeMode.value
 }
 
 async function save() {
@@ -97,9 +102,13 @@ onMounted(async () => {
       const dataset = await datasetApi.get(editDatasetId.value)
       name.value = dataset.name
       if (dataset.build_definition) {
-        const def = typeof dataset.build_definition === 'string' ? JSON.parse(dataset.build_definition) : dataset.build_definition
-        editDefinition.value = def
-        activeMode.value = MODE_MAP[def.type] || 'sql'
+        try {
+          const def = typeof dataset.build_definition === 'string' ? JSON.parse(dataset.build_definition) : dataset.build_definition
+          editDefinition.value = def
+          activeMode.value = MODE_MAP[def.type] || 'sql'
+        } catch (e) {
+          ElMessage.error('数据集定义解析失败')
+        }
       }
     }
   } finally { loading.value = false }
