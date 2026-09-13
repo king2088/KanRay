@@ -67,3 +67,18 @@ export const adminApi = {
   permissions: () => http.get('/admin/permissions'),
   audit: (params) => http.get('/admin/audit', { params }),
 }
+
+export const datasourceApi = {
+  drivers: () => http.get('/datasources/drivers'),
+  list: () => http.get('/datasources'),
+  get: (id) => http.get(`/datasources/${id}`),
+  create: (payload) => http.post('/datasources', payload),
+  update: (id, payload) => http.patch(`/datasources/${id}`, payload),
+  remove: (id) => http.delete(`/datasources/${id}`),
+  test: (payload) => http.post('/datasources/test', payload),
+  testSaved: (id) => http.post(`/datasources/${id}/test`),
+  schemas: (id) => http.get(`/datasources/${id}/schemas`),
+  tables: (id, schema) => http.get(`/datasources/${id}/schemas/${schema}/tables`),
+  columns: (id, schema, table) => http.get(`/datasources/${id}/schemas/${schema}/tables/${table}/columns`),
+  registerTable: (id, payload) => http.post(`/datasources/${id}/register-table`, payload),
+}

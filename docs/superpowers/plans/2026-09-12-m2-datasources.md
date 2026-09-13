@@ -1964,7 +1964,7 @@ git commit -m "feat(m2): SqlDataProvider + register-table + query engine dispatc
 - Modify: `front-end/src/router/index.js` (add routes)
 - Modify: `front-end/src/views/DatasetList.vue` (add source badge)
 
-- [ ] **Step 1: Add datasourceApi to api/index.js**
+- [x] **Step 1: Add datasourceApi to api/index.js**
 
 Add to `front-end/src/api/index.js`:
 
@@ -1985,7 +1985,7 @@ export const datasourceApi = {
 }
 ```
 
-- [ ] **Step 2: Add datasource menu item**
+- [x] **Step 2: Add datasource menu item**
 
 In `front-end/src/router/menu.js`, add to `MENU_ITEMS`:
 
@@ -2010,7 +2010,7 @@ export function activeMenuOf(path) {
 }
 ```
 
-- [ ] **Step 3: Add datasource routes**
+- [x] **Step 3: Add datasource routes**
 
 In `front-end/src/router/index.js`, add to the children array:
 
@@ -2020,7 +2020,7 @@ In `front-end/src/router/index.js`, add to the children array:
 { path: 'datasources/:id', name: 'datasource-detail', component: () => import('../views/DataSourceDetail.vue'), meta: { title: '数据源详情' } },
 ```
 
-- [ ] **Step 4: Create DataSourceList.vue**
+- [x] **Step 4: Create DataSourceList.vue**
 
 Create `front-end/src/views/DataSourceList.vue`:
 
@@ -2149,7 +2149,7 @@ onMounted(load)
 </style>
 ```
 
-- [ ] **Step 5: Create DataSourceFormDialog.vue**
+- [x] **Step 5: Create DataSourceFormDialog.vue**
 
 Create `front-end/src/views/DataSourceFormDialog.vue` (abbreviated — key parts shown):
 
@@ -2258,7 +2258,7 @@ loadDrivers()
 </script>
 ```
 
-- [ ] **Step 6: Create DataSourceDetail.vue**
+- [x] **Step 6: Create DataSourceDetail.vue**
 
 Create `front-end/src/views/DataSourceDetail.vue` (abbreviated):
 
@@ -2376,7 +2376,7 @@ onMounted(load)
 </script>
 ```
 
-- [ ] **Step 7: Update DatasetList.vue — add source badge**
+- [x] **Step 7: Update DatasetList.vue — add source badge**
 
 In `front-end/src/views/DatasetList.vue`, modify the table to show a source badge in the name column:
 
@@ -2392,12 +2392,12 @@ In `front-end/src/views/DatasetList.vue`, modify the table to show a source badg
 </el-table-column>
 ```
 
-- [ ] **Step 8: Build and verify no errors**
+- [x] **Step 8: Build and verify no errors**
 
 Run: `cd front-end && npm run build`
 Expected: Build succeeds with no errors
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add front-end/src/views/DataSourceList.vue front-end/src/views/DataSourceDetail.vue front-end/src/views/DataSourceFormDialog.vue front-end/src/api/index.js front-end/src/router/menu.js front-end/src/router/index.js front-end/src/views/DatasetList.vue

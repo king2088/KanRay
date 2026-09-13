@@ -57,6 +57,7 @@
             <div class="cell-name">
               <div class="cell-name__icon"><el-icon><Files /></el-icon></div>
               <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
+              <el-tag v-if="row.source_type === 'sql'" type="success" size="small" effect="plain" style="margin-left: 4px">数据库</el-tag>
             </div>
           </template>
         </el-table-column>
