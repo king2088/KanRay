@@ -118,6 +118,60 @@ cd front-end && npm run build
 | GET | `/api/admin/permissions` | 权限点列表 |
 | GET | `/api/admin/audit` | 操作审计日志 |
 
+## 多数据源接入（M2）
+
+第二阶段 M2 已交付多数据源接入：统一驱动注册表 + 协议族 Provider 架构，支持数据源 CRUD、连接测试、库表结构浏览、表→数据集注册，并把外部数据库接入既有图表/看板查询链路。
+
+### 支持的数据源（共 22 种）
+
+| 状态 | 数量 | 数据源 |
+| --- | --- | --- |
+| ✅ 本期实测 | 8 | MySQL、PostgreSQL、SQL Server、MariaDB、TiDB、ClickHouse、Elasticsearch（仅连接测试/结构浏览）、API/Web Service（仅连接测试） |
+| ◐ 协议兼容 | 6 | Apache Doris、StarRocks、Greenplum、人大金仓 KingbaseES、GaussDB、Amazon Redshift（复用 mysql/pg 协议族，未逐一生资实测） |
+| ○ 规划中 | 8 | Oracle、DB2、达梦 DM、南大通用 GBASE、Apache Hive、Impala、Presto、阿里云 MaxCompute（接入对话框中暂禁用） |
+
+> 说明：仅 `dataset: true` 的类型可注册为数据集建图表；Elasticsearch 与 API 类型本期不参与数据集。
+
+### 架构
+
+- **驱动注册表** `backend/src/datasources/drivers.js`：22 条驱动元数据（类型、分类、协议族、状态、能力、字段表单、默认端口）
+- **协议族 Provider** `backend/src/datasources/providers/`：`mysql` / `pg` / `clickhouse` / `mssql` / `es-rest` / `http` 六个 Provider，统一实现 `testConnection` / `listSchemas` / `listTables` / `listColumns` / `runQuery`
+- **SQL 方言抽象** `backend/src/datasources/dialects.js`：标识符引用、占位符（`?` / `$n` / `@pN`）、`LIMIT`/`TOP`、时间粒度、聚合函数映射
+- **SqlDataProvider** `backend/src/datasources/sql-data-provider.js`：外部库表桥接查询引擎，聚合 SQL 供图表/看板消费，表/字段名仅取自已注册元数据
+- **配置加密**：密码字段 AES-256-GCM 加密存储（`iv:tag:ciphertext` 三段 base64），接口出参统一脱敏
+
+### 数据源接口（/api/datasources，需对应权限点）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/datasources/drivers` | 驱动注册表 |
+| GET / POST | `/api/datasources[/:id]` | 数据源列表 / 新建（PATCH 编辑、DELETE 删除） |
+| POST | `/api/datasources/test` | 保存前连接测试 |
+| POST | `/api/datasources/:id/test` | 已保存数据源的连接测试 |
+| GET | `/api/datasources/:id/schemas` | Schema 列表 |
+| GET | `/api/datasources/:id/schemas/:schema/tables` | 表/视图列表 |
+| GET | `/api/datasources/:id/schemas/:schema/tables/:table/columns` | 字段列表 |
+| POST | `/api/datasources/:id/register-table` | 注册表 → 数据集（SQL 数据集） |
+
+### 本地实测环境（Docker）
+
+`backend/scripts/datasource-live/docker-compose.yml` 提供 7 个容器（MySQL / MariaDB / PostgreSQL / ClickHouse / SQL Server / TiDB / Elasticsearch），端口全部映射到高位避免冲突：
+
+```bash
+docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d   # 启动
+docker compose -f backend/scripts/datasource-live/docker-compose.yml ps      # 状态
+docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v # 停止清理
+```
+
+### 生产注意事项
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DATASOURCE_SECRET` | `kanban-dev-datasource-secret-32b!` | 数据源密码加密主密钥（SHA-256 派生 AES-256-GCM 密钥），**生产必须注入 ≥32 字节强随机值** |
+
+- **在创建首个数据源之前固定 `DATASOURCE_SECRET`**，密钥变更会导致历史密码无法解密；轮换需重新保存各数据源密码。
+- SQL 拼装全程使用标识符引用 + 参数化占位符，表/字段名来源于连接元数据而非用户自由输入，避免 SQL 注入。
+
 ## 已知限制
 
 - 共享授权（grants）、看板级访问控制、RLS 规划于后续里程碑（M3/M4，见 `需求清单-第二阶段.md`）
