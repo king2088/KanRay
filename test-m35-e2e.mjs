@@ -53,6 +53,7 @@ let page = null
 
 async function login(page) {
   await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
+  await stripOverlay()
   await page.fill('input[placeholder="you@example.com"]', ADMIN.email)
   await page.fill('input[type="password"]', ADMIN.password)
   await page.click('button.auth-btn, button:has-text("登 录")')
@@ -61,6 +62,14 @@ async function login(page) {
 
 async function getToken() {
   return page.evaluate(() => localStorage.getItem('kanban_access') || '')
+}
+
+async function stripOverlay() {
+  return page.evaluate(() => document.querySelector('vite-error-overlay')?.remove())
+}
+
+async function pageErrorNote() {
+  return page.evaluate(() => (window.__pageErrors || []).join('; ')).catch(() => '')
 }
 
 async function api(token, p, opts = {}) {
@@ -109,6 +118,9 @@ let fatal = false
 try {
   browser = await launchBrowser()
   page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  page.on('pageerror', (e) => {
+    void page.evaluate((s) => { window.__pageErrors = (window.__pageErrors || []).concat(s) }, String(e)).catch(() => {})
+  })
 
   // login + capture token
   await login(page)
@@ -134,12 +146,14 @@ try {
     record('bootstrap datasource id=1 (mysql / live testdb)', ok, ok ? `id=${ds1.id} type=${ds1.type}` : `got id=${ds1 && ds1.id} type=${ds1 && ds1.type}`)
     if (!ok) fatal = true
   })
+  if (fatal) throw new Error('datasource bootstrap failed')
 
   // ---- 1. tab auto-mapping for three definition shapes ----
   for (const c of cases) {
     await runCase(`tab-map ${c.type} → ${c.tabName}`, async () => {
       const dsId = await makeBuilderDataset(`m35-${c.type}-${Date.now()}`, c.def)
       await page.goto(`${BASE}/datasources/1/builder?editDatasetId=${dsId}`)
+      await stripOverlay()
       await page.waitForSelector('.el-tabs__item.is-active', { timeout: 10000 })
       const matched = await page
         .waitForFunction(
@@ -151,7 +165,33 @@ try {
         .catch(() => false)
       await page.waitForSelector('.builder-page', { timeout: 8000 })
       const active = (await page.locator('.el-tabs__item.is-active').first().innerText().catch(() => '')) || ''
-      record(`tab-map ${c.type} → ${c.tabName}`, matched, `active=${active.trim()}`)
+      const pErr = await pageErrorNote()
+      record(`tab-map ${c.type} → ${c.tabName}`, matched, `active=${active.trim()}${pErr ? ` pageErrors=${pErr}` : ''}`)
+      if (c.type === 'sql') {
+        const cmVisible = await page
+          .locator('.cm-editor')
+          .first()
+          .waitFor({ state: 'visible', timeout: 10000 })
+          .then(() => true)
+          .catch(() => false)
+        let contentOk = false
+        if (cmVisible) {
+          contentOk = await page
+            .waitForFunction(
+              (sql) => {
+                const el = document.querySelector('.cm-content') || document.querySelector('.cm-editor')
+                if (!el) return false
+                const txt = (el.innerText || el.textContent || '').replace(/\s+/g, ' ')
+                return txt.includes(sql)
+              },
+              c.def.sql,
+              { timeout: 10000 }
+            )
+            .then(() => true)
+            .catch(() => false)
+        }
+        record('sql tab renders CodeMirror', cmVisible && contentOk, cmVisible ? `loaded-sql=${contentOk} sql=${c.def.sql}` : 'no .cm-editor')
+      }
     })
   }
 
@@ -159,6 +199,7 @@ try {
   await runCase('screenshots sql-dark.png + sql-light.png', async () => {
     const dsId = await makeBuilderDataset(`m35-sql-${Date.now()}`, { type: 'sql', sql: 'SELECT * FROM testdb.sales LIMIT 5' })
     await page.goto(`${BASE}/datasources/1/builder?editDatasetId=${dsId}`)
+    await stripOverlay()
     await page.waitForSelector('.el-tabs__item.is-active', { timeout: 10000 })
     await page.waitForTimeout(800)
     await page.evaluate(() => document.documentElement.classList.add('dark'))
@@ -176,6 +217,7 @@ try {
   await runCase('etl canvas: Vue Flow present', async () => {
     const dsId = await makeBuilderDataset(`m35-etl-${Date.now()}`, cases[2].def)
     await page.goto(`${BASE}/datasources/1/builder?editDatasetId=${dsId}`)
+    await stripOverlay()
     await page.waitForSelector('.vue-flow', { timeout: 10000 })
     record('etl canvas: Vue Flow present', true)
     const count = await page.locator('.etl-node-card').count().catch(() => 0)
