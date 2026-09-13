@@ -60,7 +60,7 @@ async function listSchemas(cfg) {
 }
 
 async function listTables(cfg, type, schema) {
-  const esc = String(schema).replace(/'/g, "''");
+  const esc = clickhouseEscape(schema);
   const rows = await q(cfg, `SELECT name, engine FROM system.tables WHERE database = '${esc}' ORDER BY name`);
   return rows.map((r) => {
     const engine = String(r.engine || '');
@@ -69,9 +69,7 @@ async function listTables(cfg, type, schema) {
 }
 
 async function listColumns(cfg, type, schema, table) {
-  const escSchema = String(schema).replace(/'/g, "''");
-  const escTable = String(table).replace(/'/g, "''");
-  const rows = await q(cfg, `SELECT name, type FROM system.columns WHERE database = '${escSchema}' AND table = '${escTable}' ORDER BY position`);
+  const rows = await q(cfg, `SELECT name, type FROM system.columns WHERE database = '${clickhouseEscape(schema)}' AND table = '${clickhouseEscape(table)}' ORDER BY position`);
   return rows.map((r) => {
     const colType = String(r.type || 'String');
     return {
@@ -82,10 +80,15 @@ async function listColumns(cfg, type, schema, table) {
   });
 }
 
+// ClickHouse 字符串字面量按 C 风格转义：\ 与 ' 均需反斜杠前缀
+function clickhouseEscape(v) {
+  return String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 async function runQuery(cfg, sql, params = []) {
   let query = sql;
-  params.forEach((p, i) => {
-    query = query.replace('?', typeof p === 'string' ? `'${String(p).replace(/'/g, "''")}'` : String(p));
+  params.forEach((p) => {
+    query = query.replace('?', typeof p === 'string' ? `'${clickhouseEscape(p)}'` : String(p));
   });
   return q(cfg, query);
 }
