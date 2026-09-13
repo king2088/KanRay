@@ -8,6 +8,8 @@ import { EditorView, keymap, placeholder } from '@codemirror/view'
 import { EditorState, Compartment } from '@codemirror/state'
 import { basicSetup } from 'codemirror'
 import { sql, MySQL } from '@codemirror/lang-sql'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 import { defaultKeymap } from '@codemirror/commands'
 
 const props = defineProps({
@@ -47,11 +49,22 @@ const cmTheme = EditorView.theme({
   '.cm-tooltip-autocomplete > ul > li': { display: 'flex', alignItems: 'center', gap: '8px' },
 })
 
+const sqlHighlight = HighlightStyle.define([
+  { tag: tags.keyword, color: 'var(--el-color-primary)' },
+  { tag: tags.operator, color: 'var(--app-text-regular)' },
+  { tag: tags.string, color: 'var(--el-color-success)' },
+  { tag: tags.number, color: 'var(--el-color-warning)' },
+  { tag: tags.comment, color: 'var(--app-text-secondary)', fontStyle: 'italic' },
+  { tag: tags.typeName, color: 'var(--el-color-primary-light-3)' },
+  { tag: tags.variableName, color: 'var(--app-text-primary)' },
+])
+
 onMounted(() => {
   const state = EditorState.create({
     doc: props.modelValue,
     extensions: [
       basicSetup,
+      syntaxHighlighting(sqlHighlight),
       sqlComp.of(buildSqlConfig(props.catalog)),
       cmTheme,
       EditorView.lineWrapping,
@@ -70,7 +83,7 @@ watch(() => props.catalog, (v) => {
 }, { deep: true })
 
 watch(() => props.modelValue, (v) => {
-  if (!view) return
+  if (!view || view.state.composing) return
   if (v !== view.state.doc.toString()) {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: v } })
   }
