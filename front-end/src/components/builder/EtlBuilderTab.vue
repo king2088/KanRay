@@ -278,7 +278,12 @@ async function previewNode(node) {
 }
 
 /* ---- definition + emit ---- */
-const definition = computed(() => ({ type: 'etl', nodes: JSON.parse(JSON.stringify(nodes.value)) }))
+const stripInternal = (arr) => JSON.parse(JSON.stringify(arr)).map((n) => {
+  const o = { ...n }
+  for (const k of Object.keys(o)) if (k.startsWith('_')) delete o[k]
+  return o
+})
+const definition = computed(() => ({ type: 'etl', nodes: stripInternal(nodes.value) }))
 function emitChange() { emit('change', { definition: definition.value }) }
 
 function onNodeClick(data) { if (data.kind === 'field') insertFieldSql(data.raw) }
