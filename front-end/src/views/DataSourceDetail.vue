@@ -34,7 +34,7 @@
         v-if="schemas.length"
         v-model="treeQuery"
         size="small"
-        placeholder="搜索表 / 字段"
+        placeholder="搜索已加载的表 / 字段"
         clearable
         class="schema-search"
       />
