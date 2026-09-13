@@ -19,13 +19,13 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Folder, Grid, Element } from '@element-plus/icons-vue'
+import { Folder, Grid, Rank } from '@element-plus/icons-vue'
 import { toTree } from '@/utils/catalog'
 
 const props = defineProps({ catalog: { type: Array, default: () => [] } })
 const emit = defineEmits(['mount-table', 'open-table', 'pick-field'])
 
-const iconMap = { schema: Folder, table: Grid, field: Element }
+const iconMap = { schema: Folder, table: Grid, field: Rank }
 const treeData = computed(() => toTree(props.catalog))
 
 function roleMeta(raw) {
