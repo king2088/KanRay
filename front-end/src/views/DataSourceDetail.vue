@@ -30,12 +30,22 @@
           <el-button size="small" type="primary" @click="openBuilder()">新建构建</el-button>
         </div>
       </template>
+      <el-input
+        v-if="schemas.length"
+        v-model="treeQuery"
+        size="small"
+        placeholder="搜索表 / 字段"
+        clearable
+        class="schema-search"
+      />
       <el-tree
         v-if="schemas.length"
+        ref="treeRef"
         :data="schemaTree"
         lazy
         :load="loadNode"
         node-key="id"
+        :filter-node-method="filterNode"
       >
         <template #default="{ data }">
           <span class="tree-node">
@@ -55,7 +65,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Folder, Grid, Rank } from '@element-plus/icons-vue'
@@ -67,6 +77,17 @@ const ds = ref(null)
 const loading = ref(false)
 const testing = ref(false)
 const schemas = ref([])
+const treeQuery = ref('')
+const treeRef = ref(null)
+
+function filterNode(value, data) {
+  if (!value) return true
+  return String(data.label || '').toLowerCase().includes(String(value).toLowerCase())
+}
+
+watch(treeQuery, (val) => {
+  treeRef.value?.filter(String(val || ''))
+})
 
 const schemaTree = computed(() =>
   schemas.value.map((s) => ({
@@ -136,6 +157,7 @@ onMounted(load)
 </script>
 
 <style scoped>
+.schema-search { margin-bottom: 8px; }
 .tree-node { display: flex; align-items: center; gap: 6px; font-size: 12px; min-width: 0; }
 .tree-node__icon { color: var(--app-text-secondary); }
 .tree-node__label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
