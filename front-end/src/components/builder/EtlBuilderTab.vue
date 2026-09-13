@@ -268,7 +268,11 @@ function restoreFromSnapshot(list) {
   const arr = JSON.parse(snap)
   rehydrate(arr)
   nodes.value = arr
-  autoLayout(false)
+  for (const k of Object.keys(nodeError.value)) if (!arr.some((n) => n.nodeId === k)) delete nodeError.value[k]
+  if (!arr.some((n) => n.nodeId === selectedNodeId.value)) selectedNodeId.value = null
+  nodePreview.value = []
+  nodePreviewCols.value = []
+  ensureChain()
   emitChange()
 }
 function undo() { restoreFromSnapshot(past.value) }
@@ -330,7 +334,7 @@ function addNode(type, pos) {
   if (outIdx >= 0) nodes.value.splice(outIdx, 0, node)
   else nodes.value.push(node)
   ensureChain()
-  if (node.x == null) autoLayout()
+  if (node.x == null) autoLayout(false)
   else emitChange()
   selectedNodeId.value = node.nodeId
 }
@@ -381,7 +385,11 @@ function onEdgeClick(edge) {
 function onNodeClick({ node }) { selectNode(defNode(node.id)) }
 function onDragStop({ node }) {
   const n = defNode(node.id)
-  if (n) { n.x = node.position.x; n.y = node.position.y }
+  if (n) {
+    n.x = node.position.x
+    n.y = node.position.y
+    emitChange()
+  }
 }
 function selectNode(n) { if (n) selectedNodeId.value = n.nodeId }
 
