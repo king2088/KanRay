@@ -82,3 +82,12 @@ export const datasourceApi = {
   columns: (id, schema, table) => http.get(`/datasources/${id}/schemas/${schema}/tables/${table}/columns`),
   registerTable: (id, payload) => http.post(`/datasources/${id}/register-table`, payload),
 }
+
+export const buildApi = {
+  sqlAssist: (dsId) => http.get(`/datasources/${dsId}/sql-assist`),
+  previewDetail: (dsId, definition, limit = 200) => http.post(`/datasources/${dsId}/build/preview-detail`, { definition, limit }),
+  previewAggregate: (dsId, definition, aggregation, limit = 1000) => http.post(`/datasources/${dsId}/build/preview-aggregate`, { definition, aggregation, limit }),
+  previewNode: (dsId, definition, nodeId, limit = 200) => http.post(`/datasources/${dsId}/build/preview-node`, { definition, nodeId, limit }),
+  save: (dsId, name, definition, datasetId) => http.post(`/datasources/${dsId}/build/save`, { name, definition, datasetId }),
+  validate: (dsId, definition) => http.post(`/datasources/${dsId}/build/validate`, { definition }),
+}
