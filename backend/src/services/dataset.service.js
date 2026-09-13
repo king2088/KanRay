@@ -157,9 +157,23 @@ function updateFieldLabel(datasetId, fieldId, label) {
   return db.prepare('SELECT id, dataset_id AS datasetId, name, label, type, position FROM dataset_fields WHERE id = ?').get(fieldId);
 }
 
-function paginateRows(id, page, pageSize) {
+async function paginateRows(id, page, pageSize) {
   const ds = getDatasetOrThrow(id);
   const fields = getFieldsOrThrow(id);
+
+  // SQL 数据集：行数据在外部数据库，走 SqlDataProvider 读取
+  if (ds.source_type === 'sql') {
+    const provider = require('../datasources/sql-data-provider');
+    const { rows, total } = await provider.paginate(ds, page, pageSize);
+    return {
+      total,
+      page: Math.max(1, Number(page) || 1),
+      pageSize,
+      fields: fields.map((f) => ({ name: f.name, label: f.label, type: f.type })),
+      rows,
+    };
+  }
+
   const total = db.prepare(`SELECT COUNT(*) AS c FROM ${ds.table_name}`).get().c;
   const rows = db
     .prepare(`SELECT * FROM ${ds.table_name} LIMIT ? OFFSET ?`)

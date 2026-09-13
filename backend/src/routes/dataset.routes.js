@@ -102,12 +102,12 @@ router.patch('/:id', requireUser, requirePermission('dataset', 'update'), (req, 
 });
 
 // GET /api/datasets/:id/rows  (分页预览数据)
-router.get('/:id/rows', requireUser, requirePermission('dataset', 'read'), (req, res) => {
+router.get('/:id/rows', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
   const id = Number(req.params.id);
   access.assertResource('dataset', id, req.user, rbac);
   const page = Math.max(1, parseInt(req.query.page || '1', 10));
   const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize || '50', 10)));
-  ok(res, datasetService.paginateRows(id, page, pageSize));
+  ok(res, await datasetService.paginateRows(id, page, pageSize));
 });
 
 // PATCH /api/datasets/:id/fields/:fieldId  (更新字段别名)

@@ -115,4 +115,38 @@ async function query(dataset, queryObj) {
   return { dimensions, metrics, rows: outputRows, elapsedMs, sql };
 }
 
-module.exports = { query };
+/**
+ * SQL 数据集原始数据分页预览（用于数据集详情「数据预览」）
+ * 返回表内前 pageSize 行与总行数；分页仅支持首页语义，避免方言不一致的 OFFSET。
+ */
+async function paginate(dataset, page, pageSize) {
+  const db = require('../db');
+  const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
+  if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
+
+  const dsConfig = ds.datasource_id
+    ? db.prepare('SELECT * FROM data_sources WHERE id = ?').get(ds.datasource_id)
+    : null;
+  if (!dsConfig) throw new HttpError(500, '数据源不存在');
+
+  const driverMeta = getDriverMeta(dsConfig.type);
+  const dialect = dialects[driverMeta.family];
+  if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
+
+  const cfg = decryptConfig(JSON.parse(dsConfig.config));
+  const provider = providers.getProvider(driverMeta.family);
+  if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, '该数据源不支持查询');
+
+  const quote = dialect.quoteIdent;
+  const schema = ds.schema_name;
+  const table = ds.table_name_ext;
+  const qualified = schema ? `${quote(schema)}.${quote(table)}` : quote(table);
+
+  const size = Math.min(100, Math.max(1, Number(pageSize) || 50));
+  const rows = await provider.runQuery(cfg, dialect.limit(`SELECT * FROM ${qualified}`, size), []);
+  const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS __total FROM ${qualified}`, []);
+  const total = countRows.length ? Number(countRows[0].__total ?? 0) : 0;
+  return { rows, total };
+}
+
+module.exports = { query, paginate };

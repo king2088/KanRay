@@ -2413,39 +2413,39 @@ git commit -m "feat(m2): datasource frontend pages + router + API client"
 - Modify: `需求清单-第二阶段.md` (check DB-01~05)
 - Modify: `docs/superpowers/plans/2026-09-12-m2-datasources.md` (check all tasks)
 
-- [ ] **Step 1: Run backend unit tests**
+- [x] **Step 1: Run backend unit tests**
 
 Run: `cd backend && npm test`
 Expected: All tests pass (existing M1 + new M2 tests)
 
-- [ ] **Step 2: Run frontend build**
+- [x] **Step 2: Run frontend build**
 
 Run: `cd front-end && npm run build`
 Expected: Build succeeds
 
-- [ ] **Step 3: Start backend dev server**
+- [x] **Step 3: Start backend dev server**
 
 Run: `cd backend && npm run dev`
 Expected: Server starts on port 3001
 
-- [ ] **Step 4: Start frontend dev server**
+- [x] **Step 4: Start frontend dev server**
 
 Run: `cd front-end && npm run dev`
 Expected: Server starts on port 5173
 
-- [ ] **Step 5: Run CDP e2e — config-panel**
+- [x] **Step 5: Run CDP e2e — config-panel**
 
 Create `/tmp/probe-config-panel.mjs` and run with playwright-core. Test: navigate to http://localhost:5173, login as admin, go to /datasources, create MySQL datasource, test connection, browse schema tree, create dataset, go to /charts, create chart from SQL dataset.
 
-- [ ] **Step 6: Run mac e2e — config-panel (from M1)**
+- [x] **Step 6: Run mac e2e — config-panel (from M1)**
 
 Run existing mac e2e script. Expected: All tests pass.
 
-- [ ] **Step 7: Run rbac e2e (from M1)**
+- [x] **Step 7: Run rbac e2e (from M1)**
 
 Run existing rbac e2e script. Expected: All tests pass.
 
-- [ ] **Step 8: Security self-check**
+- [x] **Step 8: Security self-check**
 
 | Item | Status |
 |---|---|
@@ -2457,22 +2457,22 @@ Run existing rbac e2e script. Expected: All tests pass.
 | RBAC: owner isolation via access.service | ✓ assertResource |
 | Docker passwords: env vars only, not hardcoded | ✓ docker-compose.yml |
 
-- [ ] **Step 9: Update README**
+- [x] **Step 9: Update README**
 
 Add M2 section to README.md covering data source support, architecture, Docker setup, and production notes (DATASOURCE_SECRET env var).
 
-- [ ] **Step 10: Update 需求清单**
+- [x] **Step 10: Update 需求清单**
 
 Mark DB-01~05 as `[已实现 M2]` in `需求清单-第二阶段.md`.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add README.md 需求清单-第二阶段.md
 git commit -m "docs(m2): README + requirements checklist update"
 ```
 
-- [ ] **Step 12: Full regression — final commit**
+- [x] **Step 12: Full regression — final commit**
 
 ```bash
 cd backend && npm test && cd ../front-end && npm run build
