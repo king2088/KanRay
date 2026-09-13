@@ -79,6 +79,30 @@ test('PATCH /api/datasources/:id updates name (password unchanged)', async () =>
   assert.ok(cfg.password.includes(':'));
 });
 
+test('PATCH with partial config does not corrupt stored password', async () => {
+  // create fresh datasource
+  const res = await fetch(`${base}/api/datasources`, {
+    method: 'POST',
+    headers: auth(adminToken),
+    body: JSON.stringify({ name: 'Partial DS', type: 'mysql', config: { host: '127.0.0.1', port: 3306, database: 'd', user: 'u', password: 's3cret' } }),
+  });
+  assert.equal(res.status, 200);
+  const ds = (await res.json()).data;
+  const row = db.prepare('SELECT config FROM data_sources WHERE id = ?').get(ds.id);
+  const cfg = JSON.parse(row.config);
+  const before = cfg.password;
+  // update with partial config (no password field)
+  const up = await fetch(`${base}/api/datasources/${ds.id}`, {
+    method: 'PATCH',
+    headers: auth(adminToken),
+    body: JSON.stringify({ config: { host: '10.0.0.1' }, name: 'Partial Renamed' }),
+  });
+  assert.equal(up.status, 200);
+  const after = JSON.parse(db.prepare('SELECT config FROM data_sources WHERE id = ?').get(ds.id).config);
+  assert.equal(after.password, before, 'ciphertext must be unchanged');
+  assert.equal(after.host, '10.0.0.1');
+});
+
 test('DELETE /api/datasources/:id deletes', async () => {
   const res = await fetch(`${base}/api/datasources/1`, { method: 'DELETE', headers: auth(adminToken) });
   assert.equal(res.status, 200);

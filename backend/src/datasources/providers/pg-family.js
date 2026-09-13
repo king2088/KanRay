@@ -10,14 +10,15 @@ function makePool(cfg) {
 
 async function testConnection(cfg) {
   const pool = makePool(cfg);
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     await client.query('SELECT 1');
-    client.release();
     return { ok: true, message: '连接成功' };
   } catch (e) {
     return { ok: false, message: e.message };
   } finally {
+    if (client) client.release();
     await pool.end();
   }
 }

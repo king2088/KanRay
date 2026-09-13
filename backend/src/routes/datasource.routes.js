@@ -36,7 +36,8 @@ router.post('/test', requireUser, requirePermission('datasource', 'create'), asy
 // POST /api/datasources —— 创建
 router.post('/', requireUser, requirePermission('datasource', 'create'), (req, res) => {
   const { name, type, config } = req.body || {};
-  if (!name || !type) throw new HttpError(400, '缺少名称或类型');
+  if (!name || !String(name).trim()) throw new HttpError(400, '数据源名称不能为空');
+  if (!type) throw new HttpError(400, '缺少数据源类型');
   const ds = datasourceService.create({ name, type, config }, req.user.id, req);
   ok(res, ds, '数据源创建成功');
 });

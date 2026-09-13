@@ -1,6 +1,6 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
-const { encrypt, decrypt, mask } = require('../datasources/crypto');
+const { encrypt, decrypt } = require('../datasources/crypto');
 const drivers = require('../datasources/drivers');
 const providers = require('../datasources/providers');
 const audit = require('./audit.service');
@@ -94,16 +94,22 @@ function create({ name, type, config }, ownerId, req) {
 function update(id, body, req) {
   const row = db.prepare('SELECT * FROM data_sources WHERE id = ?').get(id);
   if (!row) throw new HttpError(404, '数据源不存在');
+  if (body.type && body.type !== row.type) throw new HttpError(400, '暂不支持直接修改数据源类型，请删除后重建');
   const driverMeta = getDriverMeta(body.type || row.type);
   const curConfig = parseConfig(row);
   let cfg = curConfig;
   if (body.config !== undefined) {
-    cfg = { ...curConfig, ...body.config };
-    // 密码留 '********' 表示保持不变
+    cfg = { ...curConfig };
+    for (const [k, v] of Object.entries(body.config)) cfg[k] = v;
+    // 仅加密客户端显式提供的新明文密码；'********' 或缺省/空值均保留原密文
     for (const f of passwordFields(driverMeta)) {
-      if (cfg[f.name] === '********') cfg[f.name] = curConfig[f.name];
+      const incoming = body.config[f.name];
+      if (!incoming || incoming === '********') {
+        cfg[f.name] = curConfig[f.name];
+      } else {
+        cfg[f.name] = encrypt(incoming);
+      }
     }
-    cfg = safeConfig(cfg, driverMeta);
   }
   const nextName = body.name !== undefined ? String(body.name).trim().slice(0, 100) : row.name;
   const nextType = body.type || row.type;
