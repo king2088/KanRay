@@ -25,12 +25,20 @@ import { buildApi } from '@/api'
 import SchemaTree from './SchemaTree.vue'
 import SqlCodeMirror from './SqlCodeMirror.vue'
 
-const props = defineProps({ datasourceId: { type: [Number, String], required: true }, catalog: { type: Array, default: () => [] } })
+const props = defineProps({ datasourceId: { type: [Number, String], required: true }, catalog: { type: Array, default: () => [] }, initialDefinition: { type: Object, default: null } })
 const emit = defineEmits(['change'])
 
 const sql = ref('')
 const schemas = ref([])
 watch(() => props.catalog, (v) => { schemas.value = v || [] }, { immediate: true, deep: true })
+
+const importedFields = ref([])
+watch(() => props.initialDefinition, (v) => {
+  if (!v || v.type !== 'sql') return
+  sql.value = v.sql || ''
+  importedFields.value = v.fields || []
+  emitChange()
+}, { immediate: true })
 
 const previewRows = ref([])
 const previewCols = ref([])
@@ -40,7 +48,6 @@ const lastError = ref('')
 const limit = 200
 
 const localSql = computed({ get: () => sql.value, set: (v) => { sql.value = v; emitChange() } })
-const importedFields = ref([])
 
 function emitChange() {
   emit('change', { definition: { type: 'sql', sql: sql.value, fields: importedFields.value } })
