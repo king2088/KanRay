@@ -19,7 +19,7 @@
           <div v-for="t in tables" :key="t.alias" class="field-card">
             <div class="field-card__head">
               <span class="field-card__table">{{ t.schema }}.{{ t.table }}</span>
-              <el-input v-model="t.alias" size="small" style="width: 110px" placeholder="别名" @change="emitChange" />
+              <el-input v-model="t.alias" size="small" style="width: 110px" placeholder="别名" @focus="rememberAlias(t)" @change="onAliasChange(t)" />
               <el-button link size="small" type="primary" @click="selectAll(t, true)">全选</el-button>
               <el-button link size="small" @click="selectAll(t, false)">清空</el-button>
               <el-button link size="small" type="danger" @click="removeTable(t)">移除</el-button>
@@ -98,8 +98,9 @@
     </div>
 
     <div class="drag-builder__preview">
-      <div class="drag-builder__panel-title">{{ useAgg ? '聚合预览' : '明细预览' }}（前 {{ previewLimit }} 行）</div>
+      <div class="drag-builder__panel-title">{{ useAgg ? '聚合预览' : '明细预览' }}（前 {{ useAgg ? 1000 : previewLimit }} 行）</div>
       <el-button size="small" :loading="previewing" class="drag-builder__preview-btn" @click="runPreview">执行预览</el-button>
+      <span v-if="lastError" class="drag-builder__error">{{ lastError }}</span>
       <el-table :data="previewRows" size="small" max-height="400" empty-text="执行预览查看数据">
         <el-table-column v-for="c in previewCols" :key="c" :prop="c" :label="c" min-width="110" show-overflow-tooltip />
       </el-table>
@@ -108,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import Sortable from 'sortablejs'
@@ -132,8 +133,10 @@ const aggMetrics = ref([])
 const previewing = ref(false)
 const previewRows = ref([])
 const previewCols = ref([])
+const lastError = ref('')
 const previewLimit = 200
 const sortables = {}
+const aliasMemory = {}
 
 function tableKey(t) { return `${t.schema}:${t.table}` }
 
@@ -149,9 +152,10 @@ function catalogTableId(id) {
 function rowList(t) { return rows[tableKey(t)] || [] }
 
 function bindSortable(el, key) {
-  if (!el || sortables[key]) return
+  if (!el) { sortables[key]?.destroy?.(); delete sortables[key]; return }
+  if (sortables[key]) return
   sortables[key] = Sortable.create(el, {
-    group: 'drag-fields',
+    group: { name: 'drag-fields', pull: false, put: false },
     draggable: '.drag-row',
     animation: 150,
     onEnd: ({ oldIndex, newIndex }) => {
@@ -191,6 +195,21 @@ function mountTable(id, keepAlias = false) {
 function onDropTable(e) {
   const id = e.dataTransfer.getData('text/plain')
   if (id && id.includes(':')) mountTable(id)
+}
+
+function rememberAlias(t) { aliasMemory[tableKey(t)] = t.alias }
+function onAliasChange(t) {
+  const old = aliasMemory[tableKey(t)] || t.alias
+  aliasMemory[tableKey(t)] = t.alias
+  if (old === t.alias) return
+  for (const j of joins.value) {
+    if (j.fromAlias === old) j.fromAlias = t.alias
+    if (j.toAlias === old) j.toAlias = t.alias
+  }
+  const re = new RegExp(`^${old.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.`)
+  aggGroupBy.value = aggGroupBy.value.map((g) => g.replace(re, `${t.alias}.`))
+  for (const m of aggMetrics.value) m.field = m.field.replace(re, `${t.alias}.`)
+  emitChange()
 }
 
 function removeTable(t) {
@@ -251,7 +270,7 @@ const definition = computed(() => ({
   tables: tables.value,
   joins: joins.value.map((j) => ({ type: j.type, from: { alias: j.fromAlias, field: j.fromField }, to: { alias: j.toAlias, field: j.toField } })),
   fields: tables.value.flatMap((t) => (rowList(t) || []).filter((r) => r.checked).map((r) => ({ source: t.alias, field: r.name, label: r.label, type: r.type }))),
-  aggregation: useAgg.value ? { groupBy: aggGroupBy.value.map((g) => ({ alias: g.split('.')[0], field: g.split('.')[1] })), metrics: aggMetrics.value.filter((m) => m.field) } : null,
+  aggregation: useAgg.value ? { groupBy: aggGroupBy.value.map((g) => ({ alias: g.split('.')[0], field: g.split('.')[1] })), metrics: aggMetrics.value.filter((m) => m.agg === 'count' || m.field) } : null,
   limit: 1000,
 }))
 
@@ -260,6 +279,7 @@ function emitChange() { emit('change', { definition: definition.value }) }
 async function runPreview() {
   if (!tables.value.length) return ElMessage.warning('先上架数据表')
   if (!definition.value.fields.length) return ElMessage.warning('至少勾选一个字段')
+  lastError.value = ''
   previewing.value = true
   try {
     if (useAgg.value) {
@@ -271,6 +291,8 @@ async function runPreview() {
       previewCols.value = res.rows.length ? Object.keys(res.rows[0]) : (res.fields || []).map((f) => f.name)
       previewRows.value = res.rows
     }
+  } catch (e) {
+    lastError.value = e.message || '预览失败'
   } finally { previewing.value = false }
 }
 
@@ -297,13 +319,12 @@ function restore(def) {
       order.push(row)
     }
   }
-  // 保持定义中的字段顺序：将已勾选行前移到各自表内首部（顺序 = 定义顺序）
+  // 保持定义中的字段顺序：已勾选行按定义顺序前移到各自表内首部
   for (const t of tables.value) {
     const key = tableKey(t)
     const arr = rows[key] || []
-    const after = rows[key] || []
-    const moved = after.filter((r) => r.checked)
-    const rest = after.filter((r) => !r.checked)
+    const moved = arr.filter((r) => r.checked).sort((a, b) => order.indexOf(a) - order.indexOf(b))
+    const rest = arr.filter((r) => !r.checked)
     rows[key] = [...moved, ...rest]
   }
   if (def.aggregation) {
@@ -326,6 +347,7 @@ defineExpose({ getDefinition: () => definition.value })
 .drag-builder__mid { flex: 1; min-width: 480px; overflow: auto; }
 .drag-builder__preview { flex: 0 0 40%; min-width: 360px; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 8px; overflow: auto; }
 .drag-builder__preview-btn { margin-bottom: 8px; }
+.drag-builder__error { font-size: 12px; color: var(--el-color-danger); }
 .field-card { border: 1px solid var(--el-border-color-light); border-radius: 6px; padding: 8px; margin-bottom: 10px; }
 .field-card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .field-card__table { font-size: 13px; font-weight: 600; }
