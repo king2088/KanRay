@@ -14,10 +14,7 @@
         <span class="palette-item__icon" :style="{ background: op.color }">{{ op.short }}</span>
         <span class="palette-item__label">{{ op.label }}</span>
       </div>
-      <el-divider />
-      <div class="etl-builder__panel-title">表 / 字段</div>
-      <SchemaTree :catalog="schemas" @pick-field="() => {}" />
-    </div>
+      </div>
 
     <div class="etl-builder__canvas" @dragover.prevent @drop="onCanvasDrop">
       <VueFlow
@@ -155,7 +152,6 @@ import { Controls } from '@vue-flow/controls'
 import { ElMessage } from 'element-plus'
 import { buildApi } from '@/api'
 import { allFields, AGG_OPTIONS, STRING_OPS } from '@/utils/catalog'
-import SchemaTree from './SchemaTree.vue'
 import EtlNodeCard from './EtlNodeCard.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
@@ -175,9 +171,6 @@ const NODE_META = {
   output: { label: '输出', short: '出', color: '#f56c6c' },
 }
 const NODE_ORDER = ['source', 'join', 'filter', 'aggregate', 'output']
-
-// eslint-disable-next-line no-unused-vars
-const noop = () => {}
 
 const nodes = ref([])      // [{ nodeId, nodeType, sourceNode, x, y, ...defProps, _tableValue?, _joinTableValue?, joinType? }]
 const past = ref([])
