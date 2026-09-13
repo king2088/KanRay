@@ -5,24 +5,30 @@ const { getDriverMeta, decryptConfig } = require('../services/datasource.service
 
 const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE', in: 'IN' };
 
-async function query(dataset, queryObj) {
+/**
+ * 加载数据集连接上下文：db 行、数据源配置、方言、provider、解密配置。
+ * @returns {{ ds, dsConfig, driverMeta, dialect, provider, cfg }}
+ */
+function loadDataSourceContext(dataset) {
   const db = require('../db');
   const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
   if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
-  if (!(queryObj.metrics || []).length) throw new HttpError(400, '至少需要一个指标');
-
   const dsConfig = ds.datasource_id
     ? db.prepare('SELECT * FROM data_sources WHERE id = ?').get(ds.datasource_id)
     : null;
   if (!dsConfig) throw new HttpError(500, '数据源不存在');
-
   const driverMeta = getDriverMeta(dsConfig.type);
   const dialect = dialects[driverMeta.family];
   if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
-
-  const cfg = decryptConfig(JSON.parse(dsConfig.config));
   const provider = providers.getProvider(driverMeta.family);
   if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, '该数据源不支持查询');
+  const cfg = decryptConfig(JSON.parse(dsConfig.config));
+  return { ds, dsConfig, driverMeta, dialect, provider, cfg };
+}
+
+async function query(dataset, queryObj) {
+  const { ds, dialect, provider, cfg } = loadDataSourceContext(dataset);
+  if (!(queryObj.metrics || []).length) throw new HttpError(400, '至少需要一个指标');
 
   const quote = dialect.quoteIdent;
   const ph = dialect.placeholder;
@@ -120,22 +126,7 @@ async function query(dataset, queryObj) {
  * 返回表内前 pageSize 行与总行数；分页仅支持首页语义，避免方言不一致的 OFFSET。
  */
 async function paginate(dataset, page, pageSize) {
-  const db = require('../db');
-  const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
-  if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
-
-  const dsConfig = ds.datasource_id
-    ? db.prepare('SELECT * FROM data_sources WHERE id = ?').get(ds.datasource_id)
-    : null;
-  if (!dsConfig) throw new HttpError(500, '数据源不存在');
-
-  const driverMeta = getDriverMeta(dsConfig.type);
-  const dialect = dialects[driverMeta.family];
-  if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
-
-  const cfg = decryptConfig(JSON.parse(dsConfig.config));
-  const provider = providers.getProvider(driverMeta.family);
-  if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, '该数据源不支持查询');
+  const { ds, dialect, provider, cfg } = loadDataSourceContext(dataset);
 
   const quote = dialect.quoteIdent;
   const schema = ds.schema_name;
@@ -149,4 +140,4 @@ async function paginate(dataset, page, pageSize) {
   return { rows, total };
 }
 
-module.exports = { query, paginate };
+module.exports = { query, paginate, loadDataSourceContext };

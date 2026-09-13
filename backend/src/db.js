@@ -151,6 +151,7 @@ if (!dsCols.includes('source_type')) db.exec("ALTER TABLE datasets ADD COLUMN so
 if (!dsCols.includes('datasource_id')) db.exec("ALTER TABLE datasets ADD COLUMN datasource_id INTEGER");
 if (!dsCols.includes('schema_name')) db.exec("ALTER TABLE datasets ADD COLUMN schema_name TEXT");
 if (!dsCols.includes('table_name_ext')) db.exec("ALTER TABLE datasets ADD COLUMN table_name_ext TEXT");
+if (!dsCols.includes('build_definition')) db.exec("ALTER TABLE datasets ADD COLUMN build_definition TEXT");
 
 // 刷新令牌哈希检索索引
 db.exec('CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);');
