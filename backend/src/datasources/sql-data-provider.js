@@ -20,15 +20,19 @@ function loadDataSourceContext(dataset) {
   const driverMeta = getDriverMeta(dsConfig.type);
   const dialect = dialects[driverMeta.family];
   if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
+  const cfg = decryptConfig(JSON.parse(dsConfig.config));
   const provider = providers.getProvider(driverMeta.family);
   if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, '该数据源不支持查询');
-  const cfg = decryptConfig(JSON.parse(dsConfig.config));
   return { ds, dsConfig, driverMeta, dialect, provider, cfg };
 }
 
 async function query(dataset, queryObj) {
-  const { ds, dialect, provider, cfg } = loadDataSourceContext(dataset);
+  const db = require('../db');
+  const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
+  if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
   if (!(queryObj.metrics || []).length) throw new HttpError(400, '至少需要一个指标');
+
+  const { dialect, provider, cfg } = loadDataSourceContext(dataset);
 
   const quote = dialect.quoteIdent;
   const ph = dialect.placeholder;
