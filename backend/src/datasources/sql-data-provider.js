@@ -26,13 +26,40 @@ function loadDataSourceContext(dataset) {
   return { ds, dsConfig, driverMeta, dialect, provider, cfg };
 }
 
+/**
+ * ETL 链涉及的物理表元数据（query/paginate 阶段需真实列，保证 __alias__col 输出列名与注册字段一致）
+ */
+async function resolveEtlCatalog(dsConfig, provider, cfg, def) {
+  const seen = new Set();
+  const tables = [];
+  const push = (schema, table) => {
+    const key = `${schema}.${table}`;
+    if (!table || seen.has(key)) return;
+    seen.add(key);
+    tables.push({ schema: schema || null, table });
+  };
+  for (const n of def.nodes || []) {
+    if (n.nodeType === 'source') push(n.schema || null, n.table);
+    else if (n.nodeType === 'join' && n.to) push(n.to.schema || null, n.to.table);
+  }
+  const catalog = [];
+  for (const t of tables) {
+    try {
+      catalog.push({ schema: t.schema, table: t.table, columns: await provider.listColumns(cfg, dsConfig.type, t.schema, t.table) });
+    } catch (e) {
+      catalog.push({ schema: t.schema, table: t.table, columns: [] });
+    }
+  }
+  return catalog;
+}
+
 async function query(dataset, queryObj) {
   const db = require('../db');
   const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
   if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
   if (!(queryObj.metrics || []).length) throw new HttpError(400, '至少需要一个指标');
 
-  const { dialect, provider, cfg } = loadDataSourceContext(dataset);
+  const { dialect, provider, cfg, dsConfig } = loadDataSourceContext(dataset);
 
   // M3：有 build_definition 时以编译结果作为明细源，外层再按图表聚合
   if (ds.build_definition) {
@@ -43,7 +70,8 @@ async function query(dataset, queryObj) {
       const nodes = def.nodes || [];
       const last = nodes[nodes.length - 1];
       if (!last || last.nodeType !== 'output') throw new HttpError(400, 'ETL 定义缺少 output 节点');
-      const { nodeSql } = require('./build-sql').compileEtl(def, dialect, catalog);
+      const etlCatalog = await resolveEtlCatalog(dsConfig, provider, cfg, def);
+      const { nodeSql } = require('./build-sql').compileEtl(def, dialect, etlCatalog);
       const { sql, params: innerParams, fields: etlFields } = nodeSql(last.nodeId);
       inner = { sql, params: innerParams, fields: etlFields };
     } else {
@@ -232,7 +260,7 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
  * 返回表内前 pageSize 行与总行数；分页仅支持首页语义，避免方言不一致的 OFFSET。
  */
 async function paginate(dataset, page, pageSize) {
-  const { ds, dialect, provider, cfg } = loadDataSourceContext(dataset);
+  const { ds, dialect, provider, cfg, dsConfig } = loadDataSourceContext(dataset);
 
   if (ds.build_definition) {
     const def = JSON.parse(ds.build_definition);
@@ -241,7 +269,8 @@ async function paginate(dataset, page, pageSize) {
       const nodes = def.nodes || [];
       const last = nodes[nodes.length - 1];
       if (!last || last.nodeType !== 'output') throw new HttpError(400, 'ETL 定义缺少 output 节点');
-      const { nodeSql } = require('./build-sql').compileEtl(def, dialect, []);
+      const etlCatalog = await resolveEtlCatalog(dsConfig, provider, cfg, def);
+      const { nodeSql } = require('./build-sql').compileEtl(def, dialect, etlCatalog);
       detail = nodeSql(last.nodeId);
     } else {
       detail = require('./build-sql').compileDetail({ ...def, aggregation: null }, dialect, []);
