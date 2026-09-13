@@ -77,9 +77,10 @@
             <span class="cell-muted">{{ formatDate(row.created_at) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right" align="center">
+        <el-table-column label="操作" width="260" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
+            <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary" size="small" @click="openEditBuild(row)">编辑构建</el-button>
             <el-button link type="primary" size="small" @click="openRename(row)">重命名</el-button>
             <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
@@ -112,9 +113,12 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
+
+const router = useRouter()
 
 const datasets = ref([])
 const loading = ref(false)
@@ -179,6 +183,11 @@ async function confirmRename() {
   } finally {
     renaming.value = false
   }
+}
+
+async function openEditBuild(row) {
+  await ElMessageBox.confirm(`打开构建器编辑「${row.name}」？`, '编辑构建', { type: 'info' })
+  router.push({ path: `/datasources/${row.datasource_id}/builder`, query: { editDatasetId: row.id } })
 }
 
 async function remove(row) {

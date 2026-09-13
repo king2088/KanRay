@@ -24,7 +24,12 @@
     </el-card>
 
     <el-card shadow="never">
-      <template #header>Schema 浏览</template>
+      <template #header>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span>Schema 浏览</span>
+          <el-button size="small" type="primary" @click="openBuilder()">新建构建</el-button>
+        </div>
+      </template>
       <el-tree
         v-if="schemas.length"
         :data="schemaTree"
@@ -45,7 +50,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { datasourceApi } from '@/api'
 
 const route = useRoute()
@@ -101,16 +106,13 @@ async function doTest() {
   } finally { testing.value = false }
 }
 
-async function createDataset(data) {
-  let dsName
-  try {
-    dsName = (await ElMessageBox.prompt('请输入数据集名称', '创建数据集', {
-      inputValue: data.label, confirmButtonText: '创建', cancelButtonText: '取消', inputValidator: (v) => !!v?.trim() || '名称不能为空',
-    })).value
-  } catch (e) { return }
-  const created = await datasourceApi.registerTable(route.params.id, { schema: data.schema, table: data.label, name: dsName.trim() })
-  ElMessage.success('数据集创建成功')
-  if (created?.id) router.push(`/datasets/${created.id}`)
+function openBuilder(preTable) {
+  const q = preTable ? { table: preTable } : {}
+  router.push({ path: `/datasources/${route.params.id}/builder`, query: q })
+}
+
+function createDataset(data) {
+  openBuilder(`${data.schema}:${data.label}`)
 }
 
 onMounted(load)

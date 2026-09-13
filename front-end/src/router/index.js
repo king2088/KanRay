@@ -20,6 +20,7 @@ const routes = [
     children: [
       { path: 'datasources', name: 'datasources', component: () => import('../views/DataSourceList.vue'), meta: { title: '数据源' } },
       { path: 'datasources/:id', name: 'datasource-detail', component: () => import('../views/DataSourceDetail.vue'), meta: { title: '数据源详情' } },
+      { path: 'datasources/:id/builder', name: 'datasource-builder', component: () => import('../views/DataSourceBuilder.vue'), meta: { title: '数据集构建器' } },
       { path: 'datasets', name: 'datasets', component: () => import('../views/DatasetList.vue'), meta: { title: '数据管理' } },
       { path: 'datasets/new', name: 'dataset-upload', component: () => import('../views/DatasetUpload.vue'), meta: { title: '上传数据' } },
       { path: 'datasets/:id', name: 'dataset-detail', component: () => import('../views/DatasetDetail.vue'), meta: { title: '数据集详情' } },
