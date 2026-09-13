@@ -14,7 +14,7 @@
         <span class="palette-item__icon" :style="{ background: op.color }">{{ op.short }}</span>
         <span class="palette-item__label">{{ op.label }}</span>
       </div>
-      </div>
+    </div>
 
     <div class="etl-builder__canvas" @dragover.prevent @drop="onCanvasDrop">
       <VueFlow
