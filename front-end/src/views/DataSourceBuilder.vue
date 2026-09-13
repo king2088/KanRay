@@ -20,9 +20,9 @@
       </el-tabs>
       <div style="min-height: 520px">
         <keep-alive>
-          <SqlBuilderTab v-if="activeMode === 'sql'" ref="sqlRef" :datasource-id="dsId" :initial-definition="editDefinition" @change="onChange" />
-          <DragBuilderTab v-else-if="activeMode === 'drag'" ref="dragRef" :datasource-id="dsId" :initial-definition="editDefinition" @change="onChange" />
-          <EtlBuilderTab v-else ref="etlRef" :datasource-id="dsId" :initial-definition="editDefinition" @change="onChange" />
+          <SqlBuilderTab v-if="activeMode === 'sql'" ref="sqlRef" :datasource-id="dsId" :catalog="catalog" :initial-definition="editDefinition" @change="onChange" />
+          <DragBuilderTab v-else-if="activeMode === 'drag'" ref="dragRef" :datasource-id="dsId" :catalog="catalog" :initial-definition="editDefinition" @change="onChange" />
+          <EtlBuilderTab v-else ref="etlRef" :datasource-id="dsId" :catalog="catalog" :initial-definition="editDefinition" @change="onChange" />
         </keep-alive>
       </div>
     </el-card>
@@ -50,10 +50,13 @@ const dsType = ref('')
 const editDatasetId = ref(null)
 const editDefinition = ref(null)
 const liveDefinition = ref(null)
+const catalog = ref([])
 
 const sqlRef = ref(null)
 const dragRef = ref(null)
 const etlRef = ref(null)
+
+const MODE_MAP = { sql: 'sql', builder: 'drag', etl: 'etl' }
 
 function onChange(payload) {
   liveDefinition.value = payload.definition
@@ -87,14 +90,16 @@ onMounted(async () => {
     const ds = await datasourceApi.get(dsId)
     dsName.value = ds.name
     dsType.value = ds.type
+    catalog.value = await buildApi.sqlAssist(dsId)
     const editId = route.query.editDatasetId
     if (editId) {
       editDatasetId.value = Number(editId)
       const dataset = await datasetApi.get(editDatasetId.value)
       name.value = dataset.name
       if (dataset.build_definition) {
-        editDefinition.value = typeof dataset.build_definition === 'string' ? JSON.parse(dataset.build_definition) : dataset.build_definition
-        activeMode.value = editDefinition.value.type || 'sql'
+        const def = typeof dataset.build_definition === 'string' ? JSON.parse(dataset.build_definition) : dataset.build_definition
+        editDefinition.value = def
+        activeMode.value = MODE_MAP[def.type] || 'sql'
       }
     }
   } finally { loading.value = false }
