@@ -62,13 +62,17 @@ M3.5 交付后用户反馈六项体验问题：
 > API 澄清：`el-tree-v2` 的 `height` 是 **Number**（默认 200），不支持 `"100%"` 字符串；自带 `filterMethod`（与 el-tree 的 `filter-node-method` 语义一致：传递 `(value, data)`，命中节点连同其祖先保留、其余隐身）与 `defaultExpandedKeys`。已核实 `node_modules/element-plus/es/components/tree-v2/src/virtual-tree.mjs`。
 
 ```vue
-<div class="schema-tree" ref="treeEl">
+<div class="schema-tree">
   <el-input v-model="query" size="small" placeholder="搜索表 / 字段" clearable />
-  <el-tree-v2 ref="treeRef" :data="treeData" :props="{ label: 'n', children: 'children' }" node-key="id"
-    :height="treeHeight" :default-expanded-keys="defaultExpanded" :filter-method="filterMethod" />
+  <div class="schema-tree__body" ref="treeEl">
+    <el-tree-v2 ref="treeRef" :data="treeData" :props="{ children: 'children', label: 'n', value: 'id' }"
+      :height="treeHeight" :default-expanded-keys="defaultExpanded" :filter-method="filterMethod" />
+  </div>
   <!-- 行插槽：图标 + 名称 + 角色 tag + 操作（上架/打开/插入/拖拽） -->
 </div>
 ```
+
+> 注：`el-tree-v2` 的键字段（树的 `node-key`）通过 `props.value` 声明（默认 `'id'`），没有顶层 `node-key` 属性；`defaultExpandedKeys`（kebab 为 `default-expanded-keys`）在 props 中直接支持。
 
 ### 4.2 行为
 
