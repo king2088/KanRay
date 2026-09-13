@@ -44,7 +44,8 @@ function onDragStart(e, tableId) {
 .schema-tree__icon { color: var(--app-text-secondary); flex: 0 0 auto; }
 .schema-tree__label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .schema-tree__actions { display: none; gap: 2px; flex: 0 0 auto; }
-.el-tree-node__content:hover .schema-tree__actions { display: flex; }
-.el-tree-node__content { height: 30px; }
+.el-tree-node__content:hover .schema-tree__actions,
+.el-tree-node__content:focus-within .schema-tree__actions { display: flex; }
+:deep(.el-tree-node__content) { height: 30px; }
 :deep(.el-tree-node__content:hover) { background: var(--app-hover); border-radius: 4px; }
 </style>
