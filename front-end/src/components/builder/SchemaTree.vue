@@ -58,7 +58,7 @@ const treeData = computed(() =>
     ? fullTree.value
     : fullTree.value.map((s) => ({
         ...s,
-        children: (s.children || []).map((t) => ({ ...t, children: [], isLeaf: true })),
+        children: (s.children || []).map((t) => ({ ...t, children: [] })),
       }))
 )
 const defaultExpanded = computed(() => treeData.value.map((s) => s.id))
@@ -69,11 +69,14 @@ function filterMethod(value, data) {
 }
 
 function onSearch(value) {
-  treeRef.value?.filter(String(value || ''))
+  const q = String(value || '').trim()
+  treeRef.value?.filter(q)
+  if (!q) treeRef.value?.setExpandedKeys(defaultExpanded.value)
 }
 
 let ro = null
 onMounted(() => {
+  if (bodyEl.value) treeHeight.value = Math.max(bodyEl.value.clientHeight, 60)
   ro = new ResizeObserver(() => {
     if (bodyEl.value) treeHeight.value = Math.max(bodyEl.value.clientHeight, 60)
   })
