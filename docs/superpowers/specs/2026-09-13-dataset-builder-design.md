@@ -153,7 +153,7 @@ compile(buildDefinition, { datasource: dsConfig, dialect, provider }) → { sql,
 
 - `query(dataset, queryObj)`：有 `build_definition` → 编译明细 SQL 作为子查询，外层按 queryObj 聚合/过滤（宽表语义）；无 → 现有直查逻辑
 - `paginate(dataset, page, pageSize)`：有 `build_definition` → 编译明细 SQL 包 LIMIT + COUNT；无 → 现有逻辑
-- `registerSqlDataset` 保持（新定义首张表=单表宽表也以 build_definition 存储，但优先复用原快捷按钮——见前端）
+- `registerSqlDataset` 保持原样，作为「一键单表」快捷路径；其内部改为同时写入等价的单表 builder 形态 `build_definition`（tables=[单表]+全列 fields），使老接口产物同样可回源编辑
 
 ## 8. 前端
 
