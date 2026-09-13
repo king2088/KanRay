@@ -133,6 +133,20 @@ test('compileEtl chain to aggregate node is cumulative', () => {
   assert.deepEqual(n4.params, [100]);
 });
 
+test('compileEtl join honors right joinType', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 's', schema: 'testdb', table: 'sales' },
+      { nodeId: 'n2', nodeType: 'join', joinType: 'right', sourceNode: 'n1', to: { alias: 'c', schema: 'testdb', table: 'sales' }, on: [{ from: { alias: 's', field: 'id' }, to: { alias: 'c', field: 'id' } }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const sql = nodeSql('n2').sql;
+  assert.ok(sql.includes('RIGHT JOIN'), '期望 RIGHT JOIN，实际: ' + sql);
+  assert.ok(sql.includes('ON `__s__id` = `c`.`id`'), '右表列应直接引用别名: ' + sql);
+});
+
 test('compileEtl unknown node throws', () => {
   const def = { type: 'etl', nodes: [{ nodeId: 'n1', nodeType: 'badthing' }] };
   const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());

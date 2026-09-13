@@ -207,7 +207,8 @@ function compileEtl(def, dialect, catalog) {
           const b = toFieldRef(o.to, null);
           return `${q(mapOut(a))} = ${q(node.to.alias)}.${q(b.field)}`;
         });
-        const jt = (node.on && node.on[0] && node.on[0].joinType === 'left') ? 'LEFT JOIN' : 'JOIN';
+        const jtOverride = node.joinType || (node.on && node.on[0] && node.on[0].joinType);
+        const jt = jtOverride === 'right' ? 'RIGHT JOIN' : (jtOverride === 'left' ? 'LEFT JOIN' : 'JOIN');
         const prevFields = [...currentFields];
         currentFields = [...currentFields, ...newCols.map((c) => {
           const col = (meta.columns || []).find((x) => x.name === c) || {};
