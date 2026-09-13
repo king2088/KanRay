@@ -18,7 +18,7 @@
         <el-tab-pane label="拖拉拽" name="drag" />
         <el-tab-pane label="ETL" name="etl" />
       </el-tabs>
-      <div style="min-height: 520px">
+      <div class="builder-page__content">
         <keep-alive>
           <SqlBuilderTab v-if="activeMode === 'sql'" ref="sqlRef" :datasource-id="dsId" :catalog="catalog" :initial-definition="editDefinition" @change="onChange" />
           <DragBuilderTab v-else-if="activeMode === 'drag'" ref="dragRef" :datasource-id="dsId" :catalog="catalog" :initial-definition="editDefinition" @change="onChange" />
@@ -116,5 +116,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.builder-page { display: flex; flex-direction: column; gap: 16px; }
+.builder-page { display: flex; flex-direction: column; gap: 16px; height: calc(100vh - var(--app-header-height)); padding: 16px; }
+.builder-page :deep(.el-card) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.builder-page :deep(.el-card__body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.builder-page :deep(.el-tabs) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.builder-page :deep(.el-tabs__header) { flex-shrink: 0; }
+.builder-page :deep(.el-tabs__content) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.builder-page :deep(.el-tab-pane) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.builder-page__content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 </style>
