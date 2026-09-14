@@ -119,9 +119,5 @@ onMounted(async () => {
 .builder-page { display: flex; flex-direction: column; gap: 16px; height: calc(100vh - var(--app-header-height)); padding: 16px; }
 .builder-page :deep(.el-card) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .builder-page :deep(.el-card__body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.builder-page :deep(.el-tabs) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.builder-page :deep(.el-tabs__header) { flex-shrink: 0; }
-.builder-page :deep(.el-tabs__content) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.builder-page :deep(.el-tab-pane) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .builder-page__content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 </style>
