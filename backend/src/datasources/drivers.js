@@ -232,7 +232,7 @@ const drivers = [
     fields: [
       { name: 'host', label: '主机地址', type: 'text', required: true },
       { name: 'port', label: '端口', type: 'number', required: true, default: 1521 },
-      { name: 'service_name', label: '服务名 ServiceName', type: 'text', required: true, default: 'FREEPDB1' },
+      { name: 'service_name', label: '服务名', type: 'text', required: true, default: 'FREEPDB1' },
       { name: 'user', label: '用户名', type: 'text', required: true },
       { name: 'password', label: '密码', type: 'password', required: true },
     ],

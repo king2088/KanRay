@@ -1,6 +1,6 @@
 <template>
   <el-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" :title="editRow ? '编辑数据源' : '新建数据源'" width="560px" destroy-on-close>
-    <el-form :model="form" label-width="100px">
+    <el-form :model="form" label-width="120px">
       <el-form-item label="数据源类型" required>
         <el-select v-model="form.type" placeholder="请选择" :disabled="!!editRow" style="width: 100%">
           <el-option-group v-for="cat in groupedDrivers" :key="cat.category" :label="cat.category">
