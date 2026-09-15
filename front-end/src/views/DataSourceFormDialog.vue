@@ -5,14 +5,23 @@
         <el-select v-model="form.type" placeholder="请选择" :disabled="!!editRow" style="width: 100%">
           <el-option-group v-for="cat in groupedDrivers" :key="cat.category" :label="cat.category">
             <el-option v-for="d in cat.items" :key="d.type" :value="d.type" :label="d.name" :disabled="d.status === 'planned'">
-              <span>{{ d.name }}</span>
-              <el-tag v-if="d.status === 'planned'" size="small" type="info" style="margin-left: 8px">暂不支持</el-tag>
+              <span class="ds-opt"><DbIcon :type="d.type" :size="16" /><span>{{ d.name }}</span></span>
+              <el-tag v-if="d.status === 'planned'"  type="info" style="margin-left: 8px">暂不支持</el-tag>
             </el-option>
           </el-option-group>
         </el-select>
       </el-form-item>
       <el-form-item label="名称" required>
         <el-input v-model="form.name" placeholder="请输入数据源名称" maxlength="100" />
+      </el-form-item>
+      <el-form-item label="存储方式">
+        <el-radio-group v-model="form.mode">
+          <el-radio value="direct">直连</el-radio>
+          <el-radio value="sync" :disabled="isFileDriver">同步</el-radio>
+        </el-radio-group>
+        <div v-if="form.mode === 'sync' && !isFileDriver" class="mode-tip">
+          连接信息与直连一致；保存后请在详情页为要分析的表配置「同步」任务（数据定期落到本机存储，不在此自动注册数据集）。
+        </div>
       </el-form-item>
       <template v-if="currentDriver">
         <el-form-item v-for="f in currentDriver.fields" :key="f.name" :label="f.label" :required="f.required">
@@ -39,6 +48,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { datasourceApi } from '@/api'
+import DbIcon from '@/components/DbIcon.vue'
 
 const props = defineProps({ modelValue: Boolean, editRow: Object })
 const emit = defineEmits(['update:modelValue', 'saved'])
@@ -59,12 +69,13 @@ const groupedDrivers = computed(() => {
 })
 
 const currentDriver = computed(() => drivers.value.find((d) => d.type === form.value.type))
+const isFileDriver = computed(() => currentDriver.value?.category === '文件')
 
 watch(() => props.editRow, (row) => {
   if (row) {
-    form.value = { name: row.name, type: row.type, config: { ...row.config } }
+    form.value = { name: row.name, type: row.type, config: { ...row.config }, mode: row.mode || 'direct' }
   } else {
-    form.value = { name: '', type: '', config: {} }
+    form.value = { name: '', type: '', config: {}, mode: 'direct' }
   }
   testResult.value = null
 }, { immediate: true, deep: true })
@@ -100,3 +111,17 @@ async function doSave() {
 
 loadDrivers()
 </script>
+
+<style scoped>
+.ds-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mode-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+</style>

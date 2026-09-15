@@ -77,10 +77,19 @@ export const datasourceApi = {
   remove: (id) => http.delete(`/datasources/${id}`),
   test: (payload) => http.post('/datasources/test', payload),
   testSaved: (id) => http.post(`/datasources/${id}/test`),
-  schemas: (id) => http.get(`/datasources/${id}/schemas`),
-  tables: (id, schema) => http.get(`/datasources/${id}/schemas/${schema}/tables`),
-  columns: (id, schema, table) => http.get(`/datasources/${id}/schemas/${schema}/tables/${table}/columns`),
+  schemas: (id, params) => http.get(`/datasources/${id}/schemas`, { params }),
+  tables: (id, schema, params) => http.get(`/datasources/${id}/schemas/${schema}/tables`, { params }),
+  columns: (id, schema, table, params) => http.get(`/datasources/${id}/schemas/${schema}/tables/${table}/columns`, { params }),
   registerTable: (id, payload) => http.post(`/datasources/${id}/register-table`, payload),
+}
+
+export const syncApi = {
+  list: (id) => http.get(`/datasources/${id}/sync-configs`),
+  create: (id, body) => http.post(`/datasources/${id}/sync-configs`, body),
+  update: (id, cid, body) => http.patch(`/datasources/${id}/sync-configs/${cid}`, body),
+  remove: (id, cid) => http.delete(`/datasources/${id}/sync-configs/${cid}`),
+  run: (id, cid) => http.post(`/datasources/${id}/sync-configs/${cid}/run`),
+  logs: (id, cid) => http.get(`/datasources/${id}/sync-configs/${cid}/logs`),
 }
 
 export const buildApi = {
