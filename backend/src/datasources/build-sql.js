@@ -1,10 +1,13 @@
 const HttpError = require('../utils/http-error');
+const d = require('./dialects');
 
-// 简版 ETL 固定节点类型（顺序由 sourceNode 链决定）
-const NODE_TYPES = new Set(['source', 'join', 'filter', 'aggregate', 'output']);
+// ETL 节点类型白名单
+const NODE_TYPES = new Set([
+  'source', 'join', 'filter', 'aggregate', 'output',
+  'columnSelect', 'dedup', 'valueReplace', 'nullReplace', 'trim', 'sqlNode',
+]);
 
 function toFieldRef(ref, fallbackAlias) {
-  // { alias, field } 定位字段；兼容旧式半限名 "o.amount"
   if (!ref) throw new HttpError(400, '字段引用缺失');
   if (typeof ref === 'string') {
     const parts = String(ref).split('.');
@@ -23,9 +26,6 @@ function guessType(dbType) {
   return 'string';
 }
 
-/**
- * 解析目录元数据为 { 'schema.table' -> { columns: [ {name,type,role} ] } }
- */
 function buildCatalogIndex(catalog) {
   const idx = {};
   for (const t of catalog || []) {
@@ -34,17 +34,15 @@ function buildCatalogIndex(catalog) {
   return idx;
 }
 
-/**
- * 编译明细宽表 SQL。
- * @param {object} def build_definition
- * @param {object} dialect 方言
- * @param {Array} catalog [{ schema, table, columns: [{name,type,role}] }]
- * @returns {{ sql, params, fields }}
- */
+function mapOut(r) {
+  return `__${r.alias}__${r.field}`;
+}
+
+// ─── compileDetail（builder / sql 两种形态，保持不变）───────────────────
+
 function compileDetail(def, dialect, catalog) {
   const quote = (name) => dialect.quoteIdent(String(name));
 
-  // 纯 SQL：白名单 SELECT 只读；字段来自定义 fields（前端预览后导入）
   if (def.type === 'sql') {
     const sql = String(def.sql || '').trim();
     if (!/^\s*(SELECT|WITH)\b/i.test(sql)) throw new HttpError(400, 'SQL 仅允许 SELECT/WITH 只读语句');
@@ -56,7 +54,6 @@ function compileDetail(def, dialect, catalog) {
     return { sql, params: [], fields };
   }
 
-  // builder：FROM 主表 + JOIN 表 + 可选聚合
   const tables = (def.tables || []).map((t, i) => ({
     alias: t.alias || `t${i}`, schema: t.schema || null, table: t.table, index: i,
   }));
@@ -77,7 +74,6 @@ function compileDetail(def, dialect, catalog) {
     fromParts.push(`${jt} ${qualified(target)} ${quote(to.alias)} ON ${quote(from.alias)}.${quote(from.field)} = ${quote(to.alias)}.${quote(to.field)}`);
   });
 
-  // 明细输出列
   const params = [];
   const colRefs = selectFields.map((f, i) => {
     const r = f && typeof f === 'object'
@@ -91,7 +87,6 @@ function compileDetail(def, dialect, catalog) {
 
   let sql = `SELECT ${colRefs.map((c) => `${c.sql} AS ${quote(c.alias)}`).join(', ')} FROM ${fromParts.join(' ')}${whereSql.where ? ` ${whereSql.where}` : ''}`;
 
-  // 聚合
   const agg = def.aggregation && (def.aggregation.groupBy || def.aggregation.metrics) ? def.aggregation : null;
   if (agg) {
     const dims = (agg.groupBy || []).map((g, i) => {
@@ -129,7 +124,6 @@ function compileDetail(def, dialect, catalog) {
   return { sql, params, fields: colRefs.map((c) => ({ name: c.alias, label: c.label, type: c.type })) };
 }
 
-/** 构建 WHERE 子句（仅 detail 前置筛选；聚合自带 groupBy）——占位符通用实现 */
 function buildWhere(filters, dialect, byAlias, params) {
   const clauses = [];
   const ph = dialect.placeholder;
@@ -154,141 +148,320 @@ function buildWhere(filters, dialect, byAlias, params) {
   return clauses.length ? { where: `WHERE ${clauses.join(' AND ')}` } : { where: '' };
 }
 
-function compileAggExprs(def, dialect, byAlias, agg, params) {
-  return []; // 占位（本文件聚合统一走 compileDetail 内联逻辑；保留以供扩展）
-}
+function compileAggExprs() { return []; }
+
+// ─── compileEtl（递归解析器，支持多源 + 6 种新节点）──────────────────
 
 /**
- * 编译 ETL 节点链（源 → join → filter → aggregate → output）。
- * 链式累积：每个节点在上一节点 SELECT 结果上变换。
- * @returns { node => {sql, params, fields} }
+ * 编译 ETL 节点链为 SQL。
+ * 返回 { nodeSql(nodeId) → { sql, params, fields } }
+ * 每次 nodeSql 调用从头重建，无 memo，天然支持 DAG（叶子节点可被多处引用）。
+ * @param {object} def           { type:'etl', nodes: [...] }
+ * @param {object} dialect       方言对象
+ * @param {Array}  catalog       [{ schema, table, columns }]
  */
 function compileEtl(def, dialect, catalog) {
   const idx = buildCatalogIndex(catalog);
-  const ph = dialect.placeholder;
   const q = (n) => dialect.quoteIdent(String(n));
-
-  let currentSql = null;
-  let currentFields = [];       // { name, label, type }
-  let params = [];
 
   const byId = {};
   (def.nodes || []).forEach((n) => { byId[n.nodeId] = n; });
 
-  const walk = (node) => {
-    const prev = node.sourceNode ? byId[node.sourceNode] : null;
-    const wrap = (innerSql, alias) => `(${innerSql}) ${q(alias)}`;
-    switch (node.nodeType) {
-      case 'source': {
-        const key = `${node.schema}.${node.table}`;
-        const meta = idx[key];
-        const cols = (meta && meta.columns) ? meta.columns.map((c) => c.name) : null;
-        if (cols) {
-          const exprs = cols.map((c) => `${q(node.alias)}.${q(c)} AS ${q(`__${node.alias}__${c}`)}`);
-          currentSql = `SELECT ${exprs.join(', ')} FROM ${node.schema ? `${q(node.schema)}.${q(node.table)}` : q(node.table)} ${q(node.alias)}`;
-          currentFields = cols.map((c) => {
-            const col = (meta.columns || []).find((x) => x.name === c) || {};
-            return { name: `__${node.alias}__${c}`, label: `${node.alias}.${c}`, type: guessType(col.type) };
-          });
-        } else {
-          currentSql = `SELECT * FROM ${node.schema ? `${q(node.schema)}.${q(node.table)}` : q(node.table)} ${q(node.alias)}`;
-          currentFields = [];
-        }
-        break;
-      }
-      case 'join': {
-        if (!prev) throw new HttpError(400, 'join 节点必须指定 sourceNode');
-        const key = `${node.to.schema}.${node.to.table}`;
-        const meta = idx[key];
-        const newCols = (meta && meta.columns) ? meta.columns.map((c) => c.name) : [];
-        const newExprs = newCols.map((c) => `${q(node.to.alias)}.${q(c)} AS ${q(`__${node.to.alias}__${c}`)}`);
-        const onList = (node.on || []).map((o) => {
-          const a = toFieldRef(o.from, null);
-          const b = toFieldRef(o.to, null);
-          return `${q(mapOut(a))} = ${q(node.to.alias)}.${q(b.field)}`;
-        });
-        const jtOverride = node.joinType || (node.on && node.on[0] && node.on[0].joinType);
-        const jt = jtOverride === 'right' ? 'RIGHT JOIN' : (jtOverride === 'left' ? 'LEFT JOIN' : 'JOIN');
-        const prevFields = [...currentFields];
-        currentFields = [...currentFields, ...newCols.map((c) => {
-          const col = (meta.columns || []).find((x) => x.name === c) || {};
-          return { name: `__${node.to.alias}__${c}`, label: `${node.to.alias}.${c}`, type: guessType(col.type) };
-        })];
-        currentSql = `SELECT ${[...prevFields.map((f) => q(f.name)), ...newExprs].join(', ')} FROM ${wrap(currentSql, 'j0')} ${jt} ${node.to.schema ? `${q(node.to.schema)}.${q(node.to.table)}` : q(node.to.table)} ${q(node.to.alias)} ON ${onList.join(' AND ')}`;
-        break;
-      }
-      case 'filter': {
-        if (!prev) throw new HttpError(400, 'filter 节点必须指定 sourceNode');
-        const preds = (node.conditions || []).map((c) => {
-          const r = toFieldRef(c.field, null);
-          if (!r.alias) throw new HttpError(400, '筛选字段缺少别名');
-          const col = `${q(mapOut(r))}`;
-          const op = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE' }[c.op];
-          if (!op) throw new HttpError(400, `不支持的筛选操作: ${c.op}`);
-          if (c.op === 'contains') { params.push(`%${c.value}%`); return `${col} LIKE ${ph(params.length)}`; }
-          params.push(c.value);
-          return `${col} ${op} ${ph(params.length)}`;
-        });
-        currentSql = `SELECT * FROM ${wrap(currentSql, 'f0')} WHERE ${preds.join(' AND ')}`;
-        currentFields = [...currentFields];
-        break;
-      }
-      case 'aggregate': {
-        if (!prev) throw new HttpError(400, 'aggregate 节点必须指定 sourceNode');
-        const dims = (node.groupBy || []).map((g, i) => {
-          const r = toFieldRef(g, null);
-          return { out: q(mapOut(r)), dim: `d_${i}` };
-        });
-        const metricSqls = (node.metrics || []).map((m, i) => {
-          const fn = (dialect.agg && dialect.agg[m.agg]) || { sum: 'SUM', avg: 'AVG', count: 'COUNT', max: 'MAX' }[m.agg] || 'COUNT';
-          if (m.agg === 'count') return `COUNT(*) AS ${q(`m_${i}`)}`;
-          const r = m && typeof m === 'object' && (m.alias || m.source) && m.field !== undefined
-            ? { alias: m.alias || m.source, field: m.field }
-            : toFieldRef(m.field || m.source, null);
-          const col = q(mapOut(r));
-          if (m.agg === 'count_distinct') return `${fn.includes('(') ? `${fn} ` : `${fn}(`}${col}) AS ${q(`m_${i}`)}`;
-          return `${fn}(${col}) AS ${q(`m_${i}`)}`;
-        });
-        currentFields = [
-          ...dims.map((d) => ({ name: d.dim, label: d.dim, type: 'string' })),
-          ...(node.metrics || []).map((m, i) => ({ name: `m_${i}`, label: m.label || `${m.field}(${m.agg})`, type: 'number' })),
-        ];
-        currentSql = `SELECT ${dims.map((d) => `${d.out} AS ${q(d.dim)}`).concat(metricSqls).join(', ')} FROM ${wrap(currentSql, 'a0')}${dims.length ? ` GROUP BY ${dims.map((d) => d.out).join(', ')}` : ''}`;
-        break;
-      }
-      case 'output': {
-        if (!prev) throw new HttpError(400, 'output 节点必须指定 sourceNode');
-        const limit = Math.max(1, Number(node.limit) || 1000);
-        currentSql = dialect.limit ? dialect.limit(currentSql, limit) : `${currentSql} LIMIT ${limit}`;
-        break;
-      }
-      default:
-        throw new HttpError(400, `未知节点类型: ${node.nodeType}`);
-    }
-    return currentSql;
-  };
-
   const nodeSql = (nodeId) => {
     const target = byId[nodeId];
     if (!target) throw new HttpError(404, `节点不存在: ${nodeId}`);
-    // 重建链（从链头依次应用）
-    const chain = [];
-    let cur = target;
-    while (cur) {
-      chain.unshift(cur);
-      if (!cur.sourceNode) break;
-      cur = byId[cur.sourceNode];
-    }
-    params = [];
-    for (const n of chain) walk(n);
-    return { sql: currentSql, params: [...params], fields: [...currentFields] };
+
+    // 每次调用独立的参数栈，ph() 闭包自增计数器
+    const params = [];
+    let counter = 0;
+    const ph = () => { counter++; return dialect.placeholder(counter); };
+
+    // wrap: 把子查询包成派生表
+    const wrap = (innerSql, alias) => `(${innerSql}) ${q(alias)}`;
+
+    // DFS 深度优先求值，返回 { sql, fields }
+    const seen = new Set();          // 当前路径上的祖先，用于环检测（弹出后允许其他路径再次访问）
+    const resolve = (node) => {
+      if (!node) throw new HttpError(400, 'ETL 链不完整，缺少 sourceNode');
+      if (seen.has(node.nodeId)) throw new HttpError(400, `ETL 环依赖: ${node.nodeId}`);
+      seen.add(node.nodeId);
+      try {
+
+      switch (node.nodeType) {
+
+        /* ───── 输入源 ───── */
+        case 'source': {
+          const key = `${node.schema}.${node.table}`;
+          const meta = idx[key];
+          const cols = (meta && meta.columns) ? meta.columns.map((c) => c.name) : null;
+          const sql = cols
+            ? `SELECT ${cols.map((c) => `${q(node.alias)}.${q(c)} AS ${q(mapOut({ alias: node.alias, field: c }))}`).join(', ')} FROM ${node.schema ? `${q(node.schema)}.${q(node.table)}` : q(node.table)} ${q(node.alias)}`
+            : `SELECT * FROM ${node.schema ? `${q(node.schema)}.${q(node.table)}` : q(node.table)} ${q(node.alias)}`;
+          const fields = cols
+            ? cols.map((c) => {
+              const col = (meta.columns || []).find((x) => x.name === c) || {};
+              return { name: mapOut({ alias: node.alias, field: c }), label: `${node.alias}.${c}`, type: guessType(col.type) };
+            })
+            : [];
+          return { sql, fields };
+        }
+
+        /* ───── 关联（支持 node-based 右侧输入 + 旧式 to 表） ───── */
+        case 'join': {
+          if (!node.sourceNode) throw new HttpError(400, 'join 节点必须指定 sourceNode');
+          const left = resolve(byId[node.sourceNode]);
+
+          // 右侧：优先 rightNodeId（节点引用），否则走旧式 to（物理表）
+          let right;
+          let rightCols = [];
+          let rightAlias = node.to?.alias || 'jr';
+          let onList;
+
+          if (node.rightNodeId) {
+            right = resolve(byId[node.rightNodeId]);
+            rightAlias = byId[node.rightNodeId]?.alias || rightAlias;
+            rightCols = right.fields.map((f) => ({ name: f.name, label: f.label, type: f.type }));
+            onList = (node.on || []).map((o) => {
+              const a = toFieldRef(o.from, null);
+              const b = toFieldRef(o.to, null);
+              return `${q(mapOut(a))} = ${q(mapOut(b))}`;
+            });
+          } else if (node.to?.schema || node.to?.table) {
+            // 旧式 join（向后兼容）：右侧为物理表
+            const key = `${node.to.schema}.${node.to.table}`;
+            const meta = idx[key];
+            const newCols = (meta && meta.columns) ? meta.columns.map((c) => c.name) : [];
+            right = {
+              sql: node.to.schema ? `${q(node.to.schema)}.${q(node.to.table)} ${q(rightAlias)}` : `${q(node.to.table)} ${q(rightAlias)}`,
+              fields: newCols.map((c) => {
+                const col = (meta.columns || []).find((x) => x.name === c) || {};
+                return { name: mapOut({ alias: rightAlias, field: c }), label: `${rightAlias}.${c}`, type: guessType(col.type) };
+              }),
+            };
+            rightCols = right.fields;
+            // 旧式 ON：左侧用 __leftAlias__field，右侧直接用 toAlias.field（物理表别名）
+            onList = (node.on || []).map((o) => {
+              const a = toFieldRef(o.from, null);
+              const b = toFieldRef(o.to, null);
+              return `${q(mapOut(a))} = ${q(rightAlias)}.${q(b.field)}`;
+            });
+          } else {
+            throw new HttpError(400, 'join 节点必须指定 rightNodeId 或 to.schema/to.table');
+          }
+
+          const jtOverride = node.joinType || (node.on && node.on[0] && node.on[0].joinType);
+          const jt = jtOverride === 'right' ? 'RIGHT JOIN' : (jtOverride === 'left' ? 'LEFT JOIN' : 'JOIN');
+
+          const fields = [...left.fields, ...rightCols];
+          const rightSql = node.rightNodeId ? wrap(right.sql, 'jr') : right.sql;
+          const sql = `SELECT ${fields.map((f) => q(f.name)).join(', ')} FROM ${wrap(left.sql, 'j0')} ${jt} ${rightSql} ON ${onList.join(' AND ')}`;
+          return { sql, fields };
+        }
+
+        /* ───── 过滤 ───── */
+        case 'filter': {
+          if (!node.sourceNode) throw new HttpError(400, 'filter 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const preds = (node.conditions || []).map((c) => {
+            const r = toFieldRef(c.field, null);
+            const col = `${q(mapOut(r))}`;
+            const op = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE' }[c.op];
+            if (!op) throw new HttpError(400, `不支持的筛选操作: ${c.op}`);
+            if (c.op === 'contains') { params.push(`%${c.value}%`); return `${col} LIKE ${ph()}`; }
+            params.push(c.value);
+            return `${col} ${op} ${ph()}`;
+          });
+          const sql = `SELECT * FROM ${wrap(prev.sql, 'f0')} WHERE ${preds.join(' AND ')}`;
+          return { sql, fields: [...prev.fields] };
+        }
+
+        /* ───── 聚合 ───── */
+        case 'aggregate': {
+          if (!node.sourceNode) throw new HttpError(400, 'aggregate 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const dims = (node.groupBy || []).map((g, i) => {
+            const r = toFieldRef(g, null);
+            return { out: q(mapOut(r)), dim: `d_${i}` };
+          });
+          const metricSqls = (node.metrics || []).map((m, i) => {
+            const fn = (dialect.agg && dialect.agg[m.agg]) || { sum: 'SUM', avg: 'AVG', count: 'COUNT', max: 'MAX', min: 'MIN' }[m.agg] || 'COUNT';
+            if (m.agg === 'count') return `COUNT(*) AS ${q(`m_${i}`)}`;
+            const r = m && typeof m === 'object' && (m.alias || m.source) && m.field !== undefined
+              ? { alias: m.alias || m.source, field: m.field }
+              : toFieldRef(m.field || m.source, null);
+            const col = q(mapOut(r));
+            if (m.agg === 'count_distinct') return `${fn.includes('(') ? `${fn} ` : `${fn}(`}${col}) AS ${q(`m_${i}`)}`;
+            return `${fn}(${col}) AS ${q(`m_${i}`)}`;
+          });
+          const fields = [
+            ...dims.map((d) => ({ name: d.dim, label: d.dim, type: 'string' })),
+            ...(node.metrics || []).map((m, i) => ({ name: `m_${i}`, label: m.label || `${m.field}(${m.agg})`, type: 'number' })),
+          ];
+          const sql = `SELECT ${dims.map((d) => `${d.out} AS ${q(d.dim)}`).concat(metricSqls).join(', ')} FROM ${wrap(prev.sql, 'a0')}${dims.length ? ` GROUP BY ${dims.map((d) => d.out).join(', ')}` : ''}`;
+          return { sql, fields };
+        }
+
+        /* ───── 选择列 ───── */
+        case 'columnSelect': {
+          if (!node.sourceNode) throw new HttpError(400, 'columnSelect 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const cols = (node.columns || []).map((c) => {
+            const r = toFieldRef(c, null);
+            const matched = prev.fields.find((f) => f.name === mapOut(r)) || {};
+            return { col: mapOut(r), label: matched.label || `${r.alias}.${r.field}`, type: matched.type || 'string' };
+          });
+          if (!cols.length) throw new HttpError(400, '选择列至少选一列');
+          const sql = `SELECT ${cols.map((c) => `${q(c.col)}`).join(', ')} FROM ${wrap(prev.sql, 'cs0')}`;
+          return { sql, fields: cols.map((c) => ({ name: c.col, label: c.label, type: c.type })) };
+        }
+
+        /* ───── 去重 ───── */
+        case 'dedup': {
+          if (!node.sourceNode) throw new HttpError(400, 'dedup 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const dedupCols = node.columns || [];
+          let sql;
+          let fields;
+          if (dedupCols.length) {
+            const refs = dedupCols.map((c) => {
+              const r = toFieldRef(c, null);
+              const matched = prev.fields.find((f) => f.name === mapOut(r)) || {};
+              return { name: mapOut(r), label: matched.label || `${r.alias}.${r.field}`, type: matched.type || 'string' };
+            });
+            sql = `SELECT DISTINCT ${refs.map((c) => q(c.name)).join(', ')} FROM ${wrap(prev.sql, 'd0')}`;
+            fields = refs;
+          } else {
+            sql = `SELECT DISTINCT * FROM ${wrap(prev.sql, 'd0')}`;
+            fields = [...prev.fields];
+          }
+          return { sql, fields };
+        }
+
+        /* ───── 值替换 ───── */
+        case 'valueReplace': {
+          if (!node.sourceNode) throw new HttpError(400, 'valueReplace 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const mappings = node.mappings || [];  // [{ field:{alias,field}, from, to }]
+          const sqlParts = prev.fields.map((f) => {
+            const mapping = mappings.find((m) => mapOut(toFieldRef(m.field, null)) === f.name);
+            if (mapping) {
+              params.push(mapping.from, mapping.to);
+              return `CASE WHEN ${q(f.name)} = ${ph()} THEN ${ph()} ELSE ${q(f.name)} END AS ${q(f.name)}`;
+            }
+            return q(f.name);
+          });
+          const sql = `SELECT ${sqlParts.join(', ')} FROM ${wrap(prev.sql, 'vr0')}`;
+          return { sql, fields: [...prev.fields] };
+        }
+
+        /* ───── null 值替换 ───── */
+        case 'nullReplace': {
+          if (!node.sourceNode) throw new HttpError(400, 'nullReplace 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const mappings = node.mappings || [];  // [{ field:{alias,field}, to }]
+          const mappedSet = new Set(mappings.map((m) => mapOut(toFieldRef(m.field, null))));
+          const sqlParts = prev.fields.map((f) => {
+            const mapping = mappings.find((m) => mapOut(toFieldRef(m.field, null)) === f.name);
+            if (mapping) {
+              params.push(mapping.to);
+              return `COALESCE(${q(f.name)}, ${ph()}) AS ${q(f.name)}`;
+            }
+            return q(f.name);
+          });
+          const sql = `SELECT ${sqlParts.join(', ')} FROM ${wrap(prev.sql, 'nr0')}`;
+          return { sql, fields: [...prev.fields] };
+        }
+
+        /* ───── 去空格 ───── */
+        case 'trim': {
+          if (!node.sourceNode) throw new HttpError(400, 'trim 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const trimCols = (node.columns || []).map((c) => mapOut(toFieldRef(c, null)));
+          const trimSet = new Set(trimCols.length ? trimCols : prev.fields.map((f) => f.name));
+          const trimFn = dialect.trim || ((name) => `TRIM(${name})`);
+          const sqlParts = prev.fields.map((f) => {
+            if (trimSet.has(f.name)) {
+              return `${trimFn(q(f.name))} AS ${q(f.name)}`;
+            }
+            return q(f.name);
+          });
+          const sql = `SELECT ${sqlParts.join(', ')} FROM ${wrap(prev.sql, 'tr0')}`;
+          return { sql, fields: [...prev.fields] };
+        }
+
+        /* ───── 自定义 SQL ───── */
+        case 'sqlNode': {
+          const raw = String(node.sql || '').trim();
+          if (!raw) throw new HttpError(400, 'sqlNode SQL 不能为空');
+          if (!/^\s*(SELECT|WITH)\b/i.test(raw)) throw new HttpError(400, 'sqlNode SQL 仅允许 SELECT/WITH 只读语句');
+          if (node.sourceNode) {
+            const prev = resolve(byId[node.sourceNode]);
+            // 把 __etl_prev 替换为 (prevSql)
+            const sql = raw.replace(/\b__etl_prev\b/g, `(${prev.sql})`);
+            return { sql, fields: [...prev.fields] };
+          }
+          // 无上游：直接执行原始 SQL（引用真实表）
+          return { sql: raw, fields: (node.fields || []).map((f, i) => ({ name: f.name || `col_${i}`, label: f.label || f.name || `列 ${i + 1}`, type: f.type || 'string' })) };
+        }
+
+        /* ───── 输出 ───── */
+        case 'output': {
+          if (!node.sourceNode) throw new HttpError(400, 'output 节点必须指定 sourceNode');
+          const prev = resolve(byId[node.sourceNode]);
+          const limit = Math.max(1, Number(node.limit) || 1000);
+          const sql = dialect.limit ? dialect.limit(prev.sql, limit) : `${prev.sql} LIMIT ${limit}`;
+          return { sql, fields: [...prev.fields] };
+        }
+
+        default:
+          throw new HttpError(400, `未知节点类型: ${node.nodeType}`);
+      }
+      } finally {
+        seen.delete(node.nodeId);
+      }
+    };
+
+    const result = resolve(target);
+    return { sql: result.sql, params: [...params], fields: [...result.fields] };
   };
 
   return { nodeSql };
 }
 
-function mapOut(r) {
-  return `__${r.alias}__${r.field}`;
+// ─── buildUpsert（同步模式：六方言 upsert 生成器）──────────────────────
+
+function buildUpsert(table, columns, pkColumns, dialect) {
+  if (!pkColumns || pkColumns.length === 0) throw new HttpError(400, '增量同步需要主键字段(primary_key)');
+  const q = dialect.quoteIdent;
+  const colList = columns.map(q).join(', ');
+  const placeholders = columns.map((_, i) => dialect.placeholder(i + 1)).join(', ');
+
+  if (dialect.upsertSyntax === 'dup') {
+    const updates = columns.filter((c) => !pkColumns.includes(c)).map((c) => `${q(c)} = VALUES(${q(c)})`).join(', ');
+    return `INSERT INTO ${q(table)} (${colList}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updates}`;
+  }
+
+  if (dialect.upsertSyntax === 'conflict') {
+    const ref = dialect === d.sqlite ? 'excluded' : 'EXCLUDED';
+    const set = columns.filter((c) => !pkColumns.includes(c)).map((c) => `${q(c)} = ${ref}.${q(c)}`).join(', ');
+    const conflict = dialect === d.sqlite ? `ON CONFLICT(${pkColumns.map(q).join(', ')})` : `ON CONFLICT (${pkColumns.map(q).join(', ')})`;
+    return `INSERT INTO ${q(table)} (${colList}) VALUES (${placeholders}) ${conflict} DO UPDATE SET ${set}`;
+  }
+
+  if (dialect.upsertSyntax === 'merge') {
+    const cols = columns.map(q).join(', ');
+    const srcCols = columns.map((c) => `S.${q(c)}`).join(', ');
+    const pairs = pkColumns.map((c) => `T.${q(c)} = S.${q(c)}`).join(' AND ');
+    const set = columns.filter((c) => !pkColumns.includes(c)).map((c) => `${q(c)} = S.${q(c)}`).join(', ');
+    if (dialect === d.mssql) {
+      const svals = columns.map((_, i) => `@p${i}`).join(', ');
+      return `MERGE INTO ${q(table)} AS T USING (VALUES (${svals})) AS S (${cols}) ON ${pairs} WHEN MATCHED THEN UPDATE SET ${set} WHEN NOT MATCHED THEN INSERT (${cols}) VALUES (${srcCols});`;
+    }
+    const svals = columns.map((c, i) => `:${i + 1} AS ${q(c)}`).join(', ');
+    return `MERGE INTO ${q(table)} T USING (SELECT ${svals} FROM DUAL) S ON (${pairs}) WHEN MATCHED THEN UPDATE SET ${set} WHEN NOT MATCHED THEN INSERT (${cols}) VALUES (${srcCols})`;
+  }
+
+  throw new HttpError(500, `方言不支持 upsert: ${dialect.upsertSyntax}`);
 }
 
-module.exports = { compileDetail, compileEtl, guessType, toFieldRef, NODE_TYPES };
+module.exports = { compileDetail, compileEtl, guessType, toFieldRef, NODE_TYPES, mapOut, buildUpsert };
