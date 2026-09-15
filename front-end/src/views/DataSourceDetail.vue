@@ -108,13 +108,14 @@
         lazy
         :load="loadNode"
         node-key="id"
+        :props="{ children: 'children', label: 'label', disabled: 'disabled', isLeaf: 'isLeaf' }"
         :filter-node-method="filterNode"
       >
         <template #default="{ data }">
           <span class="tree-node">
-            <el-icon :size="14" class="tree-node__icon"><component :is="iconOf(data.type)" /></el-icon>
+            <el-icon :size="14" class="tree-node__icon"><SchemaNodeIcon :kind="data.type" :raw-type="data.rawType" /></el-icon>
             <span class="tree-node__label">{{ data.label }}</span>
-            <el-tag v-if="data.type === 'column' && typeBadge(data)"  effect="plain" :type="typeBadge(data).type">{{ typeBadge(data).text }}</el-tag>
+            <span v-if="data.type === 'column'" class="tree-node__type" :class="'type--' + typeBadge(data).type">{{ typeBadge(data).text }}</span>
             <span class="tree-node__actions">
               <el-button v-if="data.type === 'table'" link  type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">新建构建</el-button>
               <el-button v-if="data.type === 'table'" link  @click.stop="createDataset(data)">创建数据集</el-button>
@@ -187,7 +188,7 @@
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Folder, Grid, Rank } from '@element-plus/icons-vue'
+import SchemaNodeIcon from '@/components/SchemaNodeIcon.vue'
 import { datasourceApi, syncApi } from '@/api'
 
 const route = useRoute()
@@ -259,10 +260,6 @@ async function loadNode(node, resolve) {
       resolve([])
     }
   } catch (e) { /* 拦截器已提示，避免节点卡在加载中 */ resolve([]) }
-}
-
-function iconOf(type) {
-  return type === 'schema' ? Folder : type === 'table' ? Grid : Rank
 }
 
 function typeBadge(data) {
@@ -427,6 +424,10 @@ onBeforeUnmount(stopPoll)
 .file-meta__sub { font-size: 14px; color: var(--app-text-secondary); }
 .tree-node__icon { color: var(--app-text-secondary); }
 .tree-node__label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree-node__type { font-size: 11px; flex: 0 0 auto; margin-left: 2px; }
+.tree-node__type.type--primary { color: var(--el-color-primary); }
+.tree-node__type.type--warning { color: var(--el-color-warning); }
+.tree-node__type.type--success { color: var(--el-color-success); }
 .tree-node__actions { display: none; gap: 2px; flex: 0 0 auto; white-space: nowrap; }
 .el-tree-node__content:hover .tree-node__actions,
 .el-tree-node__content:focus-within .tree-node__actions { display: flex; }

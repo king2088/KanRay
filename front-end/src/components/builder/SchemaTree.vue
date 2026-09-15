@@ -18,7 +18,7 @@
             :draggable="data.kind === 'table'"
             @dragstart="onDragStart($event, data.id)"
           >
-            <el-icon :size="14" class="schema-tree__icon"><component :is="iconMap[data.kind]" /></el-icon>
+            <el-icon :size="14" class="schema-tree__icon"><SchemaNodeIcon :kind="data.kind" :raw-type="data.raw?.type" /></el-icon>
             <span class="schema-tree__label">{{ data.n }}</span>
             <el-tag v-if="data.kind === 'field' && roleMeta(data.raw)?.metric"  effect="plain" type="primary">指标</el-tag>
             <el-tag v-else-if="data.kind === 'field' && roleMeta(data.raw)?.dimension"  effect="plain" type="success">维度</el-tag>
@@ -37,7 +37,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Folder, Grid, Rank } from '@element-plus/icons-vue'
+import SchemaNodeIcon from '@/components/SchemaNodeIcon.vue'
 import { toTree } from '@/utils/catalog'
 
 const props = defineProps({
@@ -46,7 +46,6 @@ const props = defineProps({
 })
 const emit = defineEmits(['mount-table', 'open-table', 'pick-field'])
 
-const iconMap = { schema: Folder, table: Grid, field: Rank }
 const query = ref('')
 const treeRef = ref(null)
 const bodyEl = ref(null)

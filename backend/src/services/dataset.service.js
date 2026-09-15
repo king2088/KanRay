@@ -40,7 +40,10 @@ function nextTableName() {
 }
 
 async function listDatasets(where = '') {
-  const sql = `SELECT * FROM datasets${where ? ' WHERE ' + where : ''} ORDER BY created_at DESC, id DESC`;
+  const cond = where.replace(/\bowner_id\b/g, 'd.owner_id');
+  const sql = `SELECT d.*, COALESCE(ds.type, '') AS db_type
+    FROM datasets d LEFT JOIN data_sources ds ON ds.id = d.datasource_id
+    ${cond ? ' WHERE ' + cond : ''} ORDER BY d.created_at DESC, d.id DESC`;
   return (await db.prepare(sql)).all();
 }
 

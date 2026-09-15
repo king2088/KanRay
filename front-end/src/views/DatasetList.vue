@@ -55,7 +55,7 @@
         <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
-              <div class="cell-name__icon"><el-icon><Files /></el-icon></div>
+              <div class="cell-name__icon"><DbIcon v-if="row.source_type === 'sql'" :type="row.db_type" :size="16" /><el-icon v-else :size="16"><Files /></el-icon></div>
               <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
               <el-tag v-if="row.source_type === 'sql'" type="success"  effect="plain" style="margin-left: 4px">数据库</el-tag>
             </div>
@@ -117,6 +117,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
+import DbIcon from '@/components/DbIcon.vue'
 
 const router = useRouter()
 

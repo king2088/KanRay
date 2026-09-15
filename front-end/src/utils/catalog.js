@@ -1,4 +1,4 @@
-const TREE_ICON = { schema: 'Folder', table: 'Grid', field: 'Element' }
+const TREE_ICON = { schema: 'Database', table: 'Grid', field: 'Type' }
 export const STRING_OPS = [
   { value: 'eq', label: '=' }, { value: 'ne', label: '≠' }, { value: 'contains', label: '包含' },
   { value: 'lt', label: '<' }, { value: 'lte', label: '≤' }, { value: 'gt', label: '>' }, { value: 'gte', label: '≥' },

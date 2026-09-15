@@ -56,7 +56,7 @@
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon" :class="`cell-name__icon--${typeTone(row.chartType)}`">
-                <el-icon><component :is="typeIcon(row.chartType)" /></el-icon>
+                <ChartTypeIcon :type="row.chartType" :size="16" />
               </div>
               <el-link type="primary" @click="$router.push(`/charts/${row.id}/edit`)">{{ row.name }}</el-link>
             </div>
@@ -117,8 +117,9 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
 import { chartApi, dashboardApi } from '@/api'
-import { CHART_TYPES, getChartType } from '@/config/chart-types'
+import { getChartType } from '@/config/chart-types'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
+import ChartTypeIcon from '@/components/ChartTypeIcon.vue'
 
 const charts = ref([])
 const loading = ref(false)
@@ -141,7 +142,6 @@ const usedIds = new Set()
 const usedCount = computed(() => charts.value.filter((c) => usedIds.has(c.id)).length)
 
 const typeLabel = (v) => getChartType(v)?.label || v
-const typeIcon = (v) => getChartType(v)?.icon || 'PieChart'
 const typeTag = (v) => {
   const t = getChartType(v)
   if (!t) return 'info'
