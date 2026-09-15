@@ -53,50 +53,52 @@ function normalizeDimension(dim, fieldsByName) {
 function buildWhere(filters, fieldsByName) {
   const clauses = [];
   const params = [];
+  let ph = 0;
+  const p = () => db.dialect.placeholder(++ph);
   for (const f of filters || []) {
     const field = fieldsByName[f.field];
     if (!field) throw new HttpError(400, `筛选字段不存在: ${f.field}`);
-    const col = `"${field.name}"`;
+    const col = db.dialect.quoteIdent(field.name);
     switch (f.op) {
       case 'eq': {
         if (f.value === null || f.value === undefined || f.value === '') break;
-        clauses.push(`${col} = ?`);
+        clauses.push(`${col} = ${p()}`);
         params.push(f.value);
         break;
       }
       case 'ne': {
         if (f.value === null || f.value === undefined || f.value === '') break;
-        clauses.push(`${col} != ?`);
+        clauses.push(`${col} != ${p()}`);
         params.push(f.value);
         break;
       }
       case 'in': {
         const arr = Array.isArray(f.value) ? f.value : [];
         if (arr.length === 0) break;
-        clauses.push(`${col} IN (${arr.map(() => '?').join(', ')})`);
+        clauses.push(`${col} IN (${arr.map(() => p()).join(', ')})`);
         params.push(...arr);
         break;
       }
       case 'contains': {
         if (!f.value) break;
-        clauses.push(`${col} LIKE ?`);
+        clauses.push(`${col} LIKE ${p()}`);
         params.push(`%${f.value}%`);
         break;
       }
       case 'lt':
-        clauses.push(`${col} < ?`);
+        clauses.push(`${col} < ${p()}`);
         params.push(f.value);
         break;
       case 'lte':
-        clauses.push(`${col} <= ?`);
+        clauses.push(`${col} <= ${p()}`);
         params.push(f.value);
         break;
       case 'gt':
-        clauses.push(`${col} > ?`);
+        clauses.push(`${col} > ${p()}`);
         params.push(f.value);
         break;
       case 'gte':
-        clauses.push(`${col} >= ?`);
+        clauses.push(`${col} >= ${p()}`);
         params.push(f.value);
         break;
       default:
@@ -115,14 +117,14 @@ function buildWhere(filters, fieldsByName) {
  *  }
  */
 async function aggregate(query) {
-  const ds = getDatasetOrThrow(query.datasetId);
+  const ds = await getDatasetOrThrow(query.datasetId);
 
   // SQL 数据集走 SqlDataProvider
   if (ds.source_type === 'sql') {
     return sqlDataProvider.query(ds, query);
   }
 
-  const fields = getFieldsOrThrow(query.datasetId);
+  const fields = await getFieldsOrThrow(query.datasetId);
   const fieldsByName = {};
   fields.forEach((f) => { fieldsByName[f.name] = f; });
 
@@ -133,16 +135,17 @@ async function aggregate(query) {
     throw new HttpError(400, '至少需要一个指标');
   }
 
-  // 时间粒度处理
+  // 时间粒度处理（按当前 store 方言生成）
+  const d = db.dialect;
   const dimSelects = [];
   const dimGroups = [];
   for (const dim of dimensions) {
     let expr;
     if (dim.granularity && TIME_GRANULARITY[dim.granularity]) {
       // 仅对日期可通过的字段启用桶化
-      expr = `strftime('${TIME_GRANULARITY[dim.granularity]}', "${dim.field}")`;
+      expr = d.dateTrunc(dim.field, dim.granularity);
     } else {
-      expr = `"${dim.field}"`;
+      expr = d.quoteIdent(dim.field);
     }
     dimSelects.push(`${expr} AS __dim_${dim.field}__`);
     dimGroups.push(`__dim_${dim.field}__`);
@@ -155,11 +158,14 @@ async function aggregate(query) {
     const m = metrics[i];
     let expr;
     if (m.agg === 'count') {
-      expr = `COUNT(*)`;
+      expr = `${d.agg.count}(*)`;
     } else if (m.agg === 'count_distinct') {
-      expr = `COUNT(DISTINCT "${m.field}")`;
+      // COUNT(DISTINCT 以空格接列名（兼容 sqlite 快照）；uniqExact 等按函数调用
+      expr = d.agg.count_distinct === 'COUNT(DISTINCT'
+        ? `COUNT(DISTINCT ${d.quoteIdent(m.field)})`
+        : `${d.agg.count_distinct}(${d.quoteIdent(m.field)})`;
     } else {
-      expr = `${AGG_FUNCS[m.agg]}("${m.field}")`;
+      expr = `${d.agg[m.agg]}(${d.quoteIdent(m.field)})`;
     }
     const alias = `_m${i}`;
     metricSelects.push(`${expr} AS ${alias}`);
@@ -199,11 +205,11 @@ async function aggregate(query) {
 
   // 分组限制
   if (query.groupLimit && Number.isInteger(query.groupLimit) && query.groupLimit > 0) {
-    sql += ` LIMIT ${query.groupLimit}`;
+    sql = d.limit(sql, query.groupLimit);
   }
 
   const start = Date.now();
-  const results = db.prepare(sql).all(...params);
+  const results = await db.prepare(sql).all(...params);
   const elapsedMs = Date.now() - start;
 
   // 输出归一化
