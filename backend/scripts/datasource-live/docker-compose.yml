@@ -1,4 +1,4 @@
-# M2 数据源接入 live 实测环境（7 容器）
+# P3 数据源接入 live 实测环境（9 容器）
 # 用法：
 #   预下载镜像：docker compose -f backend/scripts/datasource-live/docker-compose.yml pull
 #   启动：       docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d
@@ -114,3 +114,35 @@ services:
       timeout: 5s
       retries: 30
       start_period: 60s
+
+  # P3 Presto 真连测试 —— 使用兼容同协议的 Trino 服务器（presto-client 走 REST）
+  trino:
+    image: trinodb/trino:476
+    container_name: kanban-live-trino
+    environment:
+      TRINO_JVM_INITIAL_HEAP_SIZE: 256M
+      TRINO_JVM_MAX_HEAP_SIZE: 512M
+    mem_limit: 1.5g
+    ports:
+      - "18080:8080"   # REST / JDBC 接口
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/trino/bin/trino --execute 'SELECT 1' --server localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  # P3 Oracle 真连测试 —— Oracle 官方 Free 23ai 镜像（thin 模式连接 /FREEPDB1；amd64 走 Rosetta 仿真启动较慢）
+  oracle:
+    image: container-registry.oracle.com/database/free:23.4.0.0
+    container_name: kanban-live-oracle
+    environment:
+      ORACLE_PWD: Kanban@123
+    ports:
+      - "11521:1521"   # SQL*NET 接口（服务名 FREEPDB1）
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/1521'"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
