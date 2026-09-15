@@ -21,7 +21,7 @@
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><Coin /></el-icon></div>
         <div>
-          <div class="stat-item__value">{{ list.length }}</div>
+          <div class="stat-item__value">{{ total }}</div>
           <div class="stat-item__label">数据源总数</div>
         </div>
       </div>
@@ -52,15 +52,22 @@
       <div class="page-card__header">
         <div class="page-card__header-title">数据源列表</div>
         <div class="page-card__header-right">
-          <el-tag type="info" effect="plain">共 {{ list.length }} 条</el-tag>
+          <el-input
+            v-model="search"
+            placeholder="搜索数据源名称"
+            clearable
+            style="width: 240px"
+            :prefix-icon="Search"
+          />
+          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
         </div>
       </div>
 
-      <el-table :data="list" v-loading="loading" empty-text="还没有数据源，点击右上角「新建数据源」开始">
+      <el-table :data="filtered" v-loading="loading" empty-text="还没有数据源，点击右上角「新建数据源」开始">
         <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
-              <div class="cell-name__icon"><el-icon><Coin /></el-icon></div>
+              <div class="cell-name__icon"><DbIcon :type="row.type" :size="16" /></div>
               <el-link type="primary" @click="$router.push(`/datasources/${row.id}`)">{{ row.name }}</el-link>
             </div>
           </template>
@@ -93,6 +100,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="page-card__footer">
+        <el-pagination
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="page"
+          :page-sizes="[10, 20, 50]"
+          background
+          @size-change="onSizeChange"
+          @current-change="onPageChange"
+        />
+      </div>
     </div>
 
     <DataSourceFormDialog
@@ -107,7 +127,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { datasourceApi } from '@/api'
+import DbIcon from '@/components/DbIcon.vue'
 import DataSourceFormDialog from './DataSourceFormDialog.vue'
 
 const router = useRouter()
@@ -117,10 +139,20 @@ const loading = ref(false)
 const showForm = ref(false)
 const editRow = ref(null)
 const testingId = ref(null)
+const search = ref('')
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const dbCount = computed(() => new Set(list.value.map((x) => x.type).filter((t) => t !== 'excel')).size)
 const fileCount = computed(() => list.value.filter((x) => x.type === 'excel').length)
 const activeCount = computed(() => list.value.filter((x) => x.is_active).length)
+
+const filtered = computed(() => {
+  const kw = search.value.trim().toLowerCase()
+  if (!kw) return list.value
+  return list.value.filter((d) => d.name.toLowerCase().includes(kw))
+})
 
 function onCreateCommand(cmd) {
   if (cmd === 'upload') router.push('/datasets/new?from=datasources')
@@ -138,7 +170,24 @@ function statusType(type) {
 
 async function load() {
   loading.value = true
-  try { list.value = await datasourceApi.list() } finally { loading.value = false }
+  try {
+    const res = await datasourceApi.listPaged(page.value, pageSize.value)
+    list.value = res.list
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
+}
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+  load()
 }
 
 async function testOne(row) {

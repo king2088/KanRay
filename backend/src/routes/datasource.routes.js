@@ -10,6 +10,7 @@ const datasetService = require('../services/dataset.service');
 const syncService = require('../services/sync.service');
 const drivers = require('../datasources/drivers');
 const db = require('../db');
+const { parsePageQuery, paginate } = require('../utils/pagination');
 const dialects = require('../datasources/dialects');
 const providers = require('../datasources/providers');
 const buildSql = require('../datasources/build-sql');
@@ -27,9 +28,11 @@ router.get('/drivers', requireUser, requirePermission('datasource', 'read'), (re
 });
 
 // GET /api/datasources —— 列表（owner 隔离：admin 全量，否则仅自己）
+// 可选 page/pageSize -> {list,total}，否则返回全量数组（向后兼容）
 router.get('/', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
   const items = await datasourceService.list(await access.scopedWhere('datasource', req.user, rbac));
-  ok(res, items);
+  const page = parsePageQuery(req.query);
+  ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // POST /api/datasources/test —— 测试未保存配置

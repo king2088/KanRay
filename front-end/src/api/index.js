@@ -71,6 +71,7 @@ export const adminApi = {
 export const datasourceApi = {
   drivers: () => http.get('/datasources/drivers'),
   list: () => http.get('/datasources'),
+  listPaged: (page, pageSize) => listPaged('/datasources', page, pageSize),
   get: (id) => http.get(`/datasources/${id}`),
   create: (payload) => http.post('/datasources', payload),
   update: (id, payload) => http.patch(`/datasources/${id}`, payload),
