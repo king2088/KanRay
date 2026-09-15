@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-page">
+  <div class="page-container">
     <template v-if="canView">
       <div class="page-header">
         <div class="page-header__main">
@@ -8,37 +8,50 @@
         </div>
       </div>
 
-    <el-table :data="rows" border stripe v-loading="loading">
-      <el-table-column prop="created_at" label="时间" width="180" />
-      <el-table-column prop="action" label="操作" width="130" />
-      <el-table-column prop="email" label="用户" min-width="150" />
-      <el-table-column label="资源" width="130">
-        <template #default="{ row }">
-          <span v-if="row.resource_type">{{ row.resource_type }}<template v-if="row.resource_id"> · {{ row.resource_id }}</template></span>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="ip" label="IP" width="130" />
-      <el-table-column label="明细" min-width="260">
-        <template #default="{ row }">
-          <pre v-if="row.detail" class="audit-detail">{{ row.detail }}</pre>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-    </el-table>
+      <div class="page-card">
+        <div class="page-card__header">
+          <div class="page-card__header-title">审计记录</div>
+          <div class="page-card__header-right">
+            <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          </div>
+        </div>
 
-    <div class="page-card__footer">
-      <el-pagination
-        layout="total, sizes, prev, pager, next"
-        :total="total"
-        :page-size="pageSize"
-        :current-page="page"
-        :page-sizes="[10, 20, 50]"
-        background
-        @size-change="onSizeChange"
-        @current-change="onPageChange"
-      />
-    </div>
+        <el-table :data="rows" stripe v-loading="loading">
+          <el-table-column prop="created_at" label="时间" width="180" />
+          <el-table-column prop="action" label="操作" width="150" />
+          <el-table-column prop="email" label="用户" min-width="150" />
+          <el-table-column label="资源" width="130">
+            <template #default="{ row }">
+              <span v-if="row.resource_type">{{ row.resource_type }}<template v-if="row.resource_id"> · {{ row.resource_id }}</template></span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="ip" label="IP" width="130" />
+          <el-table-column label="明细" width="130">
+            <template #default="{ row }">
+              <el-button v-if="row.detail" link type="primary" @click="openDetail(row.detail)">查看详情</el-button>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="page-card__footer">
+          <el-pagination
+            layout="total, sizes, prev, pager, next"
+            :total="total"
+            :page-size="pageSize"
+            :current-page="page"
+            :page-sizes="[10, 20, 50]"
+            background
+            @size-change="onSizeChange"
+            @current-change="onPageChange"
+          />
+        </div>
+      </div>
+
+      <el-dialog v-model="detailVisible" title="操作明细" width="680px">
+        <JsonCodeMirror v-if="currentDetail !== null" :model-value="currentDetail" />
+      </el-dialog>
     </template>
     <el-empty v-if="!canView" description="无权限访问该页面" />
   </div>
@@ -47,6 +60,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import JsonCodeMirror from '@/components/JsonCodeMirror.vue'
 
 const auth = useAuthStore()
 const canView = computed(() => auth.hasPermission('audit', 'read'))
@@ -56,6 +70,13 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
+const detailVisible = ref(false)
+const currentDetail = ref(null)
+
+function openDetail(detail) {
+  currentDetail.value = detail
+  detailVisible.value = true
+}
 
 function onPageChange(p) {
   page.value = p
@@ -87,16 +108,3 @@ async function load() {
 
 onMounted(load)
 </script>
-<style scoped>
-.admin-page { padding: 16px; }
-.audit-detail {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--app-text-regular);
-  max-height: 72px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-</style>
