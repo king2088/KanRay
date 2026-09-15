@@ -6,14 +6,6 @@
         <div class="page-desc">将已建图表编排到看板中，通过筛选组件逐张联动</div>
       </div>
       <div class="page-header__actions">
-        <el-input
-          v-model="newName"
-          placeholder="新看板名称"
-          style="width: 200px"
-          maxlength="100"
-          clearable
-          @keyup.enter="create"
-        />
         <el-button type="primary" @click="create">
           <el-icon style="margin-right: 4px"><Plus /></el-icon>新建看板
         </el-button>
@@ -24,11 +16,18 @@
       <div class="page-card__header">
         <div class="page-card__header-title">看板列表</div>
         <div class="page-card__header-right">
-          <el-tag type="info" effect="plain">共 {{ total }} 个看板</el-tag>
+          <el-input
+            v-model="search"
+            placeholder="搜索看板名称"
+            clearable
+            style="width: 240px"
+            :prefix-icon="Search"
+          />
+          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
         </div>
       </div>
 
-      <el-table :data="dashboards" v-loading="loading" empty-text="还没有看板，输入名称创建一个">
+      <el-table :data="filtered" v-loading="loading" empty-text="还没有看板，输入名称创建一个">
         <el-table-column prop="name" label="名称" min-width="220">
           <template #default="{ row }">
             <div class="cell-name">
@@ -73,19 +72,25 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api'
 
 const router = useRouter()
 const dashboards = ref([])
 const loading = ref(false)
-const newName = ref('')
+const search = ref('')
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+const filtered = computed(() => {
+  const kw = search.value.trim().toLowerCase()
+  if (!kw) return dashboards.value
+  return dashboards.value.filter((d) => d.name.toLowerCase().includes(kw))
+})
 
 function formatDate(s) {
   return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
@@ -114,10 +119,9 @@ function onSizeChange(size) {
 }
 
 async function create() {
-  const name = newName.value.trim() || '未命名看板'
-  const d = await dashboardApi.create(name)
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
+  const d = await dashboardApi.create(`未命名看板-${suffix}`)
   ElMessage.success('看板创建成功')
-  newName.value = ''
   router.push(`/dashboards/${d.id}/edit`)
 }
 
