@@ -156,7 +156,7 @@ function groupIcon(label) {
   padding: 0 0 12px;
 }
 .config-collapse :deep(.el-collapse-item__header) {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   padding: 10px 0;
 }

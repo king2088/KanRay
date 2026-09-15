@@ -6,9 +6,45 @@
         <div class="page-desc">管理外部数据库连接，作为图表与看板的数据基础</div>
       </div>
       <div class="page-header__actions">
-        <el-button type="primary" @click="showForm = true">
+        <el-dropdown split-button type="primary" @click="showForm = true" @command="onCreateCommand">
           <el-icon style="margin-right: 6px"><Plus /></el-icon>新建数据源
-        </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="upload"><el-icon><Upload /></el-icon>上传 Excel / CSV 文件</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </div>
+
+    <div class="stat-strip">
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><Coin /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ list.length }}</div>
+          <div class="stat-item__label">数据源总数</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><Grid /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ dbCount }}</div>
+          <div class="stat-item__label">数据库种类</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><Upload /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ fileCount }}</div>
+          <div class="stat-item__label">文件数据源</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-item__icon"><el-icon><CircleCheck /></el-icon></div>
+        <div>
+          <div class="stat-item__value">{{ activeCount }}</div>
+          <div class="stat-item__label">启用数量</div>
+        </div>
       </div>
     </div>
 
@@ -31,29 +67,29 @@
         </el-table-column>
         <el-table-column prop="type" label="类型" width="160">
           <template #default="{ row }">
-            <el-tag size="small" :type="statusType(row.type)">{{ typeName(row.type) }}</el-tag>
+            <el-tag  :type="statusType(row.type)">{{ typeName(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="is_active" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+            <el-tag :type="row.is_active ? 'success' : 'info'" >
               {{ row.is_active ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="最近测试" width="120" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.last_test_ok === true" type="success" size="small">成功</el-tag>
-            <el-tag v-else-if="row.last_test_ok === false" type="danger" size="small">失败</el-tag>
+            <el-tag v-if="row.last_test_ok === true" type="success" >成功</el-tag>
+            <el-tag v-else-if="row.last_test_ok === false" type="danger" >失败</el-tag>
             <span v-else class="cell-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="260" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="$router.push(`/datasources/${row.id}`)">详情</el-button>
-            <el-button link type="primary" size="small" @click="editRow = { ...row }; showForm = true">编辑</el-button>
-            <el-button link type="primary" size="small" @click="testOne(row)" :loading="testingId === row.id">测试</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
+            <el-button link type="primary"  @click="$router.push(`/datasources/${row.id}`)">详情</el-button>
+            <el-button link type="primary"  @click="editRow = { ...row }; showForm = true">编辑</el-button>
+            <el-button link type="primary"  @click="testOne(row)" :loading="testingId === row.id">测试</el-button>
+            <el-button link type="danger"  @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -68,10 +104,13 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { datasourceApi } from '@/api'
 import DataSourceFormDialog from './DataSourceFormDialog.vue'
+
+const router = useRouter()
 
 const list = ref([])
 const loading = ref(false)
@@ -79,13 +118,21 @@ const showForm = ref(false)
 const editRow = ref(null)
 const testingId = ref(null)
 
+const dbCount = computed(() => new Set(list.value.map((x) => x.type).filter((t) => t !== 'excel')).size)
+const fileCount = computed(() => list.value.filter((x) => x.type === 'excel').length)
+const activeCount = computed(() => list.value.filter((x) => x.is_active).length)
+
+function onCreateCommand(cmd) {
+  if (cmd === 'upload') router.push('/datasets/new?from=datasources')
+}
+
 function typeName(type) {
-  const map = { mysql: 'MySQL', postgres: 'PostgreSQL', sqlserver: 'SQL Server', mariadb: 'MariaDB', tidb: 'TiDB', clickhouse: 'ClickHouse', elasticsearch: 'Elasticsearch', api: 'API/Web Service', oracle: 'Oracle', db2: 'DB2', dameng: '达梦', gbase: 'GBASE', hive: 'Hive', impala: 'Impala', presto: 'Presto', maxcompute: 'MaxCompute', doris: 'Doris', starrocks: 'StarRocks', greenplum: 'Greenplum', kingbase: 'KingbaseES', gaussdb: 'GaussDB', redshift: 'Redshift' }
+  const map = { mysql: 'MySQL', postgres: 'PostgreSQL', sqlserver: 'SQL Server', mariadb: 'MariaDB', tidb: 'TiDB', clickhouse: 'ClickHouse', elasticsearch: 'Elasticsearch', api: 'API/Web Service', oracle: 'Oracle', db2: 'DB2', dameng: '达梦', gbase: 'GBASE', hive: 'Hive', impala: 'Impala', presto: 'Presto', maxcompute: 'MaxCompute', doris: 'Doris', starrocks: 'StarRocks', greenplum: 'Greenplum', kingbase: 'KingbaseES', gaussdb: 'GaussDB', redshift: 'Redshift', excel: 'Excel/CSV' }
   return map[type] || type
 }
 
 function statusType(type) {
-  const map = { mysql: '', postgres: '', sqlserver: '', mariadb: '', tidb: '', clickhouse: 'warning', elasticsearch: 'info', api: 'info' }
+  const map = { mysql: '', postgres: '', sqlserver: '', mariadb: '', tidb: '', clickhouse: 'warning', elasticsearch: 'info', api: 'info', excel: 'success' }
   return map[type] || 'info'
 }
 
@@ -121,5 +168,5 @@ onMounted(load)
 <style scoped>
 .cell-name { display: flex; align-items: center; gap: 8px; }
 .cell-name__icon { width: 26px; height: 26px; border-radius: 6px; background: var(--app-primary-light); color: var(--app-primary); display: flex; align-items: center; justify-content: center; }
-.cell-muted { color: var(--app-text-secondary); font-size: 13px; }
+.cell-muted { color: var(--app-text-secondary); font-size: 14px; }
 </style>

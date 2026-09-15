@@ -51,7 +51,7 @@
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 375px)" empty-text="还没有图表，点击右上角「新建图表」开始">
+      <el-table :data="filtered" v-loading="loading" empty-text="还没有图表，点击右上角「新建图表」开始">
         <el-table-column prop="name" label="名称" min-width="200">
           <template #default="{ row }">
             <div class="cell-name">
@@ -64,7 +64,7 @@
         </el-table-column>
         <el-table-column label="图表类型" width="130" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="typeTag(row.chartType)" effect="light">{{ typeLabel(row.chartType) }}</el-tag>
+            <el-tag  :type="typeTag(row.chartType)" effect="light">{{ typeLabel(row.chartType) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="datasetName" label="数据源" min-width="160">
@@ -82,9 +82,9 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="$router.push(`/charts/${row.id}/edit`)">编辑</el-button>
-            <el-button link type="primary" size="small" @click="previewChart(row)">预览</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
+            <el-button link type="primary"  @click="$router.push(`/charts/${row.id}/edit`)">编辑</el-button>
+            <el-button link type="primary"  @click="previewChart(row)">预览</el-button>
+            <el-button link type="danger"  @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -237,10 +237,10 @@ onMounted(load)
 
 .cell-muted {
   color: var(--app-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .preview-dialog-body {
-  height: 420px;
+  min-height: 160px;
 }
 </style>

@@ -33,12 +33,24 @@
         </div>
       </div>
 
+      <p class="settings__label">组件尺寸</p>
+      <el-radio-group :model-value="store.size" @change="store.setSize">
+        <el-radio-button value="large">大</el-radio-button>
+        <el-radio-button value="default">中</el-radio-button>
+        <el-radio-button value="small">小</el-radio-button>
+      </el-radio-group>
+
       <p class="settings__label">外观 / 折叠</p>
       <div class="settings__switches">
         <div class="settings__switch-row">
-          <span class="settings__switch-text">暗黑模式</span>
-          <el-switch :model-value="store.dark" @change="store.toggleDark()" />
+          <span class="settings__switch-text">主题模式</span>
+          <el-radio-group :model-value="store.themeMode" @change="store.setThemeMode">
+            <el-radio-button value="light">浅色</el-radio-button>
+            <el-radio-button value="dark">暗黑</el-radio-button>
+            <el-radio-button value="auto">自动</el-radio-button>
+          </el-radio-group>
         </div>
+        <p class="settings__hint">自动将跟随电脑 / 系统的外观切换</p>
         <div v-if="store.layout === 'vertical'" class="settings__switch-row">
           <span class="settings__switch-text">折叠侧栏</span>
           <el-switch :model-value="store.collapsed" @change="store.toggleCollapsed()" />
@@ -79,7 +91,7 @@ const emit = defineEmits(['update:modelValue'])
 }
 
 .settings__label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
   margin: 14px 0 8px;
@@ -204,7 +216,7 @@ const emit = defineEmits(['update:modelValue'])
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--app-text-regular);
 }
 

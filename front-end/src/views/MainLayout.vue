@@ -1,5 +1,5 @@
 <template>
-  <el-container class="app-layout">
+  <el-container class="app-layout" :class="'size-' + store.size">
     <!-- 垂直布局：左侧侧栏可折叠 -->
     <template v-if="store.layout === 'vertical'">
       <el-aside
@@ -32,17 +32,22 @@
       </el-container>
     </template>
 
-    <!-- 混合布局：顶部菜单 + 左侧 64px 图标窄栏 -->
+    <!-- 混合布局：一级菜单在顶部 + 左侧展示当前一级菜单的二级菜单 -->
     <template v-else-if="store.layout === 'mixed'">
-      <el-aside width="64px" class="app-aside app-aside--rail">
-        <AppLogo :collapsed="true" />
-        <SideMenu :collapsed="true" :active-menu="activeMenu" />
+      <el-aside width="220px" class="app-aside">
+        <AppLogo :collapsed="false" />
+        <SideMenu :collapsed="false" :active-menu="activeMenu" mode="mixed" :group="activeGroup" />
       </el-aside>
 
       <el-container class="app-main-wrap">
         <el-header class="app-header">
           <div class="app-header__left">
-            <TopMenu :active-menu="activeMenu" />
+            <TopMenu
+              :active-menu="activeMenu"
+              mode="mixed"
+              :group="activeGroup"
+              @select-group="onSelectGroup"
+            />
           </div>
           <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
         </el-header>
@@ -73,10 +78,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import { activeMenuOf } from '@/router/menu'
+import { activeMenuOf, groupOf } from '@/router/menu'
 import AppLogo from '@/components/layout/AppLogo.vue'
 import SideMenu from '@/components/layout/SideMenu.vue'
 import TopMenu from '@/components/layout/TopMenu.vue'
@@ -88,6 +93,16 @@ const store = useAppStore()
 const settingsOpen = ref(false)
 
 const activeMenu = computed(() => activeMenuOf(route.path))
+const activeGroup = ref(groupOf(route.path))
+watch(
+  () => route.path,
+  (p) => {
+    activeGroup.value = groupOf(p)
+  }
+)
+function onSelectGroup(path) {
+  activeGroup.value = path
+}
 const currentTitle = computed(() => route.meta.title || '看板低代码平台')
 </script>
 
@@ -108,11 +123,6 @@ const currentTitle = computed(() => route.meta.title || '看板低代码平台')
 
 .app-aside.collapsed {
   width: 64px !important;
-}
-
-.app-aside--rail {
-  width: 64px !important;
-  flex-shrink: 0;
 }
 
 /* ---------- 头部 ---------- */
@@ -140,6 +150,7 @@ const currentTitle = computed(() => route.meta.title || '看板低代码平台')
 .app-header__left {
   display: flex;
   align-items: center;
+  height: 100%;
   gap: 12px;
   min-width: 0;
 }
@@ -148,7 +159,7 @@ const currentTitle = computed(() => route.meta.title || '看板低代码平台')
   cursor: pointer;
   color: var(--app-text-regular);
   border-radius: var(--app-radius);
-  font-size: 14px;
+  font-size: var(--header-icon-size, 18px);
 }
 .collapse-btn:hover {
   background: var(--app-hover);

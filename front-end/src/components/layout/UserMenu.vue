@@ -1,7 +1,7 @@
 <template>
   <el-dropdown trigger="click" @command="onCommand">
     <span class="user-menu">
-      <el-avatar :size="28" class="user-avatar">
+      <el-avatar class="user-avatar">
         {{ (auth.user?.name || auth.user?.email || 'U').slice(0, 1).toUpperCase() }}
       </el-avatar>
       <span class="user-name">{{ auth.user?.name || auth.user?.email }}</span>
@@ -49,20 +49,24 @@ function onCommand(c) {
 .user-menu {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   color: var(--app-text-primary);
 }
 .user-avatar {
+  --el-avatar-size: var(--avatar-size, 30px);
   background: var(--app-primary);
   color: #fff;
-  font-size: 13px;
 }
 .user-name {
-  font-size: 13px;
+  font-size: var(--nav-font-size, 15px);
 }
 .user-roles {
-  font-size: 12px;
+  font-size: calc(var(--nav-font-size, 15px) - 2px);
   color: var(--app-text-regular);
+}
+
+.user-menu .el-icon {
+  font-size: calc(var(--nav-icon-size, 18px) * 0.75);
 }
 </style>

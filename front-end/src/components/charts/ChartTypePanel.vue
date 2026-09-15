@@ -101,7 +101,7 @@ function onCategoryChange(val) {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--app-text-regular);
 }
 
@@ -119,7 +119,7 @@ function onCategoryChange(val) {
 .empty-hint {
   text-align: center;
   color: var(--app-text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   padding: 20px 0;
 }
 </style>

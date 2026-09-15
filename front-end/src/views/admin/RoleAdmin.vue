@@ -1,22 +1,27 @@
 <template>
   <div class="admin-page">
     <template v-if="canView">
-      <div class="admin-head">
-        <h3>角色管理</h3>
-        <el-button type="primary" @click="openCreate">新建角色</el-button>
+      <div class="page-header">
+        <div class="page-header__main">
+          <h2 class="page-title">角色管理</h2>
+          <div class="page-desc">维护角色及其权限点，界定不同成员的访问范围</div>
+        </div>
+        <div class="page-header__actions">
+          <el-button type="primary" @click="openCreate">新建角色</el-button>
+        </div>
       </div>
 
-    <el-table :data="rows" border stripe v-loading="loading">
+    <el-table :data="pagedRows" border stripe v-loading="loading">
       <el-table-column prop="name" label="角色名称" min-width="160" />
       <el-table-column prop="code" label="标识" width="150" />
       <el-table-column label="权限点" min-width="220">
         <template #default="{ row }">
-          <el-tag v-for="p in row.permissions" :key="p" size="small" style="margin: 2px">{{ permNameOf(p) }}</el-tag>
+          <el-tag v-for="p in row.permissions" :key="p"  style="margin: 2px">{{ permNameOf(p) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="类型" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.is_builtin ? 'warning' : 'success'" size="small">{{ row.is_builtin ? '内置' : '自定义' }}</el-tag>
+          <el-tag :type="row.is_builtin ? 'warning' : 'success'" >{{ row.is_builtin ? '内置' : '自定义' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="description" label="描述" min-width="180" />
@@ -27,6 +32,19 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="page-card__footer">
+      <el-pagination
+        layout="total, sizes, prev, pager, next"
+        :total="pagedTotal"
+        :page-size="pageSize"
+        :current-page="page"
+        :page-sizes="[10, 20, 50]"
+        background
+        @size-change="onSizeChange"
+        @current-change="onPageChange"
+      />
+    </div>
 
     <el-dialog v-model="dialogOpen" :title="editing ? '编辑角色' : '新建角色'" width="560px">
       <el-form label-position="top">
@@ -71,6 +89,20 @@ const editing = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
 const form = ref({ code: '', name: '', description: '', permissions: [] })
+
+const page = ref(1)
+const pageSize = ref(10)
+const pagedTotal = computed(() => rows.value.length)
+const pagedRows = computed(() => rows.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
+
+function onPageChange(p) {
+  page.value = p
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+}
 
 const permNameOf = (code) => {
   const found = permissions.value.find((p) => p.code === code)
@@ -145,6 +177,4 @@ onMounted(async () => {
 </script>
 <style scoped>
 .admin-page { padding: 16px; }
-.admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.admin-head h3 { margin: 0; font-size: 16px; }
 </style>

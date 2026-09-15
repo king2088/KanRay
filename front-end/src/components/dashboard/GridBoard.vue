@@ -39,7 +39,7 @@
             <span v-if="editable" class="item-actions">
               <el-icon class="act-btn" size="15" @click.stop="nudge(item, -1)"><ArrowUp /></el-icon>
               <el-icon class="act-btn" size="15" @click.stop="nudge(item, 1)"><ArrowDown /></el-icon>
-              <el-dropdown trigger="click" size="small" @command="(cmd) => setWidth(item, cmd)">
+              <el-dropdown trigger="click"  @command="(cmd) => setWidth(item, cmd)">
                 <el-icon class="act-btn" size="15"><Operation /></el-icon>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -54,7 +54,7 @@
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-              <el-dropdown trigger="click" size="small" @command="(cmd) => setHeight(item, cmd)">
+              <el-dropdown trigger="click"  @command="(cmd) => setHeight(item, cmd)">
                 <el-icon class="act-btn" size="15"><Expand /></el-icon>
                 <template #dropdown>
                   <el-dropdown-menu>

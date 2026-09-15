@@ -4,11 +4,11 @@
       <div class="vb-left">
         <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
         <h3 class="vb-title">{{ dashName }}</h3>
-        <el-tag size="small" type="warning" effect="light">预览模式</el-tag>
+        <el-tag  type="warning" effect="light">预览模式</el-tag>
       </div>
       <div class="vb-right">
-        <el-button size="small" @click="refresh">刷新数据</el-button>
-        <el-button size="small" @click="fullscreen = !fullscreen">
+        <el-button  @click="refresh">刷新数据</el-button>
+        <el-button  @click="fullscreen = !fullscreen">
           <el-icon style="margin-right: 4px">
             <component :is="fullscreen ? 'Close' : 'FullScreen'" />
           </el-icon>

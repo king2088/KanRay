@@ -24,6 +24,42 @@
   --app-sidebar-width: 220px;
 }
 
+/* ============================================================
+   全局尺寸（大 / 中 / 小）→ 菜单与顶部栏
+   el-config-provider 只控制表单控件，这里用 CSS 变量统一
+   驱动导航菜单文字、图标、头像与顶栏按钮的尺寸。
+   由 MainLayout 根容器 .app-layout.size-* 注入，向下继承。
+   ============================================================ */
+.app-layout.size-small {
+  --nav-font-size: 13px;
+  --nav-icon-size: 16px;
+  --nav-icon-gap: 6px;
+  --nav-item-height: 48px;
+  --header-icon-size: 16px;
+  --avatar-size: 26px;
+  --logo-font-size: 15px;
+}
+
+.app-layout.size-default {
+  --nav-font-size: 15px;
+  --nav-icon-size: 18px;
+  --nav-icon-gap: 8px;
+  --nav-item-height: 52px;
+  --header-icon-size: 18px;
+  --avatar-size: 30px;
+  --logo-font-size: 16px;
+}
+
+.app-layout.size-large {
+  --nav-font-size: 17px;
+  --nav-icon-size: 21px;
+  --nav-icon-gap: 9px;
+  --nav-item-height: 56px;
+  --header-icon-size: 21px;
+  --avatar-size: 34px;
+  --logo-font-size: 18px;
+}
+
 * {
   box-sizing: border-box;
 }

@@ -13,7 +13,7 @@
       >
         <el-icon :size="14" style="margin-right: 6px"><DataLine /></el-icon>
         <span>{{ f.label || f.name }}</span>
-        <el-tag size="small" effect="light" :style="typeTagStyle(f.type)" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
+        <el-tag  effect="light" :style="typeTagStyle(f.type)" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
       </div>
     </div>
 
@@ -145,7 +145,7 @@ function removeItem(arr, i) {
 }
 
 .panel-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
   margin-bottom: 8px;
@@ -174,7 +174,7 @@ function removeItem(arr, i) {
   padding: 6px 10px;
   margin-bottom: 6px;
   cursor: grab;
-  font-size: 13px;
+  font-size: 14px;
   user-select: none;
   color: var(--app-text-primary);
 }
@@ -193,7 +193,7 @@ function removeItem(arr, i) {
 }
 
 .drop-zone-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
   margin-bottom: 8px;

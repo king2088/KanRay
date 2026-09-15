@@ -1,8 +1,11 @@
 <template>
   <div class="admin-page">
     <template v-if="canView">
-      <div class="admin-head">
-        <h3>操作审计</h3>
+      <div class="page-header">
+        <div class="page-header__main">
+          <h2 class="page-title">操作审计</h2>
+          <div class="page-desc">记录用户在平台上的关键操作，便于安全追踪与审计</div>
+        </div>
       </div>
 
     <el-table :data="rows" border stripe v-loading="loading">
@@ -24,14 +27,18 @@
       </el-table-column>
     </el-table>
 
-    <el-pagination
-      v-model:current-page="page"
-      :page-size="pageSize"
-      :total="total"
-      layout="total, prev, pager, next"
-      @current-change="load"
-      style="margin-top: 12px; justify-content: flex-end"
-    />
+    <div class="page-card__footer">
+      <el-pagination
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :current-page="page"
+        :page-sizes="[10, 20, 50]"
+        background
+        @size-change="onSizeChange"
+        @current-change="onPageChange"
+      />
+    </div>
     </template>
     <el-empty v-if="!canView" description="无权限访问该页面" />
   </div>
@@ -47,8 +54,19 @@ const canView = computed(() => auth.hasPermission('audit', 'read'))
 const rows = ref([])
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(10)
 const loading = ref(false)
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+  load()
+}
 
 async function load() {
   loading.value = true
@@ -71,11 +89,9 @@ onMounted(load)
 </script>
 <style scoped>
 .admin-page { padding: 16px; }
-.admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.admin-head h3 { margin: 0; font-size: 16px; }
 .audit-detail {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--app-text-regular);
   max-height: 72px;

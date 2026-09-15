@@ -39,5 +39,5 @@ async function onSubmit() {
 .auth-card { width: 380px; }
 .auth-title { text-align: center; margin: 0 0 18px; color: #303133; }
 .auth-btn { width: 100%; margin-top: 4px; }
-.auth-switch { text-align: center; margin-top: 14px; font-size: 13px; color: #909399; }
+.auth-switch { text-align: center; margin-top: 14px; font-size: 14px; color: #909399; }
 </style>

@@ -2,7 +2,7 @@
   <div class="chart-tile">
     <!-- 表格类型 -->
     <template v-if="chartType === 'table'">
-      <el-table v-if="rows.length" :data="rows" size="small" border max-height="100%">
+      <el-table v-if="rows.length" :data="rows" border>
         <el-table-column
           v-for="col in tableCols"
           :key="col.key"
@@ -228,7 +228,7 @@ onMounted(load)
 .stat-label {
   margin-top: 6px;
   color: #606266;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* 进度类型样式 */

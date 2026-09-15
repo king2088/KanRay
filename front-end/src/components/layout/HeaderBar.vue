@@ -1,7 +1,7 @@
 <template>
   <div class="header-bar">
     <el-tooltip content="系统设置" placement="bottom">
-      <el-icon :size="18" class="header-icon" @click="emit('update:settingsOpen', true)">
+      <el-icon class="header-icon" @click="emit('update:settingsOpen', true)">
         <Setting />
       </el-icon>
     </el-tooltip>
@@ -28,6 +28,7 @@ const emit = defineEmits(['update:settingsOpen'])
   color: var(--app-text-regular);
   border-radius: var(--app-radius);
   transition: color 0.15s, background 0.15s;
+  font-size: var(--header-icon-size, 18px);
 }
 .header-icon:hover {
   background: var(--app-hover);

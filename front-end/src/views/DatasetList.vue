@@ -2,8 +2,8 @@
   <div class="page-container">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">数据管理</h2>
-        <div class="page-desc">上传 Excel / CSV 数据集，作为图表与看板的数据基础</div>
+        <h2 class="page-title">数据集</h2>
+        <div class="page-desc">管理上传的 Excel / CSV 数据集，作为图表与看板的数据基础</div>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" @click="$router.push('/datasets/new')">
@@ -51,13 +51,13 @@
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" height="calc(100vh - 375px)" empty-text="还没有数据集，点击右上角「上传数据」开始">
+      <el-table :data="filtered" v-loading="loading" empty-text="还没有数据集，点击右上角「上传数据」开始">
         <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon"><el-icon><Files /></el-icon></div>
               <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
-              <el-tag v-if="row.source_type === 'sql'" type="success" size="small" effect="plain" style="margin-left: 4px">数据库</el-tag>
+              <el-tag v-if="row.source_type === 'sql'" type="success"  effect="plain" style="margin-left: 4px">数据库</el-tag>
             </div>
           </template>
         </el-table-column>
@@ -79,10 +79,10 @@
         </el-table-column>
         <el-table-column label="操作" width="260" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
-            <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary" size="small" @click="openEditBuild(row)">编辑构建</el-button>
-            <el-button link type="primary" size="small" @click="openRename(row)">重命名</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
+            <el-button link type="primary"  @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
+            <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary"  @click="openEditBuild(row)">编辑构建</el-button>
+            <el-button link type="primary"  @click="openRename(row)">重命名</el-button>
+            <el-button link type="danger"  @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -229,6 +229,6 @@ onMounted(load)
 
 .cell-muted {
   color: var(--app-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 </style>

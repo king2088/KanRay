@@ -71,7 +71,7 @@
         <div class="preview-area">
           <template v-if="chartType === 'table'">
             <el-empty v-if="!previewData" description="暂无数据" />
-            <el-table v-else :data="previewRows" size="small" border max-height="100%">
+            <el-table v-else :data="previewRows" border>
               <el-table-column v-for="d in dims" :key="d.field" :label="dimLabel(d)">
                 <template #default="{ row }">{{ row[`dim:${d.field}`]?.value }}</template>
               </el-table-column>
@@ -553,7 +553,7 @@ onMounted(async () => {
 }
 
 .panel-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
   margin-bottom: 8px;
@@ -623,7 +623,7 @@ onMounted(async () => {
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--app-text-regular);
 }
 
@@ -697,7 +697,7 @@ onMounted(async () => {
 }
 
 .right-section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
   margin-bottom: 8px;

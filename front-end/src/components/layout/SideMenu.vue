@@ -6,35 +6,60 @@
     router
     class="app-menu"
   >
-    <el-menu-item v-for="item in MENU_ITEMS" :key="item.path" :index="item.path">
-      <el-icon><component :is="item.icon" /></el-icon>
-      <template #title>{{ item.title }}</template>
-    </el-menu-item>
-    <el-sub-menu v-if="adminMenus.length" index="admin-root">
-      <template #title>
-        <el-icon><Setting /></el-icon>
-        <span>系统管理</span>
+    <!-- 垂直布局：渲染完整菜单树（一级 + 有子级的折叠菜单） -->
+    <template v-if="mode === 'vertical'">
+      <template v-for="item in menus" :key="item.path">
+        <el-menu-item v-if="!item.children.length" :index="item.path">
+          <el-icon><component :is="item.icon" /></el-icon>
+          <template #title>{{ item.title }}</template>
+        </el-menu-item>
+        <el-sub-menu v-else :index="item.path">
+          <template #title>
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span>{{ item.title }}</span>
+          </template>
+          <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
+            <el-icon><component :is="child.icon" /></el-icon>
+            <template #title>{{ child.title }}</template>
+          </el-menu-item>
+        </el-sub-menu>
       </template>
-      <el-menu-item v-for="m in adminMenus" :key="m.path" :index="m.path">
-        <el-icon><component :is="m.icon" /></el-icon>
-        <template #title>{{ m.title }}</template>
-      </el-menu-item>
-    </el-sub-menu>
+    </template>
+
+    <!-- 混合布局：只渲染当前一级菜单对应的二级菜单 -->
+    <template v-else>
+      <template v-if="groupParent">
+        <div class="app-menu__group-title">
+          <el-icon><component :is="groupParent.icon" /></el-icon>
+          <span>{{ groupParent.title }}</span>
+        </div>
+        <el-menu-item v-for="child in groupParent.children" :key="child.path" :index="child.path">
+          <el-icon><component :is="child.icon" /></el-icon>
+          <template #title>{{ child.title }}</template>
+        </el-menu-item>
+      </template>
+      <div v-else class="app-menu__empty">该模块暂无子菜单</div>
+    </template>
   </el-menu>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { MENU_ITEMS, visibleAdminMenus } from '@/router/menu'
+import { visibleMenus } from '@/router/menu'
 import { useAuthStore } from '@/stores/auth'
 
-defineProps({
+const props = defineProps({
   collapsed: { type: Boolean, default: false },
   activeMenu: { type: String, required: true },
+  mode: { type: String, default: 'vertical' },
+  group: { type: String, default: null },
 })
 
 const auth = useAuthStore()
-const adminMenus = computed(() => visibleAdminMenus(auth))
+const menus = computed(() => visibleMenus(auth))
+const groupParent = computed(() =>
+  props.mode === 'mixed' ? menus.value.find((m) => m.path === props.group) || null : null
+)
 </script>
 
 <style scoped>
@@ -43,7 +68,7 @@ const adminMenus = computed(() => visibleAdminMenus(auth))
   flex: 1;
   overflow-y: auto;
   padding-top: 6px;
-  --el-menu-item-height: 50px;
+  --el-menu-item-height: var(--nav-item-height, 52px);
 }
 
 .app-menu:not(.el-menu--collapse) {
@@ -52,6 +77,16 @@ const adminMenus = computed(() => visibleAdminMenus(auth))
 
 .app-menu :deep(.el-menu-item) {
   border-left: 2px solid transparent;
+  font-size: var(--nav-font-size, 15px);
+}
+
+.app-menu :deep(.el-menu-item .el-icon),
+.app-menu :deep(.el-sub-menu__title .el-icon) {
+  font-size: var(--nav-icon-size, 18px);
+}
+
+.app-menu :deep(.el-sub-menu__title) {
+  font-size: var(--nav-font-size, 15px);
 }
 
 .app-menu :deep(.el-menu-item.is-active) {
@@ -61,5 +96,28 @@ const adminMenus = computed(() => visibleAdminMenus(auth))
 
 .app-menu :deep(.el-menu-item:hover:not(.is-active)) {
   background: var(--app-hover);
+}
+
+.app-menu__group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--nav-icon-gap, 8px);
+  padding: 14px 16px;
+  font-size: var(--nav-font-size, 15px);
+  font-weight: 600;
+  color: var(--app-text-secondary);
+  border-bottom: 1px solid var(--app-border-light);
+  user-select: none;
+}
+
+.app-menu__group-title .el-icon {
+  font-size: var(--nav-icon-size, 18px);
+}
+
+.app-menu__empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--app-text-placeholder);
 }
 </style>

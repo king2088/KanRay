@@ -1,8 +1,9 @@
 export const MENU_ITEMS = [
   { path: '/datasources', title: '数据源', icon: 'Coin' },
-  { path: '/datasets', title: '数据管理', icon: 'FolderOpened' },
+  { path: '/datasets', title: '数据集', icon: 'FolderOpened' },
   { path: '/charts', title: '图表中心', icon: 'PieChart' },
   { path: '/dashboards', title: '看板中心', icon: 'Odometer' },
+  { path: '/admin', title: '系统管理', icon: 'Setting' },
 ]
 
 export const ADMIN_ITEMS = [
@@ -21,10 +22,20 @@ export function visibleAdminMenus(auth) {
   return ADMIN_ITEMS.filter((m) => (auth.user?.permissions || []).includes(ADMIN_PERMISSION_OF[m.path]))
 }
 
+export function visibleMenus(auth) {
+  return MENU_ITEMS.filter((m) => m.path !== '/admin' || visibleAdminMenus(auth).length).map((m) =>
+    m.path === '/admin' ? { ...m, children: visibleAdminMenus(auth) } : { ...m, children: [] }
+  )
+}
+
 export function activeMenuOf(path) {
   if (path.startsWith('/admin')) return path
   if (path.startsWith('/datasources')) return '/datasources'
   if (path.startsWith('/dashboards')) return '/dashboards'
   if (path.startsWith('/charts')) return '/charts'
   return '/datasets'
+}
+
+export function groupOf(path) {
+  return path.startsWith('/admin') ? '/admin' : activeMenuOf(path)
 }

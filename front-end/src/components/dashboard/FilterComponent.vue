@@ -8,7 +8,7 @@
         placeholder="请选择"
         clearable
         filterable
-        size="small"
+        
         style="width: 100%"
         @update:model-value="onChange"
       >
@@ -62,7 +62,7 @@ onMounted(async () => {
 }
 
 .filter-name {
-  font-size: 13px;
+  font-size: 14px;
   color: #606266;
   white-space: nowrap;
   font-weight: 600;

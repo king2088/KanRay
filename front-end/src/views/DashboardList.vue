@@ -28,7 +28,7 @@
         </div>
       </div>
 
-      <el-table :data="dashboards" v-loading="loading" height="calc(100vh - 275px)" empty-text="还没有看板，输入名称创建一个">
+      <el-table :data="dashboards" v-loading="loading" empty-text="还没有看板，输入名称创建一个">
         <el-table-column prop="name" label="名称" min-width="220">
           <template #default="{ row }">
             <div class="cell-name">
@@ -39,7 +39,7 @@
         </el-table-column>
         <el-table-column label="组件数" width="120" align="center">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.layout.length }}</el-tag>
+            <el-tag  effect="plain">{{ row.layout.length }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="updatedAt" label="更新时间" width="190">
@@ -49,9 +49,9 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="$router.push(`/dashboards/${row.id}`)">查看</el-button>
-            <el-button link type="primary" size="small" @click="$router.push(`/dashboards/${row.id}/edit`)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
+            <el-button link type="primary"  @click="$router.push(`/dashboards/${row.id}`)">查看</el-button>
+            <el-button link type="primary"  @click="$router.push(`/dashboards/${row.id}/edit`)">编辑</el-button>
+            <el-button link type="danger"  @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -156,6 +156,6 @@ onMounted(load)
 
 .cell-muted {
   color: var(--app-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 </style>

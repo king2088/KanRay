@@ -30,7 +30,7 @@
             </div>
           </div>
           <div v-if="hasMore" class="clp-more">
-            <el-button size="small" text :loading="loadingMore" @click="loadMore">加载更多</el-button>
+            <el-button  text :loading="loadingMore" @click="loadMore">加载更多</el-button>
           </div>
         </template>
         <el-empty v-else-if="!loading" description="没有可用图表" :image-size="46" />
@@ -43,7 +43,7 @@
               <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
               <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
             </div>
-            <el-tag size="small" type="info">已在看板</el-tag>
+            <el-tag  type="info">已在看板</el-tag>
           </div>
         </div>
       </div>
@@ -229,7 +229,7 @@ function onPaletteDrag(e, chart) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
 }

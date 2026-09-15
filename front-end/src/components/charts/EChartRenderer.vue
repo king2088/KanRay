@@ -1,6 +1,6 @@
 <template>
   <div v-if="builtOpt && renderMode === 'table'" class="ec-non">
-    <el-table size="small" border max-height="100%" :data="tableRows">
+    <el-table border :data="tableRows">
       <el-table-column
         v-for="col in tableCols"
         :key="col.key"

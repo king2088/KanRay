@@ -14,6 +14,30 @@ export function mixColor(hex, target, amount) {
   return `#${toHex(c.r + (t.r - c.r) * amount)}${toHex(c.g + (t.g - c.g) * amount)}${toHex(c.b + (t.b - c.b) * amount)}`
 }
 
+function systemPrefersDark() {
+  return typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false
+}
+
+/** 根据主题模式解析是否暗黑：auto 跟随系统 */
+export function darkByMode(mode, fallback = false) {
+  if (mode === 'dark') return true
+  if (mode === 'light') return fallback
+  return systemPrefersDark()
+}
+
+/** 监听系统外观变化，返回取消监听函数 */
+export function watchSystemTheme(onChange) {
+  if (typeof window === 'undefined' || !window.matchMedia) return () => {}
+  const mql = window.matchMedia('(prefers-color-scheme: dark)')
+  const handler = () => onChange(mql.matches)
+  if (typeof mql.addEventListener === 'function') mql.addEventListener('change', handler)
+  else mql.addListener(handler)
+  return () => {
+    if (typeof mql.removeEventListener === 'function') mql.removeEventListener('change', handler)
+    else mql.removeListener(handler)
+  }
+}
+
 /** 根据设置应用暗黑模式 + 主题色（写 CSS 变量到 documentElement） */
 export function applyTheme(settings = {}) {
   const root = document.documentElement

@@ -7,11 +7,11 @@
     <div class="sql-builder__main">
       <SqlCodeMirror v-model="localSql" :catalog="schemas" placeholder="SELECT ... -- 仅支持只读 SQL；表/字段从左侧插入" />
       <div class="sql-builder__toolbar">
-        <el-button size="small" type="primary" :loading="previewing" @click="runPreview">执行预览（前 {{ limit }} 行）</el-button>
-        <el-button size="small" :loading="importing" :disabled="!previewRows.length" @click="importFields">从结果导入字段</el-button>
+        <el-button  type="primary" :loading="previewing" @click="runPreview">执行预览（前 {{ limit }} 行）</el-button>
+        <el-button  :loading="importing" :disabled="!previewRows.length" @click="importFields">从结果导入字段</el-button>
         <span v-if="lastError" class="sql-builder__error">{{ lastError }}</span>
       </div>
-      <el-table :data="previewRows" size="small" max-height="260" empty-text="点击「执行预览」查看数据">
+      <el-table :data="previewRows"  max-height="260" empty-text="点击「执行预览」查看数据">
         <el-table-column v-for="c in previewCols" :key="c" :prop="c" :label="c" min-width="120" show-overflow-tooltip />
       </el-table>
     </div>
@@ -98,7 +98,7 @@ defineExpose({ preview: runPreview, getDefinition: () => ({ type: 'sql', sql: sq
 <style scoped>
 .sql-builder { display: flex; gap: 12px; height: 100%; }
 .sql-builder__left { flex: 0 0 260px; display: flex; flex-direction: column; border: 1px solid var(--el-border-color); border-radius: 8px; overflow: hidden; padding: 8px; }
-.sql-builder__panel-title { font-size: 13px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 8px; flex-shrink: 0; }
+.sql-builder__panel-title { font-size: 14px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 8px; flex-shrink: 0; }
 .sql-builder__main { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .sql-builder__toolbar { display: flex; align-items: center; gap: 8px; }
 .sql-builder__error { font-size: 12px; color: var(--el-color-danger); }

@@ -111,7 +111,17 @@ async function makeBuilderDataset(name, definition) {
 const cases = [
   { type: 'sql', tabName: '纯 SQL', def: { type: 'sql', sql: 'SELECT 1' } },
   { type: 'builder', tabName: '拖拉拽', def: { type: 'builder', tables: [{ alias: 't0', schema: 'testdb', table: 'sales' }], joins: [], fields: [{ source: 't0', field: 'amount', label: '金额', type: 'number' }], aggregation: null, limit: 100 } },
-  { type: 'etl', tabName: 'ETL', def: { type: 'etl', nodes: [{ nodeId: 'n1', nodeType: 'source', alias: 't0', schema: 'testdb', table: 'sales' }, { nodeId: 'n2', nodeType: 'output', sourceNode: 'n1', limit: 100 }] } },
+  { type: 'etl', tabName: 'ETL', def: { type: 'etl', nodes: [
+    { nodeId: 'n1', nodeType: 'source', alias: 's1', schema: 'testdb', table: 'sales' },
+    { nodeId: 'n2', nodeType: 'source', alias: 's2', schema: 'testdb', table: 'sales' },
+    { nodeId: 'n3', nodeType: 'join', sourceNode: 'n1', rightNodeId: 'n2', joinType: 'left', on: [{ from: { alias: 's1', field: 'id' }, to: { alias: 's2', field: 'id' } }] },
+    { nodeId: 'n4', nodeType: 'columnSelect', sourceNode: 'n3', columns: ['s1.id', 's2.amount'] },
+    { nodeId: 'n5', nodeType: 'dedup', sourceNode: 'n4', columns: ['s1.id'] },
+    { nodeId: 'n6', nodeType: 'valueReplace', sourceNode: 'n5', mappings: [{ field: { alias: 's2', field: 'amount' }, from: 'x', to: 'y' }] },
+    { nodeId: 'n7', nodeType: 'nullReplace', sourceNode: 'n6', mappings: [{ field: { alias: 's1', field: 'id' }, to: 0 }] },
+    { nodeId: 'n8', nodeType: 'trim', sourceNode: 'n7', columns: ['s2.amount'] },
+    { nodeId: 'n9', nodeType: 'output', sourceNode: 'n8', limit: 100 },
+  ] } },
 ]
 
 let fatal = false

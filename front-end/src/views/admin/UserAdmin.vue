@@ -1,9 +1,14 @@
 <template>
   <div class="admin-page">
     <template v-if="canView">
-      <div class="admin-head">
-        <h3>用户管理</h3>
-        <el-button type="primary" @click="openCreate">新建用户</el-button>
+      <div class="page-header">
+        <div class="page-header__main">
+          <h2 class="page-title">用户管理</h2>
+          <div class="page-desc">管理平台账号，分配角色并控制登录状态</div>
+        </div>
+        <div class="page-header__actions">
+          <el-button type="primary" @click="openCreate">新建用户</el-button>
+        </div>
       </div>
 
       <el-table :data="rows" border stripe v-loading="loading">
@@ -12,7 +17,7 @@
       <el-table-column prop="name" label="昵称" min-width="120" />
       <el-table-column label="角色" min-width="160">
         <template #default="{ row }">
-          <el-tag v-for="r in row.roles" :key="r" size="small" style="margin-right: 4px">{{ roleNameMap[r] || r }}</el-tag>
+          <el-tag v-for="r in row.roles" :key="r"  style="margin-right: 4px">{{ roleNameMap[r] || r }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="90">
@@ -30,14 +35,18 @@
       </el-table-column>
     </el-table>
 
-    <el-pagination
-      v-model:current-page="page"
-      :page-size="pageSize"
-      :total="total"
-      layout="total, prev, pager, next"
-      @current-change="load"
-      style="margin-top: 12px; justify-content: flex-end"
-    />
+    <div class="page-card__footer">
+      <el-pagination
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :current-page="page"
+        :page-sizes="[10, 20, 50]"
+        background
+        @size-change="onSizeChange"
+        @current-change="onPageChange"
+      />
+    </div>
 
     <!-- 新建用户 -->
     <el-dialog v-model="createOpen" title="新建用户" width="440px">
@@ -99,7 +108,7 @@ const canView = computed(() => auth.hasPermission('user', 'read'))
 const rows = ref([])
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(10)
 const loading = ref(false)
 const roles = ref([])
 const roleNameMap = ref({})
@@ -112,6 +121,17 @@ const activeUser = ref(null)
 const assignRoleIds = ref([])
 const newPassword = ref('')
 const saving = ref(false)
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(size) {
+  pageSize.value = size
+  page.value = 1
+  load()
+}
 
 async function load() {
   loading.value = true
@@ -210,6 +230,4 @@ onMounted(async () => {
 </script>
 <style scoped>
 .admin-page { padding: 16px; }
-.admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.admin-head h3 { margin: 0; font-size: 16px; }
 </style>

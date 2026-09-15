@@ -4,12 +4,12 @@
       <div class="ds-sec-title">卡片间距</div>
       <div class="ds-row">
         <span class="ds-label">左右</span>
-        <el-input-number v-model="gap.x" :min="4" :max="96" size="small" controls-position="right" style="width: 96px" />
+        <el-input-number v-model="gap.x" :min="4" :max="96"  controls-position="right" style="width: 96px" />
         <span class="ds-unit">px</span>
       </div>
       <div class="ds-row">
         <span class="ds-label">上下</span>
-        <el-input-number v-model="gap.y" :min="4" :max="96" size="small" controls-position="right" style="width: 96px" />
+        <el-input-number v-model="gap.y" :min="4" :max="96"  controls-position="right" style="width: 96px" />
         <span class="ds-unit">px</span>
       </div>
     </div>
@@ -71,7 +71,7 @@ defineProps({
 }
 
 .ds-sec-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
 }
@@ -89,7 +89,7 @@ defineProps({
 .ds-label {
   width: 72px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--app-text-primary);
 }
 

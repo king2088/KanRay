@@ -75,7 +75,7 @@
             <div class="page-card__header">
               <div class="page-card__header-title">字段别名与类型</div>
               <div class="page-card__header-right">
-                <el-tag size="small" type="info" effect="plain">修改展示名称后回车保存</el-tag>
+                <el-tag  type="info" effect="plain">修改展示名称后回车保存</el-tag>
               </div>
             </div>
             <el-table :data="ds.fields">
@@ -86,12 +86,12 @@
               </el-table-column>
               <el-table-column prop="label" label="展示名称" min-width="200">
                 <template #default="{ row }">
-                  <el-input v-model="row.label" size="small" placeholder="输入展示名称" @change="() => updateFieldLabel(row)" />
+                  <el-input v-model="row.label"  placeholder="输入展示名称" @change="() => updateFieldLabel(row)" />
                 </template>
               </el-table-column>
               <el-table-column prop="type" label="类型" width="130">
                 <template #default="{ row }">
-                  <el-tag size="small" :type="typeTag(row.type)">{{ typeLabel(row.type) }}</el-tag>
+                  <el-tag  :type="typeTag(row.type)">{{ typeLabel(row.type) }}</el-tag>
                 </template>
               </el-table-column>
             </el-table>
@@ -179,7 +179,7 @@ onMounted(load)
 
 .cell-key {
   font-family: Consolas, 'Courier New', monospace;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--app-text-regular);
 }
 

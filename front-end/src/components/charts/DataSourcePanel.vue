@@ -46,7 +46,7 @@ function onChange(id) {
 }
 
 .panel-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--app-text-primary);
   margin-bottom: 8px;

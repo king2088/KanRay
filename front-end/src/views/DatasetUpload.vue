@@ -6,7 +6,7 @@
         <div class="page-desc">三步完成：选择文件 → 确认字段类型 → 创建数据集</div>
       </div>
       <div class="page-header__actions">
-        <el-button @click="$router.push('/datasets')"><el-icon style="margin-right: 6px"><ArrowLeft /></el-icon>返回</el-button>
+        <el-button @click="goBack"><el-icon style="margin-right: 6px"><ArrowLeft /></el-icon>返回</el-button>
       </div>
     </div>
 
@@ -67,7 +67,7 @@
       <div class="page-card__header">
         <div class="page-card__header-title">
           确认字段类型
-          <el-tag size="small" type="info" effect="plain" style="margin-left: 8px">共 {{ preview.rowCount }} 行</el-tag>
+          <el-tag  type="info" effect="plain" style="margin-left: 8px">共 {{ preview.rowCount }} 行</el-tag>
         </div>
         <div class="page-card__header-right">
           <el-button @click="step = 0">上一步</el-button>
@@ -83,7 +83,7 @@
           <el-table-column prop="key" label="内部字段名" min-width="160" show-overflow-tooltip />
           <el-table-column label="字段类型" width="170" align="center">
             <template #default="{ row }">
-              <el-select v-model="row.type" size="default">
+              <el-select v-model="row.type" >
                 <el-option label="文本" value="string" />
                 <el-option label="整数" value="integer" />
                 <el-option label="小数" value="number" />
@@ -96,7 +96,7 @@
 
         <div class="preview-block">
           <div class="preview-block__title">数据预览（前 {{ preview.previewRows.length }} 行）</div>
-          <el-table :data="preview.previewRows" max-height="380" size="small">
+          <el-table :data="preview.previewRows" max-height="380" >
             <el-table-column
               v-for="h in previewHeader"
               :key="h.key"
@@ -118,7 +118,7 @@
             <el-button type="primary" @click="$router.push(`/charts/new?dataset=${createdId}`)">
               <el-icon style="margin-right: 6px"><DataAnalysis /></el-icon>去创建图表
             </el-button>
-            <el-button @click="$router.push('/datasets')">返回数据集列表</el-button>
+            <el-button @click="goBack">{{ fromDatasources ? '返回数据源列表' : '返回数据集列表' }}</el-button>
           </template>
         </el-result>
       </div>
@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UploadFilled, Document, MagicStick, Check, ArrowLeft, DataAnalysis } from '@element-plus/icons-vue'
@@ -146,6 +146,12 @@ const previewHeader = ref([])
 const createdId = ref(null)
 const createdName = ref('')
 const createdRowCount = ref(0)
+
+const fromDatasources = computed(() => route.query.from === 'datasources')
+
+function goBack() {
+  router.push(fromDatasources.value ? '/datasources' : '/datasets')
+}
 
 function onFileChange(file) {
   selectedFile.value = file.raw
@@ -176,7 +182,7 @@ async function doCreate() {
     createdName.value = ds.name
     createdRowCount.value = ds.row_count
     step.value = 2
-    if (route.query.from) router.replace({ path: '/datasets' })
+    if (route.query.from) router.replace({ path: fromDatasources.value ? '/datasources' : '/datasets' })
   } finally {
     creating.value = false
   }
@@ -246,7 +252,7 @@ async function doCreate() {
 }
 
 .file-panel__size {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--app-text-secondary);
 }
 

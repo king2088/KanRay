@@ -22,7 +22,9 @@
     "mssql": "^12.7.2",
     "multer": "^2.0.2",
     "mysql2": "^3.24.4",
+    "oracledb": "^7.0.1",
     "pg": "^8.23.0",
+    "presto-client": "^1.2.0",
     "read-excel-file": "^9.3.10",
     "zod": "^3.25.76"
   },
