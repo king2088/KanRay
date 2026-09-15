@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-page">
+  <div class="page-container">
     <template v-if="canView">
       <div class="page-header">
         <div class="page-header__main">
@@ -11,7 +11,15 @@
         </div>
       </div>
 
-    <el-table :data="pagedRows" border stripe v-loading="loading">
+      <div class="page-card">
+        <div class="page-card__header">
+          <div class="page-card__header-title">角色列表</div>
+          <div class="page-card__header-right">
+            <el-tag type="info" effect="plain">共 {{ pagedTotal }} 条</el-tag>
+          </div>
+        </div>
+
+      <el-table :data="pagedRows" stripe v-loading="loading">
       <el-table-column prop="name" label="角色名称" min-width="160" />
       <el-table-column prop="code" label="标识" width="150" />
       <el-table-column label="权限点" min-width="220">
@@ -44,6 +52,7 @@
         @size-change="onSizeChange"
         @current-change="onPageChange"
       />
+    </div>
     </div>
 
     <el-dialog v-model="dialogOpen" :title="editing ? '编辑角色' : '新建角色'" width="560px">
@@ -175,6 +184,3 @@ onMounted(async () => {
   permissions.value = await adminApi.permissions()
 })
 </script>
-<style scoped>
-.admin-page { padding: 16px; }
-</style>

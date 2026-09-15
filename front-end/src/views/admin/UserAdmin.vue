@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-page">
+  <div class="page-container">
     <template v-if="canView">
       <div class="page-header">
         <div class="page-header__main">
@@ -11,7 +11,15 @@
         </div>
       </div>
 
-      <el-table :data="rows" border stripe v-loading="loading">
+      <div class="page-card">
+        <div class="page-card__header">
+          <div class="page-card__header-title">用户列表</div>
+          <div class="page-card__header-right">
+            <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          </div>
+        </div>
+
+      <el-table :data="rows" stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="email" label="邮箱" min-width="180" />
       <el-table-column prop="name" label="昵称" min-width="120" />
@@ -46,6 +54,7 @@
         @size-change="onSizeChange"
         @current-change="onPageChange"
       />
+    </div>
     </div>
 
     <!-- 新建用户 -->
@@ -228,6 +237,3 @@ onMounted(async () => {
   await loadRoles()
 })
 </script>
-<style scoped>
-.admin-page { padding: 16px; }
-</style>
