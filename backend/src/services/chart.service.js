@@ -66,7 +66,7 @@ function buildWhere(opts = {}) {
   return { whereSql: where.length ? ` WHERE ${where.join(' AND ')}` : '', params }
 }
 
-function listCharts(opts = {}) {
+async function listCharts(opts = {}) {
   const { whereSql, params } = buildWhere(opts)
   let { limit, offset } = opts
   const hasLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
@@ -77,22 +77,22 @@ function listCharts(opts = {}) {
     params.push(Number(limit))
     if (hasOffset) params.push(Number(offset))
   }
-  return db
+  return (await db
     .prepare(`${SELECT_SQL}${whereSql} ORDER BY c.updated_at DESC, c.id DESC${limitSql}`)
-    .all(...params)
+    .all(...params))
     .map((r) => ({ ...r, config: JSON.parse(r.config) }));
 }
 
-function countCharts(opts = {}) {
+async function countCharts(opts = {}) {
   const { whereSql, params } = buildWhere(opts)
-  const row = db
+  const row = await db
     .prepare(`SELECT COUNT(*) AS n FROM charts c LEFT JOIN datasets d ON d.id = c.dataset_id${whereSql}`)
     .get(...params);
   return Number(row?.n || 0);
 }
 
-function getChart(id) {
-  const c = db
+async function getChart(id) {
+  const c = await db
     .prepare(`
       SELECT c.id, c.name, c.chart_type AS chartType, c.dataset_id AS datasetId, d.name AS datasetName,
              c.config, c.created_at AS createdAt, c.updated_at AS updatedAt
@@ -104,19 +104,19 @@ function getChart(id) {
   return { ...c, config: JSON.parse(c.config) };
 }
 
-function getChartOrThrow(id) {
-  const c = getChart(id);
+async function getChartOrThrow(id) {
+  const c = await getChart(id);
   if (!c) throw new HttpError(404, `图表不存在: id=${id}`);
   return c;
 }
 
-function validateChartPayload(body) {
+async function validateChartPayload(body) {
   const chartType = body.chartType;
   if (!CHART_TYPES.includes(chartType)) throw new HttpError(400, `不支持的图表类型: ${chartType}`);
   if (!body.name || !String(body.name).trim()) throw new HttpError(400, '图表名称不能为空');
   const datasetId = Number(body.datasetId);
   if (!Number.isInteger(datasetId)) throw new HttpError(400, '数据集 ID 无效');
-  getDatasetOrThrow(datasetId); // 校验存在
+  await getDatasetOrThrow(datasetId); // 校验存在
 
   const config = body.config || {};
   if (!Array.isArray(config.metrics) || config.metrics.length === 0) {
@@ -130,25 +130,25 @@ function validateChartPayload(body) {
   };
 }
 
-function createChart(body, ownerId = null) {
-  const c = validateChartPayload(body);
-  const info = db
+async function createChart(body, ownerId = null) {
+  const c = await validateChartPayload(body);
+  const info = await db
     .prepare('INSERT INTO charts (name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
     .run(c.name, c.datasetId, c.chartType, JSON.stringify(c.config), ownerId == null ? null : Number(ownerId));
   return getChart(Number(info.lastInsertRowid));
 }
 
-function updateChart(id, body) {
-  const existing = getChartOrThrow(id);
-  const c = validateChartPayload(body);
-  db.prepare('UPDATE charts SET name = ?, dataset_id = ?, chart_type = ?, config = ?, updated_at = datetime(\'now\') WHERE id = ?')
+async function updateChart(id, body) {
+  const existing = await getChartOrThrow(id);
+  const c = await validateChartPayload(body);
+  await db.prepare('UPDATE charts SET name = ?, dataset_id = ?, chart_type = ?, config = ?, updated_at = datetime(\'now\') WHERE id = ?')
     .run(c.name, c.datasetId, c.chartType, JSON.stringify(c.config), id);
   return getChart(id);
 }
 
-function deleteChart(id) {
-  getChartOrThrow(id);
-  db.prepare('DELETE FROM charts WHERE id = ?').run(id);
+async function deleteChart(id) {
+  await getChartOrThrow(id);
+  await db.prepare('DELETE FROM charts WHERE id = ?').run(id);
   return true;
 }
 

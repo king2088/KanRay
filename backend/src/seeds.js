@@ -22,65 +22,66 @@ const ROLES = [
   { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read'] },
 ];
 
-function seedPermissions() {
-  const ins = db.prepare('INSERT OR IGNORE INTO permissions (code, name) VALUES (?, ?)');
-  const get = db.prepare('SELECT id FROM permissions WHERE code = ?');
-  PERMISSIONS.forEach(([code, name]) => { ins.run(code, name); });
+async function seedPermissions() {
+  const ins = await db.prepare('INSERT OR IGNORE INTO permissions (code, name) VALUES (?, ?)');
+  const get = await db.prepare('SELECT id FROM permissions WHERE code = ?');
+  for (const [code, name] of PERMISSIONS) await ins.run(code, name);
   const map = {};
-  PERMISSIONS.forEach(([code]) => { map[code] = get.get(code).id; });
+  for (const [code] of PERMISSIONS) map[code] = get.get(code).id;
   return map;
 }
 
-function seedRoles(permIds) {
-  const ins = db.prepare('INSERT OR IGNORE INTO roles (code, name, description, is_builtin) VALUES (?, ?, ?, ?)');
-  const getId = db.prepare('SELECT id FROM roles WHERE code = ?');
-  const link = db.prepare('INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
-  const clearLinks = db.prepare('DELETE FROM role_permissions WHERE role_id = ?');
+async function seedRoles(permIds) {
+  const ins = await db.prepare('INSERT OR IGNORE INTO roles (code, name, description, is_builtin) VALUES (?, ?, ?, ?)');
+  const getId = await db.prepare('SELECT id FROM roles WHERE code = ?');
+  const link = await db.prepare('INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
+  const clearLinks = await db.prepare('DELETE FROM role_permissions WHERE role_id = ?');
   const roles = {};
-  ROLES.forEach((r) => {
-    ins.run(r.code, r.name, r.description, r.isBuiltin);
+  const currentQ = await db.prepare(
+    'SELECT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id WHERE rp.role_id = ? ORDER BY p.code'
+  );
+  for (const r of ROLES) {
+    await ins.run(r.code, r.name, r.description, r.isBuiltin);
     const id = getId.get(r.code).id;
     roles[r.code] = id;
-    const current = db.prepare(
-      'SELECT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id WHERE rp.role_id = ? ORDER BY p.code'
-    ).all(id).map((x) => x.code);
+    const current = currentQ.all(id).map((x) => x.code);
     const target = [...r.permissions].sort();
     if (JSON.stringify(current) !== JSON.stringify(target)) {
-      clearLinks.run(id);
-      r.permissions.forEach((code) => link.run(id, permIds[code]));
+      await clearLinks.run(id);
+      for (const code of r.permissions) await link.run(id, permIds[code]);
     }
-  });
+  }
   return roles;
 }
 
-function seedAdmin() {
+async function seedAdmin() {
   const email = process.env.ADMIN_EMAIL || 'admin@kanban.local';
   const password = process.env.ADMIN_INITIAL_PASSWORD || 'admin123';
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = (await db.prepare('SELECT id FROM users WHERE email = ?').get(email));
   let uid;
   if (existing) {
     uid = existing.id;
   } else {
     const hash = bcrypt.hashSync(password, 10);
-    const r = db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)').run(email, hash, '管理员');
+    const r = await db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)').run(email, hash, '管理员');
     uid = r.lastInsertRowid;
   }
-  const adminRole = db.prepare("SELECT id FROM roles WHERE code = 'admin'").get()?.id;
-  if (adminRole) db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)').run(uid, adminRole);
+  const adminRole = (await db.prepare("SELECT id FROM roles WHERE code = 'admin'").get())?.id;
+  if (adminRole) await db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)').run(uid, adminRole);
   return uid;
 }
 
-function backfillOwner(adminId) {
-  ['datasets', 'charts', 'dashboards'].forEach((t) => {
-    db.prepare(`UPDATE ${t} SET owner_id = ? WHERE owner_id IS NULL`).run(adminId);
-  });
+async function backfillOwner(adminId) {
+  for (const t of ['datasets', 'charts', 'dashboards']) {
+    await db.prepare(`UPDATE ${t} SET owner_id = ? WHERE owner_id IS NULL`).run(adminId);
+  }
 }
 
-function seed() {
-  const permIds = seedPermissions();
-  const roles = seedRoles(permIds);
-  const adminId = seedAdmin();
-  backfillOwner(adminId);
+async function seed() {
+  const permIds = await seedPermissions();
+  const roles = await seedRoles(permIds);
+  const adminId = await seedAdmin();
+  await backfillOwner(adminId);
   return { roles, adminId, permIds };
 }
 

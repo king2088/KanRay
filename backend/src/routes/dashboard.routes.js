@@ -12,41 +12,41 @@ const { parsePageQuery, paginate } = require('../utils/pagination');
 const router = express.Router();
 
 // 校验看板布局中引用的图表均归当前用户所有（管理员放行）
-function assertLayoutOwnership(layout, user) {
+async function assertLayoutOwnership(layout, user) {
   for (const comp of layout || []) {
     if (comp && typeof comp === 'object' && comp.type === 'chart' && comp.chartId !== undefined && comp.chartId !== null) {
-      access.assertResource('chart', Number(comp.chartId), user, rbac);
+      await access.assertResource('chart', Number(comp.chartId), user, rbac);
     }
   }
 }
 
 // GET /api/dashboards  (可选 page/pageSize -> {list,total}，否则返回全量数组)
 // 管理员全量；其余仅可见自己的看板
-router.get('/', requireUser, requirePermission('dashboard', 'read'), (req, res) => {
-  const items = dashboardService.listDashboards(access.scopedWhere('dashboard', req.user, rbac));
+router.get('/', requireUser, requirePermission('dashboard', 'read'), async (req, res) => {
+  const items = await dashboardService.listDashboards(await access.scopedWhere('dashboard', req.user, rbac));
   const page = parsePageQuery(req.query);
   ok(res, page ? paginate(items, page.page, page.pageSize) : items);
 });
 
 // GET /api/dashboards/:id
-router.get('/:id', requireUser, requirePermission('dashboard', 'read'), (req, res) => {
+router.get('/:id', requireUser, requirePermission('dashboard', 'read'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('dashboard', id, req.user, rbac);
-  ok(res, dashboardService.getDashboardOrThrow(id));
+  await access.assertResource('dashboard', id, req.user, rbac);
+  ok(res, await dashboardService.getDashboardOrThrow(id));
 });
 
 // POST /api/dashboards  { name }
-router.post('/', requireUser, requirePermission('dashboard', 'create'), (req, res) => {
+router.post('/', requireUser, requirePermission('dashboard', 'create'), async (req, res) => {
   const schema = z.object({ name: z.string().trim().min(1).max(100) }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '看板名称不能为空且不超过 100 字符');
-  ok(res, dashboardService.createDashboard(parsed.data.name, req.user.id), '看板创建成功');
+  ok(res, await dashboardService.createDashboard(parsed.data.name, req.user.id), '看板创建成功');
 });
 
 // PATCH /api/dashboards/:id  { name?, layout?, gap?, cardStyle? }
-router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), (req, res) => {
+router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('dashboard', id, req.user, rbac);
+  await access.assertResource('dashboard', id, req.user, rbac);
   const schema = z.object({
     name: z.string().trim().min(1).max(100).optional(),
     layout: z.array(z.any()).optional(),
@@ -69,15 +69,15 @@ router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), (req
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '看板参数不正确', parsed.error.flatten());
-  if (parsed.data.layout !== undefined) assertLayoutOwnership(parsed.data.layout, req.user);
-  ok(res, dashboardService.updateDashboard(id, parsed.data), '看板更新成功');
+  if (parsed.data.layout !== undefined) await assertLayoutOwnership(parsed.data.layout, req.user);
+  ok(res, await dashboardService.updateDashboard(id, parsed.data), '看板更新成功');
 });
 
 // DELETE /api/dashboards/:id
-router.delete('/:id', requireUser, requirePermission('dashboard', 'delete'), (req, res) => {
+router.delete('/:id', requireUser, requirePermission('dashboard', 'delete'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('dashboard', id, req.user, rbac);
-  dashboardService.deleteDashboard(id);
+  await access.assertResource('dashboard', id, req.user, rbac);
+  await dashboardService.deleteDashboard(id);
   ok(res, true, '删除成功');
 });
 

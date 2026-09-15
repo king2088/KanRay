@@ -5,16 +5,16 @@ const { db, resetDb } = require('./helpers/db');
 const datasetService = require('../src/services/dataset.service');
 const sqlDataProvider = require('../src/datasources/sql-data-provider');
 
-before(() => {
-  resetDb();
+before(async () => {
+  await resetDb();
 });
 
-test('registerSqlDataset creates dataset with source_type=sql', () => {
+test('registerSqlDataset creates dataset with source_type=sql', async () => {
   // Insert a mock data_sources row
   db.prepare("INSERT INTO data_sources (name, type, config, owner_id) VALUES (?, ?, ?, ?)")
     .run('Test MySQL', 'mysql', '{"host":"127.0.0.1","port":13306}', 1);
 
-  const ds = datasetService.registerSqlDataset(
+  const ds = await datasetService.registerSqlDataset(
     'Sales Table', 1, 'testdb', 'sales',
     [{ name: 'id', label: 'ID', type: 'integer' }, { name: 'amount', label: 'Amount', type: 'number' }],
     1
@@ -28,7 +28,7 @@ test('registerSqlDataset creates dataset with source_type=sql', () => {
 
 test('existing aggregate still works for excel datasets', async () => {
   // Create a regular Excel dataset
-  const ds = datasetService.createDataset('Test Excel', [
+  const ds = await datasetService.createDataset('Test Excel', [
     { key: 'name', label: 'Name', type: 'string' },
     { key: 'val', label: 'Value', type: 'number' },
   ], [{ name: 'A', val: 10 }, { name: 'B', val: 20 }], 1);

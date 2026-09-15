@@ -10,11 +10,11 @@ let server; let base;
 let adminToken;
 
 before(async () => {
-  resetDb();
+  await resetDb();
   server = app.listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
-  const admin = authService.login('admin@kanban.local', 'admin123');
+  const admin = await authService.login('admin@kanban.local', 'admin123');
   adminToken = admin.accessToken;
 });
 
@@ -111,7 +111,7 @@ test('DELETE /api/datasources/:id deletes', async () => {
 });
 
 test('owner isolation: analyst cannot see admin datasources', async () => {
-  const u = authService.register({ email: 'analyst@x.com', password: 'Password123!', name: 'Analyst', roleCode: 'analyst' });
+  const u = await authService.register({ email: 'analyst@x.com', password: 'Password123!', name: 'Analyst', roleCode: 'analyst' });
   const userToken = jwtUtil.signAccess({ sub: u.id });
 
   // admin creates a datasource (id=2)
@@ -143,7 +143,7 @@ test('owner isolation: analyst cannot see admin datasources', async () => {
 });
 
 test('editor without datasource permission gets 403', async () => {
-  const u = authService.register({ email: 'editor@x.com', password: 'Password123!', name: 'Editor', roleCode: 'editor' });
+  const u = await authService.register({ email: 'editor@x.com', password: 'Password123!', name: 'Editor', roleCode: 'editor' });
   const token = jwtUtil.signAccess({ sub: u.id });
   const res = await fetch(`${base}/api/datasources`, { headers: auth(token) });
   assert.equal(res.status, 403);
@@ -171,9 +171,47 @@ test('POST /api/datasources/test rejects planned type', async () => {
   const res = await fetch(`${base}/api/datasources/test`, {
     method: 'POST',
     headers: auth(adminToken),
-    body: JSON.stringify({ type: 'oracle', config: { host: 'x' } }),
+    body: JSON.stringify({ type: 'db2', config: { host: 'x' } }),
   });
   assert.equal(res.status, 400);
+});
+
+test('POST /api/datasources/test returns ok:false for unreachable oracle', async () => {
+  const res = await fetch(`${base}/api/datasources/test`, {
+    method: 'POST',
+    headers: auth(adminToken),
+    body: JSON.stringify({ type: 'oracle', config: { host: '127.0.0.1', port: 1, user: 'SYSTEM', password: 'x' } }),
+  });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.code, 0);
+  assert.equal(body.data.ok, false);
+  assert.ok(body.data.message);
+});
+
+test('POST datasource 支持 mode：sync/direct 落库返回', async () => {
+  const syncRes = await fetch(`${base}/api/datasources`, {
+    method: 'POST',
+    headers: auth(adminToken),
+    body: JSON.stringify({ name: 'Sync MySQL', type: 'mysql', mode: 'sync', config: { host: '127.0.0.1', port: 13306, database: 'testdb', user: 'root', password: 'Kanban@123' } }),
+  });
+  assert.equal(syncRes.status, 200);
+  assert.equal((await syncRes.json()).data.mode, 'sync');
+
+  const directRes = await fetch(`${base}/api/datasources`, {
+    method: 'POST',
+    headers: auth(adminToken),
+    body: JSON.stringify({ name: 'Direct MySQL', type: 'mysql', config: { host: '127.0.0.1', port: 13306, database: 'testdb', user: 'root', password: 'Kanban@123' } }),
+  });
+  assert.equal(directRes.status, 200);
+  assert.equal((await directRes.json()).data.mode, 'direct');
+
+  const fileRes = await fetch(`${base}/api/datasources`, {
+    method: 'POST',
+    headers: auth(adminToken),
+    body: JSON.stringify({ name: 'Bad File Sync', type: 'excel', mode: 'sync', config: {} }),
+  });
+  assert.equal(fileRes.status, 400);
 });
 
 test('关闭临时 HTTP 服务', () => {

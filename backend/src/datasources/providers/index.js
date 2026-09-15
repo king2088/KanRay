@@ -4,6 +4,8 @@ const clickhouse = require('./clickhouse');
 const mssql = require('./mssql');
 const elasticsearch = require('./elasticsearch');
 const apiService = require('./api-service');
+const oracle = require('./oracle');
+const presto = require('./presto');
 
 const MAP = {
   mysql: mysqlFamily,
@@ -12,6 +14,8 @@ const MAP = {
   mssql,
   'es-rest': elasticsearch,
   http: apiService,
+  oracle,
+  presto,
 };
 
 function getProvider(family) {

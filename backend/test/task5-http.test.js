@@ -10,7 +10,7 @@ const { seed } = require('../src/seeds');
 let server; let base;
 
 test('启动临时 HTTP 服务', async () => {
-  resetDb();
+  await resetDb();
   const app = require('../src/app');
   await new Promise((resolve) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); }); });
 });
@@ -269,14 +269,14 @@ test('I2 回归：账号被禁用后旧令牌立即失效（401/403）', async (
   const cid = cRes.json.data.id;
   const cat = await login('c5@x.com', 'Password123!');
   assert.ok(cat);
-  rbac.setUserActive(cid, false);
+  await rbac.setUserActive(cid, false);
   const r = await api('/api/dashboards', { method: 'GET', token: cat });
   assert.ok([401, 403].includes(r.status), `status=${r.status} ${JSON.stringify(r.json)}`);
   assert.equal(r.json.code, r.status);
 });
 
 test('I3 回归：仅有 dashboard:read 的角色访问数据集列表 → 403', async () => {
-  rbac.createRole('dashview', '仅看板', ['dashboard:read']);
+  await rbac.createRole('dashview', '仅看板', ['dashboard:read']);
   const dRes = await api('/api/auth/register', { body: { email: 'd5@x.com', password: 'Password123!', name: 'D' } });
   assert.equal(dRes.status, 200);
   setRole(dRes.json.data.id, 'dashview');
@@ -287,7 +287,7 @@ test('I3 回归：仅有 dashboard:read 的角色访问数据集列表 → 403',
 });
 
 test('I4 回归：自定义 user:read+role:read 角色不再有管理员越权视野', async () => {
-  rbac.createRole('mgmt', '用户与角色管理', ['user:read', 'role:read', 'dashboard:read']);
+  await rbac.createRole('mgmt', '用户与角色管理', ['user:read', 'role:read', 'dashboard:read']);
   const fRes = await api('/api/auth/register', { body: { email: 'f5@x.com', password: 'Password123!', name: 'F' } });
   assert.equal(fRes.status, 200);
   setRole(fRes.json.data.id, 'mgmt');

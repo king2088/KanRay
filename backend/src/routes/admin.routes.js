@@ -14,9 +14,9 @@ const router = express.Router();
 router.use(requireUser);
 
 // -------- 用户管理 --------
-router.get('/users', requirePermission('user', 'read'), (req, res) => {
+router.get('/users', requirePermission('user', 'read'), async (req, res) => {
   const page = parsePageQuery(req.query);
-  const r = rbac.listUsers(page ? { page: page.page, pageSize: page.pageSize } : undefined);
+  const r = await rbac.listUsers(page ? { page: page.page, pageSize: page.pageSize } : undefined);
   if (page) {
     ok(res, r, '用户列表');
   } else {
@@ -24,7 +24,7 @@ router.get('/users', requirePermission('user', 'read'), (req, res) => {
   }
 });
 
-router.post('/users', requirePermission('user', 'create'), (req, res) => {
+router.post('/users', requirePermission('user', 'create'), async (req, res) => {
   const schema = z.object({
     email: z.string().trim().email(),
     password: z.string().min(8),
@@ -33,15 +33,15 @@ router.post('/users', requirePermission('user', 'create'), (req, res) => {
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
-  const user = rbac.createUser(parsed.data.email, parsed.data.password, parsed.data.name, parsed.data.roleIds);
-  audit.log(
+  const user = await rbac.createUser(parsed.data.email, parsed.data.password, parsed.data.name, parsed.data.roleIds);
+  await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_user_create', resourceType: 'user', resourceId: user.id, detail: { email: user.email, roleIds: parsed.data.roleIds } },
     req
   );
   ok(res, user, '用户创建成功');
 });
 
-router.patch('/users/:id', requirePermission('user', 'update'), (req, res) => {
+router.patch('/users/:id', requirePermission('user', 'update'), async (req, res) => {
   const schema = z.object({
     name: z.string().trim().min(1).max(50).optional(),
     is_active: z.boolean().optional(),
@@ -51,23 +51,23 @@ router.patch('/users/:id', requirePermission('user', 'update'), (req, res) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
   const id = Number(req.params.id);
-  rbac.rbacUser(id);
-  if (parsed.data.name !== undefined) rbac.updateUserProfile(id, { name: parsed.data.name });
-  if (parsed.data.is_active !== undefined) rbac.setUserActive(id, parsed.data.is_active);
-  if (parsed.data.roleIds !== undefined) rbac.assignRoles(id, parsed.data.roleIds);
-  if (parsed.data.password !== undefined) rbac.resetPassword(id, parsed.data.password);
-  audit.log(
+  await rbac.rbacUser(id);
+  if (parsed.data.name !== undefined) await rbac.updateUserProfile(id, { name: parsed.data.name });
+  if (parsed.data.is_active !== undefined) await rbac.setUserActive(id, parsed.data.is_active);
+  if (parsed.data.roleIds !== undefined) await rbac.assignRoles(id, parsed.data.roleIds);
+  if (parsed.data.password !== undefined) await rbac.resetPassword(id, parsed.data.password);
+  await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_user_update', resourceType: 'user', resourceId: id, detail: parsed.data },
     req
   );
-  ok(res, rbac.rbacUser(id), '用户已更新');
+  ok(res, await rbac.rbacUser(id), '用户已更新');
 });
 
-router.delete('/users/:id', requirePermission('user', 'delete'), (req, res) => {
+router.delete('/users/:id', requirePermission('user', 'delete'), async (req, res) => {
   const id = Number(req.params.id);
   if (id === req.user.id) throw new HttpError(400, '不能删除当前登录账号');
-  rbac.deleteUser(id);
-  audit.log(
+  await rbac.deleteUser(id);
+  await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_user_delete', resourceType: 'user', resourceId: id },
     req
   );
@@ -75,11 +75,11 @@ router.delete('/users/:id', requirePermission('user', 'delete'), (req, res) => {
 });
 
 // -------- 角色管理 --------
-router.get('/roles', requirePermission('role', 'read'), (req, res) => {
-  ok(res, rbac.listRoles(), '角色列表');
+router.get('/roles', requirePermission('role', 'read'), async (req, res) => {
+  ok(res, await rbac.listRoles(), '角色列表');
 });
 
-router.post('/roles', requirePermission('role', 'create'), (req, res) => {
+router.post('/roles', requirePermission('role', 'create'), async (req, res) => {
   const schema = z.object({
     code: z.string().trim(),
     name: z.string().trim().min(1).max(50),
@@ -88,15 +88,15 @@ router.post('/roles', requirePermission('role', 'create'), (req, res) => {
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
-  const role = rbac.createRole(parsed.data.code, parsed.data.name, parsed.data.permissions, parsed.data.description);
-  audit.log(
+  const role = await rbac.createRole(parsed.data.code, parsed.data.name, parsed.data.permissions, parsed.data.description);
+  await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_role_create', resourceType: 'role', resourceId: role.id, detail: { code: role.code, permissions: parsed.data.permissions } },
     req
   );
   ok(res, role, '角色创建成功');
 });
 
-router.patch('/roles/:id', requirePermission('role', 'update'), (req, res) => {
+router.patch('/roles/:id', requirePermission('role', 'update'), async (req, res) => {
   const schema = z.object({
     name: z.string().trim().min(1).max(50).optional(),
     description: z.string().trim().max(200).optional(),
@@ -104,18 +104,18 @@ router.patch('/roles/:id', requirePermission('role', 'update'), (req, res) => {
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
-  const role = rbac.updateRole(Number(req.params.id), parsed.data);
-  audit.log(
+  const role = await rbac.updateRole(Number(req.params.id), parsed.data);
+  await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_role_update', resourceType: 'role', resourceId: role.id, detail: parsed.data },
     req
   );
   ok(res, role, '角色已更新');
 });
 
-router.delete('/roles/:id', requirePermission('role', 'delete'), (req, res) => {
+router.delete('/roles/:id', requirePermission('role', 'delete'), async (req, res) => {
   const id = Number(req.params.id);
-  rbac.deleteRole(id);
-  audit.log(
+  await rbac.deleteRole(id);
+  await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_role_delete', resourceType: 'role', resourceId: id },
     req
   );
@@ -123,15 +123,15 @@ router.delete('/roles/:id', requirePermission('role', 'delete'), (req, res) => {
 });
 
 // -------- 权限列表 --------
-router.get('/permissions', requirePermission('user', 'read'), (req, res) => {
-  ok(res, rbac.listPermissions(), '权限列表');
+router.get('/permissions', requirePermission('user', 'read'), async (req, res) => {
+  ok(res, await rbac.listPermissions(), '权限列表');
 });
 
 // -------- 审计 --------
-router.get('/audit', requirePermission('audit', 'read'), (req, res) => {
+router.get('/audit', requirePermission('audit', 'read'), async (req, res) => {
   const page = parsePageQuery(req.query);
   const p = page || { page: 1, pageSize: 20 };
-  ok(res, audit.list({ page: p.page, pageSize: p.pageSize }), '审计日志');
+  ok(res, await audit.list({ page: p.page, pageSize: p.pageSize }), '审计日志');
 });
 
 module.exports = router;

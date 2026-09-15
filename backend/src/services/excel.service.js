@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const { readSheet } = require('read-excel-file/node');
 const config = require('../config');
 const HttpError = require('../utils/http-error');
@@ -59,12 +61,56 @@ function inferColumnType(values) {
 }
 
 /**
- * 读取 Excel/CSV 文件，第一行作为列名
- * @returns {Promise<{ header: Array<{key,label,type}>, rows: Array<object> }>}
+ * 解析 CSV 文本为二维数组（字符串/数字/布尔），兼容带引号、转义引号与 \r\n
  */
-async function parseExcelFile(filePath) {
-  // 返回二维数组：每行是数组，值类型为 string | number | boolean | Date | null
-  const matrix = await readSheet(filePath);
+function parseCsv(text) {
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQuotes = false; i += 1; continue;
+      }
+      field += ch; i += 1; continue;
+    }
+    if (ch === '"') { inQuotes = true; i += 1; continue; }
+    if (ch === ',') { row.push(field); field = ''; i += 1; continue; }
+    if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i += 1;
+      row.push(field);
+      field = '';
+      rows.push(row);
+      row = [];
+      i += 1;
+      continue;
+    }
+    field += ch;
+    i += 1;
+  }
+  if (row.length > 0 || field !== '') { row.push(field); rows.push(row); }
+  return rows.filter((r) => r.some((v) => String(v).trim() !== ''));
+}
+
+function csvCellValue(raw) {
+  const v = String(raw).trim();
+  if (v === '') return null;
+  if (/^-?\d+(\.\d+)?$/.test(v) && !Number.isNaN(Number(v))) return Number(v);
+  const low = v.toLowerCase();
+  if (low === 'true') return true;
+  if (low === 'false') return false;
+  return v;
+}
+
+/**
+ * 二维矩阵 → 标准列头/行记录
+ */
+function matrixToResult(matrix) {
   if (!matrix || matrix.length === 0) throw new HttpError(400, '上传的文件没有数据行');
 
   const headerRow = matrix[0];
@@ -106,6 +152,23 @@ async function parseExcelFile(filePath) {
   });
 
   return { header, rows };
+}
+
+/**
+ * 读取 Excel/CSV 文件，第一行作为列名
+ * @returns {Promise<{ header: Array<{key,label,type}>, rows: Array<object> }>}
+ */
+async function parseExcelFile(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  let matrix;
+  if (ext === '.csv') {
+    const text = await fs.promises.readFile(filePath, 'utf8');
+    matrix = parseCsv(text).map((r) => r.map(csvCellValue));
+  } else {
+    // 返回二维数组：每行是数组，值类型为 string | number | boolean | Date | null
+    matrix = await readSheet(filePath);
+  }
+  return matrixToResult(matrix);
 }
 
 module.exports = { parseExcelFile, inferColumnType, TYPE_MAP };

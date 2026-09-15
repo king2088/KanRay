@@ -5,9 +5,9 @@ const assert = require('node:assert/strict');
 const { db, resetDb } = require('./helpers/db');
 const authService = require('../src/services/auth.service');
 
-test('admin 登录返回全部权限', () => {
-  resetDb();
-  const r = authService.login('admin@kanban.local', 'admin123');
+test('admin 登录返回全部权限', async () => {
+  await resetDb();
+  const r = await authService.login('admin@kanban.local', 'admin123');
   assert.ok(Array.isArray(r.user.permissions));
   assert.equal(r.user.permissions.length, 27);
   assert.ok(r.user.permissions.includes('dataset:create'));
@@ -15,16 +15,16 @@ test('admin 登录返回全部权限', () => {
   assert.ok(r.user.permissions.includes('audit:read'));
 });
 
-test('默认 viewer 仅返回播放权限', () => {
-  resetDb();
-  const u = authService.register({ email: 'v@x.com', password: 'Password123!', name: 'V' });
+test('默认 viewer 仅返回播放权限', async () => {
+  await resetDb();
+  const u = await authService.register({ email: 'v@x.com', password: 'Password123!', name: 'V' });
   assert.ok(u.permissions.includes('dataset:read'));
   assert.equal(u.permissions.includes('dataset:create'), false);
 });
 
-test('userWithRoles 返回 permissions', () => {
-  resetDb();
+test('userWithRoles 返回 permissions', async () => {
+  await resetDb();
   const adminRow = db.prepare("SELECT id FROM users WHERE email = 'admin@kanban.local'").get();
-  const u = authService.userWithRoles(adminRow.id);
+  const u = await authService.userWithRoles(adminRow.id);
   assert.equal(u.permissions.length, 27);
 });

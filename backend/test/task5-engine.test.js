@@ -10,8 +10,8 @@ let dsId;
 
 // createDataset 实际签名：createDataset(name, header, rows, ownerId)
 // header 为 [{ key, label, type }]，rows 为按 key 组成的对象数组（与 parseExcelFile 输出一致）
-function makeFixture() {
-  const ds = datasetService.createDataset(
+async function makeFixture() {
+  const ds = await datasetService.createDataset(
     'engine-fixture',
     [
       { key: 'name', label: '名称', type: 'string' },
@@ -27,8 +27,8 @@ function makeFixture() {
 }
 
 test('sortBy：合法整数指标下标可排序', async () => {
-  resetDb();
-  makeFixture();
+  await resetDb();
+  await makeFixture();
   const r = await queryEngine.aggregate({ datasetId: dsId, dimensions: [{ field: 'name' }], metrics: [{ field: 'amount', agg: 'sum' }], sortBy: 0, sortOrder: 'desc' });
   assert.equal(r.rows[0].name, 'b');
 });

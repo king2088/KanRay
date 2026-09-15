@@ -37,19 +37,19 @@ function renderDash(d) {
   };
 }
 
-function listDashboards(where = '') {
-  return db
+async function listDashboards(where = '') {
+  return (await db
     .prepare(`
       SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY, card_style AS cardStyle,
              created_at AS createdAt, updated_at AS updatedAt
       FROM dashboards${where ? ' WHERE ' + where : ''} ORDER BY updated_at DESC
     `)
-    .all()
+    .all())
     .map(renderDash);
 }
 
-function getDashboard(id) {
-  const d = db
+async function getDashboard(id) {
+  const d = await db
     .prepare(`
       SELECT id, name, layout, gap_x AS gapX, gap_y AS gapY, card_style AS cardStyle,
              created_at AS createdAt, updated_at AS updatedAt
@@ -60,29 +60,29 @@ function getDashboard(id) {
   return renderDash(d);
 }
 
-function getDashboardOrThrow(id) {
-  const d = getDashboard(id);
+async function getDashboardOrThrow(id) {
+  const d = await getDashboard(id);
   if (!d) throw new HttpError(404, `看板不存在: id=${id}`);
   return d;
 }
 
 /** 校验看板组件列表 */
-function validateLayout(layout) {
+async function validateLayout(layout) {
   if (!Array.isArray(layout)) throw new HttpError(400, '看板布局格式不正确');
   for (const comp of layout) {
     if (!comp || typeof comp !== 'object') throw new HttpError(400, '看板组件格式不正确');
     if (comp.type === 'chart') {
       if (comp.chartId === undefined || comp.chartId === null) throw new HttpError(400, '图表组件缺少 chartId');
-      getChartOrThrow(Number(comp.chartId));
+      await getChartOrThrow(Number(comp.chartId));
     }
   }
   return layout;
 }
 
-function createDashboard(name, ownerId = null) {
+async function createDashboard(name, ownerId = null) {
   const n = String(name || '').trim().slice(0, 100);
   if (!n) throw new HttpError(400, '看板名称不能为空');
-  const info = db
+  const info = await db
     .prepare('INSERT INTO dashboards (name, layout, owner_id) VALUES (?, ?, ?)')
     .run(n, '[]', ownerId == null ? null : Number(ownerId));
   return getDashboard(Number(info.lastInsertRowid));
@@ -98,11 +98,11 @@ function normGap(gap) {
   };
 }
 
-function updateDashboard(id, body) {
-  const existing = getDashboardOrThrow(id);
+async function updateDashboard(id, body) {
+  const existing = await getDashboardOrThrow(id);
   const name = body.name !== undefined ? String(body.name || '').trim().slice(0, 100) : existing.name;
   if (!name) throw new HttpError(400, '看板名称不能为空');
-  const layout = body.layout !== undefined ? validateLayout(body.layout) : existing.layout;
+  const layout = body.layout !== undefined ? await validateLayout(body.layout) : existing.layout;
   let gapX = existing.gap.x;
   let gapY = existing.gap.y;
   if (body.gap !== undefined) {
@@ -110,14 +110,14 @@ function updateDashboard(id, body) {
     gapY = normGap(body.gap).y;
   }
   const cardStyle = body.cardStyle !== undefined ? normCardStyle(body.cardStyle) : existing.cardStyle;
-  db.prepare('UPDATE dashboards SET name = ?, layout = ?, gap_x = ?, gap_y = ?, card_style = ?, updated_at = datetime(\'now\') WHERE id = ?')
+  await db.prepare('UPDATE dashboards SET name = ?, layout = ?, gap_x = ?, gap_y = ?, card_style = ?, updated_at = datetime(\'now\') WHERE id = ?')
     .run(name, JSON.stringify(layout), gapX, gapY, JSON.stringify(cardStyle), id);
   return getDashboard(id);
 }
 
-function deleteDashboard(id) {
-  getDashboardOrThrow(id);
-  db.prepare('DELETE FROM dashboards WHERE id = ?').run(id);
+async function deleteDashboard(id) {
+  await getDashboardOrThrow(id);
+  await db.prepare('DELETE FROM dashboards WHERE id = ?').run(id);
   return true;
 }
 

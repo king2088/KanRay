@@ -9,7 +9,7 @@ let server;
 let base;
 
 test('启动临时 HTTP 服务', async () => {
-  resetDb();
+  await resetDb();
   const app = require('../src/app');
   await new Promise((resolve) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); }); });
 });
@@ -40,7 +40,7 @@ test('API 登出吊销刷新令牌（真实链路，C1 回归）', async () => {
   const { accessToken, refreshToken } = login.json.data;
   const out = await api('/api/auth/logout', { token: accessToken });
   assert.equal(out.status, 200);
-  assert.throws(() => authService.refresh(refreshToken), /无效/);
+  await assert.rejects(authService.refresh(refreshToken), /无效/);
 });
 
 test('刷新令牌不得作为访问令牌使用（C2 回归）', async () => {

@@ -12,12 +12,12 @@ const CATALOG_TTL_MS = 60_000;
  * 加载数据集连接上下文：db 行、数据源配置、方言、provider、解密配置。
  * @returns {{ ds, dsConfig, driverMeta, dialect, provider, cfg }}
  */
-function loadDataSourceContext(dataset) {
+async function loadDataSourceContext(dataset) {
   const db = require('../db');
-  const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
+  const ds = await db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
   if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
   const dsConfig = ds.datasource_id
-    ? db.prepare('SELECT * FROM data_sources WHERE id = ?').get(ds.datasource_id)
+    ? await db.prepare('SELECT * FROM data_sources WHERE id = ?').get(ds.datasource_id)
     : null;
   if (!dsConfig) throw new HttpError(500, '数据源不存在');
   const driverMeta = getDriverMeta(dsConfig.type);
@@ -74,11 +74,11 @@ async function resolveEtlCatalog(dsConfig, provider, cfg, def) {
 
 async function query(dataset, queryObj) {
   const db = require('../db');
-  const ds = db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
+  const ds = await db.prepare('SELECT * FROM datasets WHERE id = ?').get(dataset.id);
   if (!ds || ds.source_type !== 'sql') throw new HttpError(400, '非 SQL 数据集');
   if (!(queryObj.metrics || []).length) throw new HttpError(400, '至少需要一个指标');
 
-  const { dialect, provider, cfg, dsConfig } = loadDataSourceContext(dataset);
+  const { dialect, provider, cfg, dsConfig } = await loadDataSourceContext(dataset);
 
   // M3：有 build_definition 时以编译结果作为明细源，外层再按图表聚合
   if (ds.build_definition) {
@@ -97,7 +97,25 @@ async function query(dataset, queryObj) {
       const compiled = require('./build-sql').compileDetail({ ...def, aggregation: null }, dialect, catalog);
       inner = compiled;
     }
-    return aggregateOverSource(dataset, queryObj, { sql: inner.sql, params: inner.params, fields: inner.fields, dialect, provider, cfg });
+
+    // register-table 写入的 registry 字段用原始列名（regionkey），
+    // 但 builder 编译输出别名统一为 f_N，需要将原生列名映射过去，
+    // 否则 aggregateOverSource 在外层无法解析内层别名。
+    const defFields = Array.isArray(def.fields) ? def.fields : [];
+    const nativeToF = {};
+    defFields.forEach((df, i) => { nativeToF[df.field] = `f_${i}`; });
+    const remapField = (obj) => {
+      if (obj && typeof obj.field === 'string' && nativeToF[obj.field] && !/^f_\d+$/.test(obj.field)) {
+        obj.field = nativeToF[obj.field];
+      }
+    };
+    const remapped = {
+      ...queryObj,
+      dimensions: (queryObj.dimensions || []).map((d) => { const c = { ...d }; remapField(c); return c; }),
+      metrics: (queryObj.metrics || []).map((m) => { const c = { ...m }; remapField(c); return c; }),
+    };
+
+    return aggregateOverSource(dataset, remapped, { sql: inner.sql, params: inner.params, fields: inner.fields, dialect, provider, cfg });
   }
 
   const quote = dialect.quoteIdent;
@@ -279,7 +297,7 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
  * 返回表内前 pageSize 行与总行数；分页仅支持首页语义，避免方言不一致的 OFFSET。
  */
 async function paginate(dataset, page, pageSize) {
-  const { ds, dialect, provider, cfg, dsConfig } = loadDataSourceContext(dataset);
+  const { ds, dialect, provider, cfg, dsConfig } = await loadDataSourceContext(dataset);
 
   if (ds.build_definition) {
     const def = JSON.parse(ds.build_definition);
@@ -299,7 +317,7 @@ async function paginate(dataset, page, pageSize) {
     // 已知限制：type=sql 且以 WITH 开头的语句，wrapped 派生表包裹在 mysql/mssql 非法，预览请改用 preview-detail。
     const wrapped = `SELECT * FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`;
     const rows = await provider.runQuery(cfg, dialect.limit(wrapped, size), detail.params || []);
-    const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS __total FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`, detail.params || []);
+    const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS ${dialect.quoteIdent('__total')} FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`, detail.params || []);
     const total = countRows.length ? Number(countRows[0].__total ?? 0) : 0;
     return { rows, total };
   }
@@ -311,7 +329,7 @@ async function paginate(dataset, page, pageSize) {
 
   const size = Math.min(100, Math.max(1, Number(pageSize) || 50));
   const rows = await provider.runQuery(cfg, dialect.limit(`SELECT * FROM ${qualified}`, size), []);
-  const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS __total FROM ${qualified}`, []);
+  const countRows = await provider.runQuery(cfg, `SELECT COUNT(*) AS ${dialect.quoteIdent('__total')} FROM ${qualified}`, []);
   const total = countRows.length ? Number(countRows[0].__total ?? 0) : 0;
   return { rows, total };
 }

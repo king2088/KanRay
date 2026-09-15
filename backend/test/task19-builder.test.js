@@ -18,7 +18,7 @@ const pg = {
 
 function catalog() {
   return [
-    { schema: 'testdb', table: 'orders', columns: [{ name: 'id', type: 'int' }, { name: 'customer_id', type: 'int' }, { name: 'amount', type: 'decimal' }] },
+    { schema: 'testdb', table: 'orders', columns: [{ name: 'id', type: 'int' }, { name: 'customer_id', type: 'int' }, { name: 'amount', type: 'decimal' }, { name: 'status', type: 'varchar' }] },
     { schema: 'testdb', table: 'customers', columns: [{ name: 'id', type: 'int' }, { name: 'name', type: 'varchar' }] },
   ];
 }
@@ -30,7 +30,7 @@ function insertDatasource(name) {
   return Number(info.lastInsertRowid);
 }
 
-before(() => { resetDb(); });
+before(async () => { await resetDb(); });
 
 test('compileDetail builder: single table no aggregation', () => {
   // field 带自定义 name：实现恒输出 f_<i>（builder 忽略定义 name）
@@ -179,27 +179,244 @@ test('compileEtl unknown node throws', () => {
   assert.throws(() => nodeSql('n1'), /未知节点类型/);
 });
 
-test('saveBuiltDataset creates then updates and rebuilds fields', () => {
+test('compileEtl multi-source: join via rightNodeId merges two source nodes', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'source', alias: 'c', schema: 'testdb', table: 'customers' },
+      { nodeId: 'n3', nodeType: 'join', sourceNode: 'n1', rightNodeId: 'n2', on: [{ from: { alias: 'o', field: 'customer_id' }, to: { alias: 'c', field: 'id' } }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const sql = nodeSql('n3').sql;
+  // 右侧也是节点输出，ON 两侧都用展平别名
+  assert.ok(sql.includes('ON `__o__customer_id` = `__c__id`'), sql);
+  // 右侧必须包成子查询，且不能丢 schema/alias
+  assert.ok(sql.includes('FROM `testdb`.`customers` `c`'), sql);
+  const fields = nodeSql('n3').fields;
+  assert.equal(fields.length, 6, JSON.stringify(fields.map((f) => f.name)));
+  assert.ok(fields.some((f) => f.name === '__c__id'));
+});
+
+test('compileEtl multi-source: single output pulls both sources down to one chain', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'source', alias: 'c', schema: 'testdb', table: 'customers' },
+      { nodeId: 'n3', nodeType: 'join', sourceNode: 'n1', rightNodeId: 'n2', on: [{ from: { alias: 'o', field: 'customer_id' }, to: { alias: 'c', field: 'id' } }] },
+      { nodeId: 'n4', nodeType: 'filter', sourceNode: 'n3', conditions: [{ field: { alias: 'o', field: 'amount' }, op: 'gt', value: 100 }] },
+      { nodeId: 'n5', nodeType: 'output', sourceNode: 'n4', limit: 10 },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const n3 = nodeSql('n3');
+  const n4 = nodeSql('n4');
+  // 输出节点能把 join 后的子查询再包一层（说明链可累积多源）
+  assert.ok(n4.sql.includes('FROM `testdb`.`customers` `c`'), n4.sql);
+  assert.ok(n4.sql.endsWith('LIMIT 10') === false, 'limit 只出现在 output 节点: ' + n4.sql);
+  const n5 = nodeSql('n5');
+  assert.ok(n5.sql.includes('LIMIT 10'), n5.sql);
+  assert.deepEqual(n5.params, [100]);
+});
+
+test('compileEtl columnSelect reduces output fields', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'columnSelect', sourceNode: 'n1', columns: ['o.amount', { alias: 'o', field: 'id' }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n2');
+  assert.ok(out.sql.includes('SELECT `__o__amount`, `__o__id`'), out.sql);
+  assert.deepEqual(out.fields.map((f) => f.name), ['__o__amount', '__o__id']);
+});
+
+test('compileEtl columnSelect rejects empty selection', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'columnSelect', sourceNode: 'n1', columns: [] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  assert.throws(() => nodeSql('n2'), /至少选一列/);
+});
+
+test('compileEtl dedup no columns → DISTINCT * all fields', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'dedup', sourceNode: 'n1' },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n2');
+  assert.ok(out.sql.includes('SELECT DISTINCT *'), out.sql);
+  assert.equal(out.fields.length, 4);
+});
+
+test('compileEtl dedup by columns outputs only those columns', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'dedup', sourceNode: 'n1', columns: ['o.customer_id'] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n2');
+  assert.ok(out.sql.includes('SELECT DISTINCT `__o__customer_id`'), out.sql);
+  assert.deepEqual(out.fields.map((f) => f.name), ['__o__customer_id']);
+});
+
+test('compileEtl valueReplace CASE WHEN + params ordered after child params', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'filter', sourceNode: 'n1', conditions: [{ field: { alias: 'o', field: 'amount' }, op: 'gt', value: 100 }] },
+      { nodeId: 'n3', nodeType: 'valueReplace', sourceNode: 'n2', mappings: [{ field: { alias: 'o', field: 'status' }, from: 'SHIPPED', to: '已发货' }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n3');
+  // filter 的 `?` 在前，valueReplace 的 from/to 在后
+  assert.ok(out.params[0] === 100, JSON.stringify(out.params));
+  assert.ok(out.sql.includes('CASE WHEN `__o__status` = ? THEN ? ELSE `__o__status` END AS `__o__status`'), out.sql);
+  assert.deepEqual(out.params, [100, 'SHIPPED', '已发货']);
+});
+
+test('compileEtl nullReplace generates COALESCE', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'nullReplace', sourceNode: 'n1', mappings: [{ field: { alias: 'o', field: 'amount' }, to: 0 }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n2');
+  assert.ok(out.sql.includes('COALESCE(`__o__amount`, ?) AS `__o__amount`'), out.sql);
+  assert.deepEqual(out.params, [0]);
+});
+
+test('compileEtl trim mysql uses TRIM, mssql uses LTRIM/RTRIM', () => {
+  const mssql = { quoteIdent: (n) => `[${n}]`, limit: (s, n) => `${s} TOP (${n})`, placeholder: (i) => `@p${i - 1}`,
+    agg: { count: 'COUNT', sum: 'SUM', count_distinct: 'COUNT(DISTINCT' }, trim: (n) => `LTRIM(RTRIM(${n}))` };
+  const def = (dialect) => ({
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'trim', sourceNode: 'n1', columns: ['o.id', 'o.amount'] },
+    ],
+  });
+  const my = buildSql.compileEtl(def(mysql), mysql, catalog()).nodeSql('n2').sql;
+  assert.ok(my.includes('TRIM(`__o__id`)'), my);
+  assert.ok(my.includes('TRIM(`__o__amount`)'), my);
+  const ms = buildSql.compileEtl(def(mssql), mssql, catalog()).nodeSql('n2').sql;
+  assert.ok(ms.includes('LTRIM(RTRIM([__o__id])) AS [__o__id]'), ms);
+});
+
+test('compileEtl trim default trims all fields when columns omitted', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'trim', sourceNode: 'n1' },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n2');
+  assert.ok(out.sql.includes('TRIM(`__o__id`)'), out.sql);
+  assert.equal(out.fields.length, 4);
+});
+
+test('compileEtl sqlNode replaces __etl_prev with upstream subquery', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'columnSelect', sourceNode: 'n1', columns: ['o.amount'] },
+      { nodeId: 'n3', nodeType: 'sqlNode', sourceNode: 'n2', sql: 'SELECT amount * 2 AS doubled FROM __etl_prev' },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
+  const out = nodeSql('n3');
+  assert.ok(out.sql.includes('FROM (SELECT `__o__amount` FROM'), out.sql);
+  assert.ok(!out.sql.includes('__etl_prev'), out.sql);
+});
+
+test('compileEtl sqlNode root raw SQL whitelist', () => {
+  const good = buildSql.compileEtl({ type: 'etl', nodes: [
+    { nodeId: 'n1', nodeType: 'sqlNode', sql: 'SELECT 1 AS a', fields: [{ name: 'a', label: 'A', type: 'number' }] },
+  ] }, mysql, []).nodeSql('n1');
+  assert.equal(good.sql, 'SELECT 1 AS a');
+  assert.equal(good.fields.length, 1);
+
+  const { nodeSql } = buildSql.compileEtl({ type: 'etl', nodes: [{ nodeId: 'n1', nodeType: 'sqlNode', sql: 'DROP TABLE x' }] }, mysql, []);
+  assert.throws(() => nodeSql('n1'), /SELECT|WITH/);
+});
+
+test('compileEtl pg renumbers placeholders depth-first in textual order', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'filter', sourceNode: 'n1', conditions: [{ field: { alias: 'o', field: 'amount' }, op: 'gt', value: 100 }] },
+      { nodeId: 'n3', nodeType: 'nullReplace', sourceNode: 'n2', mappings: [{ field: { alias: 'o', field: 'amount' }, to: 0 }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, pg, catalog());
+  const out = nodeSql('n3');
+  assert.ok(out.sql.includes('> $1'), out.sql);
+  assert.ok(out.sql.includes('COALESCE("__o__amount", $2) AS "__o__amount"'), out.sql);
+  assert.deepEqual(out.params, [100, 0]);
+});
+
+test('compileEtl diamond refs compile independently (no stale params)', () => {
+  const def = {
+    type: 'etl',
+    nodes: [
+      { nodeId: 'n1', nodeType: 'source', alias: 'o', schema: 'testdb', table: 'orders' },
+      { nodeId: 'n2', nodeType: 'filter', sourceNode: 'n1', conditions: [{ field: { alias: 'o', field: 'amount' }, op: 'gt', value: 100 }] },
+      { nodeId: 'n3', nodeType: 'filter', sourceNode: 'n1', conditions: [{ field: { alias: 'o', field: 'amount' }, op: 'lt', value: 500 }] },
+      { nodeId: 'n4', nodeType: 'join', sourceNode: 'n2', rightNodeId: 'n3', on: [{ from: { alias: 'o', field: 'id' }, to: { alias: 'o', field: 'id' } }] },
+    ],
+  };
+  const { nodeSql } = buildSql.compileEtl(def, pg, catalog());
+  const out = nodeSql('n4');
+  // 两侧子树各自独立编译：左子树参数 $1，右子树在文本上晚出现 → $2（顺序与文本一致）
+  assert.ok(out.sql.includes('> $1') && out.sql.includes('< $2'), out.sql);
+  assert.deepEqual(out.params, [100, 500]);
+});
+
+test('saveBuiltDataset creates then updates and rebuilds fields', async () => {
   const dsId = insertDatasource('mysql-ds');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [{ source: 't', field: 'amount', label: '金额', type: 'number' }], aggregation: null };
-  const created = datasetService.saveBuiltDataset({ name: 'Wide', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Wide', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
   assert.equal(created.source_type, 'sql');
   assert.equal(created.build_definition.includes('"type":"builder"'), true);
   assert.equal(created.fields.length, 1);
 
   const def2 = { ...def, fields: [{ source: 't', field: 'amount', label: '金额2', type: 'number' }, { source: 't', field: 'customer_id', label: '客户', type: 'number' }] };
-  const updated = datasetService.saveBuiltDataset({ name: 'Wide2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: 1 });
+  const updated = await datasetService.saveBuiltDataset({ name: 'Wide2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: 1 });
   assert.equal(updated.name, 'Wide2');
   assert.equal(updated.fields.length, 2);
-  assert.equal(datasetService.getFieldsOrThrow(created.id).length, 2);
+  assert.equal((await datasetService.getFieldsOrThrow(created.id)).length, 2);
 });
 
-test('saveBuiltDataset rebuilds dataset_fields with f_<i> names/order/labels', () => {
+test('saveBuiltDataset rebuilds dataset_fields with f_<i> names/order/labels', async () => {
   const dsId = insertDatasource('mysql-ds-rebuild');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [{ source: 't', field: 'amount', label: '金额', type: 'number' }], aggregation: null };
-  const created = datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
 
-  let fields = datasetService.getFieldsOrThrow(created.id);
+  let fields = await datasetService.getFieldsOrThrow(created.id);
   assert.equal(fields.length, 1);
   assert.equal(fields[0].name, 'f_0');
   assert.equal(fields[0].label, '金额');
@@ -210,41 +427,41 @@ test('saveBuiltDataset rebuilds dataset_fields with f_<i> names/order/labels', (
     { source: 't', field: 'amount', label: '金额', type: 'number' },
     { source: 't', field: 'id', label: 'ID', type: 'number' },
   ] };
-  const updated = datasetService.saveBuiltDataset({ name: 'Order Amount v2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: 1 });
+  const updated = await datasetService.saveBuiltDataset({ name: 'Order Amount v2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: 1 });
 
-  fields = datasetService.getFieldsOrThrow(created.id);
+  fields = await datasetService.getFieldsOrThrow(created.id);
   assert.equal(fields.length, 3);
   assert.deepEqual(fields.map((f) => f.name), ['f_0', 'f_1', 'f_2']);
   assert.deepEqual(fields.map((f) => f.label), ['客户', '金额', 'ID']);
   assert.equal(updated.column_count, 3);
 });
 
-test('saveBuiltDataset enforces owner/datasource/existence guards', () => {
+test('saveBuiltDataset enforces owner/datasource/existence guards', async () => {
   const dsId = insertDatasource('mysql-ds-guard');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [], aggregation: null };
-  const created = datasetService.saveBuiltDataset({ name: 'X', definition: def, datasourceId: dsId, datasetId: null, ownerId: 2 });
+  const created = await datasetService.saveBuiltDataset({ name: 'X', definition: def, datasourceId: dsId, datasetId: null, ownerId: 2 });
 
   // 他人（ownerId=3）更新 → 403 无权限
-  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3 }), /无权限/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3 }), /无权限/);
   // datasource 错配（owner 正确但 datasourceId=999999）→ 400 不属于
-  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: 999999, datasetId: created.id, ownerId: 2 }), /不属于该数据源/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: 999999, datasetId: created.id, ownerId: 2 }), /不属于该数据源/);
   // datasetId 不存在 → 404
-  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: 999999, ownerId: 2 }), /不存在/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: 999999, ownerId: 2 }), /不存在/);
   // admin 可跨用户编辑
-  const admin = datasetService.saveBuiltDataset({ name: 'Y-admin', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3, admin: true });
+  const admin = await datasetService.saveBuiltDataset({ name: 'Y-admin', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3, admin: true });
   assert.equal(admin.name, 'Y-admin');
 });
 
-test('saveBuiltDataset validates definition type and size', () => {
+test('saveBuiltDataset validates definition type and size', async () => {
   const dsId = insertDatasource('mysql-ds-validate');
-  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Bad', definition: { type: 'olap', tables: [] }, datasourceId: dsId, datasetId: null, ownerId: 1 }), /不支持的构建形态/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Bad', definition: { type: 'olap', tables: [] }, datasourceId: dsId, datasetId: null, ownerId: 1 }), /不支持的构建形态/);
 
   const big = { type: 'builder', tables: [{ alias: 't', schema: 's', table: 'orders' }], joins: [], fields: [], aggregation: null };
   big.padding = 'x'.repeat(1_000_001);
-  assert.throws(() => datasetService.saveBuiltDataset({ name: 'Big', definition: big, datasourceId: dsId, datasetId: null, ownerId: 1 }), /构建定义过大/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Big', definition: big, datasourceId: dsId, datasetId: null, ownerId: 1 }), /构建定义过大/);
 });
 
-test('deleteDataset skips DROP TABLE for external sql datasets', () => {
+test('deleteDataset skips DROP TABLE for external sql datasets', async () => {
   const dsId = insertDatasource('mysql-ds-del');
   // table_name 含危险字符：若执行 DROP TABLE `buy-now` 会因语法错误抛异常 → 不抛即证明未 DROP
   const info = db.prepare(
@@ -253,11 +470,11 @@ test('deleteDataset skips DROP TABLE for external sql datasets', () => {
   ).run('danger', 'danger', 'buy-now', dsId);
   const id = Number(info.lastInsertRowid);
 
-  assert.equal(datasetService.deleteDataset(id), true);
-  assert.equal(datasetService.getDataset(id), null);
+  assert.equal(await datasetService.deleteDataset(id), true);
+  assert.equal(await datasetService.getDataset(id), null);
 });
 
-test('deleteDataset still deletes excel datasets (local table)', () => {
+test('deleteDataset still deletes excel datasets (local table)', async () => {
   // 先真实建本地表，才能验证 deleteDataset 确实执行了 DROP
   db.exec('CREATE TABLE data_1 (id INTEGER)');
   db.exec("INSERT INTO data_1 (id) VALUES (1)");
@@ -267,16 +484,16 @@ test('deleteDataset still deletes excel datasets (local table)', () => {
   ).run('excel-ds', 'excel-ds');
   const id = Number(info.lastInsertRowid);
 
-  assert.equal(datasetService.deleteDataset(id), true);
-  assert.equal(datasetService.getDataset(id), null);
+  assert.equal(await datasetService.deleteDataset(id), true);
+  assert.equal(await datasetService.getDataset(id), null);
   // 本地 excel 表应被清理
   const t = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'data_1'").get();
   assert.equal(t, undefined);
 });
 
-test('registerSqlDataset writes equivalent builder definition', () => {
+test('registerSqlDataset writes equivalent builder definition', async () => {
   const dsId = insertDatasource('mysql-ds-reg');
-  const d = datasetService.registerSqlDataset('Quick', dsId, 'testdb', 'sales', [
+  const d = await datasetService.registerSqlDataset('Quick', dsId, 'testdb', 'sales', [
     { name: 'id', label: 'ID', type: 'integer' },
     { name: 'amount', label: null, type: null },
   ], 1);
@@ -294,30 +511,30 @@ test('registerSqlDataset writes equivalent builder definition', () => {
   assert.equal(def.fields[1].label, 'amount');
   assert.equal(def.fields[1].type, 'string');
 
-  const reg = datasetService.getFieldsOrThrow(d.id);
+  const reg = await datasetService.getFieldsOrThrow(d.id);
   assert.equal(reg.length, 2);
   assert.equal(reg[0].name, 'id');
   assert.equal(reg[0].label, 'ID');
 });
 
-test('getDataset returns build_definition and ordered fields', () => {
+test('getDataset returns build_definition and ordered fields', async () => {
   const dsId = insertDatasource('mysql-ds-get');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [
     { source: 't', field: 'amount', label: '金额', type: 'number' },
     { source: 't', field: 'customer_id', label: '客户', type: 'number' },
   ], aggregation: null };
-  const created = datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
 
-  const ds = datasetService.getDataset(created.id);
+  const ds = await datasetService.getDataset(created.id);
   assert.ok(ds.build_definition.includes('"type":"builder"'));
   assert.deepEqual(ds.fields.map((f) => f.name), ['f_0', 'f_1']);
   assert.deepEqual(ds.fields.map((f) => f.label), ['金额', '客户']);
 });
 
-test('getFieldsOrThrow throws when dataset_fields empty', () => {
+test('getFieldsOrThrow throws when dataset_fields empty', async () => {
   const dsId = insertDatasource('mysql-ds-empty');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [], aggregation: null };
-  const created = datasetService.saveBuiltDataset({ name: 'Empty', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Empty', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
 
-  assert.throws(() => datasetService.getFieldsOrThrow(created.id), /数据集字段为空/);
+  await assert.rejects(datasetService.getFieldsOrThrow(created.id), /数据集字段为空/);
 });

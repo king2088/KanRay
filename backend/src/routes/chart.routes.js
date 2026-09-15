@@ -16,12 +16,12 @@ const router = express.Router();
 //   支持：keyword(名称/数据源模糊) · datasetId(数据源) · ids=1,2,3(白名单) · excludeIds=1,2(排除)
 //   可选 page/pageSize -> {list,total}；未传分页返回全量数组
 //   管理员全量；其余仅可见自己的图表（与既有筛选 AND 叠加）
-router.get('/', requireUser, requirePermission('chart', 'read'), (req, res) => {
+router.get('/', requireUser, requirePermission('chart', 'read'), async (req, res) => {
   const parseIds = (raw) =>
     String(raw || '').split(',')
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0);
-  const scope = access.scopedWhere('chart', req.user, rbac);
+  const scope = await access.scopedWhere('chart', req.user, rbac);
   const filter = {
     keyword: String(req.query.keyword || ''),
     datasetId: Number(req.query.datasetId) > 0 ? Number(req.query.datasetId) : undefined,
@@ -31,47 +31,47 @@ router.get('/', requireUser, requirePermission('chart', 'read'), (req, res) => {
   };
   const page = parsePageQuery(req.query);
   if (!page) {
-    ok(res, chartService.listCharts(filter));
+    ok(res, await chartService.listCharts(filter));
     return;
   }
-  const list = chartService.listCharts({ ...filter, limit: page.pageSize, offset: (page.page - 1) * page.pageSize });
-  const total = chartService.countCharts(filter);
+  const list = await chartService.listCharts({ ...filter, limit: page.pageSize, offset: (page.page - 1) * page.pageSize });
+  const total = await chartService.countCharts(filter);
   ok(res, { list, total, page: page.page, pageSize: page.pageSize });
 });
 
 // GET /api/charts/:id
-router.get('/:id', requireUser, requirePermission('chart', 'read'), (req, res) => {
+router.get('/:id', requireUser, requirePermission('chart', 'read'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('chart', id, req.user, rbac);
-  const chart = chartService.getChartOrThrow(id);
+  await access.assertResource('chart', id, req.user, rbac);
+  const chart = await chartService.getChartOrThrow(id);
   // 图表引用的数据集必须同样可访问，防止越权读取外部数据集
-  access.assertResource('dataset', chart.datasetId, req.user, rbac);
+  await access.assertResource('dataset', chart.datasetId, req.user, rbac);
   ok(res, chart);
 });
 
 // POST /api/charts
-router.post('/', requireUser, requirePermission('chart', 'create'), (req, res) => {
-  const c = chartService.validateChartPayload(req.body);
-  access.assertResource('dataset', c.datasetId, req.user, rbac);
-  const chart = chartService.createChart(c, req.user.id);
+router.post('/', requireUser, requirePermission('chart', 'create'), async (req, res) => {
+  const c = await chartService.validateChartPayload(req.body);
+  await access.assertResource('dataset', c.datasetId, req.user, rbac);
+  const chart = await chartService.createChart(c, req.user.id);
   ok(res, chart, '图表创建成功');
 });
 
 // PATCH /api/charts/:id
-router.patch('/:id', requireUser, requirePermission('chart', 'update'), (req, res) => {
+router.patch('/:id', requireUser, requirePermission('chart', 'update'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('chart', id, req.user, rbac);
-  const c = chartService.validateChartPayload(req.body);
-  access.assertResource('dataset', c.datasetId, req.user, rbac);
-  const chart = chartService.updateChart(id, c);
+  await access.assertResource('chart', id, req.user, rbac);
+  const c = await chartService.validateChartPayload(req.body);
+  await access.assertResource('dataset', c.datasetId, req.user, rbac);
+  const chart = await chartService.updateChart(id, c);
   ok(res, chart, '图表更新成功');
 });
 
 // DELETE /api/charts/:id
-router.delete('/:id', requireUser, requirePermission('chart', 'delete'), (req, res) => {
+router.delete('/:id', requireUser, requirePermission('chart', 'delete'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('chart', id, req.user, rbac);
-  chartService.deleteChart(id);
+  await access.assertResource('chart', id, req.user, rbac);
+  await chartService.deleteChart(id);
   ok(res, true, '删除成功');
 });
 
@@ -82,10 +82,10 @@ const dataSchema = z.object({
 
 router.post('/:id/data', requireUser, requirePermission('chart', 'read'), async (req, res) => {
   const id = Number(req.params.id);
-  access.assertResource('chart', id, req.user, rbac);
-  const chart = chartService.getChartOrThrow(id);
+  await access.assertResource('chart', id, req.user, rbac);
+  const chart = await chartService.getChartOrThrow(id);
   // 数据出口：图表引用的数据集必须可访问，防止经 /data 越权读取外部数据集
-  access.assertResource('dataset', chart.datasetId, req.user, rbac);
+  await access.assertResource('dataset', chart.datasetId, req.user, rbac);
   const parsed = dataSchema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '参数不正确');
   const result = await queryEngine.aggregate({
