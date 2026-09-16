@@ -27,7 +27,7 @@ npm run dev        # 或 npm start
 `config.json` 读取顺序：`$DATA_DIR/config.json`（默认 `backend/data/`）→ `backend/config.json`。示例见 `backend/config.example.json`：
 
 ```json
-{ "db": { "type": "sqlite", "url": "", "sqlitePath": "data/kanban.db" } }
+{ "db": { "type": "sqlite", "url": "", "sqlitePath": "data/kanban.db" }, "cache": { "url": "" } }
 ```
 
 ### 核心环境变量
@@ -45,7 +45,9 @@ npm run dev        # 或 npm start
 | `ACCESS_TTL` / `REFRESH_TTL_DAYS` | `15m` / `7` | 令牌有效期 |
 | `MAX_FILE_SIZE` / `MAX_ROWS` | `20MB` / `200000` | 上传大小与行数上限 |
 | `DATASOURCE_SECRET` | `kanban-dev-datasource-secret-32b!` | 数据源密码加密主密钥（生产必须替换，见下文） |
-| `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_MAX_CONCURRENT` / `SYNC_DEFAULT_INTERVAL_SECONDS` | `60000` / `2` / `86400` | 同步调度参数 |
+| `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_MAX_CONCURRENT` / `SYNC_DEFAULT_INTERVAL_SECONDS` / `SYNC_LOCK_TTL_MS` | `60000` / `2` / `86400` / `1800000` | 同步调度参数；`SYNC_LOCK_TTL_MS` 为调度锁租约时长（毫秒） |
+| `REDIS_URL` | 空（关闭） | Redis 缓存/锁开关，如 `redis://127.0.0.1:6379`；空则用内存缓存 + 数据库租约锁 |
+| `CACHE_TTL_MS` | `60000` | 数据源目录缓存 TTL（毫秒） |
 
 ---
 
@@ -228,8 +230,49 @@ docker compose -f scripts/datasource-live/docker-compose.yml up -d
 
 ## 已知限制（后端视角）
 
-- 单实例内存同步调度，多实例部署无分布式锁，各实例会各自触发。
 - Oracle 存储后端 / Oracle 同步源：每语句自动提交，`transaction` 退化为逐条执行，批量写中途失败不会整体回滚。
-- 不做旧库 → 新库的自动数据迁移（含同步落库表 `sync_*`）。
 - 同步增量不感知源端删除（不本地删行）。
-- 缓存层为内存（无 Redis），多实例横向扩展时注意。
+
+---
+
+## 分布式同步锁（多实例安全）
+
+未配置 Redis 时（默认），调度器使用**数据库租约锁**（`sync_locks` 表，元数据库共享即可互斥）：抢占时 `UPDATE ... WHERE locked_until < now`；配了 Redis 后改用 `SET NX PX`，二者选其一（以 `REDIS_URL` 为准）。
+
+- 锁粒度：每个 `sync_configs.id` 一把锁，`lockTtlMs` 默认 30 分钟（`SYNC_LOCK_TTL_MS`）。
+- 多实例共享同一元数据库（`DB_TYPE` + `DB_URL`）即自动互斥；若各实例用独立本地 SQLite（开发模式），调度互不干扰但也无互斥。
+- `runSync` 内仍以 `last_sync_status` 做幂等二次保障，锁与状态双保险。
+
+---
+
+## Redis 缓存（可选）
+
+默认关闭（`REDIS_URL` 空），用进程内存 `Map` 带 TTL 惰性淘汰，单实例足够。多实例或需要跨进程共享缓存时，在 `REDIS_URL` / `config.json cache.url` 配置 Redis 地址即可切换，应用启动不依赖 Redis（未连接时自动降级内存，日志 warn）。
+
+目前缓存覆盖范围：数据源目录 `catalogCache`（ETL 列元数据，TTL 60s `CACHE_TTL_MS`）。RBAC 映射直接查库，无需缓存（权限变更即时生效）。
+
+---
+
+## 数据迁移脚本
+
+解决「旧库 → 新库自动数据迁移」：`scripts/migrate-data.mjs`，ESM + CJS 混用（`createRequire` 风格，匹配 seed 脚本）。
+
+```bash
+# 元数据 + 全部数据表（默认）
+node scripts/migrate-data.mjs \
+  --from sqlite@data/kanban.db \
+  --to postgres@postgresql://kanban:kanban@127.0.0.1:15432/kanban
+
+# 仅元数据表
+node scripts/migrate-data.mjs --from sqlite@data/kanban.db --to sqlite@data/kanban_new.db --skip-data
+
+# 指定表 + dry-run
+node scripts/migrate-data.mjs --from sqlite@data/kanban.db --to postgres@postgresql://... \
+  --tables users,roles,permissions --dry-run
+```
+
+复制顺序：先 FK 安全的 14 张元数据表（`users` → `roles` → `permissions` → `data_sources` → `datasets` → `dataset_fields` → `charts` → `dashboards` → `sync_configs` → `sync_logs` → `refresh_tokens` → `user_roles` → `role_permissions` → `audit_logs`），再复制剩余数据表（`ds_*` / `sync_*` 等动态表，包含同步落库数据）。
+
+列类型跨方言自省映射为 canonical（`integer/number/string/date/boolean`），目标方言 `typeMapping` 重建表；自增序列迁移后按方言重置（PG `setval` / MySQL `AUTO_INCREMENT` / MSSQL `DBCC CHECKIDENT` / SQLite `sqlite_sequence`，Oracle best-effort）。
+
+**注意**：目标库 `DATASOURCE_SECRET`（数据源密码解密）与 `JWT_SECRET`（刷新令牌签名）必须与旧库一致，否则数据源配置无法解密、旧 refresh token 失效。
