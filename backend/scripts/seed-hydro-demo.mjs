@@ -115,6 +115,13 @@ const BUILD_DEFINITION = {
   aggregation: null,
 };
 
+// --mysql-only: 只灌 MySQL demo_hydro，不动元数据库（不清空、不重建）
+if (process.argv.includes('--mysql-only')) {
+  await seedMysql();
+  console.log('mysql-only 完成');
+  process.exit(results.some((r) => !r.pass) ? 1 : 0);
+}
+
 async function main() {
   await seedMysql();
 
