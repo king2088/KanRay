@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { dashboardApi } from '@/api'
 import { useAppStore } from '@/stores/app'
@@ -61,6 +61,7 @@ function shareUrl(row) {
 }
 
 async function load() {
+  if (!props.dashboardId) return
   loading.value = true
   try {
     shares.value = (await dashboardApi.shares(props.dashboardId)) || []
@@ -107,7 +108,12 @@ async function copy(row) {
   }
 }
 
-onMounted(load)
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open && props.dashboardId) load()
+  },
+)
 </script>
 
 <style scoped>

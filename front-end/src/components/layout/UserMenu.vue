@@ -40,8 +40,7 @@ function onCommand(c) {
   if (c === 'profile') profileOpen.value = true
   else if (c === 'admin') router.push('/admin/users')
   else if (c === 'logout') {
-    auth.logout()
-    window.location.href = '/login'
+    auth.logout().then(() => router.replace('/login'))
   }
 }
 </script>
