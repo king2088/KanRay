@@ -47,7 +47,7 @@ async function main() {
 
   console.log(`
 提示:
-  1. 目标库 DATASOURCE_SECRET 必须与旧库一致（env DATA-SOURCE_SECRET），否则 data_sources.config 无法解密。
+  1. 目标库 DATASOURCE_SECRET 必须与旧库一致（env DATASOURCE_SECRET），否则 data_sources.config 无法解密。
   2. 目标库 JWT_SECRET 若更改，旧 refresh token 全部失效（用户需重新登录）。
   3. 多实例部署若启用同步调度，先在旧实例停止调度，再一次性迁移，避免迁移期间产生新写入。`);
 }

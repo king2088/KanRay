@@ -16,7 +16,7 @@ function token() {
 
 // Redis 抢占（配置启用时唯一锁策略，避免双后端同时执行）：返回 null 表示未抢到或不可用
 async function acquireRedis(name, id, ttlMs) {
-  const redis = cache.redisClient();
+  const redis = await cache.waitForRedis();
   if (!redis) return null;
   try {
     const ok = await redis.set(`${KEY_PREFIX}${name}`, id, 'PX', ttlMs, 'NX');

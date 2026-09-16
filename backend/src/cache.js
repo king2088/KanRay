@@ -41,6 +41,21 @@ function getRedis() {
   return redisReady ? redisClient() : null;
 }
 
+// 等待 Redis 连接就绪（超时返回 null）。锁抢占等关键命令用它避免启动竞态。
+function waitForRedis(timeoutMs = 2000) {
+  if (redisReady) return Promise.resolve(redisClient());
+  if (!redisClient()) return Promise.resolve(null); // 未开启或初始化失败
+  const started = Date.now();
+  return new Promise((resolve) => {
+    const poll = () => {
+      if (redisReady) return resolve(redisClient());
+      if (redisDisabled || Date.now() - started > timeoutMs) return resolve(null);
+      setTimeout(poll, 25);
+    };
+    poll();
+  });
+}
+
 function memGet(key) {
   const it = mem.get(key);
   if (!it) return undefined;
@@ -103,4 +118,4 @@ function isRedis() {
   return config.cache.type === 'redis';
 }
 
-module.exports = { get, set, del, flush, isRedis, redisClient };
+module.exports = { get, set, del, flush, isRedis, redisClient, waitForRedis };
