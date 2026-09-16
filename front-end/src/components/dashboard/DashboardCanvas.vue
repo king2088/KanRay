@@ -14,10 +14,13 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, provide, reactive, ref, watch } from 'vue'
-import { chartApi } from '@/api'
+import { computed, inject, onBeforeUnmount, provide, reactive, ref, watch } from 'vue'
+import { chartApi as defaultChartApi } from '@/api'
 import GridBoard from './GridBoard.vue'
 import { alignRows, applyDrop, cardHeightPx, cellFromPointer, clampChildren, findFreeCell, flattenItems, GAP, normGap, rowsForHeight } from '@/utils/grid-layout'
+
+const injected = inject('shareApiOverride', null)
+const chartApi = injected?.chartApi || defaultChartApi
 
 const props = defineProps({
   items: { type: Array, required: true },

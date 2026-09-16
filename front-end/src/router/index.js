@@ -14,6 +14,12 @@ const routes = [
     meta: { title: '注册' },
   },
   {
+    path: '/s/:token',
+    name: 'share-view',
+    component: () => import('../views/ShareBoardView.vue'),
+    meta: { title: '分享查看', public: true },
+  },
+  {
     path: '/',
     component: () => import('../views/MainLayout.vue'),
     redirect: '/datasets',
@@ -43,6 +49,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  if (to.meta.public) return true
   const { useAuthStore } = await import('@/stores/auth')
   const auth = useAuthStore()
   const publicPages = ['/login', '/register']

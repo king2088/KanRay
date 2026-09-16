@@ -92,10 +92,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
-import { chartApi, datasetApi } from '@/api'
+import { computed, inject, onMounted, ref, watch } from 'vue'
+import { chartApi as defaultChartApi, datasetApi as defaultDatasetApi } from '@/api'
 import { getChartType } from '@/config/chart-types'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
+
+const injected = inject('shareApiOverride', null)
+const chartApi = injected?.chartApi || defaultChartApi
+const datasetApi = injected?.datasetApi || defaultDatasetApi
 
 const props = defineProps({
   chart: { type: Object, required: true },
