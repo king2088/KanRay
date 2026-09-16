@@ -127,7 +127,7 @@ async function seedMysql() {
     ok('MySQL demo_hydro 行数=4380', r[0].n === expectedRows, `期望 ${expectedRows} 实际 ${r[0].n}`);
     const [agg] = await conn.query('SELECT station, COUNT(*) n FROM demo_hydro GROUP BY station');
     ok('每站 365 天', agg.length === STATIONS.length && agg.every((x) => x.n === DAY_COUNT), JSON.stringify(agg.slice(0, 4)));
-    const [nulls] = await conn.query('SELECT COUNT(*) AS n FROM demo_hydro WHERE load_rate IS NULL OR revenue_yuan IS NULL OR maintenance_state = 0');
+    const [nulls] = await conn.query("SELECT COUNT(*) AS n FROM demo_hydro WHERE load_rate IS NULL OR revenue_yuan IS NULL OR water_level_m IS NULL OR inflow_m3s IS NULL OR maintenance_state IS NULL OR TRIM(maintenance_state) = ''");
     ok('无空值', nulls[0].n === 0, `空值行 ${nulls[0].n}`);
   } finally {
     await conn.end();
