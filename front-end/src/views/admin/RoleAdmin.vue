@@ -55,21 +55,23 @@
     </div>
     </div>
 
-    <el-dialog v-model="dialogOpen" :title="editing ? '编辑角色' : '新建角色'" width="560px">
+    <el-dialog v-model="dialogOpen" :title="editing ? '编辑角色' : '新建角色'" width="560px" class="role-dialog">
       <el-form label-position="top">
         <el-form-item label="标识（小写字母/数字/下划线）">
           <el-input v-model="form.code" :disabled="editing" placeholder="如 finance" />
         </el-form-item>
         <el-form-item label="名称"><el-input v-model="form.name" maxlength="50" /></el-form-item>
         <el-form-item label="描述"><el-input v-model="form.description" maxlength="200" /></el-form-item>
-        <el-form-item label="权限点">
-          <el-collapse v-if="permGroups.length">
-            <el-collapse-item v-for="group in permGroups" :key="group.key" :name="group.key" :title="`${group.key} · ${group.perms.length} 项`">
-              <el-checkbox-group v-model="form.permissions">
-                <el-checkbox v-for="p in group.perms" :key="p.code" :value="p.code">{{ p.name }}</el-checkbox>
-              </el-checkbox-group>
-            </el-collapse-item>
-          </el-collapse>
+        <el-form-item label="权限配置">
+          <div class="perm-collapse-wrap">
+            <el-collapse v-if="permGroups.length">
+              <el-collapse-item v-for="group in permGroups" :key="group.key" :name="group.key" :title="`${permGroupLabel(group.key)} · ${group.perms.length} 项`">
+                <el-checkbox-group v-model="form.permissions">
+                  <el-checkbox v-for="p in group.perms" :key="p.code" :value="p.code">{{ p.name }}</el-checkbox>
+                </el-checkbox-group>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -128,6 +130,21 @@ const permGroups = computed(() => {
   return Object.keys(map).sort().map((key) => ({ key, perms: map[key] }))
 })
 
+const permGroupLabelMap = {
+  dataset: '数据集',
+  chart: '图表',
+  dashboard: '看板',
+  datasource: '数据源',
+  sqllab: 'SQL 实验室',
+  user: '用户管理',
+  role: '角色',
+  audit: '操作审计',
+  system: '系统',
+}
+function permGroupLabel(key) {
+  return permGroupLabelMap[key] || key
+}
+
 async function load() {
   loading.value = true
   try {
@@ -184,3 +201,18 @@ onMounted(async () => {
   permissions.value = await adminApi.permissions()
 })
 </script>
+
+<style scoped>
+.role-dialog :deep(.el-dialog__body) {
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
+}
+
+.perm-collapse-wrap {
+  width: 100%;
+}
+
+.perm-collapse-wrap :deep(.el-collapse) {
+  width: 100%;
+}
+</style>

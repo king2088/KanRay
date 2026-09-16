@@ -120,23 +120,24 @@
       :edit-row="editRow"
       @saved="onSaved"
     />
+
+    <DataSourceUploadDialog v-model="showUpload" @created="load" />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { datasourceApi } from '@/api'
 import DbIcon from '@/components/DbIcon.vue'
 import DataSourceFormDialog from './DataSourceFormDialog.vue'
-
-const router = useRouter()
+import DataSourceUploadDialog from './DataSourceUploadDialog.vue'
 
 const list = ref([])
 const loading = ref(false)
 const showForm = ref(false)
+const showUpload = ref(false)
 const editRow = ref(null)
 const testingId = ref(null)
 const search = ref('')
@@ -155,7 +156,7 @@ const filtered = computed(() => {
 })
 
 function onCreateCommand(cmd) {
-  if (cmd === 'upload') router.push('/datasets/new?from=datasources')
+  if (cmd === 'upload') showUpload.value = true
 }
 
 function typeName(type) {

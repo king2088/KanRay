@@ -15,7 +15,7 @@
         <el-input v-model="form.name" placeholder="请输入数据源名称" maxlength="100" />
       </el-form-item>
       <el-form-item label="存储方式">
-        <el-radio-group v-model="form.mode">
+        <el-radio-group v-model="form.mode" :disabled="isExcelEdit">
           <el-radio value="direct">直连</el-radio>
           <el-radio value="sync" :disabled="isFileDriver">同步</el-radio>
         </el-radio-group>
@@ -38,7 +38,7 @@
     </div>
     <template #footer>
       <el-button @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button :loading="testing" @click="doTest">测试连接</el-button>
+      <el-button :loading="testing" :disabled="isExcelEdit" @click="doTest">测试连接</el-button>
       <el-button type="primary" :loading="saving" @click="doSave">保存</el-button>
     </template>
   </el-dialog>
@@ -70,6 +70,7 @@ const groupedDrivers = computed(() => {
 
 const currentDriver = computed(() => drivers.value.find((d) => d.type === form.value.type))
 const isFileDriver = computed(() => currentDriver.value?.category === '文件')
+const isExcelEdit = computed(() => !!props.editRow && props.editRow.type === 'excel')
 
 watch(() => props.editRow, (row) => {
   if (row) {
