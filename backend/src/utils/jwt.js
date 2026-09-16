@@ -52,4 +52,25 @@ function verifyRefresh(token) {
   }
 }
 
-module.exports = { jwt, signAccess, verifyAccess, signRefresh, verifyRefresh, ACCESS_MAX_AGE_SEC, REFRESH_TTL_MS };
+// 分享态令牌有效期（秒）：24h
+const SHARE_MAX_AGE_SEC = 24 * 3600;
+
+// 签发分享态访问令牌（typ:'share'，载荷含 shareId/dashboardId/token）
+function signShare(payload) {
+  return jwt.sign({ ...payload, type: 'share' }, config.auth.jwtSecret, { expiresIn: SHARE_MAX_AGE_SEC });
+}
+
+// 校验分享态令牌，失败统一 401
+function verifyShare(token) {
+  try {
+    const decoded = jwt.verify(token, config.auth.jwtSecret);
+    if (decoded.type !== 'share') throw new HttpError(401, '分享凭证无效');
+    return decoded;
+  } catch (e) {
+    if (e.name === 'TokenExpiredError') throw new HttpError(401, '分享凭证已过期');
+    if (e instanceof HttpError) throw e;
+    throw new HttpError(401, '分享凭证无效');
+  }
+}
+
+module.exports = { jwt, signAccess, verifyAccess, signRefresh, verifyRefresh, signShare, verifyShare, ACCESS_MAX_AGE_SEC, REFRESH_TTL_MS, SHARE_MAX_AGE_SEC };

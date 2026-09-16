@@ -27,7 +27,7 @@ function errorHandler(err, req, res, next) {
     console.error('[error]', err);
   }
 
-  const body = { code: status, message, data: null };
+  const body = { code: (err && err.code !== undefined) ? err.code : status, message, data: null };
   if (details !== undefined) body.details = details;
   res.status(status).json(body);
 }
