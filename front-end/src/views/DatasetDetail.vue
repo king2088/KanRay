@@ -6,7 +6,7 @@
           <el-button circle class="back-btn" @click="$router.push('/datasets')"><el-icon><ArrowLeft /></el-icon></el-button>
           <div>
             <h2 class="page-title">{{ ds.name }}</h2>
-            <div class="page-desc">来源：{{ ds.original_file || '-' }} · 创建于 {{ formatDate(ds.created_at) }}</div>
+            <div class="page-desc">来源：{{ ds.original_file || '-' }} · 创建于 {{ formatDateTime(ds.created_at, appStore.timezone) }}</div>
           </div>
         </div>
         <div class="page-header__actions">
@@ -108,9 +108,12 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, DataAnalysis } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
+import { useAppStore } from '@/stores/app'
+import { formatDateTime } from '@/utils/datetime'
 
 const route = useRoute()
 const id = Number(route.params.id)
+const appStore = useAppStore()
 const ds = ref(null)
 const tab = ref('data')
 const fields = ref([])
@@ -126,10 +129,6 @@ function typeLabel(t) {
 
 function typeTag(t) {
   return { string: 'info', integer: 'success', number: 'success', date: 'warning', boolean: 'danger' }[t] || 'info'
-}
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
 }
 
 async function loadRows() {

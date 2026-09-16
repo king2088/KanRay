@@ -105,3 +105,7 @@ export const buildApi = {
   save: (dsId, name, definition, datasetId) => http.post(`/datasources/${dsId}/build/save`, { name, definition, datasetId }),
   validate: (dsId, definition) => http.post(`/datasources/${dsId}/build/validate`, { definition }),
 }
+
+export const configApi = {
+  get: () => http.get('/config'),
+}

@@ -77,7 +77,7 @@
         </el-table-column>
         <el-table-column prop="updatedAt" label="更新时间" width="180">
           <template #default="{ row }">
-            <span class="cell-muted">{{ formatDate(row.updatedAt) }}</span>
+            <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right" align="center">
@@ -118,9 +118,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
 import { chartApi, dashboardApi } from '@/api'
 import { getChartType } from '@/config/chart-types'
+import { useAppStore } from '@/stores/app'
+import { formatDateTime } from '@/utils/datetime'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
 import ChartTypeIcon from '@/components/ChartTypeIcon.vue'
 
+const appStore = useAppStore()
 const charts = ref([])
 const loading = ref(false)
 const search = ref('')
@@ -153,10 +156,6 @@ const typeTone = (v) => {
   if (!t) return 'blue'
   const cat = t.category
   return { bar: 'blue', line: 'green', pie: 'orange', horizontalBar: 'purple', table: 'gray', stat: 'red', indicator: 'red', scatter: 'green', map: 'blue', other: 'blue' }[cat] || 'blue'
-}
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
 }
 
 async function load() {

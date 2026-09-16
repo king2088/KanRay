@@ -43,7 +43,7 @@
         </el-table-column>
         <el-table-column prop="updatedAt" label="更新时间" width="190">
           <template #default="{ row }">
-            <span class="cell-muted">{{ formatDate(row.updatedAt) }}</span>
+            <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right" align="center">
@@ -87,10 +87,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Share } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/app'
+import { formatDateTime } from '@/utils/datetime'
 import ShareDialog from '@/components/dashboard/ShareDialog.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const appStore = useAppStore()
 const canShare = computed(() => auth.hasPermission('dashboard', 'share'))
 const shareDialog = ref({ open: false, dashboardId: 0, name: '' })
 function openShare(row) {
@@ -108,10 +111,6 @@ const filtered = computed(() => {
   if (!kw) return dashboards.value
   return dashboards.value.filter((d) => d.name.toLowerCase().includes(kw))
 })
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
-}
 
 async function load() {
   loading.value = true

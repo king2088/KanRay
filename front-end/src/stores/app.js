@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { applyTheme, darkByMode, watchSystemTheme } from '@/utils/theme'
+import { configApi } from '@/api'
 
 const KEY = 'kanban-app-settings'
 const THEME_MODES = ['light', 'dark', 'auto']
-const DEFAULTS = { layout: 'horizontal', collapsed: false, themeMode: 'light', primaryColor: '#409eff', size: 'default' }
+const DEFAULTS = { layout: 'horizontal', collapsed: false, themeMode: 'light', primaryColor: '#409eff', size: 'default', timezone: 'Asia/Shanghai' }
 
 let unwatchAuto = null
 
@@ -54,6 +55,15 @@ export const useAppStore = defineStore('app', {
     },
     applyInitial() {
       this.applyCurTheme()
+    },
+    // 从后端拉取系统配置（时区等），失败时回退默认值，不阻塞渲染
+    async loadConfig() {
+      try {
+        const cfg = await configApi.get()
+        if (cfg?.timezone) this.timezone = cfg.timezone
+      } catch (e) {
+        /* 回退默认值 */
+      }
     },
     setLayout(v) {
       this.layout = v

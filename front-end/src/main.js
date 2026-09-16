@@ -22,5 +22,6 @@ app.use(router)
 app.use(ElementPlus, { locale: zhCn })
 
 useAppStore(pinia).applyInitial()
+useAppStore(pinia).loadConfig()
 
 app.mount('#app')

@@ -19,7 +19,7 @@
         </template>
       </el-table-column>
       <el-table-column label="过期时间" width="150">
-        <template #default="{ row }">{{ row.expiresAt ? formatDate(row.expiresAt) : '永久' }}</template>
+        <template #default="{ row }">{{ row.expiresAt ? formatDateTime(row.expiresAt, appStore.timezone) : '永久' }}</template>
       </el-table-column>
       <el-table-column label="状态" width="70" align="center">
         <template #default="{ row }">
@@ -40,6 +40,8 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { dashboardApi } from '@/api'
+import { useAppStore } from '@/stores/app'
+import { formatDateTime } from '@/utils/datetime'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -47,7 +49,7 @@ const props = defineProps({
   name: { type: String, default: '' },
 })
 const emit = defineEmits(['update:modelValue'])
-
+const appStore = useAppStore()
 const shares = ref([])
 const loading = ref(false)
 const creating = ref(false)
@@ -56,10 +58,6 @@ const expiresAt = ref(null)
 
 function shareUrl(row) {
   return `${window.location.origin}/s/${row.token}`
-}
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 16) : '-'
 }
 
 async function load() {

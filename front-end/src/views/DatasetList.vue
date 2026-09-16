@@ -74,7 +74,7 @@
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="180">
           <template #default="{ row }">
-            <span class="cell-muted">{{ formatDate(row.created_at) }}</span>
+            <span class="cell-muted">{{ formatDateTime(row.created_at, appStore.timezone) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="260" fixed="right" align="center">
@@ -117,9 +117,12 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
+import { useAppStore } from '@/stores/app'
+import { formatDateTime } from '@/utils/datetime'
 import DbIcon from '@/components/DbIcon.vue'
 
 const router = useRouter()
+const appStore = useAppStore()
 
 const datasets = ref([])
 const loading = ref(false)
@@ -140,10 +143,6 @@ const filtered = computed(() => {
 
 const totalRows = computed(() => datasets.value.reduce((s, d) => s + (d.row_count || 0), 0))
 const totalCols = computed(() => datasets.value.reduce((s, d) => s + (d.column_count || 0), 0))
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 19) : '-'
-}
 
 async function load() {
   loading.value = true

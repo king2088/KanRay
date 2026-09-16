@@ -25,7 +25,7 @@
               <div class="clp-body">
                 <span class="clp-name">{{ c.name }}</span>
                 <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
-                <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+                <span v-if="c.updatedAt" class="clp-time">{{ formatDateTime(c.updatedAt, appStore.timezone) }}</span>
               </div>
             </div>
           </div>
@@ -41,7 +41,7 @@
             <div class="clp-body">
               <span class="clp-name">{{ c.name }}</span>
               <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
-              <span v-if="c.updatedAt" class="clp-time">{{ formatDate(c.updatedAt) }}</span>
+              <span v-if="c.updatedAt" class="clp-time">{{ formatDateTime(c.updatedAt, appStore.timezone) }}</span>
             </div>
             <el-tag  type="info">已在看板</el-tag>
           </div>
@@ -56,9 +56,12 @@ import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { Search, PieChart } from '@element-plus/icons-vue'
 import { chartApi } from '@/api'
 import { flattenItems } from '@/utils/grid-layout'
+import { useAppStore } from '@/stores/app'
+import { formatDateTime } from '@/utils/datetime'
 import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
 
 const PAGE_SIZE = 20
+const appStore = useAppStore()
 
 const props = defineProps({
   datasets: { type: Array, default: () => [] },
@@ -167,10 +170,6 @@ onBeforeUnmount(() => {
   if (kwTimer) clearTimeout(kwTimer)
   seq += 1
 })
-
-function formatDate(s) {
-  return s ? String(s).replace('T', ' ').slice(0, 16) : '-'
-}
 
 const available = computed(() => list.value)
 
