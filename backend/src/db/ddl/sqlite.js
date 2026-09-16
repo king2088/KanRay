@@ -86,4 +86,11 @@ module.exports = [
     locked_until INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  `CREATE TABLE IF NOT EXISTS dashboard_shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, dashboard_id INTEGER NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+    expires_at TEXT, is_active INTEGER NOT NULL DEFAULT 1, created_by INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
 ];

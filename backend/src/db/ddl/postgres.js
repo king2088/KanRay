@@ -86,4 +86,11 @@ module.exports = [
     locked_until BIGINT NOT NULL DEFAULT 0,
     updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
+  `CREATE TABLE IF NOT EXISTS dashboard_shares (
+    id BIGSERIAL PRIMARY KEY, dashboard_id BIGINT NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+    expires_at TIMESTAMP, is_active SMALLINT NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
 ];

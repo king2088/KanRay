@@ -100,4 +100,13 @@ module.exports = [
     locked_until BIGINT NOT NULL DEFAULT 0,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS dashboard_shares (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, dashboard_id BIGINT NOT NULL,
+    token VARCHAR(64) NOT NULL, password_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME, is_active TINYINT(1) NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_dashboard_shares_token (token),
+    KEY idx_dashboard_shares_dashboard (dashboard_id),
+    CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+  )`,
 ];

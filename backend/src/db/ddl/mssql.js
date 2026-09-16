@@ -97,4 +97,13 @@ module.exports = [
     locked_until BIGINT NOT NULL DEFAULT 0,
     updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
   )`,
+  `CREATE TABLE dashboard_shares (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, dashboard_id BIGINT NOT NULL,
+    token NVARCHAR(64) NOT NULL, password_hash NVARCHAR(255) NOT NULL,
+    expires_at DATETIME2, is_active BIT NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT uq_dashboard_shares_token UNIQUE (token),
+    CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+  )`,
+  'CREATE INDEX idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
 ];
