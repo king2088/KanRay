@@ -52,7 +52,7 @@ test('seeds 幂等：连续 seed() 不重复写入', async () => {
   const perms = db.prepare('SELECT COUNT(*) n FROM permissions').get().n;
   const roles = db.prepare('SELECT COUNT(*) n FROM roles').get().n;
   const users = db.prepare('SELECT COUNT(*) n FROM users WHERE email = ?').get('admin@kanban.local').n;
-  assert.equal(perms, 27, '权限点应保持 27 个');
+  assert.equal(perms, 28, '权限点应保持 28 个');
   assert.equal(roles, 4, '角色应保持 4 个');
   assert.equal(users, 1, '默认管理员应恰好存在一次');
 });
