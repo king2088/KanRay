@@ -48,6 +48,7 @@ npm run dev        # 或 npm start
 | `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_MAX_CONCURRENT` / `SYNC_DEFAULT_INTERVAL_SECONDS` / `SYNC_LOCK_TTL_MS` | `60000` / `2` / `86400` / `1800000` | 同步调度参数；`SYNC_LOCK_TTL_MS` 为调度锁租约时长（毫秒） |
 | `REDIS_URL` | 空（关闭） | Redis 缓存/锁开关，如 `redis://127.0.0.1:6379`；空则用内存缓存 + 数据库租约锁 |
 | `CACHE_TTL_MS` | `60000` | 数据源目录缓存 TTL（毫秒） |
+| `TIMEZONE` | `Asia/Shanghai` | 时区标识符（IANA），前端按此时区渲染时间 |
 
 ---
 

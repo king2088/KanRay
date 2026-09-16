@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/admin.routes');
 const datasourceRoutes = require('./routes/datasource.routes');
 const { dashSharesRouter, sharesRouter } = require('./routes/share.routes');
 const publicShareRoutes = require('./routes/public-share.routes');
+const { configRouter } = require('./routes/system.routes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/datasources', datasourceRoutes);
 app.use('/api/dashboards', dashSharesRouter);
 app.use('/api/shares', sharesRouter);
 app.use('/api/public/shares', publicShareRoutes);
+app.get('/api/config', configRouter);
 
 app.use(notFound);
 app.use(errorHandler);

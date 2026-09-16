@@ -79,4 +79,5 @@ module.exports = {
     defaultIntervalSeconds: parseInt(process.env.SYNC_DEFAULT_INTERVAL_SECONDS || '86400', 10),
     lockTtlMs: parseInt(process.env.SYNC_LOCK_TTL_MS || '1800000', 10),
   },
+  timezone: String(process.env.TIMEZONE || 'Asia/Shanghai'),
 };
