@@ -97,4 +97,9 @@ module.exports = [
     CONSTRAINT fk_sync_logs_cfg FOREIGN KEY ("sync_config_id") REFERENCES "sync_configs"("id") ON DELETE CASCADE
   )`,
   'CREATE INDEX idx_sync_configs_ds ON "sync_configs"("datasource_id")',
+  `CREATE TABLE "sync_locks" (
+    "lock_name" VARCHAR2(128) NOT NULL PRIMARY KEY, "locked_by" VARCHAR2(64),
+    "locked_until" NUMBER(20) NOT NULL DEFAULT 0,
+    "updated_at" TIMESTAMP NOT NULL DEFAULT SYSTIMESTAMP
+  )`,
 ];

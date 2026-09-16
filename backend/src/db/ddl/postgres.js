@@ -81,4 +81,9 @@ module.exports = [
     started_at TIMESTAMP, finished_at TIMESTAMP, status TEXT, rows_synced INTEGER, message TEXT
   )`,
   'CREATE INDEX IF NOT EXISTS idx_sync_configs_ds ON sync_configs(datasource_id)',
+  `CREATE TABLE IF NOT EXISTS sync_locks (
+    lock_name TEXT NOT NULL PRIMARY KEY, locked_by TEXT,
+    locked_until BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
 ];

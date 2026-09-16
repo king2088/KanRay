@@ -4,6 +4,7 @@
 const config = require('../config');
 const db = require('../db');
 const { runSync } = require('../services/sync.service');
+const { withLock } = require('../services/lock');
 const running = new Set();
 let timer = null;
 
@@ -28,7 +29,10 @@ async function tick() {
   for (const sc of due) {
     if (running.size >= config.sync.maxConcurrent) break;
     running.add(sc.id);
-    runSync(sc.id)
+    withLock(`sync:${sc.id}`, config.sync.lockTtlMs, () => runSync(sc.id))
+      .then((res) => {
+        if (res == null) console.info(`[sync] cfg ${sc.id} 已由其它实例执行，跳过`);
+      })
       .catch((e) => console.error(`[sync] cfg ${sc.id} failed:`, e.message))
       .finally(() => running.delete(sc.id));
   }
