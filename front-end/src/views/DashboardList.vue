@@ -50,6 +50,9 @@
           <template #default="{ row }">
             <el-button link type="primary"  @click="$router.push(`/dashboards/${row.id}`)">查看</el-button>
             <el-button link type="primary"  @click="$router.push(`/dashboards/${row.id}/edit`)">编辑</el-button>
+            <el-button v-if="canShare" link type="primary" @click="openShare(row)">
+              <el-icon style="margin-right: 2px"><Share /></el-icon>分享
+            </el-button>
             <el-button link type="danger"  @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -68,6 +71,12 @@
         />
       </div>
     </div>
+
+    <ShareDialog
+      v-model="shareDialog.open"
+      :dashboard-id="shareDialog.dashboardId"
+      :name="shareDialog.name"
+    />
   </div>
 </template>
 
@@ -75,10 +84,18 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Plus, Search, Share } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api'
+import { useAuthStore } from '@/stores/auth'
+import ShareDialog from '@/components/dashboard/ShareDialog.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
+const canShare = computed(() => auth.hasPermission('dashboard', 'share'))
+const shareDialog = ref({ open: false, dashboardId: 0, name: '' })
+function openShare(row) {
+  shareDialog.value = { open: true, dashboardId: row.id, name: row.name }
+}
 const dashboards = ref([])
 const loading = ref(false)
 const search = ref('')

@@ -43,6 +43,10 @@ export const dashboardApi = {
   create: (name) => http.post('/dashboards', { name }),
   update: (id, payload) => http.patch(`/dashboards/${id}`, payload),
   remove: (id) => http.delete(`/dashboards/${id}`),
+  shares: (id) => http.get(`/dashboards/${id}/shares`),
+  createShare: (id, payload) => http.post(`/dashboards/${id}/shares`, payload),
+  updateShare: (shareId, payload) => http.patch(`/shares/${shareId}`, payload),
+  deleteShare: (shareId) => http.delete(`/shares/${shareId}`),
 }
 
 export const authApi = {
