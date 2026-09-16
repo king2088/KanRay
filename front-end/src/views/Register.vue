@@ -35,9 +35,9 @@ async function onSubmit() {
 }
 </script>
 <style scoped>
-.auth-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(135deg,#409EFF22,#fff); }
+.auth-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(rgba(0,0,0,.3), rgba(0,0,0,.3)), url('/r-bg.jpg') center / cover no-repeat; }
 .auth-card { width: 380px; }
-.auth-title { text-align: center; margin: 0 0 18px; color: #303133; }
+.auth-title { text-align: center; margin: 0 0 18px; color: var(--app-text-primary); }
 .auth-btn { width: 100%; margin-top: 4px; }
 .auth-switch { text-align: center; margin-top: 14px; font-size: 14px; color: #909399; }
 </style>
