@@ -2,11 +2,10 @@ const HttpError = require('../utils/http-error');
 const dialects = require('./dialects');
 const providers = require('./providers');
 const { getDriverMeta, decryptConfig } = require('../services/datasource.service');
+const cache = require('../cache');
+const config = require('../config');
 
 const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE', in: 'IN' };
-
-const catalogCache = new Map();
-const CATALOG_TTL_MS = 60_000;
 
 /**
  * 加载数据集连接上下文：db 行、数据源配置、方言、provider、解密配置。
@@ -33,13 +32,10 @@ async function loadDataSourceContext(dataset) {
  * ETL 链涉及的物理表元数据（query/paginate 阶段需真实列，保证 __alias__col 输出列名与注册字段一致）
  */
 async function resolveEtlCatalog(dsConfig, provider, cfg, def) {
-  const now = Date.now();
   const prefix = `${dsConfig.id}:${dsConfig.type}/`;
-  const getTab = (schema, table) => {
+  const getTab = async (schema, table) => {
     const key = `${prefix}${(schema || '')}.${table}`;
-    const hit = catalogCache.get(key);
-    if (hit && now - hit.at < CATALOG_TTL_MS) return hit.columns;
-    return undefined;
+    return cache.get(key);
   };
   const seen = new Set();
   const tables = [];
@@ -55,14 +51,14 @@ async function resolveEtlCatalog(dsConfig, provider, cfg, def) {
   }
   const catalog = [];
   for (const t of tables) {
-    const cached = getTab(t.schema, t.table);
+    const cached = await getTab(t.schema, t.table);
     if (cached) {
       catalog.push({ schema: t.schema, table: t.table, columns: cached });
       continue;
     }
     try {
       const columns = await provider.listColumns(cfg, dsConfig.type, t.schema, t.table);
-      catalogCache.set(`${prefix}${(t.schema || '')}.${t.table}`, { at: now, columns });
+      await cache.set(`${prefix}${(t.schema || '')}.${t.table}`, columns, config.cache.ttlMs);
       catalog.push({ schema: t.schema, table: t.table, columns });
     } catch (e) {
       console.error(`[m3] ETL 目录解析失败: ${t.schema || '(默认)'}.${t.table} :: ${e.message}`);

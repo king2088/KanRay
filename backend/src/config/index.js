@@ -13,12 +13,14 @@ const STORE_TYPES = ['sqlite', 'mysql', 'mariadb', 'postgres', 'sqlserver', 'ora
 
 // Read config.json — 优先 DATA_DIR（测试隔离），再 fallback root
 let fileDb = { type: 'sqlite', url: '', sqlitePath: 'data/kanban.db' };
+let fileCache = { url: '' };
 try {
   const candidates = [path.join(dataDir, 'config.json'), path.join(root, 'config.json')];
   for (const filePath of candidates) {
     if (fs.existsSync(filePath)) {
       const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       if (parsed && parsed.db) fileDb = { ...fileDb, ...parsed.db };
+      if (parsed && parsed.cache) fileCache = { ...fileCache, ...parsed.cache };
       break;
     }
   }
@@ -38,6 +40,9 @@ const dbSqlitePath = process.env.DB_PATH || (() => {
   return path.isAbsolute(p) ? p : path.join(root, p);
 })();
 
+// Redis 缓存开关：REDIS_URL 或 config.json cache.url，缺省空 -> memory（默认关闭）
+const cacheUrl = String(process.env.REDIS_URL || fileCache.url || '').trim();
+
 module.exports = {
   port: parseInt(process.env.PORT || '3001', 10),
   root,
@@ -51,6 +56,11 @@ module.exports = {
   // 兼容旧引用：sqlite 返回路径，其它类型返回 url
   get dbPath() {
     return module.exports.db.type === 'sqlite' ? module.exports.db.sqlitePath : module.exports.db.url;
+  },
+  cache: {
+    type: cacheUrl ? 'redis' : 'memory',
+    url: cacheUrl,
+    ttlMs: Math.max(1, parseInt(process.env.CACHE_TTL_MS || '60000', 10)),
   },
   auth: {
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
@@ -67,5 +77,6 @@ module.exports = {
     schedulerIntervalMs: parseInt(process.env.SYNC_SCHEDULER_INTERVAL_MS || '60000', 10),
     maxConcurrent: parseInt(process.env.SYNC_MAX_CONCURRENT || '2', 10),
     defaultIntervalSeconds: parseInt(process.env.SYNC_DEFAULT_INTERVAL_SECONDS || '86400', 10),
+    lockTtlMs: parseInt(process.env.SYNC_LOCK_TTL_MS || '1800000', 10),
   },
 };

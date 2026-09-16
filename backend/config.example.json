@@ -3,5 +3,8 @@
     "type": "sqlite",
     "url": "",
     "sqlitePath": "data/kanban.db"
+  },
+  "cache": {
+    "url": ""
   }
 }
