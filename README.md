@@ -101,7 +101,7 @@ DB_TYPE=postgres DB_URL='postgresql://kanban:kanban@127.0.0.1:15432/kanban?sslmo
 
 - **数据集**：Excel(.xlsx/.xls/.csv) 上传、字段类型自动识别/手工调整、字段别名、数据分页预览、重命名/删除
 - **图表**：柱状/折线/饼图/环形/条形/表格/数值统计卡；多维度（第二维度作系列）、多指标、聚合方式（求和/平均/计数/去重计数/最大/最小）、时间粒度（日/月/年）、分组排序
-- **看板**：12 列 flow-grid 布局、拖拽添加图表、标题/文本组件（HTML）、跨图表筛选联动、全屏预览、自动保存布局
+- **看板**：12 列 flow-grid 布局、拖拽添加图表、标题/文本组件（HTML）、跨图表筛选联动、全屏预览、自动保存布局、分享看板（密码门禁 + JWT 鉴权 + 启停控制 + 过期策略）
 - **查询引擎**：统一聚合 SQL 生成 + 字段白名单校验，数据访问层抽象（为第二阶段多数据库预留）
 
 ## 目录结构
@@ -156,7 +156,7 @@ cd front-end && npm run build
 第二阶段 M1 已交付多用户认证 + RBAC + 管理后台：
 
 - **认证**：邮箱+密码注册/登录，JWT 访问令牌（默认 15 分钟）+ 刷新令牌（默认 7 天，服务端哈希存储、单次使用轮换）；登出/改密/禁用即吊销
-- **内置角色**：管理员（全部 27 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
+- **内置角色**：管理员（全部 28 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
 - **资源隔离**：数据集/图表/看板按 owner 隔离，管理与越权访问统一返回 403
 - **默认管理员**：首次启动自动创建 `admin@kanban.local / admin123`（请尽快改密）
 
@@ -189,6 +189,28 @@ cd front-end && npm run build
 | GET / POST / PATCH / DELETE | `/api/admin/roles[/:id]` | 角色管理（内置角色只读） |
 | GET | `/api/admin/permissions` | 权限点列表 |
 | GET | `/api/admin/audit` | 操作审计日志 |
+
+### 看板分享接口
+
+管理端（需登录 + `dashboard:share` 权限）：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/dashboards/:id/shares` | 创建分享（`password` 必填，`expiresAt` 可选） |
+| GET | `/api/dashboards/:id/shares` | 列出看板所有分享 |
+| PATCH | `/api/shares/:shareId` | 修改分享（`password`/`expiresAt`/`isActive`） |
+| DELETE | `/api/shares/:shareId` | 删除分享 |
+
+公开访问（无需登录，密码门禁）：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/public/shares/:token/verify` | 验证密码 → 返回 `accessToken`（JWT，有效期 15 分钟） |
+| GET | `/api/public/shares/:token/meta` | 看板元信息（标题、描述等，无需密码） |
+| GET | `/api/public/shares/:token/dashboard` | 看板详情（需 `Authorization: Bearer <accessToken>`） |
+| GET / POST | `/api/public/shares/:token/charts/:chartId/data` | 图表数据（需 `accessToken`） |
+
+> 安全特性：密码 AES-256-GCM 加密存储；分享接口出参不泄漏 `password_hash`/`data_sources`；verify 限流 10 次/15 分钟（按 IP）。
 
 ## 多数据源接入（M2）
 
@@ -316,7 +338,7 @@ docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v # �
 
 ## 已知限制（未交付项）
 
-- 公开只读看板分享已支持（`/s/:token` 密码门禁，管理入口在看板中心）；共享授权（grants）、资源级用户/角色授权、RLS 仍规划于后续里程碑（M3/M4，见 `需求清单-第二阶段.md`）
+- 看板分享已支持完整生命周期（创建/密码门禁/JWT 鉴权/启停控制/过期策略/删除）；共享授权（grants）、资源级用户/角色授权、RLS 仍规划于后续里程碑（M3/M4，见 `需求清单-第二阶段.md`）
 - 数据生命周期 20 万行 / 20MB 以内（上传数据集）；同步落库表由 `max_rows` 控制，不受该上限约束
 - 看板布局为 flow-grid（按数组顺序流式排布），第二维度作系列时显示为多系列
 - **同步任务**：单实例内存调度（多实例部署无分布式锁，各实例会各自 tick）；增量不感知源端删除（不本地删行）；数据源删除/停用不停已有同步任务配置
