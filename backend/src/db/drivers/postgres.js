@@ -17,7 +17,7 @@ function withReturning(sql) {
   return s;
 }
 
-const mapRow = (r) => Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v]));
+const mapRow = (r) => r ? Object.fromEntries(Object.entries(r).map(([k, v]) => [k.toLowerCase(), v])) : undefined;
 
 function createPostgresDriver(url) {
   const pool = new Pool({ connectionString: url, max: 10 });
