@@ -33,15 +33,25 @@ const pg = {
   trim: (name) => `TRIM(${name})`,
   upsertSyntax: 'conflict',
   insertIgnore(sql) {
-    // INSERT OR IGNORE INTO <table> (...) VALUES (...)
-    // → INSERT INTO <table> (...) VALUES (...) ON CONFLICT DO NOTHING
-    const s = String(sql).replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi, 'INSERT INTO');
-    const valIdx = s.toUpperCase().indexOf(' VALUES ');
-    if (valIdx === -1) return s;
-    const afterValues = s.slice(valIdx + 8);
-    const closing = afterValues.indexOf(')');
-    if (closing === -1) return s;
-    return s.slice(0, valIdx + 8 + closing + 1) + ' ON CONFLICT DO NOTHING' + s.slice(valIdx + 8 + closing + 1);
+    // 仅处理真正的 INSERT OR IGNORE；普通 INSERT 原样返回（避免破坏普通语句）
+    const s = String(sql);
+    if (!/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi.test(s)) return s;
+    const base = s.replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi, 'INSERT INTO');
+    const valIdx = base.toUpperCase().indexOf(' VALUES ');
+    if (valIdx === -1) return base;
+    // 深度感知找到 VALUES 列表的闭合括号（兼容 now() 等函数括号）
+    let depth = 0;
+    for (let i = valIdx + 8; i < base.length; i++) {
+      const ch = base[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        depth--;
+        if (depth === 0) {
+          return base.slice(0, i + 1) + ' ON CONFLICT DO NOTHING' + base.slice(i + 1);
+        }
+      }
+    }
+    return base;
   },
 };
 

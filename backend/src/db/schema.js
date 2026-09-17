@@ -70,36 +70,25 @@ function runDdl(store) {
       return withIfNotExists || !m || !existing.has(String(m[1]).toUpperCase());
     });
 
-    const runOne = (i) => {
-      if (i >= stmts.length) return;
-      const rawStmt = stmts[i];
-      const stmt = translate(rawStmt, store.dialect);
-      const execResult = store.exec(stmt);
-      const afterExec = () => runOne(i + 1);
-      const onError = (e) => {
-        if (!withIfNotExists && /CREATE INDEX/i.test(stmt) && /(already exists|ORA-01408|ORA-00955|name is already used)/i.test(String(e.message))) return runOne(i + 1);
-        throw e;
-      };
-      return maybeAwait(execResult, afterExec);
-    };
-
-    // wrap onError in a catch if the result is thenable
+    // 逐条执行 DDL，兼容同步（SQLite）与异步（Postgres）驱动；每条只执行一次
     const runSafe = (i) => {
       if (i >= stmts.length) return;
-      const rawStmt = stmts[i];
-      const stmt = translate(rawStmt, store.dialect);
-      const execResult = store.exec(stmt);
-      if (isThenable(execResult)) {
-        return execResult.then(() => runSafe(i + 1), (e) => {
-          if (!withIfNotExists && /CREATE INDEX/i.test(stmt) && /(already exists|ORA-01408|ORA-00955|name is already used)/i.test(String(e.message))) return runSafe(i + 1);
-          throw e;
-        });
-      }
-      try { store.exec(stmt); } catch (e) {
-        if (!withIfNotExists && /CREATE INDEX/i.test(stmt) && /(already exists|ORA-01408|ORA-00955|name is already used)/i.test(String(e.message))) return;
+      const stmt = translate(stmts[i], store.dialect);
+      const isIndexStmt = /CREATE INDEX/i.test(stmt);
+      const tolerate = (e) => !withIfNotExists && isIndexStmt && /(already exists|ORA-01408|ORA-00955|name is already used)/i.test(String(e.message));
+      try {
+        const execResult = store.exec(stmt);
+        if (isThenable(execResult)) {
+          return execResult.then(() => runSafe(i + 1), (e) => {
+            if (tolerate(e)) return runSafe(i + 1);
+            throw e;
+          });
+        }
+        return runSafe(i + 1);
+      } catch (e) {
+        if (tolerate(e)) return runSafe(i + 1);
         throw e;
       }
-      return runSafe(i + 1);
     };
 
     return runSafe(0);
