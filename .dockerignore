@@ -1,0 +1,24 @@
+# Dependencies
+**/node_modules
+
+# Build outputs
+**/dist
+**/dist-ssr
+
+# Runtime data
+backend/data
+backend/uploads
+backend/test-data
+backend/config.json
+
+# Deployment scaffold & docs
+deploy
+docs
+
+# Dev/VCS/editor
+.git
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+.superpowers
