@@ -4,6 +4,8 @@ const { seed } = require('./seeds');
 const { startScheduler, stopScheduler } = require('./jobs/sync-scheduler');
 
 async function main() {
+  const db = require('./db');
+  await db.initSchema();
   await seed();
   console.log('[kanban-backend] 已初始化种子数据（角色/权限/管理员）');
 
