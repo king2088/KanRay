@@ -6,6 +6,11 @@
           <h2 class="page-title">开放 API</h2>
           <div class="page-desc">创建长期凭证（API Key / PAT），供外部系统经 <code>/api/open/v1</code> 拉取图表、数据集与看板数据</div>
         </div>
+        <div class="page-header__actions">
+          <a class="doc-link" href="/api/open/docs" target="_blank" rel="noopener">
+            <el-icon style="margin-right: 4px"><Document /></el-icon>接口文档
+          </a>
+        </div>
       </div>
 
       <div class="page-card">
@@ -232,3 +237,16 @@ onMounted(() => {
   loadUsers()
 })
 </script>
+<style scoped>
+.doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--app-primary);
+  font-size: 14px;
+  text-decoration: none;
+}
+.doc-link:hover {
+  text-decoration: underline;
+}
+</style>
