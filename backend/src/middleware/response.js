@@ -19,6 +19,9 @@ function errorHandler(err, req, res, next) {
   } else if (err.type === 'entity.too.large') {
     status = 413;
     message = '上传内容过大';
+  } else if (err.type === 'entity.parse.failed') {
+    status = 400;
+    message = '请求体不是合法 JSON';
   } else if (err.name === 'MulterError') {
     status = 400;
     message = `文件上传错误: ${err.message}`;

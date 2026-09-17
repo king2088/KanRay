@@ -54,6 +54,18 @@ test('无 token 访问受保护路由抛 401', async () => {
   assert.equal(me.status, 401);
 });
 
+test('畸形 JSON 请求体返回 400 而非 500（错误处理回归）', async () => {
+  const res = await fetch(base + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{"email":"a@a.com",',
+  });
+  assert.equal(res.status, 400, `期望 400，实际 ${res.status}`);
+  const body = await res.json().catch(() => null);
+  assert.equal(body && body.code, 400);
+  assert.match(body && body.message || '', /JSON|请求体/i);
+});
+
 test('关闭临时 HTTP 服务', () => {
   server?.close();
 });
