@@ -28,7 +28,7 @@ async function seedPermissions() {
   const get = await db.prepare('SELECT id FROM permissions WHERE code = ?');
   for (const [code, name] of PERMISSIONS) await ins.run(code, name);
   const map = {};
-  for (const [code] of PERMISSIONS) map[code] = get.get(code).id;
+  for (const [code] of PERMISSIONS) map[code] = (await get.get(code)).id;
   return map;
 }
 
@@ -43,9 +43,9 @@ async function seedRoles(permIds) {
   );
   for (const r of ROLES) {
     await ins.run(r.code, r.name, r.description, r.isBuiltin);
-    const id = getId.get(r.code).id;
+    const id = (await getId.get(r.code)).id;
     roles[r.code] = id;
-    const current = currentQ.all(id).map((x) => x.code);
+    const current = (await currentQ.all(id)).map((x) => x.code);
     const target = [...r.permissions].sort();
     if (JSON.stringify(current) !== JSON.stringify(target)) {
       await clearLinks.run(id);
