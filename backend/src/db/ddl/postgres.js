@@ -93,4 +93,12 @@ module.exports = [
     created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
   'CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE IF NOT EXISTS api_keys (
+    id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'static',
+    user_id BIGINT NOT NULL, key_hash TEXT NOT NULL UNIQUE, key_prefix TEXT NOT NULL,
+    scopes TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'active',
+    expires_at TIMESTAMP, last_used_at TIMESTAMP, created_by BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id)',
 ];

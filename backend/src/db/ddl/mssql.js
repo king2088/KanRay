@@ -106,4 +106,13 @@ module.exports = [
     CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
   )`,
   'CREATE INDEX idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE api_keys (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, type NVARCHAR(16) NOT NULL DEFAULT 'static',
+    user_id BIGINT NOT NULL, key_hash NVARCHAR(64) NOT NULL, key_prefix NVARCHAR(32) NOT NULL,
+    scopes NVARCHAR(255) NOT NULL DEFAULT '[]', status NVARCHAR(16) NOT NULL DEFAULT 'active',
+    expires_at DATETIME2, last_used_at DATETIME2, created_by BIGINT,
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT uq_api_keys_hash UNIQUE (key_hash)
+  )`,
+  'CREATE INDEX idx_api_keys_user ON api_keys(user_id)',
 ];
