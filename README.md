@@ -215,7 +215,7 @@ cd front-end && npm run build
 
 ## 开放 API（M2 · 外部集成）
 
-面向外部客户集成的独立 REST API，前缀 `/api/open/v1`（Swagger UI：`/api/open/docs`，spec：`/api/open/v1/openapi.json`）。用**长效凭证**替代浏览器登录态：
+面向外部客户集成的独立 REST API，前缀 `/api/open/v1`（Swagger UI：`/api/open/docs`，spec：`/api/open/v1/openapi.json`；也由前端入口直达：登录后「系统管理 → 开放 API → 接口文档」）。用**长效凭证**替代浏览器登录态：
 
 - **API Key（static）**：管理员在「系统管理 → 开放 API」创建，可绑定任意用户并限定 `scopes`（`chart:read` / `dataset:read` / `dashboard:read`）；实际生效权限 = scopes ∩ 该用户自身 RBAC 权限。
 - **访问令牌（PAT）**：任意用户在个人下拉菜单「访问令牌」创建，权限范围等同本人（不能提权）。
