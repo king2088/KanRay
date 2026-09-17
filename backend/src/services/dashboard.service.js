@@ -83,7 +83,7 @@ async function createDashboard(name, ownerId = null) {
   const n = String(name || '').trim().slice(0, 100);
   if (!n) throw new HttpError(400, '看板名称不能为空');
   const info = await db
-    .prepare('INSERT INTO dashboards (name, layout, owner_id) VALUES (?, ?, ?)')
+    .prepare("INSERT INTO dashboards (name, layout, card_style, owner_id) VALUES (?, ?, '{}', ?)")
     .run(n, '[]', ownerId == null ? null : Number(ownerId));
   return getDashboard(Number(info.lastInsertRowid));
 }

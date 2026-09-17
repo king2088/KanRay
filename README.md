@@ -4,6 +4,7 @@
 
 > 技术栈：ExpressJS 5（后端） + Vue 3 + Element Plus + ECharts（前端），前后端分离。
 > 需求文档见 `需求清单-第一阶段.md`、`需求清单-第二阶段.md`。
+> **完整产品说明书见 [docs/README.md（文档中心）](docs/README.md)**——按角色覆盖从安装部署到日常使用的全流程。
 
 ## 快速开始
 
