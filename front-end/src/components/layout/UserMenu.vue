@@ -15,9 +15,6 @@
         <el-dropdown-item command="profile">
           <el-icon><User /></el-icon>个人中心
         </el-dropdown-item>
-        <el-dropdown-item command="tokens">
-          <el-icon><Key /></el-icon>访问令牌
-        </el-dropdown-item>
         <el-dropdown-item v-if="auth.hasPermission('user', 'read')" command="admin">
           <el-icon><Setting /></el-icon>系统管理
         </el-dropdown-item>
@@ -41,7 +38,6 @@ const profileOpen = ref(false)
 
 function onCommand(c) {
   if (c === 'profile') profileOpen.value = true
-  else if (c === 'tokens') router.push('/open/tokens')
   else if (c === 'admin') router.push('/admin/users')
   else if (c === 'logout') {
     auth.logout().then(() => router.replace('/login'))

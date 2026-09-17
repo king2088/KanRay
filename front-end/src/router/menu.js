@@ -11,6 +11,7 @@ export const ADMIN_ITEMS = [
   { path: '/admin/roles', title: '角色管理', icon: 'Avatar' },
   { path: '/admin/audit', title: '操作审计', icon: 'List' },
   { path: '/admin/open-api', title: '开放 API', icon: 'Key' },
+  { path: '/open/tokens', title: '访问令牌', icon: 'Lock' },
 ]
 
 export const ADMIN_PERMISSION_OF = {
@@ -20,8 +21,12 @@ export const ADMIN_PERMISSION_OF = {
   '/admin/open-api': 'apikey:manage',
 }
 
+export const OPEN_SETTINGS = ['/open/tokens']
+
 export function visibleAdminMenus(auth) {
-  return ADMIN_ITEMS.filter((m) => (auth.user?.permissions || []).includes(ADMIN_PERMISSION_OF[m.path]))
+  return ADMIN_ITEMS.filter((m) =>
+    OPEN_SETTINGS.includes(m.path) ? !!auth.user : (auth.user?.permissions || []).includes(ADMIN_PERMISSION_OF[m.path])
+  )
 }
 
 export function visibleMenus(auth) {
@@ -31,7 +36,7 @@ export function visibleMenus(auth) {
 }
 
 export function activeMenuOf(path) {
-  if (path.startsWith('/admin')) return path
+  if (path.startsWith('/admin') || path.startsWith('/open')) return path
   if (path.startsWith('/datasources')) return '/datasources'
   if (path.startsWith('/dashboards')) return '/dashboards'
   if (path.startsWith('/charts')) return '/charts'
@@ -39,5 +44,5 @@ export function activeMenuOf(path) {
 }
 
 export function groupOf(path) {
-  return path.startsWith('/admin') ? '/admin' : activeMenuOf(path)
+  return path.startsWith('/admin') || path.startsWith('/open') ? '/admin' : activeMenuOf(path)
 }
