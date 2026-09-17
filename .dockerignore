@@ -17,7 +17,6 @@ backend/test-data
 backend/config.json
 
 # Deployment scaffold & docs
-deploy
 docs
 
 # Dev/VCS/editor
