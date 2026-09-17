@@ -144,10 +144,10 @@ cd deploy
 ./deploy.sh          # 自动生成 .env（含随机密钥）并构建启动
 ./deploy.sh logs     # 查看日志
 ./deploy.sh down     # 停机（保留数据卷）
-./deploy.sh down -v  # 停机并清除所有数据
+./deploy.sh down -v  # 停机并清除所有数据（-v 删除数据卷，不可恢复）
 ```
 
-- 访问地址：`http://localhost:8080`（可通过 `KANBAN_PORT` 环境变量修改）
+- 访问地址：`http://localhost:8080`（可通过修改 `deploy/.env` 中的 `KANBAN_PORT` 调整）
 - Swagger 文档：`http://localhost:8080/api/open/docs`
 - 管理员：`admin@kanban.local / admin123`（生产环境请修改 `deploy/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
 
