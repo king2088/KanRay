@@ -11,13 +11,14 @@ const PERMISSIONS = [
   ['role:read', '查看角色'], ['role:create', '创建角色'], ['role:update', '编辑角色'], ['role:delete', '删除角色'],
   ['audit:read', '查看审计日志'],
   ['system:config', '系统配置'],
+  ['apikey:manage', '管理 API Key'],
 ];
 
 const ALL = PERMISSIONS.map((p) => p[0]);
 
 const ROLES = [
   { code: 'admin', name: '管理员', description: '全部权限', isBuiltin: 1, permissions: ALL },
-  { code: 'analyst', name: '数据工程师/分析师', description: '管理数据源/数据集/图表/看板，可执行 SQL', isBuiltin: 1, permissions: ALL.filter((p) => !p.startsWith('user:') && !p.startsWith('role:') && !p.startsWith('audit:') && p !== 'system:config') },
+  { code: 'analyst', name: '数据工程师/分析师', description: '管理数据源/数据集/图表/看板，可执行 SQL', isBuiltin: 1, permissions: ALL.filter((p) => !p.startsWith('user:') && !p.startsWith('role:') && !p.startsWith('audit:') && p !== 'system:config' && !p.startsWith('apikey:')) },
   { code: 'editor', name: '看板编辑者', description: '构建图表与排版看板，可看数据集', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'chart:create', 'chart:update', 'chart:delete', 'dashboard:read', 'dashboard:create', 'dashboard:update', 'dashboard:delete', 'dashboard:share'] },
   { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read'] },
 ];
