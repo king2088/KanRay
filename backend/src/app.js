@@ -12,6 +12,7 @@ const datasourceRoutes = require('./routes/datasource.routes');
 const { dashSharesRouter, sharesRouter } = require('./routes/share.routes');
 const publicShareRoutes = require('./routes/public-share.routes');
 const openApiRoutes = require('./routes/open-api.routes');
+const { adminApiKeysRouter, tokenRouter } = require('./routes/api-key.routes');
 const { configRouter } = require('./routes/system.routes');
 
 const app = express();
@@ -34,6 +35,8 @@ app.use('/api/dashboards', dashSharesRouter);
 app.use('/api/shares', sharesRouter);
 app.use('/api/public/shares', publicShareRoutes);
 app.use('/api/open/v1', openApiRoutes);
+app.use('/api/admin/api-keys', adminApiKeysRouter);
+app.use('/api/auth/tokens', tokenRouter);
 app.get('/api/config', configRouter);
 
 app.use(notFound);
