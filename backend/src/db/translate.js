@@ -6,6 +6,9 @@
 // 逐字符扫描，跳过单引号字符串字面量；对已含字面量字符串的 SQL 安全。
 
 function translate(sql, dialect) {
+  // 方言转译：INSERT OR IGNORE（SQLite 方言）→ 对应数据库语法
+  if (dialect && dialect.insertIgnore) sql = dialect.insertIgnore(sql);
+
   let out = '';
   let paramIndex = 0;
   let i = 0;

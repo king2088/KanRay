@@ -12,6 +12,10 @@ const mysql = {
   agg: { count: 'COUNT', count_distinct: 'COUNT(DISTINCT', sum: 'SUM', avg: 'AVG', max: 'MAX', min: 'MIN' },
   trim: (name) => `TRIM(${name})`,
   upsertSyntax: 'dup',
+  insertIgnore(sql) {
+    // INSERT OR IGNORE INTO → INSERT IGNORE INTO（MySQL/MariaDB）
+    return String(sql).replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi, 'INSERT IGNORE INTO');
+  },
 };
 
 const pg = {
@@ -28,6 +32,17 @@ const pg = {
   agg: { count: 'COUNT', count_distinct: 'COUNT(DISTINCT', sum: 'SUM', avg: 'AVG', max: 'MAX', min: 'MIN' },
   trim: (name) => `TRIM(${name})`,
   upsertSyntax: 'conflict',
+  insertIgnore(sql) {
+    // INSERT OR IGNORE INTO <table> (...) VALUES (...)
+    // → INSERT INTO <table> (...) VALUES (...) ON CONFLICT DO NOTHING
+    const s = String(sql).replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi, 'INSERT INTO');
+    const valIdx = s.toUpperCase().indexOf(' VALUES ');
+    if (valIdx === -1) return s;
+    const afterValues = s.slice(valIdx + 8);
+    const closing = afterValues.indexOf(')');
+    if (closing === -1) return s;
+    return s.slice(0, valIdx + 8 + closing + 1) + ' ON CONFLICT DO NOTHING' + s.slice(valIdx + 8 + closing + 1);
+  },
 };
 
 const clickhouse = {
@@ -109,6 +124,10 @@ const sqlite = {
   agg: { count: 'COUNT', count_distinct: 'COUNT(DISTINCT', sum: 'SUM', avg: 'AVG', max: 'MAX', min: 'MIN' },
   trim: (name) => `TRIM(${name})`,
   upsertSyntax: 'conflict',
+  insertIgnore(sql) {
+    // SQLite 原生支持 INSERT OR IGNORE，无需转换
+    return sql;
+  },
 };
 
 const mariadb = mysql;
