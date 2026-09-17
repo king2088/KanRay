@@ -86,13 +86,13 @@ async function create({ name, type = 'static', userId, scopes = [], expiresAt = 
 }
 
 async function getOrThrow(id) {
-  const row = db.prepare(`${SELECT} WHERE id = ?`).get(Number(id));
+  const row = await db.prepare(`${SELECT} WHERE id = ?`).get(Number(id));
   if (!row) throw new HttpError(404, 'API Key 不存在');
   return row;
 }
 
 async function getByHash(hash) {
-  return db.prepare(`${SELECT} WHERE key_hash = ?`).get(hash) || null;
+  return (await db.prepare(`${SELECT} WHERE key_hash = ?`).get(hash)) || null;
 }
 
 async function list({ type, userId } = {}) {
@@ -100,7 +100,7 @@ async function list({ type, userId } = {}) {
   const params = [];
   if (type) { conds.push('type = ?'); params.push(type); }
   if (userId) { conds.push('user_id = ?'); params.push(Number(userId)); }
-  const rows = db.prepare(`${SELECT}${conds.length ? ' WHERE ' + conds.join(' AND ') : ''} ORDER BY id DESC`).all(...params);
+  const rows = await db.prepare(`${SELECT}${conds.length ? ' WHERE ' + conds.join(' AND ') : ''} ORDER BY id DESC`).all(...params);
   return rows.map(stripSecret);
 }
 

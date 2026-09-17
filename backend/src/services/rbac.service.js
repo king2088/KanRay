@@ -12,7 +12,7 @@ async function permissionCodesOfUser(userId) {
      JOIN role_permissions rp ON rp.permission_id = p.id
      JOIN user_roles ur ON ur.role_id = rp.role_id
      WHERE ur.user_id = ?`
-  )).all(userId).map((r) => r.code);
+  ).all(userId)).map((r) => r.code);
 }
 
 async function permissionsOf(userId) {
@@ -24,14 +24,14 @@ async function hasPermission(userId, resource, action) {
 }
 
 async function listPermissions() {
-  return (await db.prepare('SELECT * FROM permissions ORDER BY id')).all();
+  return (await db.prepare('SELECT * FROM permissions ORDER BY id').all());
 }
 
 async function listRoles() {
-  const roles = (await db.prepare('SELECT * FROM roles ORDER BY id')).all();
-  const perms = (await db.prepare(
+  const roles = await db.prepare('SELECT * FROM roles ORDER BY id').all();
+  const perms = await db.prepare(
     `SELECT rp.role_id, p.code FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id`
-  )).all();
+  ).all();
   const map = new Map();
   perms.forEach((p) => { if (!map.has(p.role_id)) map.set(p.role_id, []); map.get(p.role_id).push(p.code); });
   return roles.map((r) => ({ ...r, is_builtin: !!r.is_builtin, permissions: map.get(r.id) || [] }));

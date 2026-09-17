@@ -24,18 +24,18 @@ async function rolesOf(userId) {
     `SELECT r.code, r.name, r.is_builtin FROM roles r
      JOIN user_roles ur ON ur.role_id = r.id
      WHERE ur.user_id = ? ORDER BY r.id`
-  )).all(userId);
+  ).all(userId));
 }
 
 async function permissionsOf(userId) {
-  const isAdmin = (await db.prepare(
+  const isAdmin = await db.prepare(
     `SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ? AND r.code = 'admin' LIMIT 1`
-  )).get(userId);
+  ).get(userId);
   if (isAdmin) return PERMISSIONS.map((p) => p[0]);
   return (await db.prepare(
     `SELECT DISTINCT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id
      JOIN user_roles ur ON ur.role_id = rp.role_id WHERE ur.user_id = ? ORDER BY p.code`
-  )).all(userId).map((r) => r.code);
+  ).all(userId)).map((r) => r.code);
 }
 
 async function userWithRoles(userId) {
