@@ -13,6 +13,8 @@ const { dashSharesRouter, sharesRouter } = require('./routes/share.routes');
 const publicShareRoutes = require('./routes/public-share.routes');
 const openApiRoutes = require('./routes/open-api.routes');
 const { adminApiKeysRouter, tokenRouter } = require('./routes/api-key.routes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./openapi/swagger');
 const { configRouter } = require('./routes/system.routes');
 
 const app = express();
@@ -34,6 +36,9 @@ app.use('/api/datasources', datasourceRoutes);
 app.use('/api/dashboards', dashSharesRouter);
 app.use('/api/shares', sharesRouter);
 app.use('/api/public/shares', publicShareRoutes);
+// 开放 API：spec JSON 与文档 UI（公开只读引用）
+app.get('/api/open/v1/openapi.json', (req, res) => res.json(swaggerSpec));
+app.use('/api/open/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: '看板开放 API' }));
 app.use('/api/open/v1', openApiRoutes);
 app.use('/api/admin/api-keys', adminApiKeysRouter);
 app.use('/api/auth/tokens', tokenRouter);

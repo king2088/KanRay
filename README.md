@@ -102,6 +102,7 @@ DB_TYPE=postgres DB_URL='postgresql://kanban:kanban@127.0.0.1:15432/kanban?sslmo
 - **数据集**：Excel(.xlsx/.xls/.csv) 上传、字段类型自动识别/手工调整、字段别名、数据分页预览、重命名/删除
 - **图表**：柱状/折线/饼图/环形/条形/表格/数值统计卡；多维度（第二维度作系列）、多指标、聚合方式（求和/平均/计数/去重计数/最大/最小）、时间粒度（日/月/年）、分组排序
 - **看板**：12 列 flow-grid 布局、拖拽添加图表、标题/文本组件（HTML）、跨图表筛选联动、全屏预览、自动保存布局、分享看板（密码门禁 + JWT 鉴权 + 启停控制 + 过期策略）
+- **开放 API**：`/api/open/v1` 独立前缀 + API Key / PAT 长效凭证，提供图表/数据集/看板发现、图表取数、数据集自定义聚合、看板快照导出（JSON / CSV），Swagger 文档（`/api/open/docs`）
 - **查询引擎**：统一聚合 SQL 生成 + 字段白名单校验，数据访问层抽象（为第二阶段多数据库预留）
 
 ## 目录结构
@@ -156,7 +157,7 @@ cd front-end && npm run build
 第二阶段 M1 已交付多用户认证 + RBAC + 管理后台：
 
 - **认证**：邮箱+密码注册/登录，JWT 访问令牌（默认 15 分钟）+ 刷新令牌（默认 7 天，服务端哈希存储、单次使用轮换）；登出/改密/禁用即吊销
-- **内置角色**：管理员（全部 28 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
+- **内置角色**：管理员（全部 29 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
 - **资源隔离**：数据集/图表/看板按 owner 隔离，管理与越权访问统一返回 403
 - **默认管理员**：首次启动自动创建 `admin@kanban.local / admin123`（请尽快改密）
 
@@ -211,6 +212,62 @@ cd front-end && npm run build
 | GET / POST | `/api/public/shares/:token/charts/:chartId/data` | 图表数据（需 `accessToken`） |
 
 > 安全特性：密码 AES-256-GCM 加密存储；分享接口出参不泄漏 `password_hash`/`data_sources`；verify 限流 10 次/15 分钟（按 IP）。
+
+## 开放 API（M2 · 外部集成）
+
+面向外部客户集成的独立 REST API，前缀 `/api/open/v1`（Swagger UI：`/api/open/docs`，spec：`/api/open/v1/openapi.json`）。用**长效凭证**替代浏览器登录态：
+
+- **API Key（static）**：管理员在「系统管理 → 开放 API」创建，可绑定任意用户并限定 `scopes`（`chart:read` / `dataset:read` / `dashboard:read`）；实际生效权限 = scopes ∩ 该用户自身 RBAC 权限。
+- **访问令牌（PAT）**：任意用户在个人下拉菜单「访问令牌」创建，权限范围等同本人（不能提权）。
+- 凭证前缀 `kan_live_`（static）/ `kan_pat_`（PAT）；**明文仅创建 / 滚动时展示一次**，库内只存 SHA-256 哈希。
+
+### 数据消费接口（需 `Authorization: Bearer <Key>` 或 `X-API-Key: <Key>`）
+
+| 方法·路径 | 说明 |
+| --- | --- |
+| `GET /charts` | 可见图表列表（`keyword` 模糊；`limit` 默认50/上限200 + `offset`） |
+| `GET /datasets` | 可见数据集列表 |
+| `GET /dashboards` | 可见看板列表 |
+| `GET /charts/:id/data` | 按图表当前配置取数 → `{columns, rows, truncated}`（图表与其数据集双重归属校验） |
+| `POST /datasets/:id/aggregate` | 自定义聚合 `{metrics, dimensions?, filters?, sortBy?, groupLimit?}`（字段白名单） |
+| `GET /dashboards/:id/export` | 看板快照（元信息 + 全部图表数据） |
+
+**CSV**：`?format=csv` 或 `Accept: text/csv` → `text/csv; charset=utf-8`（带 BOM，Excel 友好），无 `{code,data}` 外壳；看板导出按卡输出 CSV（`# 图表名` 分隔）。
+
+### 凭证管理接口
+
+| 方法·路径 | 权限 | 说明 |
+| --- | --- | --- |
+| `GET /api/admin/api-keys` | `apikey:manage` | 列表（`?type=static\|pat`、`?userId=`） |
+| `POST /api/admin/api-keys` | `apikey:manage` | 创建（`{name,type,userId,scopes?,expiresAt?}`）→ 一次性返回 `plaintext` |
+| `PATCH /api/admin/api-keys/:id` | `apikey:manage` | 改名 / scopes / 过期 / `isActive` 启停 |
+| `POST /api/admin/api-keys/:id/rotate` | `apikey:manage` | 滚动（旧明文立即失效）→ 一次性返回新 `plaintext` |
+| `DELETE /api/admin/api-keys/:id` | `apikey:manage` | 删除（立即失效） |
+| `GET /api/auth/tokens` | 本人 | 我的访问令牌 |
+| `POST /api/auth/tokens` | 本人 | 创建 PAT（自动 `scopes: []` = 继承本人） |
+| `PATCH / DELETE / POST .../rotate` | 本人 | 令牌启停 / 删除 / 滚动（他人令牌一律 404 掩盖） |
+
+### 安全约定
+
+- **错误码**：无效 / 已吊销 / 已过期 Key 统一 `401`（防枚举）；scope 不足或账号禁用 `403`；不存在 / 无权资源统一 `404「资源不存在或无权访问」`；限流 `429`。CSV 模式下数据端点错误返回纯文本 + 状态码。
+- **限流**：按 Key 哈希，默认 120 次/分钟（`OPEN_API_RATE_PER_MIN`）。
+- **输出白名单**：不返回构建 SQL / 表名 / 连接信息 / 密钥；超过 `OPEN_API_MAX_ROWS`（默认 10000）截断并返回 `truncated: true`。
+- **审计**：取数 / 聚合 / 导出落审计（`detail` = `{keyId,keyPrefix,keyName,scopes}`）；Key 生命周期操作落审计；发现类 GET 不落。
+
+### 调用示例
+
+```bash
+# 发现图表
+curl -H "Authorization: Bearer kan_live_xxx" "http://localhost:3001/api/open/v1/charts"
+
+# 图表取数为 CSV
+curl -H "Authorization: Bearer kan_live_xxx" "http://localhost:3001/api/open/v1/charts/1/data?format=csv"
+
+# 数据集自定义聚合
+curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: application/json" \
+  -d '{"dimensions":[{"field":"category"}],"metrics":[{"field":"amount","agg":"sum"}]}' \
+  "http://localhost:3001/api/open/v1/datasets/1/aggregate"
+```
 
 ## 多数据源接入（M2）
 

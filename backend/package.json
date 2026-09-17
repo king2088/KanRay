@@ -27,6 +27,8 @@
     "pg": "^8.23.0",
     "presto-client": "^1.2.0",
     "read-excel-file": "^9.3.10",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^3.25.76"
   },
   "allowScripts": {
