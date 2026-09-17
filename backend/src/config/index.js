@@ -80,4 +80,8 @@ module.exports = {
     lockTtlMs: parseInt(process.env.SYNC_LOCK_TTL_MS || '1800000', 10),
   },
   timezone: String(process.env.TIMEZONE || 'Asia/Shanghai'),
+  openApi: {
+    ratePerMin: parseInt(process.env.OPEN_API_RATE_PER_MIN || '120', 10),
+    maxRows: parseInt(process.env.OPEN_API_MAX_ROWS || '10000', 10),
+  },
 };
