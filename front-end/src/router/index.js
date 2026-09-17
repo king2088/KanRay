@@ -39,6 +39,8 @@ const routes = [
       { path: 'admin/users', name: 'admin-users', component: () => import('../views/admin/UserAdmin.vue'), meta: { title: '用户管理' } },
       { path: 'admin/roles', name: 'admin-roles', component: () => import('../views/admin/RoleAdmin.vue'), meta: { title: '角色管理' } },
       { path: 'admin/audit', name: 'admin-audit', component: () => import('../views/admin/AuditView.vue'), meta: { title: '操作审计' } },
+      { path: 'admin/open-api', name: 'admin-open-api', component: () => import('../views/admin/OpenApiAdmin.vue'), meta: { title: '开放 API' } },
+      { path: 'open/tokens', name: 'open-tokens', component: () => import('../views/open/OpenTokens.vue'), meta: { title: '访问令牌' } },
     ],
   },
 ]

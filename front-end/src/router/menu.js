@@ -10,12 +10,14 @@ export const ADMIN_ITEMS = [
   { path: '/admin/users', title: '用户管理', icon: 'User' },
   { path: '/admin/roles', title: '角色管理', icon: 'Avatar' },
   { path: '/admin/audit', title: '操作审计', icon: 'List' },
+  { path: '/admin/open-api', title: '开放 API', icon: 'Key' },
 ]
 
 export const ADMIN_PERMISSION_OF = {
   '/admin/users': 'user:read',
   '/admin/roles': 'role:read',
   '/admin/audit': 'audit:read',
+  '/admin/open-api': 'apikey:manage',
 }
 
 export function visibleAdminMenus(auth) {
