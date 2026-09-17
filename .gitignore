@@ -30,5 +30,8 @@ backend/test-data/
 backend/config.json
 front-end/scripts/e2e-dashboard.png
 
+# Worktrees
+.worktrees/
+
 
 .superpowers/
