@@ -37,8 +37,10 @@ test('openapi.json 公开返回 3.0 spec，含授权鉴权与六端点', async (
   assert.equal(spec.openapi, '3.0.0');
   assert.ok(spec.components.securitySchemes.bearerAuth, '应有 bearerAuth 安全方案');
   const paths = Object.keys(spec.paths || {});
-  for (const p of ['/charts', '/datasets', '/dashboards', '/charts/{id}/data', '/datasets/{id}/aggregate', '/dashboards/{id}/export']) {
-    assert.ok(paths.includes(p), `缺少路径 ${p}`);
+  const expect = ['/charts', '/datasets', '/dashboards', '/charts/{id}/data', '/datasets/{id}/aggregate', '/dashboards/{id}/export'];
+  assert.deepEqual(paths.sort(), [...expect].sort(), 'paths 应恰为 6 个数据端点，不得混入根级元数据');
+  for (const p of expect) {
+    assert.ok(spec.paths[p], `缺少路径 ${p}`);
   }
 });
 
