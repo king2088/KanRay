@@ -135,6 +135,22 @@ front-end/                  Vue 3 前端
     utils/                  ECharts 按需引入 + 图表 option 构建
 ```
 
+## Docker 一键部署
+
+快速启动三容器全栈（postgres + backend + frontend(nginx)），无需手动安装 Node/PostgreSQL：
+
+```bash
+cd deploy
+./deploy.sh          # 自动生成 .env（含随机密钥）并构建启动
+./deploy.sh logs     # 查看日志
+./deploy.sh down     # 停机（保留数据卷）
+./deploy.sh down -v  # 停机并清除所有数据
+```
+
+- 访问地址：`http://localhost:8080`（可通过 `KANBAN_PORT` 环境变量修改）
+- Swagger 文档：`http://localhost:8080/api/open/docs`
+- 管理员：`admin@kanban.local / admin123`（生产环境请修改 `deploy/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
+
 ## 常用命令
 
 ```bash
