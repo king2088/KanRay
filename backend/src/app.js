@@ -19,6 +19,9 @@ const { configRouter } = require('./routes/system.routes');
 
 const app = express();
 
+// 部署在 nginx 反代之后：信任首跳代理以正确解析 req.ip（express-rate-limit v8 需要 trust proxy）
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
