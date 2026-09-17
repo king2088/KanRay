@@ -54,7 +54,8 @@ case "$ACTION" in
   up)
     docker compose up -d --build "$@"
     docker compose ps
-    PORT="${KANBAN_PORT:-8080}"
+    PORT="$(grep -E '^KANBAN_PORT=' .env 2>/dev/null | cut -d= -f2)"
+    PORT="${PORT:-8080}"
     echo
     echo "[deploy] 访问地址：http://localhost:${PORT}"
     echo "[deploy] Swagger 文档：http://localhost:${PORT}/api/open/docs"
