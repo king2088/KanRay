@@ -103,7 +103,7 @@ watch(
 function onSelectGroup(path) {
   activeGroup.value = path
 }
-const currentTitle = computed(() => route.meta.title || '看板低代码平台')
+const currentTitle = computed(() => route.meta.title || 'KanRay')
 </script>
 
 <style scoped>

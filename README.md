@@ -1,6 +1,6 @@
-# 看板管理低代码系统
+# KanRay
 
-一个对标 Apache Superset、面向"小白"的看板低代码平台：**多用户 + RBAC 权限 + 多数据源接入 + 数据集构建器 + Excel 分析 + 看板编排**。
+一个对标 Apache Superset、面向"小白"的 KanRay 低代码平台：**多用户 + RBAC 权限 + 多数据源接入 + 数据集构建器 + Excel 分析 + 看板编排**。
 
 > 技术栈：ExpressJS 5（后端） + Vue 3 + Element Plus + ECharts（前端），前后端分离。
 > 需求文档在 [docs/](docs/README.md)：`需求清单-第一阶段.md`、`需求清单-第二阶段.md`。

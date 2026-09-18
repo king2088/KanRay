@@ -67,7 +67,7 @@ router.beforeEach(async (to) => {
 })
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} · 看板低代码平台` : '看板低代码平台'
+  document.title = to.meta.title ? `${to.meta.title} · KanRay` : 'KanRay'
 })
 
 export default router

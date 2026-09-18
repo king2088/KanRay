@@ -1,7 +1,7 @@
 {
   "name": "kanban-backend",
   "version": "1.0.0",
-  "description": "看板管理低代码系统 - 第一阶段后端 (ExpressJS 5)",
+  "description": "KanRay - 第一阶段后端 (ExpressJS 5)",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {

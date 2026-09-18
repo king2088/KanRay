@@ -1,7 +1,7 @@
 <template>
   <div class="app-logo" @click="$router.push('/datasets')">
-    <el-icon class="app-logo__icon"><DataAnalysis /></el-icon>
-    <span v-show="!collapsed" class="app-logo__text">看板低代码平台</span>
+    <img src="/logo.svg?v=3" class="app-logo__icon" alt="KanRay logo" />
+    <span v-show="!collapsed" class="app-logo__text">KanRay</span>
   </div>
 </template>
 
@@ -23,9 +23,11 @@ defineProps({ collapsed: { type: Boolean, default: false } })
 }
 
 .app-logo__icon {
-  color: var(--app-primary);
   flex-shrink: 0;
-  font-size: var(--header-icon-size, 20px);
+  width: var(--header-icon-size, 20px);
+  height: var(--header-icon-size, 20px);
+  border-radius: 6px;
+  display: block;
 }
 
 .app-logo__text {
