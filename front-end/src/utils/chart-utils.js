@@ -18,6 +18,14 @@ export const AGG_OPTIONS = [
   { value: 'min', label: '最小值' },
 ]
 
+export const DERIVED_OPTIONS = [
+  { value: 'share', label: '占比' },
+  { value: 'mom', label: '环比' },
+  { value: 'yoy', label: '同比' },
+  { value: 'cumsum', label: '累计' },
+  { value: 'rank', label: '排名' },
+]
+
 export const PALETTE = [
   '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
   '#8E44AD', '#16A085', '#E74C3C', '#2C3E50', '#D35400',

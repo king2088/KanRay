@@ -130,6 +130,7 @@ router.get('/charts/:id/data', requireScope('chart:read'), (req, res) => handleE
 const AGG_METRICS = z.union([
   z.object({ type: z.literal('base').optional(), key: z.string().max(64).optional(), field: z.string().min(1), agg: z.enum(['sum', 'avg', 'count', 'count_distinct', 'max', 'min']), label: z.string().max(64).optional() }),
   z.object({ type: z.literal('expr'), key: z.string().max(64).optional(), expr: z.string().min(1).max(512), label: z.string().max(64).optional() }),
+  z.object({ type: z.literal('derived'), key: z.string().max(64).optional(), kind: z.enum(['share', 'mom', 'yoy', 'cumsum', 'rank']), ref: z.string().min(1).max(64), label: z.string().max(64).optional() }),
 ]);
 const AGG_DIM = z.object({ field: z.string().min(1), label: z.string().max(64).optional(), granularity: z.string().max(16).optional() });
 const aggregateSchema = z.object({
@@ -145,7 +146,7 @@ async function assertFieldsRegistered(datasetId, body) {
   const ds = await datasetService.getDatasetOrThrow(datasetId);
   const names = new Set((ds.fields || []).map((f) => f.name));
   const bad = new Set();
-  for (const m of body.metrics || []) if (m.type !== 'expr' && !names.has(m.field)) bad.add(m.field);
+  for (const m of body.metrics || []) if (!['expr', 'derived'].includes(m.type) && !names.has(m.field)) bad.add(m.field);
   for (const d of body.dimensions || []) if (!names.has(d.field)) bad.add(d.field);
   for (const f of body.filters || []) if (!names.has(f.field)) bad.add(f.field);
   if (bad.size) throw new HttpError(422, `聚合包含未注册字段: ${[...bad].join(', ')}`);

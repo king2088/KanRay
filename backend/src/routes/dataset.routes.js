@@ -160,6 +160,13 @@ const querySchema = z.object({
       expr: z.string(),
       label: z.string().optional(),
     }),
+    z.object({
+      type: z.literal('derived'),
+      key: z.string().optional(),
+      kind: z.enum(['share', 'mom', 'yoy', 'cumsum', 'rank']),
+      ref: z.string(),
+      label: z.string().optional(),
+    }),
   ])).optional().default([]),
   filters: z.array(z.object({
     field: z.string(),

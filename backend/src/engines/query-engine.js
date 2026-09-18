@@ -2,7 +2,7 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow, getFieldsOrThrow } = require('../services/dataset.service');
 const sqlDataProvider = require('../datasources/sql-data-provider');
-const { normalizeMetrics, AGG_FUNCS } = require('./metrics');
+const { normalizeMetrics, applyDerived, AGG_FUNCS } = require('./metrics');
 
 const TIME_GRANULARITY = {
   day: '%Y-%m-%d',
@@ -106,9 +106,8 @@ async function aggregate(query) {
   const fields = await getFieldsOrThrow(query.datasetId);
   const fieldsByName = {};
   fields.forEach((f) => { fieldsByName[f.name] = f; });
-
-  const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fieldsByName));
-  const metrics = normalizeMetrics(query.metrics, { dialect: db.dialect, fieldsByName });
+const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fieldsByName));
+  const metrics = normalizeMetrics(query.metrics, { dialect: db.dialect, fieldsByName, dimensionCount: dimensions.length });
 
   if (metrics.length === 0) {
     throw new HttpError(400, '至少需要一个指标');
@@ -116,6 +115,7 @@ async function aggregate(query) {
 
   // 时间粒度处理（按当前 store 方言生成）
   const d = db.dialect;
+
   const dimSelects = [];
   const dimGroups = [];
   for (const dim of dimensions) {
@@ -130,12 +130,13 @@ async function aggregate(query) {
     dimGroups.push(`__dim_${dim.field}__`);
   }
 
-  // 指标表达式（普通 + 复合统一由归一化提供完整 SQL 片段）
+  // 指标表达式（普通 + 复合统一由归一化提供完整 SQL 片段；衍生指标无 SQL，予以后处理）
+  const sqlMetrics = metrics.filter((m) => m.sqlExpr);
   const metricSelects = [];
   const metricAliases = [];
-  for (let i = 0; i < metrics.length; i += 1) {
-    metricSelects.push(`${metrics[i].sqlExpr} AS ${metrics[i].alias}`);
-    metricAliases.push(metrics[i].alias);
+  for (let i = 0; i < sqlMetrics.length; i += 1) {
+    metricSelects.push(`${sqlMetrics[i].sqlExpr} AS ${sqlMetrics[i].alias}`);
+    metricAliases.push(sqlMetrics[i].alias);
   }
 
   const { where, params } = buildWhere(query.filters, fieldsByName);
@@ -185,7 +186,7 @@ async function aggregate(query) {
       row[`dim:${d.field}`] = { label: d.label, value: r[`__dim_${d.field}__`] };
       row[d.field] = r[`__dim_${d.field}__`];
     });
-    metrics.forEach((m, i) => {
+    sqlMetrics.forEach((m, i) => {
       const v = r[metricAliases[i]];
       row[m.field] = v;
       row[m.key] = v;
@@ -194,6 +195,9 @@ async function aggregate(query) {
     });
     return row;
   });
+
+  const derivedDefs = metrics.filter((m) => m.kind === 'derived');
+  const { warnings } = applyDerived(outputRows, dimensions, derivedDefs);
 
   return {
     dimensions: dimensions.map((d) => ({ field: d.field, label: d.label, granularity: d.granularity })),
@@ -204,8 +208,10 @@ async function aggregate(query) {
       agg: m.agg,
       label: m.label,
       ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+      ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
     })),
     rows: outputRows,
+    ...(warnings.length ? { warnings } : {}),
     elapsedMs,
     sql,
   };

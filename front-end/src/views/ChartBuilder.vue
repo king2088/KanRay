@@ -267,6 +267,12 @@ function dimLabel(d) {
 
 function metricLabel(m) {
   if (m.type === 'expr') return m.label || `公式 ${m.expr || ''}`
+  if (m.type === 'derived') {
+    if (m.label) return m.label
+    const kindLabel = { share: '占比', mom: '环比', yoy: '同比', cumsum: '累计', rank: '排名' }[m.kind] || m.kind
+    const ref = metrics.value.find((x) => x.key === m.ref)
+    return ref ? `${metricLabel(ref)}·${kindLabel}` : kindLabel
+  }
   const f = fields.value.find((x) => x.name === m.field)
   const agg = AGGS.find((x) => x.value === m.agg)?.label || m.agg
   return `${f ? f.label || f.name : m.field} (${agg})`
@@ -292,6 +298,7 @@ const chartSeriesNames = computed(() => {
   const m = metrics.value?.[0]
   if (!m) return []
   if (m.type === 'expr') return [m.label || m.expr || '公式指标']
+  if (m.type === 'derived') return [metricLabel(m)]
   if (m.field === '*' && m.agg === 'count') return ['数据行数']
   const f = fields.value.find((x) => x.name === m.field)
   return [`${f ? f.label || f.name : m.field}(${m.agg})`]
@@ -346,15 +353,19 @@ function removeItem(arr, i) {
   arr.splice(i, 1)
 }
 
-// 有效指标：普通指标需有字段；公式指标需有非空公式
+// 有效指标：普通指标需有字段；公式指标需有非空公式；衍生指标需有类型与引用
 function validMetrics() {
-  return metrics.value.filter((m) => (m.type === 'expr' ? m.expr && m.expr.trim() : m.field))
+  return metrics.value.filter((m) => {
+    if (m.type === 'expr') return !!m.expr && !!m.expr.trim()
+    if (m.type === 'derived') return !!m.kind && !!m.ref
+    return !!m.field
+  })
 }
 
 function metricToPayload(m) {
-  return m.type === 'expr'
-    ? { type: 'expr', key: m.key, expr: m.expr, label: m.label || metricLabel(m) }
-    : { type: 'base', key: m.key, field: m.field, agg: m.agg }
+  if (m.type === 'expr') return { type: 'expr', key: m.key, expr: m.expr, label: m.label || metricLabel(m) }
+  if (m.type === 'derived') return { type: 'derived', key: m.key, kind: m.kind, ref: m.ref, label: m.label || metricLabel(m) }
+  return { type: 'base', key: m.key, field: m.field, agg: m.agg }
 }
 
 function buildQuery() {

@@ -54,6 +54,7 @@
           <el-select v-model="m.type" style="width: 82px" placeholder="形态" @change="onTypeChange(m)">
             <el-option label="普通" value="base" />
             <el-option label="公式" value="expr" />
+            <el-option label="衍生" value="derived" />
           </el-select>
           <template v-if="m.type === 'expr'">
             <el-input v-model="m.label" placeholder="指标名称" style="flex: 0.9" />
@@ -64,6 +65,20 @@
               style="flex: 1.5"
             />
           </template>
+          <template v-else-if="m.type === 'derived'">
+            <el-select v-model="m.kind" style="width: 104px" placeholder="类型">
+              <el-option v-for="k in DERIVED_OPTIONS" :key="k.value" :label="k.label" :value="k.value" />
+            </el-select>
+            <el-select v-model="m.ref" style="flex: 1" placeholder="引用指标">
+              <el-option
+                v-for="b in derivedRefs(mi)"
+                :key="b.key"
+                :label="'$' + b.key + ' ' + (b.label || metricFieldLabel(b))"
+                :value="b.key"
+              />
+            </el-select>
+            <el-input v-model="m.label" placeholder="指标名称" style="flex: 0.9" />
+          </template>
           <template v-else>
             <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
               <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
@@ -73,6 +88,10 @@
             </el-select>
           </template>
           <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>
+        </div>
+        <div v-if="m.type === 'derived'" class="ref-row">
+          <span v-if="derivedError(m)" class="ref-error">{{ derivedError(m) }}</span>
+          <span v-else class="ref-hint">衍生指标基于前序普通/复合指标在结果行上计算</span>
         </div>
         <div v-if="m.type === 'expr'" class="ref-row">
           <span class="ref-label">引用前序普通指标：</span>
@@ -96,7 +115,7 @@
 
 <script setup>
 import { Plus, Delete, DataLine } from '@element-plus/icons-vue'
-import { AGG_OPTIONS } from '@/utils/chart-utils'
+import { AGG_OPTIONS, DERIVED_OPTIONS } from '@/utils/chart-utils'
 
 const props = defineProps({
   fields: { type: Array, default: () => [] },
@@ -165,19 +184,29 @@ function addBlank(target) {
   update()
 }
 
-// 公式指标：切换形态时清理字段/聚合，并给默认名称
+// 公式指标：切换形态时清理字段/聚合，并给默认名称；衍生指标设置默认类型
 function onTypeChange(m) {
   if (m.type === 'expr') {
     m.field = undefined
     m.agg = undefined
     if (!m.label) m.label = `公式${props.metrics.findIndex((x) => x === m) + 1}`
+  } else if (m.type === 'derived') {
+    m.field = undefined
+    m.agg = undefined
+    if (!m.kind) m.kind = 'share'
+    if (!m.label) m.label = `衍生${props.metrics.findIndex((x) => x === m) + 1}`
   }
   update()
 }
 
-// 公式可引用的普通指标（位于其之前）
+// 公式可引用的普通指标（位于其之前，仅 base）
 function referableFor(mi) {
-  return props.metrics.slice(0, mi).filter((x) => x.type !== 'expr')
+  return props.metrics.slice(0, mi).filter((x) => x.type !== 'expr' && x.type !== 'derived')
+}
+
+// 衍生指标可引用的前序普通/复合指标（base/expr）
+function derivedRefs(mi) {
+  return props.metrics.slice(0, mi).filter((x) => x.type !== 'derived')
 }
 
 // 校验公式引用是否可用（其余语法由后端白名单把关）
@@ -185,9 +214,21 @@ function exprError(m) {
   if (m.type !== 'expr') return ''
   const tokens = new Set(String(m.expr || '').match(/\$[A-Za-z_][A-Za-z0-9_]*/g) || [])
   for (const tok of tokens) {
-    if (!props.metrics.some((x) => x.type !== 'expr' && x.key === tok.slice(1))) return `引用 ${tok} 不存在`
+    if (!props.metrics.some((x) => x.type !== 'expr' && x.type !== 'derived' && x.key === tok.slice(1))) return `引用 ${tok} 不存在`
   }
   return ''
+}
+
+function derivedError(m) {
+  if (m.type !== 'derived') return ''
+  if (!derivedRefs(props.metrics.findIndex((x) => x === m)).length) return '需要先在上方添加普通/复合指标作为引用源'
+  if (!m.ref) return '请选择要引用的指标'
+  return ''
+}
+
+function metricFieldLabel(b) {
+  const f = props.fields.find((x) => x.name === b.field)
+  return f ? f.label || f.name : b.field || b.key || ''
 }
 
 function insertRef(m, b) {

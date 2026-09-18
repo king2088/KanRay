@@ -4,7 +4,7 @@ const providers = require('./providers');
 const { getDriverMeta, decryptConfig } = require('../services/datasource.service');
 const cache = require('../cache');
 const config = require('../config');
-const { normalizeMetrics } = require('../engines/metrics');
+const { normalizeMetrics, applyDerived } = require('../engines/metrics');
 
 const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE', in: 'IN' };
 
@@ -126,8 +126,9 @@ async function query(dataset, queryObj) {
     return { expr, alias: `dim_${i}` };
   });
 
-  const normMetrics = normalizeMetrics(queryObj.metrics, { dialect, fieldsByName: null });
-  const metricExprs = normMetrics.map((n, i) => ({ ...n, expr: n.sqlExpr, alias: `m_${i}` }));
+  const normMetrics = normalizeMetrics(queryObj.metrics, { dialect, fieldsByName: null, dimensionCount: (queryObj.dimensions || []).length });
+  const sqlMetrics = normMetrics.filter((m) => m.sqlExpr);
+  const metricExprs = sqlMetrics.map((n, i) => ({ ...n, expr: n.sqlExpr, alias: `m_${i}` }));
 
   const params = [];
   const whereClauses = (queryObj.filters || []).map((f) => {
@@ -176,7 +177,7 @@ async function query(dataset, queryObj) {
   const rows = await provider.runQuery(cfg, sql, params);
   const elapsedMs = Date.now() - start;
 
-  const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field }));
+  const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field, granularity: d.granularity }));
   const metrics = normMetrics.map((m) => ({
     key: m.key,
     kind: m.kind,
@@ -184,6 +185,7 @@ async function query(dataset, queryObj) {
     agg: m.agg,
     label: m.label,
     ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+    ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
   }));
 
   const outputRows = rows.map((r) => {
@@ -193,7 +195,7 @@ async function query(dataset, queryObj) {
       row[`dim:${d.field}`] = { label: d.label || d.field, value: v };
       row[d.field] = v;
     });
-    normMetrics.forEach((m, i) => {
+    sqlMetrics.forEach((m, i) => {
       const v = r[`m_${i}`];
       row[m.field] = v;
       row[m.key] = v;
@@ -203,7 +205,17 @@ async function query(dataset, queryObj) {
     return row;
   });
 
-  return { dimensions, metrics, rows: outputRows, elapsedMs, sql };
+  const derivedDefs = normMetrics.filter((m) => m.kind === 'derived');
+  const { warnings } = applyDerived(outputRows, dimensions, derivedDefs);
+
+  return {
+    dimensions,
+    metrics,
+    rows: outputRows,
+    ...(warnings.length ? { warnings } : {}),
+    elapsedMs,
+    sql,
+  };
 }
 
 /** 对子查询源执行图表聚合（复用现有聚合表达逻辑，仅 FROM 换成子查询） */
@@ -215,8 +227,9 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
     expr: d.granularity ? dialect.dateTrunc(d.field, d.granularity) : quote(d.field),
     alias: `dim_${i}`,
   }));
-  const normMetrics = normalizeMetrics(queryObj.metrics, { dialect, fieldsByName: null });
-  const metricExprs = normMetrics.map((n, i) => ({ ...n, expr: n.sqlExpr, alias: `m_${i}` }));
+  const normMetrics = normalizeMetrics(queryObj.metrics, { dialect, fieldsByName: null, dimensionCount: (queryObj.dimensions || []).length });
+  const sqlMetrics = normMetrics.filter((m) => m.sqlExpr);
+  const metricExprs = sqlMetrics.map((n, i) => ({ ...n, expr: n.sqlExpr, alias: `m_${i}` }));
   if (!metricExprs.length) throw new HttpError(400, '至少需要一个指标');
   const params2 = [...params];
   const whereClauses = (queryObj.filters || []).map((f) => {
@@ -264,7 +277,7 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
   const rows = await provider.runQuery(cfg, aggSql, params2);
   const elapsedMs = Date.now() - start;
 
-  const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field }));
+  const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field, granularity: d.granularity }));
   const metrics = normMetrics.map((m) => ({
     key: m.key,
     kind: m.kind,
@@ -272,6 +285,7 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
     agg: m.agg,
     label: m.label,
     ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+    ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
   }));
   const outputRows = rows.map((r) => {
     const row = {};
@@ -280,7 +294,7 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
       row[`dim:${d.field}`] = { label: d.label || d.field, value: v };
       row[d.field] = v;
     });
-    normMetrics.forEach((m, i) => {
+    sqlMetrics.forEach((m, i) => {
       const v = r[`m_${i}`];
       row[m.field] = v;
       row[m.key] = v;
@@ -289,7 +303,16 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
     });
     return row;
   });
-  return { dimensions, metrics, rows: outputRows, elapsedMs, sql: aggSql };
+  const derivedDefs = normMetrics.filter((m) => m.kind === 'derived');
+  const { warnings } = applyDerived(outputRows, dimensions, derivedDefs);
+  return {
+    dimensions,
+    metrics,
+    rows: outputRows,
+    ...(warnings.length ? { warnings } : {}),
+    elapsedMs,
+    sql: aggSql,
+  };
 }
 
 /**
