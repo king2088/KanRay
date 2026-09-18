@@ -49,14 +49,46 @@
         <el-icon class="add-icon" @click="addBlank('metrics')"><Plus /></el-icon>
       </div>
       <div v-if="!metrics.length" class="drop-hint">拖入字段作为指标</div>
-      <div v-for="(m, mi) in metrics" :key="mi" class="slot-row">
-        <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
-          <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-        </el-select>
-        <el-select v-model="m.agg" style="width: 95px">
-          <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
-        </el-select>
-        <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>
+      <div v-for="(m, mi) in metrics" :key="mi" class="metric-wrap">
+        <div class="slot-row">
+          <el-select v-model="m.type" style="width: 82px" placeholder="形态" @change="onTypeChange(m)">
+            <el-option label="普通" value="base" />
+            <el-option label="公式" value="expr" />
+          </el-select>
+          <template v-if="m.type === 'expr'">
+            <el-input v-model="m.label" placeholder="指标名称" style="flex: 0.9" />
+            <el-input
+              v-model="m.expr"
+              :class="{ 'is-invalid': exprError(m) }"
+              placeholder="公式，如 $m0 / $m1"
+              style="flex: 1.5"
+            />
+          </template>
+          <template v-else>
+            <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
+              <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
+            </el-select>
+            <el-select v-model="m.agg" style="width: 95px">
+              <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+            </el-select>
+          </template>
+          <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>
+        </div>
+        <div v-if="m.type === 'expr'" class="ref-row">
+          <span class="ref-label">引用前序普通指标：</span>
+          <el-tag
+            v-for="b in referableFor(mi)"
+            :key="b.key"
+            size="small"
+            effect="plain"
+            class="ref-tag"
+            @click="insertRef(m, b)"
+          >
+            {{ '$' + b.key }} {{ b.field || '' }}
+          </el-tag>
+          <span v-if="!referableFor(mi).length" class="ref-empty">（暂无，请先在上方添加普通指标）</span>
+          <span v-if="exprError(m)" class="ref-error">{{ exprError(m) }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -105,8 +137,8 @@ function onDrop(e, target) {
       update()
     }
   } else {
-    if (!props.metrics.some((m) => m.field === f.name)) {
-      props.metrics.push({ field: f.name, agg: f.type === 'date' ? 'count' : 'sum' })
+    if (!props.metrics.some((m) => m.type !== 'expr' && m.field === f.name)) {
+      props.metrics.push({ type: 'base', field: f.name, agg: f.type === 'date' ? 'count' : 'sum' })
       update()
     }
   }
@@ -120,8 +152,8 @@ function quickAdd(f) {
       update()
     }
   } else {
-    if (!props.metrics.some((m) => m.field === f.name)) {
-      props.metrics.push({ field: f.name, agg: props.dims.length === 0 && (f.type === 'number' || f.type === 'integer') ? 'sum' : 'sum' })
+    if (!props.metrics.some((m) => m.type !== 'expr' && m.field === f.name)) {
+      props.metrics.push({ type: 'base', field: f.name, agg: f.type === 'number' || f.type === 'integer' ? 'sum' : 'count' })
       update()
     }
   }
@@ -129,7 +161,38 @@ function quickAdd(f) {
 
 function addBlank(target) {
   if (target === 'dimensions') props.dims.push({ field: '', granularity: undefined })
-  else props.metrics.push({ field: '', agg: 'sum' })
+  else props.metrics.push({ type: 'base', field: '', agg: 'sum' })
+  update()
+}
+
+// 公式指标：切换形态时清理字段/聚合，并给默认名称
+function onTypeChange(m) {
+  if (m.type === 'expr') {
+    m.field = undefined
+    m.agg = undefined
+    if (!m.label) m.label = `公式${props.metrics.findIndex((x) => x === m) + 1}`
+  }
+  update()
+}
+
+// 公式可引用的普通指标（位于其之前）
+function referableFor(mi) {
+  return props.metrics.slice(0, mi).filter((x) => x.type !== 'expr')
+}
+
+// 校验公式引用是否可用（其余语法由后端白名单把关）
+function exprError(m) {
+  if (m.type !== 'expr') return ''
+  const tokens = new Set(String(m.expr || '').match(/\$[A-Za-z_][A-Za-z0-9_]*/g) || [])
+  for (const tok of tokens) {
+    if (!props.metrics.some((x) => x.type !== 'expr' && x.key === tok.slice(1))) return `引用 ${tok} 不存在`
+  }
+  return ''
+}
+
+function insertRef(m, b) {
+  const prefix = m.expr && m.expr.trim() ? `${m.expr.trim()} ` : ''
+  m.expr = `${prefix}$${b.key} `
   update()
 }
 
@@ -225,5 +288,46 @@ function removeItem(arr, i) {
   color: var(--app-danger);
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.metric-wrap {
+  margin-bottom: 8px;
+}
+
+.ref-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ref-label {
+  color: var(--app-text-secondary);
+  flex-shrink: 0;
+}
+
+.ref-tag {
+  cursor: pointer;
+}
+
+.ref-empty {
+  color: var(--app-text-secondary);
+}
+
+.ref-error {
+  color: var(--app-danger);
+  margin-left: 4px;
+}
+
+.ref-row :deep(.is-invalid .el-input__inner),
+.el-input.is-invalid .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--app-danger) inset;
+}
+
+.ref-row :deep(.is-invalid .el-input__inner) {
+  color: var(--app-danger);
 }
 </style>

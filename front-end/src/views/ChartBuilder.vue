@@ -75,8 +75,8 @@
               <el-table-column v-for="d in dims" :key="d.field" :label="dimLabel(d)">
                 <template #default="{ row }">{{ row[`dim:${d.field}`]?.value }}</template>
               </el-table-column>
-              <el-table-column v-for="m in metrics" :key="m.field + m.agg" :label="metricLabel(m)">
-                <template #default="{ row }">{{ row[`metric:${m.field}`]?.value }}</template>
+              <el-table-column v-for="m in metrics" :key="m.key || m.field" :label="metricLabel(m)">
+                <template #default="{ row }">{{ row[`metric:${m.key || m.field}`]?.value }}</template>
               </el-table-column>
             </el-table>
           </template>
@@ -221,7 +221,7 @@ const previewRows = ref([])
 const statData = ref(null)
 const progressValue = computed(() => {
   if (!isProgressType.value) return 0
-  const val = previewData.value?.rows?.[0]?.[`metric:${metrics.value[0]?.field}`]?.value || 0
+  const val = previewData.value?.rows?.[0]?.[`metric:${metrics.value[0]?.key}`]?.value || 0
   const max = progressMax()
   return max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0
 })
@@ -266,6 +266,7 @@ function dimLabel(d) {
 }
 
 function metricLabel(m) {
+  if (m.type === 'expr') return m.label || `公式 ${m.expr || ''}`
   const f = fields.value.find((x) => x.name === m.field)
   const agg = AGGS.find((x) => x.value === m.agg)?.label || m.agg
   return `${f ? f.label || f.name : m.field} (${agg})`
@@ -290,13 +291,14 @@ const chartSeriesNames = computed(() => {
   }
   const m = metrics.value?.[0]
   if (!m) return []
+  if (m.type === 'expr') return [m.label || m.expr || '公式指标']
   if (m.field === '*' && m.agg === 'count') return ['数据行数']
   const f = fields.value.find((x) => x.name === m.field)
   return [`${f ? f.label || f.name : m.field}(${m.agg})`]
 })
 
 function calcMultiRing(m) {
-  const val = previewData.value?.rows?.[0]?.[`metric:${m.field}`]?.value
+  const val = previewData.value?.rows?.[0]?.[`metric:${m.key || m.field}`]?.value
   const max = progressMax()
   return { val, pct: max > 0 ? Math.min(100, Math.round((val || 0) / max * 100)) : 0 }
 }
@@ -331,17 +333,28 @@ function onDrop(e, target) {
   if (target === 'dimensions') {
     if (!dims.value.some((d) => d.field === f.name)) dims.value.push({ field: f.name, granularity: f.type === 'date' ? 'day' : undefined })
   } else {
-    if (!metrics.value.some((m) => m.field === f.name)) metrics.value.push({ field: f.name, agg: f.type === 'date' ? 'count' : 'sum' })
+    if (!metrics.value.some((m) => m.type !== 'expr' && m.field === f.name)) metrics.value.push({ type: 'base', field: f.name, agg: f.type === 'date' ? 'count' : 'sum' })
   }
 }
 
 function addBlank(target) {
   if (target === 'dimensions') dims.value.push({ field: '', granularity: undefined })
-  else metrics.value.push({ field: '', agg: 'sum' })
+  else metrics.value.push({ type: 'base', field: '', agg: 'sum' })
 }
 
 function removeItem(arr, i) {
   arr.splice(i, 1)
+}
+
+// 有效指标：普通指标需有字段；公式指标需有非空公式
+function validMetrics() {
+  return metrics.value.filter((m) => (m.type === 'expr' ? m.expr && m.expr.trim() : m.field))
+}
+
+function metricToPayload(m) {
+  return m.type === 'expr'
+    ? { type: 'expr', key: m.key, expr: m.expr, label: m.label || metricLabel(m) }
+    : { type: 'base', key: m.key, field: m.field, agg: m.agg }
 }
 
 function buildQuery() {
@@ -349,9 +362,7 @@ function buildQuery() {
     dimensions: dims.value
       .filter((d) => d.field)
       .map((d) => ({ field: d.field, granularity: d.granularity || undefined })),
-    metrics: metrics.value
-      .filter((m) => m.field)
-      .map((m) => ({ field: m.field, agg: m.agg })),
+    metrics: validMetrics().map(metricToPayload),
     groupLimit: showOptions.groupLimit || undefined,
     sortBy: sortConfig.field === 'metric' ? 0 : sortConfig.field === 'dim' ? 'dim' : undefined,
     sortOrder: sortConfig.order,
@@ -360,7 +371,7 @@ function buildQuery() {
 
 async function loadPreview() {
   if (!datasetId.value) return
-  if (metrics.value.filter((m) => m.field).length === 0) {
+  if (validMetrics().length === 0) {
     previewData.value = null
     return
   }
@@ -370,7 +381,8 @@ async function loadPreview() {
     previewData.value = res
     previewRows.value = res.rows
     if (chartType.value === 'stat' || chartType.value === 'statTrend') {
-      statData.value = { value: res.rows[0]?.[`metric:${metrics.value[0].field}`]?.value, label: metricLabel(metrics.value[0]) }
+      const m = metrics.value[0]
+      statData.value = { value: res.rows[0]?.[`metric:${m.key}`]?.value, label: metricLabel(m) }
     }
   } finally {
     previewLoading.value = false
@@ -380,7 +392,8 @@ async function loadPreview() {
 async function save() {
   if (!chartName.value.trim()) return ElMessage.warning('请填写图表名称')
   if (!datasetId.value) return ElMessage.warning('请选择数据集')
-  if (metrics.value.length === 0) return ElMessage.warning('请至少添加一个指标')
+  const vs = validMetrics()
+  if (vs.length === 0) return ElMessage.warning('请至少添加一个指标')
   saving.value = true
   try {
     const payload = {
@@ -389,7 +402,7 @@ async function save() {
       datasetId: datasetId.value,
       config: {
         dimensions: dims.value.filter((d) => d.field).map((d) => ({ field: d.field, granularity: d.granularity || undefined })),
-        metrics: metrics.value.filter((m) => m.field).map((m) => ({ field: m.field, agg: m.agg })),
+        metrics: vs.map(metricToPayload),
         groupLimit: showOptions.groupLimit || undefined,
         sortBy: sortConfig.field === 'metric' ? 0 : sortConfig.field === 'dim' ? 'dim' : undefined,
         sortOrder: sortConfig.order,
@@ -427,7 +440,7 @@ async function loadEditing() {
   fields.value = (ds.fields || []).map((f) => ({ name: f.name, label: f.label, type: f.type }))
   const cfg = chart.config || {}
   dims.value = (cfg.dimensions || []).map((d) => ({ field: d.field, granularity: d.granularity }))
-  metrics.value = (cfg.metrics || []).map((m) => ({ field: m.field, agg: m.agg }))
+  metrics.value = (cfg.metrics || []).map((m) => ({ ...m }))
   if (cfg.options) {
     displayConfig.value = mergeWithDefaults({ ...cfg.options }, chartType.value)
   }
@@ -452,6 +465,17 @@ const debouncedConfigChange = debounce(() => {
 
 // 仅数据相关变更触发 loadPreview
 watch([dims, metrics, chartType, showOptions, sortConfig], debouncedPreview, { deep: true })
+
+// 指标 key/形态归一化：兼容旧版 {field,agg} 图表；确保每个指标有稳定 key 供公式引用
+let keySeq = 0
+const genKey = () => `m${++keySeq}`
+function ensureMetricShapes() {
+  metrics.value.forEach((m) => {
+    if (!m.key) m.key = genKey()
+    if (!m.type || !['base', 'expr'].includes(m.type)) m.type = 'base'
+  })
+}
+watch(metrics, ensureMetricShapes, { deep: true })
 // 切换图表类型时重置类型专属配置（保持公共配置不变）
 watch(chartType, (newType, oldType) => {
   if (!oldType || newType === oldType) return

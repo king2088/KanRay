@@ -4,6 +4,7 @@ const providers = require('./providers');
 const { getDriverMeta, decryptConfig } = require('../services/datasource.service');
 const cache = require('../cache');
 const config = require('../config');
+const { normalizeMetrics } = require('../engines/metrics');
 
 const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE', in: 'IN' };
 
@@ -125,17 +126,8 @@ async function query(dataset, queryObj) {
     return { expr, alias: `dim_${i}` };
   });
 
-  const metricExprs = (queryObj.metrics || []).map((m, i) => {
-    const agg = dialect.agg[m.agg] || 'COUNT';
-    let expr;
-    if (m.agg === 'count') expr = 'COUNT(*)';
-    else if (m.agg === 'count_distinct') {
-      expr = agg.includes('(') ? `${agg} ${quote(m.field)})` : `${agg}(${quote(m.field)})`;
-    } else {
-      expr = `${agg}(${quote(m.field)})`;
-    }
-    return { expr, alias: `m_${i}` };
-  });
+  const normMetrics = normalizeMetrics(queryObj.metrics, { dialect, fieldsByName: null });
+  const metricExprs = normMetrics.map((n, i) => ({ ...n, expr: n.sqlExpr, alias: `m_${i}` }));
 
   const params = [];
   const whereClauses = (queryObj.filters || []).map((f) => {
@@ -185,7 +177,14 @@ async function query(dataset, queryObj) {
   const elapsedMs = Date.now() - start;
 
   const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field }));
-  const metrics = (queryObj.metrics || []).map((m) => ({ field: m.field, agg: m.agg, label: m.label || m.field }));
+  const metrics = normMetrics.map((m) => ({
+    key: m.key,
+    kind: m.kind,
+    field: m.field,
+    agg: m.agg,
+    label: m.label,
+    ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+  }));
 
   const outputRows = rows.map((r) => {
     const row = {};
@@ -194,10 +193,12 @@ async function query(dataset, queryObj) {
       row[`dim:${d.field}`] = { label: d.label || d.field, value: v };
       row[d.field] = v;
     });
-    metrics.forEach((m, i) => {
+    normMetrics.forEach((m, i) => {
       const v = r[`m_${i}`];
       row[m.field] = v;
-      row[`metric:${m.field}`] = { label: m.label || m.field, agg: m.agg, value: v };
+      row[m.key] = v;
+      row[`metric:${m.field}`] = { label: m.label, agg: m.agg, value: v };
+      row[`metric:${m.key}`] = { label: m.label, agg: m.agg, value: v };
     });
     return row;
   });
@@ -214,14 +215,8 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
     expr: d.granularity ? dialect.dateTrunc(d.field, d.granularity) : quote(d.field),
     alias: `dim_${i}`,
   }));
-  const metricExprs = (queryObj.metrics || []).map((m, i) => {
-    const agg = dialect.agg[m.agg] || 'COUNT';
-    let expr;
-    if (m.agg === 'count') expr = 'COUNT(*)';
-    else if (m.agg === 'count_distinct') expr = agg.includes('(') ? `${agg} ${quote(m.field)})` : `${agg}(${quote(m.field)})`;
-    else expr = `${agg}(${quote(m.field)})`;
-    return { expr, alias: `m_${i}` };
-  });
+  const normMetrics = normalizeMetrics(queryObj.metrics, { dialect, fieldsByName: null });
+  const metricExprs = normMetrics.map((n, i) => ({ ...n, expr: n.sqlExpr, alias: `m_${i}` }));
   if (!metricExprs.length) throw new HttpError(400, '至少需要一个指标');
   const params2 = [...params];
   const whereClauses = (queryObj.filters || []).map((f) => {
@@ -270,7 +265,14 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
   const elapsedMs = Date.now() - start;
 
   const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field }));
-  const metrics = (queryObj.metrics || []).map((m) => ({ field: m.field, agg: m.agg, label: m.label || m.field }));
+  const metrics = normMetrics.map((m) => ({
+    key: m.key,
+    kind: m.kind,
+    field: m.field,
+    agg: m.agg,
+    label: m.label,
+    ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+  }));
   const outputRows = rows.map((r) => {
     const row = {};
     dimensions.forEach((d, i) => {
@@ -278,10 +280,12 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
       row[`dim:${d.field}`] = { label: d.label || d.field, value: v };
       row[d.field] = v;
     });
-    metrics.forEach((m, i) => {
+    normMetrics.forEach((m, i) => {
       const v = r[`m_${i}`];
       row[m.field] = v;
-      row[`metric:${m.field}`] = { label: m.label || m.field, agg: m.agg, value: v };
+      row[m.key] = v;
+      row[`metric:${m.field}`] = { label: m.label, agg: m.agg, value: v };
+      row[`metric:${m.key}`] = { label: m.label, agg: m.agg, value: v };
     });
     return row;
   });

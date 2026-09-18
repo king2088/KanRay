@@ -146,11 +146,21 @@ const querySchema = z.object({
     label: z.string().optional(),
     granularity: z.string().optional(),
   })).optional().default([]),
-  metrics: z.array(z.object({
-    field: z.string(),
-    agg: z.string(),
-    label: z.string().optional(),
-  })).optional().default([]),
+  metrics: z.array(z.union([
+    z.object({
+      type: z.literal('base').optional(),
+      key: z.string().optional(),
+      field: z.string(),
+      agg: z.string(),
+      label: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('expr'),
+      key: z.string().optional(),
+      expr: z.string(),
+      label: z.string().optional(),
+    }),
+  ])).optional().default([]),
   filters: z.array(z.object({
     field: z.string(),
     op: z.string(),

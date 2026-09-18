@@ -2,15 +2,7 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow, getFieldsOrThrow } = require('../services/dataset.service');
 const sqlDataProvider = require('../datasources/sql-data-provider');
-
-const AGG_FUNCS = {
-  sum: 'SUM',
-  avg: 'AVG',
-  count: 'COUNT',
-  count_distinct: 'COUNT(DISTINCT',
-  max: 'MAX',
-  min: 'MIN',
-};
+const { normalizeMetrics, AGG_FUNCS } = require('./metrics');
 
 const TIME_GRANULARITY = {
   day: '%Y-%m-%d',
@@ -18,19 +10,6 @@ const TIME_GRANULARITY = {
   month: '%Y-%m',
   year: '%Y',
 };
-
-/**
- * 校验一个指标配置
- */
-function normalizeMetric(metric, fieldsByName) {
-  const agg = metric.agg || 'count';
-  if (!AGG_FUNCS[agg]) throw new HttpError(400, `不支持的聚合: ${agg}`);
-  const field = metric.field === '*' && agg === 'count'
-    ? { name: '*', label: '数据行数' }
-    : fieldsByName[metric.field];
-  if (!field) throw new HttpError(400, `指标字段不存在: ${metric.field}`);
-  return { field: field.name, label: metric.label || `${field.label}(${agg})`, agg };
-}
 
 /**
  * 校验一个维度配置
@@ -129,7 +108,7 @@ async function aggregate(query) {
   fields.forEach((f) => { fieldsByName[f.name] = f; });
 
   const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fieldsByName));
-  const metrics = (query.metrics || []).map((m) => normalizeMetric(m, fieldsByName));
+  const metrics = normalizeMetrics(query.metrics, { dialect: db.dialect, fieldsByName });
 
   if (metrics.length === 0) {
     throw new HttpError(400, '至少需要一个指标');
@@ -151,25 +130,12 @@ async function aggregate(query) {
     dimGroups.push(`__dim_${dim.field}__`);
   }
 
-  // 指标表达式
+  // 指标表达式（普通 + 复合统一由归一化提供完整 SQL 片段）
   const metricSelects = [];
   const metricAliases = [];
   for (let i = 0; i < metrics.length; i += 1) {
-    const m = metrics[i];
-    let expr;
-    if (m.agg === 'count') {
-      expr = `${d.agg.count}(*)`;
-    } else if (m.agg === 'count_distinct') {
-      // COUNT(DISTINCT 以空格接列名（兼容 sqlite 快照）；uniqExact 等按函数调用
-      expr = d.agg.count_distinct === 'COUNT(DISTINCT'
-        ? `COUNT(DISTINCT ${d.quoteIdent(m.field)})`
-        : `${d.agg.count_distinct}(${d.quoteIdent(m.field)})`;
-    } else {
-      expr = `${d.agg[m.agg]}(${d.quoteIdent(m.field)})`;
-    }
-    const alias = `_m${i}`;
-    metricSelects.push(`${expr} AS ${alias}`);
-    metricAliases.push(alias);
+    metricSelects.push(`${metrics[i].sqlExpr} AS ${metrics[i].alias}`);
+    metricAliases.push(metrics[i].alias);
   }
 
   const { where, params } = buildWhere(query.filters, fieldsByName);
@@ -220,15 +186,25 @@ async function aggregate(query) {
       row[d.field] = r[`__dim_${d.field}__`];
     });
     metrics.forEach((m, i) => {
-      row[m.field] = r[metricAliases[i]];
-      row[`metric:${m.field}`] = { label: m.label, agg: m.agg, value: r[metricAliases[i]] };
+      const v = r[metricAliases[i]];
+      row[m.field] = v;
+      row[m.key] = v;
+      row[`metric:${m.field}`] = { label: m.label, agg: m.agg, value: v };
+      row[`metric:${m.key}`] = { label: m.label, agg: m.agg, value: v };
     });
     return row;
   });
 
   return {
     dimensions: dimensions.map((d) => ({ field: d.field, label: d.label, granularity: d.granularity })),
-    metrics: metrics.map((m) => ({ field: m.field, agg: m.agg, label: m.label })),
+    metrics: metrics.map((m) => ({
+      key: m.key,
+      kind: m.kind,
+      field: m.field,
+      agg: m.agg,
+      label: m.label,
+      ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+    })),
     rows: outputRows,
     elapsedMs,
     sql,
