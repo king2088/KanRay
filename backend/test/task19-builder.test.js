@@ -275,7 +275,7 @@ test('compileEtl dedup by columns outputs only those columns', () => {
   assert.deepEqual(out.fields.map((f) => f.name), ['__o__customer_id']);
 });
 
-test('compileEtl valueReplace CASE WHEN + params ordered after child params', () => {
+test('compileEtl valueReplace CASE WHEN + params in text order for positional dialects', () => {
   const def = {
     type: 'etl',
     nodes: [
@@ -286,10 +286,10 @@ test('compileEtl valueReplace CASE WHEN + params ordered after child params', ()
   };
   const { nodeSql } = buildSql.compileEtl(def, mysql, catalog());
   const out = nodeSql('n3');
-  // filter 的 `?` 在前，valueReplace 的 from/to 在后
-  assert.ok(out.params[0] === 100, JSON.stringify(out.params));
+  // mysql `?` 按文本顺序绑定：外层 SELECT 的 from/to 在子查询 WHERE 之前
+  assert.ok(out.params[0] === 'SHIPPED', JSON.stringify(out.params));
   assert.ok(out.sql.includes('CASE WHEN `__o__status` = ? THEN ? ELSE `__o__status` END AS `__o__status`'), out.sql);
-  assert.deepEqual(out.params, [100, 'SHIPPED', '已发货']);
+  assert.deepEqual(out.params, ['SHIPPED', '已发货', 100]);
 });
 
 test('compileEtl nullReplace generates COALESCE', () => {

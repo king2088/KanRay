@@ -267,7 +267,7 @@ router.post('/:id/build/preview-detail', requireUser, requirePermission('datasou
   const catalog = await resolveBuildContext(id, req, definition.tables || []);
   const { sql, params, fields } = buildSql.compileDetail(definition, dialect, catalog);
   const n = Math.min(200, Math.max(1, Math.floor(Number(limit) || 200)));
-  const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+  const execSql = buildSql.applyRowLimit(dialect, sql, n);
   const rows = await provider.runQuery(cfg, execSql, params);
   ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
 });
@@ -283,7 +283,7 @@ router.post('/:id/build/preview-aggregate', requireUser, requirePermission('data
   const catalog = await resolveBuildContext(id, req, definition.tables || []);
   const { sql, params, fields } = buildSql.compileDetail(merged, dialect, catalog);
   const n = Math.min(1000, Math.max(1, Math.floor(Number(limit) || 1000)));
-  const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+  const execSql = buildSql.applyRowLimit(dialect, sql, n);
   const rows = await provider.runQuery(cfg, execSql, params);
   ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
 });
@@ -300,7 +300,8 @@ router.post('/:id/build/preview-node', requireUser, requirePermission('datasourc
   try {
     const { sql, params, fields } = nodeSql(nodeId);
     const n = Math.min(200, Math.max(1, Math.floor(Number(limit) || 200)));
-    const execSql = dialect.limit ? dialect.limit(sql, n) : `${sql} LIMIT ${n}`;
+    // output 节点已自带 LIMIT，applyRowLimit 会取较小值，避免双 LIMIT
+    const execSql = buildSql.applyRowLimit(dialect, sql, n);
     const rows = await provider.runQuery(cfg, execSql, params);
     ok(res, { fields, rows: rows.slice(0, n), sql: execSql });
   } catch (e) {

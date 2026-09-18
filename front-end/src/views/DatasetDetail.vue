@@ -152,6 +152,7 @@ async function updateFieldLabel(row) {
   try {
     await datasetApi.updateFieldLabel(id, row.id, row.label.trim())
     ElMessage.success('字段别名已更新')
+    await loadRows()
   } catch (e) {
     await load()
   }

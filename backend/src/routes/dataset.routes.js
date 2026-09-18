@@ -109,6 +109,16 @@ router.patch('/:id', requireUser, requirePermission('dataset', 'update'), async 
   ok(res, ds, '重命名成功');
 });
 
+// POST /api/datasets/row-counts  (批量懒计算并落库 SQL 数据集行数；仅 row_count=0 的才重算)
+router.post('/row-counts', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
+  const schema = z.object({ ids: z.array(z.number().int().positive()).max(100).default([]) }).strict();
+  const parsed = schema.safeParse(req.body || {});
+  if (!parsed.success) throw new HttpError(400, '请求参数不正确', parsed.error.flatten());
+  const scope = await access.scopedWhere('dataset', req.user, rbac);
+  const counts = await datasetService.refreshRowCounts(parsed.data.ids, scope);
+  ok(res, { counts });
+});
+
 // GET /api/datasets/:id/rows  (分页预览数据)
 router.get('/:id/rows', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
   const id = Number(req.params.id);

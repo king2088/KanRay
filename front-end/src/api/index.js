@@ -21,7 +21,8 @@ export const datasetApi = {
   },
   remove: (id) => http.delete(`/datasets/${id}`),
   rename: (id, name) => http.patch(`/datasets/${id}`, { name }),
-  rows: (id, page, pageSize) => http.get(`/datasets/${id}/rows`, { params: { page, pageSize } }),
+  rows: (id, page, pageSize) => http.get(`/datasets/${id}/rows`, { params: { page, pageSize }, silent: true }),
+  rowCounts: (ids) => http.post('/datasets/row-counts', { ids }, { silent: true }),
   updateFieldLabel: (id, fieldId, label) => http.patch(`/datasets/${id}/fields/${fieldId}`, { label }),
   query: (id, payload) => http.post(`/datasets/${id}/query`, payload),
 }

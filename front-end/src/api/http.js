@@ -28,13 +28,13 @@ http.interceptors.response.use(
     const body = res.data
     if (body && body.code === 0) return body.data
     const msg = body?.message || '请求失败'
-    ElMessage.error(msg)
+    if (!config.silent) ElMessage.error(msg)
     return Promise.reject(new Error(msg))
   },
   async (err) => {
     const { response, config } = err
     if (!response) {
-      ElMessage.error(err?.message || '网络错误')
+      if (!config.silent) ElMessage.error(err?.message || '网络错误')
       return Promise.reject(err)
     }
     const body = response.data
@@ -52,7 +52,7 @@ http.interceptors.response.use(
         return Promise.reject(new Error('登录已失效'))
       }
     }
-    ElMessage.error(body?.message || `请求失败 (${response.status})`)
+    if (!config.silent) ElMessage.error(body?.message || `请求失败 (${response.status})`)
     return Promise.reject(err)
   }
 )

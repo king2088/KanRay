@@ -330,4 +330,38 @@ async function paginate(dataset, page, pageSize) {
   return { rows, total };
 }
 
-module.exports = { query, paginate, loadDataSourceContext };
+/**
+ * 仅统计 SQL 数据集输出行数（不取数据），用于列表「行数」懒计算并落库：
+ * - 带 build_definition：编译 ETL 输出节点 / builder 查询后，包一层派生表 COUNT(*)
+ * - 无 build_definition：直接 COUNT(*) 物理表
+ */
+async function countRows(dataset) {
+  const { ds, dialect, provider, cfg, dsConfig } = await loadDataSourceContext(dataset);
+
+  if (ds.build_definition) {
+    const def = JSON.parse(ds.build_definition);
+    let detail;
+    if (def.type === 'etl') {
+      const nodes = def.nodes || [];
+      const last = nodes[nodes.length - 1];
+      if (!last || last.nodeType !== 'output') throw new HttpError(400, 'ETL 定义缺少 output 节点');
+      const etlCatalog = await resolveEtlCatalog(dsConfig, provider, cfg, def);
+      const { nodeSql } = require('./build-sql').compileEtl(def, dialect, etlCatalog);
+      detail = nodeSql(last.nodeId);
+    } else {
+      detail = require('./build-sql').compileDetail({ ...def, aggregation: null }, dialect, []);
+    }
+    const sql = `SELECT COUNT(*) AS ${dialect.quoteIdent('__total')} FROM ( ${detail.sql} ) ${dialect.quoteIdent('__c')}`;
+    const rows = await provider.runQuery(cfg, sql, detail.params || []);
+    return rows.length ? Number(rows[0].__total ?? 0) : 0;
+  }
+
+  const quote = dialect.quoteIdent;
+  const schema = ds.schema_name;
+  const table = ds.table_name_ext;
+  const qualified = schema ? `${quote(schema)}.${quote(table)}` : quote(table);
+  const rows = await provider.runQuery(cfg, `SELECT COUNT(*) AS ${dialect.quoteIdent('__total')} FROM ${qualified}`, []);
+  return rows.length ? Number(rows[0].__total ?? 0) : 0;
+}
+
+module.exports = { query, paginate, countRows, loadDataSourceContext };

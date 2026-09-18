@@ -15,7 +15,7 @@
     <el-card shadow="never">
       <el-tabs v-model="activeMode" @tab-change="onTabChange">
         <el-tab-pane label="纯 SQL" name="sql" />
-        <el-tab-pane label="拖拉拽" name="drag" />
+        <el-tab-pane label="可视化" name="drag" />
         <el-tab-pane label="ETL" name="etl" />
       </el-tabs>
       <div class="builder-page__content">

@@ -1,16 +1,20 @@
 <template>
   <div class="etl-node-card" :class="{ 'etl-node-card--selected': selected, 'etl-node-card--error': error }">
+    <Handle v-if="node.nodeType !== 'source'" type="target" :position="Position.Left" id="left" />
+    <Handle v-if="node.nodeType === 'join'" type="target" :position="Position.Left" id="right" class="handle-handle--right" />
     <div class="etl-node-card__icon" :style="{ background: nodeColor }">{{ NODE_ICON[node.nodeType] }}</div>
     <div class="etl-node-card__body">
       <div class="etl-node-card__title">{{ NODE_TITLE[node.nodeType] }}</div>
       <div class="etl-node-card__desc">{{ desc }}</div>
       <div v-if="error" class="etl-node-card__error">{{ error }}</div>
     </div>
+    <Handle v-if="node.nodeType !== 'output'" type="source" :position="Position.Right" id="source" />
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { Handle, Position } from '@vue-flow/core'
 
 const props = defineProps({ node: { type: Object, required: true }, error: { type: String, default: null }, selected: { type: Boolean, default: false }, nodeColor: { type: String, default: '#409eff' } })
 

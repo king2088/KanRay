@@ -41,6 +41,7 @@
           </div>
         </div>
       </div>
+      <el-alert type="info" :closable="false" show-icon style="margin-top: 10px" title="Excel / CSV 文件数据源不支持 Schema 浏览，请在数据集列表中管理并预览数据" />
     </el-card>
 
     <el-card v-if="ds && ds.type !== 'excel' && ds.mode === 'sync'" shadow="never" style="margin-bottom: 16px">
@@ -235,7 +236,7 @@ async function load() {
   loading.value = true
   try {
     ds.value = await datasourceApi.get(route.params.id)
-    schemas.value = await datasourceApi.schemas(route.params.id)
+    if (ds.value.type !== 'excel') schemas.value = await datasourceApi.schemas(route.params.id)
     if (ds.value.mode === 'sync') { await loadTasks(); schedulePoll() }
   } finally { loading.value = false }
 }

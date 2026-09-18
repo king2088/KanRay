@@ -57,13 +57,13 @@
             <div class="cell-name">
               <div class="cell-name__icon"><DbIcon v-if="row.source_type === 'sql'" :type="row.db_type" :size="16" /><el-icon v-else :size="16"><Files /></el-icon></div>
               <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
-              <el-tag v-if="row.source_type === 'sql'" type="success"  effect="plain" style="margin-left: 4px">数据库</el-tag>
             </div>
           </template>
         </el-table-column>
         <el-table-column prop="row_count" label="行数" width="130" align="center">
           <template #default="{ row }">
-            <span class="cell-num">{{ (row.row_count || 0).toLocaleString('zh-CN') }}</span>
+            <span v-if="countingIds.has(row.id)" class="cell-muted">…</span>
+            <span v-else class="cell-num">{{ (row.row_count || 0).toLocaleString('zh-CN') }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="column_count" label="列数" width="90" align="center" />
@@ -81,6 +81,9 @@
           <template #default="{ row }">
             <el-button link type="primary"  @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
             <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary"  @click="openEditBuild(row)">编辑构建</el-button>
+            <el-tooltip v-else-if="row.source_type === 'excel'" content="Excel 数据集不支持构建，请重新上传文件" placement="top">
+              <span style="display:inline-flex"><el-button link type="primary" disabled>编辑构建</el-button></span>
+            </el-tooltip>
             <el-button link type="primary"  @click="openRename(row)">重命名</el-button>
             <el-button link type="danger"  @click="remove(row)">删除</el-button>
           </template>
@@ -133,6 +136,7 @@ const total = ref(0)
 const renameVisible = ref(false)
 const renameName = ref('')
 const renaming = ref(false)
+const countingIds = ref(new Set())
 let renamingId = null
 
 const filtered = computed(() => {
@@ -152,6 +156,22 @@ async function load() {
     total.value = res.total
   } finally {
     loading.value = false
+    enrichRowCounts()
+  }
+}
+
+async function enrichRowCounts() {
+  const pending = datasets.value.filter((d) => !d.row_count && d.datasource_id).map((d) => d.id)
+  if (!pending.length) return
+  countingIds.value = new Set(pending)
+  try {
+    const res = await datasetApi.rowCounts(pending)
+    const counts = res && res.counts ? res.counts : {}
+    datasets.value = datasets.value.map((d) => (counts[d.id] != null ? { ...d, row_count: counts[d.id] } : d))
+  } catch {
+    // datasource unavailable — keep 0
+  } finally {
+    countingIds.value = new Set()
   }
 }
 

@@ -39,12 +39,12 @@ function nextTableName() {
   return `ds_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 }
 
-async function listDatasets(where = '') {
+async function listDatasets(where = '', params = []) {
   const cond = where.replace(/\bowner_id\b/g, 'd.owner_id');
   const sql = `SELECT d.*, COALESCE(ds.type, '') AS db_type
     FROM datasets d LEFT JOIN data_sources ds ON ds.id = d.datasource_id
     ${cond ? ' WHERE ' + cond : ''} ORDER BY d.created_at DESC, d.id DESC`;
-  return (await db.prepare(sql).all());
+  return (await db.prepare(sql).all(...params));
 }
 
 async function getDataset(id) {
@@ -281,7 +281,7 @@ async function saveBuiltDataset({ name, definition, datasourceId, datasetId, own
     const safeName = String(name || exist.name || '未命名数据集').trim().slice(0, 100);
     const firstTable = (definition.tables && definition.tables[0]) || null;
     const upd = await db.prepare(
-      `UPDATE datasets SET name = ?, build_definition = ?, column_count = ?, table_name = ?, schema_name = ?, table_name_ext = ? WHERE id = ?`
+      `UPDATE datasets SET name = ?, build_definition = ?, column_count = ?, table_name = ?, schema_name = ?, table_name_ext = ?, row_count = 0 WHERE id = ?`
     );
     const delFields = await db.prepare('DELETE FROM dataset_fields WHERE dataset_id = ?');
     await db.transaction(async () => {
@@ -325,6 +325,49 @@ async function saveBuiltDataset({ name, definition, datasourceId, datasetId, own
   return getDataset(datasetId2);
 }
 
+/**
+ * 批量懒计算并回写 SQL 数据集行数（列表「行数」统计）：
+ * - 仅处理 source_type='sql'、row_count=0 且已绑定数据源的数据集
+ * - 并发小池执行，避免打爆外部数据源；单条失败（数据源离线等）跳过，保持 0 待下次重试
+ * - scope 为访问控制谓词（与列表页同款），限制可计算范围
+ * 返回 { id: row_count } 映射。
+ */
+async function refreshRowCounts(ids, scope = '') {
+  const out = {};
+  const unique = [...new Set((ids || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  if (!unique.length) return out;
+  const placeholders = unique.map(() => '?').join(',');
+  const cond = [
+    `d.id IN (${placeholders})`,
+    `d.source_type = 'sql'`,
+    `d.row_count = 0`,
+    `d.datasource_id IS NOT NULL`,
+    scope ? `(${scope})` : '',
+  ].filter(Boolean).join(' AND ');
+  const targets = await listDatasets(cond, unique);
+  if (!targets.length) return out;
+
+  const sqlDataProvider = require('../datasources/sql-data-provider');
+  const upd = db.prepare('UPDATE datasets SET row_count = ? WHERE id = ?');
+  const CONCURRENCY = 3;
+  let i = 0;
+  const worker = async () => {
+    while (i < targets.length) {
+      const target = targets[i++];
+      try {
+        const count = await sqlDataProvider.countRows(target);
+        await upd.run(count, target.id);
+        out[target.id] = count;
+      } catch (e) {
+        console.warn(`[row-count] 数据集 ${target.id} 计数失败: ${(e && e.message) || e}`);
+        out[target.id] = 0;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targets.length) }, () => worker()));
+  return out;
+}
+
 module.exports = {
   listDatasets,
   getDataset,
@@ -337,6 +380,7 @@ module.exports = {
   renameDataset,
   updateFieldLabel,
   paginateRows,
+  refreshRowCounts,
   registerSqlDataset,
   saveBuiltDataset,
 };

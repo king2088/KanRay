@@ -28,6 +28,9 @@
         @node-click="onNodeClick"
         @node-drag-stop="onDragStop"
         @edge-click="onEdgeClick"
+        @node-context-menu="onNodeContextMenu"
+        @edge-context-menu="onEdgeContextMenu"
+        @pane-context-menu="onPaneContextMenu"
       >
         <Background :gap="16" pattern-color="var(--app-border)" />
         <template #node-etlNode="{ data }">
@@ -39,7 +42,6 @@
         <div class="etl-toolbar-group">
           <el-tooltip content="放大" placement="left"><button class="etl-canvas-toolbar__btn" @click="zoomIn()">+</button></el-tooltip>
           <el-tooltip content="缩小" placement="left"><button class="etl-canvas-toolbar__btn" @click="zoomOut()">-</button></el-tooltip>
-          <el-tooltip content="适应画布" placement="left"><button class="etl-canvas-toolbar__btn" @click="fitView({ padding: 0.2 })">⊞</button></el-tooltip>
         </div>
         <div class="etl-toolbar-divider" />
         <div class="etl-toolbar-group">
@@ -48,12 +50,16 @@
           <el-tooltip content="自动布局" placement="left"><button class="etl-canvas-toolbar__btn" @click="autoLayout">⊞</button></el-tooltip>
         </div>
       </div>
+
+      <div v-if="ctxMenu.visible" class="etl-ctx-menu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }">
+        <div class="etl-ctx-menu__item" @click="ctxMenuDelete">{{ ctxMenu.kind === 'node' ? '删除节点' : '删除连线' }}</div>
+      </div>
     </div>
 
     <el-drawer
       v-model="drawerVisible"
       direction="rtl"
-      size="380px"
+      size="500px"
       :show-close="true"
       :with-header="true"
       :z-index="2000"
@@ -67,10 +73,6 @@
       </template>
 
       <template v-if="activeNode">
-        <div class="drawer-toolbar" style="margin-bottom:16px">
-          <el-button v-if="canDelete(activeNode)"  type="danger" plain @click="deleteNode(activeNode.nodeId)">删除节点</el-button>
-        </div>
-
         <template v-if="activeNode.nodeType === 'source'">
           <div class="drawer-field">表
             <el-select v-model="activeNode._tableValue"  filterable @change="onSourceChange">
@@ -89,7 +91,7 @@
           </div>
           <div class="drawer-field">关联节点（右侧输入）
             <el-select v-model="activeNode.rightNodeId"  filterable clearable @change="onRightNodeChange">
-              <el-option v-for="s in sourceNodeOptions" :key="s.nodeId" :label="`${s.alias} (${s.schema}.${s.table})`" :value="s.nodeId" />
+              <el-option v-for="s in rightNodeOptions" :key="s.nodeId" :label="rightNodeLabel(s)" :value="s.nodeId" />
             </el-select>
           </div>
           <div v-if="!activeNode.rightNodeId" class="drawer-field">关联表（旧式）
@@ -97,94 +99,167 @@
               <el-option v-for="t in tableOptions" :key="t.id" :label="t.label" :value="t.id" />
             </el-select>
           </div>
-          <div v-for="(c, i) in activeNode.on" :key="i" class="drawer-field">
-            目标:
-            <el-select v-model="c.to.field"  style="width: 120px" @change="emitChange">
-              <el-option v-for="f in joinTargetFields" :key="f.pref" :label="f.pref" :value="f.name" />
-            </el-select>
-            = 源字段:
-            <el-select v-model="c.from.field"  style="width: 120px" @change="emitChange">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.name" />
-            </el-select>
-            <el-button link  type="danger" @click="activeNode.on.splice(i, 1); emitChange()">删</el-button>
-          </div>
+          <el-table :data="activeNode.on" size="small" class="drawer-table">
+            <el-table-column label="目标字段" min-width="150">
+              <template #default="{ row }">
+                <el-select v-model="row.to"  filterable @change="emitChange">
+                  <el-option v-for="f in joinTargetFields" :key="f.pref" :label="f.pref" :value="f.pref" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="运算符" width="76" align="center">
+              <template #default="{ row }"><span class="drawer-join-op">=</span></template>
+            </el-table-column>
+            <el-table-column label="源字段" min-width="150">
+              <template #default="{ row }">
+                <el-select v-model="row.from"  filterable @change="emitChange">
+                  <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="56" align="center">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="activeNode.on.splice($index, 1); emitChange()">删</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
           <el-button  @click="addJoinCondition">+ 条件</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'filter'">
-          <div v-for="(c, i) in activeNode.conditions" :key="i" class="drawer-field">
-            <el-select v-model="c.field.alias"  style="width: 65px" @change="emitChange">
-              <el-option v-for="t in chainTables" :key="t.alias" :label="t.alias" :value="t.alias" />
-            </el-select>
-            <el-select v-model="c.field.field"  style="width: 110px" @change="emitChange">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.name" />
-            </el-select>
-            <el-select v-model="c.op"  style="width: 85px" @change="emitChange">
-              <el-option v-for="o in STRING_OPS" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-            <el-input v-model="c.value"  style="width: 110px" @change="emitChange" />
-            <el-button link  type="danger" @click="activeNode.conditions.splice(i, 1); emitChange()">删</el-button>
-          </div>
-          <el-button  @click="activeNode.conditions.push({ field: { alias: 't0', field: '' }, op: 'eq', value: '' }); emitChange()">+ 条件</el-button>
+          <el-table :data="activeNode.conditions" size="small" class="drawer-table">
+            <el-table-column label="列名" min-width="150">
+              <template #default="{ row }">
+                <el-select v-model="row.field"  filterable @change="emitChange">
+                  <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="运算符" width="96">
+              <template #default="{ row }">
+                <el-select v-model="row.op"  style="width: 100%" @change="emitChange">
+                  <el-option v-for="o in STRING_OPS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="值" min-width="110">
+              <template #default="{ row }">
+                <el-input v-model="row.value"  @change="emitChange" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="56" align="center">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="activeNode.conditions.splice($index, 1); emitChange()">删</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button  @click="activeNode.conditions.push({ field: '', op: 'eq', value: '' }); emitChange()">+ 条件</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'aggregate'">
           <div class="drawer-field">分组
-            <el-select v-model="activeNode.groupBy" multiple collapse-tags filterable  style="width: 100%" @change="emitChange">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+            <el-select v-model="activeNode.groupBy" multiple collapse-tags collapse-tags-tooltip filterable :max-collapse-tags="3" style="width: 100%" @change="emitChange">
+              <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
           </div>
-          <div v-for="(m, i) in activeNode.metrics" :key="i" class="drawer-field">
-            <el-select v-model="m.agg"  style="width: 110px" @change="emitChange">
-              <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
-            </el-select>
-            <el-select v-if="m.agg !== 'count'" v-model="m.field"  style="width: 130px" filterable @change="emitChange">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.name" />
-            </el-select>
-            <el-button link  type="danger" @click="activeNode.metrics.splice(i, 1); emitChange()">删</el-button>
-          </div>
+          <el-table :data="activeNode.metrics" size="small" class="drawer-table">
+            <el-table-column label="#" width="40" align="center">
+              <template #default="{ $index }"><span class="drawer-metric-seq">{{ $index + 1 }}</span></template>
+            </el-table-column>
+            <el-table-column label="聚合方式" width="132">
+              <template #default="{ row }">
+                <el-select v-model="row.agg" style="width: 100%" @change="emitChange">
+                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="字段" min-width="140">
+              <template #default="{ row }">
+                <el-select v-if="row.agg !== 'count'" v-model="row.field" filterable style="width: 100%" @change="emitChange">
+                  <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+                </el-select>
+                <span v-else class="drawer-metric-seq">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="56" align="center">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="activeNode.metrics.splice($index, 1); emitChange()">删</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
           <el-button  @click="activeNode.metrics.push({ agg: 'sum', field: '' }); emitChange()">+ 指标</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'columnSelect'">
           <div class="drawer-field">选择输出列
-            <el-select v-model="activeNode.columns" multiple collapse-tags filterable  style="width: 100%" @change="emitChange">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+            <el-select v-model="activeNode.columns" multiple collapse-tags collapse-tags-tooltip filterable :max-collapse-tags="3" style="width: 100%" @change="emitChange">
+              <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
           </div>
         </template>
 
         <template v-if="activeNode.nodeType === 'dedup'">
           <div class="drawer-field">按列去重（不选则全列）
-            <el-select v-model="activeNode.columns" multiple collapse-tags filterable clearable  style="width: 100%" @change="emitChange">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+            <el-select v-model="activeNode.columns" multiple collapse-tags collapse-tags-tooltip filterable clearable :max-collapse-tags="3" style="width: 100%" @change="emitChange">
+              <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
           </div>
         </template>
 
         <template v-if="activeNode.nodeType === 'valueReplace'">
-          <div v-for="(m, i) in activeNode.mappings" :key="i" class="drawer-field">
-            <el-select v-model="m.field"  style="width: 120px" filterable @change="onValueReplaceFieldChange(m)">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
-            </el-select>
-            为
-            <el-input v-model="m.from"  style="width: 85px" placeholder="原值" @change="emitChange" />
-            →
-            <el-input v-model="m.to"  style="width: 85px" placeholder="新值" @change="emitChange" />
-            <el-button link  type="danger" @click="activeNode.mappings.splice(i, 1); emitChange()">删</el-button>
-          </div>
+          <el-table :data="activeNode.mappings" size="small" class="drawer-table">
+            <el-table-column label="列名" min-width="140">
+              <template #default="{ row }">
+                <el-select v-model="row.field"  filterable @change="emitChange">
+                  <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="原值" min-width="96">
+              <template #default="{ row }">
+                <el-input v-model="row.from"  placeholder="原值" @change="emitChange" />
+              </template>
+            </el-table-column>
+            <el-table-column label="→" width="40" align="center">
+              <template #default="{ row }"><span class="drawer-join-op">→</span></template>
+            </el-table-column>
+            <el-table-column label="新值" min-width="96">
+              <template #default="{ row }">
+                <el-input v-model="row.to"  placeholder="新值" @change="emitChange" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="56" align="center">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="activeNode.mappings.splice($index, 1); emitChange()">删</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
           <el-button  @click="activeNode.mappings.push({ field: '', from: '', to: '' }); emitChange()">+ 替换规则</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'nullReplace'">
-          <div v-for="(m, i) in activeNode.mappings" :key="i" class="drawer-field">
-            <el-select v-model="m.field"  style="width: 120px" filterable @change="onNullReplaceFieldChange(m)">
-              <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
-            </el-select>
-            Null →
-            <el-input v-model="m.to"  style="width: 120px" placeholder="默认值" @change="emitChange" />
-            <el-button link  type="danger" @click="activeNode.mappings.splice(i, 1); emitChange()">删</el-button>
-          </div>
+          <el-table :data="activeNode.mappings" size="small" class="drawer-table">
+            <el-table-column label="列名" min-width="160">
+              <template #default="{ row }">
+                <el-select v-model="row.field"  filterable @change="emitChange">
+                  <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="Null →" width="86" align="center">
+              <template #default="{ row }"><span class="drawer-join-op">Null →</span></template>
+            </el-table-column>
+            <el-table-column label="默认值" min-width="120">
+              <template #default="{ row }">
+                <el-input v-model="row.to"  placeholder="默认值" @change="emitChange" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="56" align="center">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="activeNode.mappings.splice($index, 1); emitChange()">删</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
           <el-button  @click="activeNode.mappings.push({ field: '', to: '' }); emitChange()">+ 替换规则</el-button>
         </template>
 
@@ -198,8 +273,12 @@
 
         <template v-if="activeNode.nodeType === 'sqlNode'">
           <div class="drawer-field" style="flex-direction:column;align-items:stretch">
-            <span style="margin-bottom:4px;font-size:12px;color:var(--app-text-secondary)">自定义 SQL（可用 <code>__etl_prev</code> 引用上游子查询）</span>
-            <el-input v-model="activeNode.sql" type="textarea" :rows="4"  placeholder="SELECT * FROM __etl_prev WHERE ..." @change="emitChange" />
+            <div style="margin-bottom:4px;font-size:12px;color:var(--app-text-secondary);line-height:1.7">
+              <div>用 SQL 继续加工数据：</div>
+              <div>· 有输入线连接上游节点时，<code>__etl_prev</code> 就代表上游节点的数据，可像查表一样用（如 <code>FROM __etl_prev</code>）；</div>
+              <div>· 没有接上游节点时，SQL 会直接查询数据源里的真实表。</div>
+            </div>
+            <SqlCodeMirror v-model="activeNode.sql" :catalog="schemas" placeholder="SELECT * FROM __etl_prev WHERE ..." class="etl-sql-editor" @update:model-value="emitChange" />
           </div>
         </template>
 
@@ -216,9 +295,9 @@
         </div>
 
         <div class="drawer-section-title" style="margin-top:12px">节点预览</div>
-        <el-table v-if="nodePreview.length" :data="nodePreview"  max-height="320">
-          <el-table-column v-for="c in nodePreviewCols" :key="c" :prop="c" :label="c" min-width="110" show-overflow-tooltip />
-        </el-table>
+        <div v-if="nodePreview.length" ref="previewWrapRef" class="drawer-preview-table">
+          <TableV2 :columns="previewCols" :data="nodePreview" :width="previewWidth" :height="320" :row-height="36" />
+        </div>
         <el-empty v-else :description="activeNode ? '点击「预览此节点」查看真实数据' : ''" :image-size="60" />
       </template>
     </el-drawer>
@@ -226,13 +305,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { VueFlow, useVueFlow, MarkerType } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import { ElMessage } from 'element-plus'
+import { ElMessage, TableV2 } from 'element-plus'
 import { buildApi } from '@/api'
 import { allFields, AGG_OPTIONS, STRING_OPS } from '@/utils/catalog'
 import EtlNodeCard from './EtlNodeCard.vue'
+import SqlCodeMirror from './SqlCodeMirror.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 
@@ -256,8 +336,6 @@ const NODE_META = {
   sqlNode: { label: 'SQL', short: 'SQL', color: '#34495e' },
 }
 const NODE_ORDER = ['source', 'join', 'filter', 'columnSelect', 'dedup', 'valueReplace', 'nullReplace', 'trim', 'sqlNode', 'aggregate', 'output']
-const TRANSFORM_TYPES = new Set(['join', 'filter', 'columnSelect', 'dedup', 'valueReplace', 'nullReplace', 'trim', 'sqlNode', 'aggregate'])
-
 const nodes = ref([])
 const past = ref([])
 const future = ref([])
@@ -267,6 +345,17 @@ const nodePreview = ref([])
 const nodePreviewCols = ref([])
 const nodeError = ref({})
 const drawerVisible = ref(false)
+const previewWrapRef = ref(null)
+const previewWidth = ref(460)
+const previewCols = computed(() => nodePreviewCols.value.map((c) => ({ key: c, title: c, dataKey: c, width: 150 })))
+watch(nodePreview, async () => { await nextTick(); measurePreviewWidth() })
+function measurePreviewWidth() {
+  if (previewWrapRef.value) {
+    const w = Math.floor(previewWrapRef.value.clientWidth)
+    if (w >= 200) previewWidth.value = w
+  }
+}
+const ctxMenu = reactive({ visible: false, x: 0, y: 0, kind: null, target: null }) // kind: 'node' | 'edge'
 
 const { screenToFlowCoordinate, fitView, zoomIn, zoomOut } = useVueFlow()
 
@@ -290,8 +379,11 @@ const tableOptions = computed(() => {
   for (const s of schemas.value) for (const t of s.tables || []) out.push({ id: `${s.schema}:${t.table}`, label: `${s.schema}.${t.table}`, schema: s.schema, table: t.table })
   return out
 })
-const chainTables = computed(() => nodes.value.filter((n) => n.nodeType === 'source').map((n) => ({ alias: n.alias, schema: n.schema, table: n.table })))
-const sourceNodeOptions = computed(() => nodes.value.filter((n) => n.nodeType === 'source'))
+const rightNodeOptions = computed(() => nodes.value.filter((n) => n.nodeType !== 'output'))
+const rightNodeLabel = (n) => {
+  if (n.nodeType === 'source') return `${n.alias} (${n.schema}.${n.table})`
+  return `${n.alias ? `${n.alias} ` : ''}${nodeTitle(n)} 输出`
+}
 const joinTargetFields = computed(() => {
   if (!activeNode.value || activeNode.value.nodeType !== 'join') return []
   if (activeNode.value.rightNodeId) {
@@ -312,20 +404,24 @@ const flowNodes = computed(() => nodes.value.map((n) => ({
 const flowEdges = computed(() => {
   const edges = []
   for (const n of nodes.value) {
-    if (n.sourceNode && n.nodeType !== 'source') {
+    if (n.sourceNode && n.nodeType !== 'source' && n.sourceNode !== n.nodeId) {
       edges.push({
         id: `e_${n.sourceNode}_${n.nodeId}`,
         source: n.sourceNode,
         target: n.nodeId,
+        sourceHandle: 'source',
+        targetHandle: 'left',
         type: 'smoothstep',
         markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
       })
     }
-    if (n.rightNodeId && n.nodeType === 'join') {
+    if (n.rightNodeId && n.nodeType === 'join' && n.rightNodeId !== n.nodeId) {
       edges.push({
         id: `e_${n.rightNodeId}_${n.nodeId}_r`,
         source: n.rightNodeId,
         target: n.nodeId,
+        sourceHandle: 'source',
+        targetHandle: 'right',
         type: 'smoothstep',
         markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
         style: { stroke: '#909399', strokeDasharray: '5,5' },
@@ -337,8 +433,6 @@ const flowEdges = computed(() => {
 
 function nodeColor(n) { return NODE_META[n.nodeType]?.color || '#409eff' }
 function nodeTitle(n) { return NODE_META[n.nodeType]?.label || n.nodeType }
-
-function canDelete(n) { return TRANSFORM_TYPES.has(n.nodeType) }
 
 function stripInternal(nodesArr) {
   return JSON.parse(JSON.stringify(nodesArr)).map((n) => {
@@ -407,19 +501,54 @@ function etlOutputFields(nodeOrId) {
   }
 }
 
-/* ---- 固定链约束 ---- */
+/* ---- 自由连线约束 ---- */
+let lastOccupiedWarn = 0
+function warnOccupied() {
+  const now = Date.now()
+  if (now - lastOccupiedWarn > 800) {
+    lastOccupiedWarn = now
+    ElMessage.warning('该节点已有一个上游输入，请先删除原连线，或用「关联」节点做多路合并')
+  }
+}
 function isValidConnection(c) {
   const from = defNode(c.source)
   const to = defNode(c.target)
   if (!from || !to || from.nodeId === to.nodeId) return false
   if (from.nodeType === 'output' || to.nodeType === 'source') return false
-  if (to.sourceNode && to.sourceNode !== from.nodeId) return false
-  let cur = from
-  while (cur) {
-    if (cur.nodeId === to.nodeId) return false
-    cur = cur.sourceNode ? defNode(cur.sourceNode) : null
+  const isRight = c.targetHandle === 'right'
+  // 右输入手柄只能接 join 节点
+  if (isRight && to.nodeType !== 'join') return false
+  // 单值输入：目标对应输入（左 sourceNode / 右 rightNodeId）若已被其他节点占用则拒绝
+  const occupied = isRight ? to.rightNodeId : to.sourceNode
+  if (occupied && occupied !== from.nodeId) {
+    warnOccupied()
+    return false
+  }
+  // 不允许回环：from 的上游祖先链（含 join 右输入）上不能出现 to
+  const stack = [from.nodeId]
+  const seen = new Set()
+  while (stack.length) {
+    const id = stack.pop()
+    if (id === to.nodeId) return false
+    if (seen.has(id)) continue
+    seen.add(id)
+    const n = defNode(id)
+    if (!n) continue
+    if (n.sourceNode) stack.push(n.sourceNode)
+    if (n.nodeType === 'join' && n.rightNodeId) stack.push(n.rightNodeId)
   }
   return true
+}
+
+/* 当前图的“链尾”：没有被任何节点引用为上游的节点 */
+function chainTail() {
+  const referenced = new Set()
+  for (const n of nodes.value) {
+    if (n.sourceNode) referenced.add(n.sourceNode)
+    if (n.rightNodeId) referenced.add(n.rightNodeId)
+  }
+  const candidates = nodes.value.filter((n) => n.nodeType !== 'output' && !referenced.has(n.nodeId))
+  return candidates[candidates.length - 1] || nodes.value.filter((n) => n.nodeType !== 'output').slice(-1)[0] || null
 }
 
 function pushSnapshot() {
@@ -450,38 +579,102 @@ function rehydrate(arr) {
     if (n.nodeType === 'join') {
       n._joinTableValue = n.to?.schema && n.to?.table ? `${n.to.schema}:${n.to.table}` : ''
       n.joinType = n.joinType || 'inner'
+      ;(n.on || []).forEach((o) => {
+        if (o.from && typeof o.from === 'object') o.from = prefOfRef(o.from)
+        if (o.to && typeof o.to === 'object') o.to = prefOfRef(o.to)
+      })
+    }
+    if (n.nodeType === 'aggregate') {
+      ;(n.groupBy || []).forEach((g, i) => {
+        if (g && typeof g === 'object') n.groupBy[i] = prefOfRef(g)
+      })
+    }
+    if (n.nodeType === 'columnSelect' || n.nodeType === 'dedup') {
+      ;(n.columns || []).forEach((c, i) => {
+        if (c && typeof c === 'object') n.columns[i] = prefOfRef(c)
+      })
+    }
+    if (n.nodeType === 'trim') {
+      ;(n.columns || []).forEach((c, i) => {
+        if (c && typeof c === 'object') n.columns[i] = prefOfRef(c)
+      })
+    }
+    if (n.nodeType === 'filter') {
+      ;(n.conditions || []).forEach((c) => {
+        if (c.field && typeof c.field === 'object') c.field = prefOfRef(c.field)
+      })
+    }
+    if (n.nodeType === 'valueReplace' || n.nodeType === 'nullReplace') {
+      ;(n.mappings || []).forEach((m) => {
+        if (m.field && typeof m.field === 'object') m.field = prefOfRef(m.field)
+      })
     }
   }
 }
 
 function autoLayout(push = true) {
   if (push) pushSnapshot()
-  const ordered = [...nodes.value].sort((a, b) => NODE_ORDER.indexOf(a.nodeType) - NODE_ORDER.indexOf(b.nodeType) || (a.y || 0) - (b.y || 0))
-  let xi = 0
-  for (const n of ordered) { n.x = xi; xi += 230; n.y = 0 }
+  const byId = new Map(nodes.value.map((n) => [n.nodeId, n]))
+  const inDegree = new Map(nodes.value.map((n) => [n.nodeId, 0]))
+  const upstreamOf = (id) => {
+    const n = byId.get(id)
+    const ups = []
+    if (n.sourceNode) ups.push(n.sourceNode)
+    if (n.nodeType === 'join' && n.rightNodeId) ups.push(n.rightNodeId)
+    return ups
+  }
+  for (const n of nodes.value) {
+    for (const up of upstreamOf(n.nodeId)) inDegree.set(up, (inDegree.get(up) || 0) + 1)
+  }
+  // 分层：源入度=0 的层0；其余 = max(上游层)+1；未连线的兜底
+  const layer = new Map()
+  const layerOf = (id, seen = new Set()) => {
+    if (layer.has(id)) return layer.get(id)
+    if (seen.has(id)) return 0
+    seen.add(id)
+    let l = 0
+    for (const up of upstreamOf(id)) l = Math.max(l, layerOf(up, seen) + 1)
+    layer.set(id, l)
+    return l
+  }
+  for (const n of nodes.value) layerOf(n.nodeId)
+  const grouped = new Map()
+  for (const n of nodes.value) {
+    const l = layer.get(n.nodeId) || 0
+    if (!grouped.has(l)) grouped.set(l, [])
+    grouped.get(l).push(n)
+  }
+  const baseX = 220
+  const baseY = 90
+  for (const [l, arr] of grouped) {
+    const sorted = [...arr].sort((a, b) => NODE_ORDER.indexOf(a.nodeType) - NODE_ORDER.indexOf(b.nodeType) || (a.y || 0) - (b.y || 0))
+    const mid = (sorted.length - 1) / 2
+    sorted.forEach((n, i) => { n.x = l * baseX; n.y = (i - mid) * baseY })
+  }
   void nextTick(() => fitView({ padding: 0.2, duration: 0 }))
 }
 
-function ensureChain() {
-  const sources = nodes.value.filter((n) => n.nodeType === 'source')
-  const transforms = nodes.value.filter((n) => n.nodeType !== 'source' && n.nodeType !== 'output')
-  if (sources.length > 0) {
-    let prev = sources[0]
-    for (const t of transforms) {
-      t.sourceNode = prev.nodeId
-      prev = t
+function ensureChain(newNodeId = null) {
+  // 只自动接入「本次新增且无上游」的节点（新加入的算子），不强制重排已有连线
+  const tail = chainTail()
+  if (newNodeId) {
+    const n = defNode(newNodeId)
+    if (n && n.nodeType !== 'source' && n.nodeType !== 'output' && !n.sourceNode && tail && tail.nodeId !== n.nodeId) {
+      n.sourceNode = tail.nodeId
     }
   }
   let out = nodes.value.find((n) => n.nodeType === 'output')
-  if (!out) {
-    const last = nodes.value.filter((n) => n.nodeType !== 'output').slice(-1)[0]
-    nodes.value.push({ nodeId: makeNodeId('output'), nodeType: 'output', sourceNode: last?.nodeId, limit: 1000 })
+  if (!out && nodes.value.some((n) => n.nodeType !== 'output')) {
+    const last = chainTail()
+    out = { nodeId: makeNodeId('output'), nodeType: 'output', sourceNode: last?.nodeId || null, limit: 1000 }
+    nodes.value.push(out)
   }
-  out = nodes.value.find((n) => n.nodeType === 'output')
-  const lastReal = nodes.value.filter((n) => n.nodeType !== 'output').slice(-1)[0]
-  if (out) out.sourceNode = lastReal?.nodeId
+  if (out && !out.sourceNode) {
+    const lastReal = chainTail()
+    if (lastReal) out.sourceNode = lastReal.nodeId
+  }
   const outIdx = nodes.value.indexOf(out)
-  if (outIdx !== nodes.value.length - 1 && out) {
+  if (outIdx != null && outIdx !== -1 && outIdx !== nodes.value.length - 1 && out) {
     nodes.value.splice(outIdx, 1)
     nodes.value.push(out)
   }
@@ -491,7 +684,7 @@ function ensureChain() {
 let counter = 1
 function makeNodeId(kind) { return `n_${kind}_${counter++}_${Date.now() % 100000}` }
 
-function addNode(type, pos) {
+function addNode(type, pos, openDrawer = true) {
   if (type === 'output' && nodes.value.some((n) => n.nodeType === 'output')) return ElMessage.warning('已存在输出')
   pushSnapshot()
   const node = makeNode(type)
@@ -501,11 +694,11 @@ function addNode(type, pos) {
   const outIdx = nodes.value.findIndex((n) => n.nodeType === 'output')
   if (outIdx >= 0) nodes.value.splice(outIdx, 0, node)
   else nodes.value.push(node)
-  ensureChain()
+  ensureChain(node.nodeId)
   if (node.x == null) autoLayout(false)
   else emitChange()
   selectedNodeId.value = node.nodeId
-  drawerVisible.value = true
+  if (openDrawer) drawerVisible.value = true
 }
 
 function makeNode(type) {
@@ -516,10 +709,10 @@ function makeNode(type) {
   if (type === 'join') return {
     nodeId: makeNodeId('join'), nodeType: 'join', joinType: 'inner', sourceNode: null, rightNodeId: null,
     to: { alias: `t${nodes.value.length}`, schema: null, table: null },
-    on: [{ from: { alias: 't0', field: '' }, to: { alias: `t${nodes.value.length}`, field: '' } }],
+    on: [{ from: '', to: '' }],
     _joinTableValue: '',
   }
-  if (type === 'filter') return { nodeId: makeNodeId('filter'), nodeType: 'filter', sourceNode: null, conditions: [{ field: { alias: 't0', field: '' }, op: 'eq', value: '' }] }
+  if (type === 'filter') return { nodeId: makeNodeId('filter'), nodeType: 'filter', sourceNode: null, conditions: [{ field: '', op: 'eq', value: '' }] }
   if (type === 'aggregate') return { nodeId: makeNodeId('aggregate'), nodeType: 'aggregate', sourceNode: null, groupBy: [], metrics: [{ agg: 'sum', field: '' }] }
   if (type === 'columnSelect') return { nodeId: makeNodeId('columnSelect'), nodeType: 'columnSelect', sourceNode: null, columns: [] }
   if (type === 'dedup') return { nodeId: makeNodeId('dedup'), nodeType: 'dedup', sourceNode: null, columns: [] }
@@ -534,36 +727,88 @@ function makeNode(type) {
 function deleteNode(nodeId) {
   const idx = nodes.value.findIndex((n) => n.nodeId === nodeId)
   if (idx < 0) return
-  if (['source', 'output'].includes(nodes.value[idx].nodeType)) return ElMessage.warning('输入源与输出节点不可删除')
   pushSnapshot()
   const removed = nodes.value[idx]
   const parentId = removed.sourceNode
   nodes.value.splice(idx, 1)
   for (const n of nodes.value) {
-    if (n.sourceNode === nodeId) n.sourceNode = parentId
+    if (n.sourceNode === nodeId) n.sourceNode = parentId || null
     if (n.rightNodeId === nodeId) n.rightNodeId = null
   }
-  ensureChain()
+  if (removed.nodeType !== 'output') ensureChain()
   if (selectedNodeId.value === nodeId) {
     selectedNodeId.value = null
     drawerVisible.value = false
   }
 }
 
+function deleteEdge(edgeId) {
+  const edge = flowEdges.value.find((ed) => ed.id === edgeId)
+  if (!edge) return
+  const to = defNode(edge.target)
+  if (!to) return
+  pushSnapshot()
+  if (edge.targetHandle === 'right') to.rightNodeId = null
+  else to.sourceNode = null
+  emitChange()
+}
+
 function onConnect(c) {
   pushSnapshot()
   const to = defNode(c.target)
-  if (!to) return
-  to.sourceNode = c.source
-  ensureChain()
+  if (!to || !to.nodeId) return
+  if (c.targetHandle === 'right' && to.nodeType === 'join') {
+    to.rightNodeId = c.source
+  } else {
+    to.sourceNode = c.source
+  }
+  emitChange()
 }
 
 function onEdgeClick(edge) {
   const to = defNode(edge.target)
   if (!to) return
   pushSnapshot()
-  to.sourceNode = null
-  ensureChain()
+  if (edge.targetHandle === 'right') to.rightNodeId = null
+  else to.sourceNode = null
+  emitChange()
+}
+
+/* ---- 右键菜单 ---- */
+function openCtxMenu(kind, target, ev) {
+  ctxMenu.kind = kind
+  ctxMenu.target = target
+  ctxMenu.x = ev.clientX
+  ctxMenu.y = ev.clientY
+  ctxMenu.visible = true
+}
+function closeCtxMenu() {
+  ctxMenu.visible = false
+  ctxMenu.target = null
+}
+function onNodeContextMenu({ event, node }) {
+  event.preventDefault()
+  openCtxMenu('node', node.id, event)
+}
+function onEdgeContextMenu({ event, edge }) {
+  event.preventDefault()
+  openCtxMenu('edge', edge.id, event)
+}
+function onPaneContextMenu(event) {
+  event.preventDefault()
+  closeCtxMenu()
+}
+function ctxMenuDelete() {
+  const { kind, target } = ctxMenu
+  closeCtxMenu()
+  if (kind === 'node') deleteNode(target)
+  else if (kind === 'edge') deleteEdge(target)
+}
+function onGlobalMouseDown(ev) {
+  if (ctxMenu.visible && !ev.target.closest('.etl-ctx-menu')) closeCtxMenu()
+}
+function onGlobalContextMenu(ev) {
+  if (ctxMenu.visible && !ev.target.closest('.etl-ctx-menu')) closeCtxMenu()
 }
 
 function onNodeClick({ node }) {
@@ -628,26 +873,17 @@ function onRightNodeChange() {
   emitChange()
 }
 
-function parsePrefField(pref) {
-  const dot = pref.indexOf('.')
-  if (dot < 0) return { alias: '', field: pref }
-  return { alias: pref.substring(0, dot), field: pref.substring(dot + 1) }
-}
-
-function onValueReplaceFieldChange(m) {
-  if (m.field && typeof m.field === 'string') m.field = parsePrefField(m.field)
-  emitChange()
-}
-function onNullReplaceFieldChange(m) {
-  if (m.field && typeof m.field === 'string') m.field = parsePrefField(m.field)
-  emitChange()
+function prefOfRef(r) {
+  if (r == null || r === '') return ''
+  if (typeof r === 'string') return r
+  if (r.field == null) return ''
+  return r.alias ? `${r.alias}.${r.field}` : r.field
 }
 
 function addJoinCondition() {
   const n = activeNode.value
   if (!n) return
-  const rightAlias = n.rightNodeId ? (defNode(n.rightNodeId)?.alias || 'jr') : (n.to?.alias || 'jr')
-  n.on.push({ from: { alias: 't0', field: '' }, to: { alias: rightAlias, field: '' } })
+  n.on.push({ from: '', to: '' })
   emitChange()
 }
 
@@ -708,11 +944,17 @@ watch(() => props.initialDefinition, (d) => { if (d) restore(d) }, { immediate: 
 defineExpose({ getDefinition: () => definition.value })
 
 onMounted(() => {
+  window.addEventListener('mousedown', onGlobalMouseDown, true)
+  window.addEventListener('contextmenu', onGlobalContextMenu, true)
   if (!nodes.value.length) {
-    addNode('source')
+    addNode('source', null, false)
     ensureChain()
   }
   void nextTick(() => fitView({ padding: 0.2, duration: 0 }))
+})
+onUnmounted(() => {
+  window.removeEventListener('mousedown', onGlobalMouseDown, true)
+  window.removeEventListener('contextmenu', onGlobalContextMenu, true)
 })
 </script>
 
@@ -735,11 +977,23 @@ onMounted(() => {
 .etl-canvas-toolbar__btn:hover { background: var(--app-hover, #f5f7fa); }
 .etl-canvas-toolbar__btn:disabled { opacity: .35; cursor: not-allowed; }
 
+/* node / edge context menu */
+.etl-ctx-menu { position: fixed; z-index: 3000; min-width: 110px; background: var(--el-bg-color, #fff); border: 1px solid var(--el-border-color); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 4px; }
+.etl-ctx-menu__item { padding: 6px 10px; font-size: 13px; color: var(--el-color-danger); border-radius: 4px; cursor: pointer; user-select: none; text-align: left; }
+.etl-ctx-menu__item:hover { background: var(--app-hover, #f5f7fa); }
+
 /* drawer overrides */
 .drawer-node-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 5px; color: #fff; font-size: 12px; font-weight: 600; flex: 0 0 auto; }
 .drawer-field { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
-.drawer-toolbar { display: flex; align-items: center; gap: 8px; }
 .drawer-preview-actions { display: flex; align-items: center; gap: 8px; }
 .drawer-error { font-size: 12px; color: var(--el-color-danger); }
 .drawer-section-title { font-size: 14px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 6px; }
+.etl-sql-editor :deep(.sql-codemirror) { height: 160px; }
+.drawer-table { width: 100%; margin-bottom: 10px; }
+.drawer-table :deep(.el-table__header th) { padding: 5px 0; font-size: 12px; }
+.drawer-table :deep(.el-input__wrapper), .drawer-table :deep(.el-select) { width: 100%; }
+.drawer-join-op { color: var(--app-text-secondary); }
+.drawer-metric-seq { color: var(--app-text-secondary); font-family: Consolas, 'Courier New', monospace; }
+.drawer-preview-table { width: 100%; }
+.drawer-preview-table :deep(.el-table-v2__header-row-cell), .drawer-preview-table :deep(.el-table-v2__row-cell) { padding: 0 8px; }
 </style>
