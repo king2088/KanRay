@@ -55,8 +55,15 @@
             <el-option label="普通" value="base" />
             <el-option label="公式" value="expr" />
             <el-option label="衍生" value="derived" />
+            <el-option label="指标库" value="saved" />
           </el-select>
-          <template v-if="m.type === 'expr'">
+          <template v-if="m.type === 'saved'">
+            <el-select v-model="m.metricId" style="flex: 1.5" placeholder="选择指标库指标">
+              <el-option v-for="l in library" :key="l.id" :label="metricTypeTag(l) + ' ' + l.name" :value="l.id" />
+            </el-select>
+            <span class="ref-hint" style="flex: 1">复用数据集指标库中的命名指标</span>
+          </template>
+          <template v-else-if="m.type === 'expr'">
             <el-input v-model="m.label" placeholder="指标名称" style="flex: 0.9" />
             <el-input
               v-model="m.expr"
@@ -93,6 +100,10 @@
           <span v-if="derivedError(m)" class="ref-error">{{ derivedError(m) }}</span>
           <span v-else class="ref-hint">衍生指标基于前序普通/复合指标在结果行上计算</span>
         </div>
+        <div v-if="m.type === 'saved'" class="ref-row">
+          <span v-if="savedError(m)" class="ref-error">{{ savedError(m) }}</span>
+          <span v-else-if="!library.length" class="ref-empty">（指标库为空，请先在数据集「指标库」中创建）</span>
+        </div>
         <div v-if="m.type === 'expr'" class="ref-row">
           <span class="ref-label">引用前序普通指标：</span>
           <el-tag
@@ -122,6 +133,7 @@ const props = defineProps({
   dims: { type: Array, default: () => [] },
   metrics: { type: Array, default: () => [] },
   chartType: { type: String, default: 'bar' },
+  library: { type: Array, default: () => [] },
 })
 
 const update = () => {
@@ -195,18 +207,34 @@ function onTypeChange(m) {
     m.agg = undefined
     if (!m.kind) m.kind = 'share'
     if (!m.label) m.label = `衍生${props.metrics.findIndex((x) => x === m) + 1}`
+  } else if (m.type === 'saved') {
+    m.field = undefined
+    m.agg = undefined
+    m.label = undefined
+    m.metricId = undefined
   }
   update()
 }
 
-// 公式可引用的普通指标（位于其之前，仅 base）
+// 公式可引用的普通指标（位于其之前，仅 base；指标库指标需解锁为展开条目，前端不可直接引用）
 function referableFor(mi) {
-  return props.metrics.slice(0, mi).filter((x) => x.type !== 'expr' && x.type !== 'derived')
+  return props.metrics.slice(0, mi).filter((x) => x.type !== 'expr' && x.type !== 'derived' && x.type !== 'saved')
 }
 
-// 衍生指标可引用的前序普通/复合指标（base/expr）
+// 衍生指标可引用的前序普通/复合指标（base/expr；排除指标库引用）
 function derivedRefs(mi) {
-  return props.metrics.slice(0, mi).filter((x) => x.type !== 'derived')
+  return props.metrics.slice(0, mi).filter((x) => x.type !== 'derived' && x.type !== 'saved')
+}
+
+function savedError(m) {
+  if (m.type !== 'saved') return ''
+  if (props.library.length === 0) return '数据集指标库为空'
+  if (!m.metricId) return '请选择要复用的指标'
+  return ''
+}
+
+function metricTypeTag(l) {
+  return { base: '普通', expr: '公式', derived: '衍生' }[l.kind] || l.kind
 }
 
 // 校验公式引用是否可用（其余语法由后端白名单把关）

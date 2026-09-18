@@ -19,6 +19,7 @@ const META_ORDER = [
   'data_sources',
   'datasets',
   'dataset_fields',
+  'metrics',
   'charts',
   'dashboards',
   'sync_configs',

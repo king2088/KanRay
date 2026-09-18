@@ -6,12 +6,18 @@ module.exports = [
     source_type VARCHAR(20) NOT NULL DEFAULT 'excel', datasource_id BIGINT, schema_name VARCHAR(255),
     table_name_ext VARCHAR(255), build_definition LONGTEXT, owner_id BIGINT
   )`,
-  `CREATE TABLE IF NOT EXISTS dataset_fields (
+`CREATE TABLE IF NOT EXISTS dataset_fields (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, dataset_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL, label VARCHAR(255) NOT NULL, type VARCHAR(50) NOT NULL,
     position INT NOT NULL DEFAULT 0,
-    KEY idx_dataset_fields_dataset (dataset_id),
     CONSTRAINT fk_dataset_fields_dataset FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS metrics (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, dataset_id BIGINT NOT NULL,
+    name VARCHAR(255) NOT NULL, kind VARCHAR(20) NOT NULL, definition TEXT,
+    owner_id BIGINT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_metrics_dataset FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE,
+    KEY idx_metrics_dataset (dataset_id)
   )`,
   `CREATE TABLE IF NOT EXISTS charts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, dataset_id BIGINT NOT NULL,

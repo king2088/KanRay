@@ -2,6 +2,7 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow, getFieldsOrThrow } = require('../services/dataset.service');
 const sqlDataProvider = require('../datasources/sql-data-provider');
+const metricsLibrary = require('../services/metrics-library.service');
 const { normalizeMetrics, applyDerived, AGG_FUNCS } = require('./metrics');
 
 const TIME_GRANULARITY = {
@@ -98,9 +99,19 @@ function buildWhere(filters, fieldsByName) {
 async function aggregate(query) {
   const ds = await getDatasetOrThrow(query.datasetId);
 
+  // 指标库引用展开（{ type:'saved', metricId }）：先展开再走下文，ensure 两数据源统一入口
+  let savedKeys = {};
+  if ((query.metrics || []).some((m) => m && m.type === 'saved')) {
+    const expanded = await metricsLibrary.expandSavedMetrics(query.datasetId, query.metrics);
+    query = { ...query, metrics: expanded.metrics };
+    savedKeys = expanded.savedKeys;
+  }
+
   // SQL 数据集走 SqlDataProvider
   if (ds.source_type === 'sql') {
-    return sqlDataProvider.query(ds, query);
+    const result = await sqlDataProvider.query(ds, query);
+    if (Object.keys(savedKeys).length) result.savedKeys = savedKeys;
+    return result;
   }
 
   const fields = await getFieldsOrThrow(query.datasetId);
@@ -211,6 +222,7 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
       ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
     })),
     rows: outputRows,
+    ...(Object.keys(savedKeys).length ? { savedKeys } : {}),
     ...(warnings.length ? { warnings } : {}),
     elapsedMs,
     sql,

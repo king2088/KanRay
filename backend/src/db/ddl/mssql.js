@@ -12,6 +12,13 @@ module.exports = [
     position INT NOT NULL DEFAULT 0,
     CONSTRAINT fk_dataset_fields_dataset FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE metrics (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, dataset_id BIGINT NOT NULL,
+    name NVARCHAR(255) NOT NULL, kind NVARCHAR(20) NOT NULL, definition NVARCHAR(MAX) NOT NULL,
+    owner_id BIGINT, created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT fk_metrics_dataset FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE
+  )`,
+  'CREATE INDEX idx_metrics_dataset ON metrics(dataset_id)',
   `CREATE TABLE charts (
     id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, dataset_id BIGINT NOT NULL,
     chart_type NVARCHAR(50) NOT NULL, config NVARCHAR(MAX) NOT NULL, owner_id BIGINT,

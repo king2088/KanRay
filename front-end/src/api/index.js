@@ -27,6 +27,13 @@ export const datasetApi = {
   query: (id, payload) => http.post(`/datasets/${id}/query`, payload),
 }
 
+export const metricApi = {
+  list: (datasetId) => http.get(`/datasets/${datasetId}/metrics`),
+  create: (datasetId, payload) => http.post(`/datasets/${datasetId}/metrics`, payload),
+  update: (datasetId, id, payload) => http.put(`/datasets/${datasetId}/metrics/${id}`, payload),
+  remove: (datasetId, id) => http.delete(`/datasets/${datasetId}/metrics/${id}`),
+}
+
 export const chartApi = {
   list: (params) => http.get('/charts', { params }),
   listPaged: (page, pageSize) => listPaged('/charts', page, pageSize),

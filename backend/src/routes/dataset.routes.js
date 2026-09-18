@@ -11,6 +11,7 @@ const { requireUser } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permission');
 const datasetService = require('../services/dataset.service');
 const datasourceService = require('../services/datasource.service');
+const metricsLibrary = require('../services/metrics-library.service');
 const access = require('../services/access.service');
 const rbac = require('../services/rbac.service');
 const queryEngine = require('../engines/query-engine');
@@ -167,6 +168,12 @@ const querySchema = z.object({
       ref: z.string(),
       label: z.string().optional(),
     }),
+    z.object({
+      type: z.literal('saved'),
+      key: z.string().optional(),
+      metricId: z.number().int().positive(),
+      label: z.string().optional(),
+    }),
   ])).optional().default([]),
   filters: z.array(z.object({
     field: z.string(),
@@ -177,6 +184,45 @@ const querySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional(),
   groupLimit: z.number().int().positive().optional(),
 }).strict();
+
+router.get('/:id/metrics', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  await access.assertResource('dataset', id, req.user, rbac);
+  ok(res, await metricsLibrary.listMetrics(id));
+});
+
+const metricBodySchema = z.object({
+  name: z.string().min(1, '指标名称不能为空'),
+  kind: z.enum(['base', 'expr', 'derived']),
+  definition: z.record(z.any()).optional(),
+}).strict();
+
+router.post('/:id/metrics', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
+  const id = Number(req.params.id);
+  await access.assertResource('dataset', id, req.user, rbac);
+  const parsed = metricBodySchema.safeParse(req.body);
+  if (!parsed.success) throw new HttpError(400, '指标参数不正确', parsed.error.flatten());
+  ok(res, await metricsLibrary.createMetric(id, parsed.data, req.user.id), '指标创建成功');
+});
+
+router.put('/:id/metrics/:metricId', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
+  const id = Number(req.params.id);
+  const metricId = Number(req.params.metricId);
+  await access.assertResource('dataset', id, req.user, rbac);
+  const parsed = z.object({
+    name: z.string().optional(),
+    definition: z.record(z.any()).optional(),
+  }).strict().safeParse(req.body);
+  if (!parsed.success) throw new HttpError(400, '指标参数不正确', parsed.error.flatten());
+  ok(res, await metricsLibrary.updateMetric(id, metricId, parsed.data), '指标更新成功');
+});
+
+router.delete('/:id/metrics/:metricId', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
+  const id = Number(req.params.id);
+  const metricId = Number(req.params.metricId);
+  await access.assertResource('dataset', id, req.user, rbac);
+  ok(res, await metricsLibrary.deleteMetric(id, metricId), '指标删除成功');
+});
 
 router.post('/:id/query', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
   const id = Number(req.params.id);

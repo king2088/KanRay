@@ -16,6 +16,7 @@
             :dims="dims"
             :metrics="metrics"
             :chart-type="chartType"
+            :library="library"
           />
           <!-- 显示选项（排序等） -->
           <div class="left-extra">
@@ -76,7 +77,7 @@
                 <template #default="{ row }">{{ row[`dim:${d.field}`]?.value }}</template>
               </el-table-column>
               <el-table-column v-for="m in metrics" :key="m.key || m.field" :label="metricLabel(m)">
-                <template #default="{ row }">{{ row[`metric:${m.key || m.field}`]?.value }}</template>
+                <template #default="{ row }">{{ row[`metric:${metricRenderKey(m)}`]?.value }}</template>
               </el-table-column>
             </el-table>
           </template>
@@ -182,7 +183,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Check, Delete, DataLine, TrendCharts, Plus } from '@element-plus/icons-vue'
-import { datasetApi, chartApi } from '@/api'
+import { datasetApi, chartApi, metricApi } from '@/api'
 import { CHART_TYPES, getChartType } from '@/config/chart-types'
 import { getPalette, DEFAULT_PALETTE_INDEX } from '@/config/color-palettes'
 import { getDefaultConfig } from '@/config/chart-configs'
@@ -207,6 +208,7 @@ const router = useRouter()
 
 const datasets = ref([])
 const fields = ref([])
+const library = ref([])
 const datasetId = ref(null)
 const datasetName = ref('')
 const chartName = ref('')
@@ -221,7 +223,7 @@ const previewRows = ref([])
 const statData = ref(null)
 const progressValue = computed(() => {
   if (!isProgressType.value) return 0
-  const val = previewData.value?.rows?.[0]?.[`metric:${metrics.value[0]?.key}`]?.value || 0
+  const val = previewData.value?.rows?.[0]?.[`metric:${metricRenderKey(metrics.value[0])}`]?.value || 0
   const max = progressMax()
   return max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0
 })
@@ -266,6 +268,8 @@ function dimLabel(d) {
 }
 
 function metricLabel(m) {
+  const libMetric = m.type === 'saved' ? library.value.find((x) => x.id === m.metricId) : null
+  if (m.type === 'saved') return m.label || (libMetric && libMetric.name) || '指标库指标'
   if (m.type === 'expr') return m.label || `公式 ${m.expr || ''}`
   if (m.type === 'derived') {
     if (m.label) return m.label
@@ -276,6 +280,15 @@ function metricLabel(m) {
   const f = fields.value.find((x) => x.name === m.field)
   const agg = AGGS.find((x) => x.value === m.agg)?.label || m.agg
   return `${f ? f.label || f.name : m.field} (${agg})`
+}
+
+// 渲染读取的指标 key：指标库引用需用后端展开后的根 key（savedKeys 映射）
+function metricRenderKey(m) {
+  if (m.type === 'saved') {
+    const k = previewData.value?.savedKeys?.[m.metricId]
+    if (k) return k
+  }
+  return m.key || m.field
 }
 
 function fmtNumber(n) {
@@ -297,6 +310,7 @@ const chartSeriesNames = computed(() => {
   }
   const m = metrics.value?.[0]
   if (!m) return []
+  if (m.type === 'saved') return [metricLabel(m)]
   if (m.type === 'expr') return [m.label || m.expr || '公式指标']
   if (m.type === 'derived') return [metricLabel(m)]
   if (m.field === '*' && m.agg === 'count') return ['数据行数']
@@ -305,7 +319,7 @@ const chartSeriesNames = computed(() => {
 })
 
 function calcMultiRing(m) {
-  const val = previewData.value?.rows?.[0]?.[`metric:${m.key || m.field}`]?.value
+  const val = previewData.value?.rows?.[0]?.[`metric:${metricRenderKey(m)}`]?.value
   const max = progressMax()
   return { val, pct: max > 0 ? Math.min(100, Math.round((val || 0) / max * 100)) : 0 }
 }
@@ -319,12 +333,16 @@ async function loadDatasets() {
   }
 }
 
-async function onDatasetChange(id) {
+function onDatasetChange(id) {
   datasetId.value = id
   if (!id) return
-  const ds = await datasetApi.get(id)
-  datasetName.value = ds.name
-  fields.value = (ds.fields || []).map((f) => ({ name: f.name, label: f.label, type: f.type }))
+  datasetApi
+    .get(id)
+    .then((ds) => {
+      datasetName.value = ds.name
+      fields.value = (ds.fields || []).map((f) => ({ name: f.name, label: f.label, type: f.type }))
+    })
+  metricApi.list(id).then((list) => (library.value = list)).catch(() => [])
   dims.value = []
   metrics.value = []
 }
@@ -353,11 +371,12 @@ function removeItem(arr, i) {
   arr.splice(i, 1)
 }
 
-// 有效指标：普通指标需有字段；公式指标需有非空公式；衍生指标需有类型与引用
+// 有效指标：普通指标需有字段；公式指标需有非空公式；衍生指标需有类型与引用；指标库引用需有 metricId
 function validMetrics() {
   return metrics.value.filter((m) => {
     if (m.type === 'expr') return !!m.expr && !!m.expr.trim()
     if (m.type === 'derived') return !!m.kind && !!m.ref
+    if (m.type === 'saved') return !!m.metricId
     return !!m.field
   })
 }
@@ -365,6 +384,7 @@ function validMetrics() {
 function metricToPayload(m) {
   if (m.type === 'expr') return { type: 'expr', key: m.key, expr: m.expr, label: m.label || metricLabel(m) }
   if (m.type === 'derived') return { type: 'derived', key: m.key, kind: m.kind, ref: m.ref, label: m.label || metricLabel(m) }
+  if (m.type === 'saved') return { type: 'saved', key: m.key, metricId: m.metricId }
   return { type: 'base', key: m.key, field: m.field, agg: m.agg }
 }
 
@@ -393,7 +413,7 @@ async function loadPreview() {
     previewRows.value = res.rows
     if (chartType.value === 'stat' || chartType.value === 'statTrend') {
       const m = metrics.value[0]
-      statData.value = { value: res.rows[0]?.[`metric:${m.key}`]?.value, label: metricLabel(m) }
+      statData.value = { value: res.rows[0]?.[`metric:${metricRenderKey(m)}`]?.value, label: metricLabel(m) }
     }
   } finally {
     previewLoading.value = false
@@ -449,6 +469,7 @@ async function loadEditing() {
   const ds = await datasetApi.get(chart.datasetId)
   datasetName.value = ds.name
   fields.value = (ds.fields || []).map((f) => ({ name: f.name, label: f.label, type: f.type }))
+  metricApi.list(chart.datasetId).then((list) => (library.value = list)).catch(() => [])
   const cfg = chart.config || {}
   dims.value = (cfg.dimensions || []).map((d) => ({ field: d.field, granularity: d.granularity }))
   metrics.value = (cfg.metrics || []).map((m) => ({ ...m }))
@@ -478,12 +499,14 @@ const debouncedConfigChange = debounce(() => {
 watch([dims, metrics, chartType, showOptions, sortConfig], debouncedPreview, { deep: true })
 
 // 指标 key/形态归一化：兼容旧版 {field,agg} 图表；确保每个指标有稳定 key 供公式引用
+// 仅将未知形态归为 base，保留 base/expr/derived/saved 四种合法形态
 let keySeq = 0
 const genKey = () => `m${++keySeq}`
+const KNOWN_METRIC_TYPES = ['base', 'expr', 'derived', 'saved']
 function ensureMetricShapes() {
   metrics.value.forEach((m) => {
     if (!m.key) m.key = genKey()
-    if (!m.type || !['base', 'expr'].includes(m.type)) m.type = 'base'
+    if (!m.type || !KNOWN_METRIC_TYPES.includes(m.type)) m.type = 'base'
   })
 }
 watch(metrics, ensureMetricShapes, { deep: true })

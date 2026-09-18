@@ -97,19 +97,126 @@
             </el-table>
           </div>
         </el-tab-pane>
+
+        <el-tab-pane label="指标库" name="metrics">
+          <div class="page-card">
+            <div class="page-card__header">
+              <div class="page-card__header-title">
+                指标库
+                <el-tag type="info" effect="plain" style="margin-left: 8px">命名指标可在此创建，供图表「指标库」形态复用</el-tag>
+              </div>
+              <div class="page-card__header-right">
+                <el-button type="primary" size="small" @click="openMetricDialog()">
+                  <el-icon style="margin-right: 4px"><Plus /></el-icon>新建指标
+                </el-button>
+              </div>
+            </div>
+            <el-table :data="metricsLib" v-loading="metricsLoading" empty-text="暂无指标">
+              <el-table-column prop="name" label="名称" min-width="180">
+                <template #default="{ row }"><span class="metric-name">{{ row.name }}</span></template>
+              </el-table-column>
+              <el-table-column label="类型" width="90">
+                <template #default="{ row }">
+                  <el-tag :type="{ base: 'success', expr: 'warning', derived: 'danger' }[row.kind]" effect="light">
+                    {{ kindLabel(row.kind) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="定义" min-width="240">
+                <template #default="{ row }"><span class="cell-key">{{ metricDefinitionText(row) }}</span></template>
+              </el-table-column>
+              <el-table-column prop="created_at" label="创建时间" width="180">
+                <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="openMetricDialog(row)">编辑</el-button>
+                  <el-button link type="danger" size="small" @click="removeMetric(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-tab-pane>
+
+        <el-dialog v-model="metricDialog.show" :title="metricDialog.editing ? '编辑指标' : '新建指标'" width="520px">
+          <el-form label-width="88px">
+            <el-form-item label="指标名称" required>
+              <el-input v-model="metricForm.name" placeholder="如：销售额、客单价、销售额占比" maxlength="100" />
+            </el-form-item>
+            <el-form-item label="指标类型" required>
+              <el-radio-group v-model="metricForm.kind" @change="onMetricKindChange">
+                <el-radio-button value="base">普通</el-radio-button>
+                <el-radio-button value="expr">公式</el-radio-button>
+                <el-radio-button value="derived">衍生</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+
+            <template v-if="metricForm.kind === 'base'">
+              <el-form-item label="字段" required>
+                <el-select v-model="metricForm.field" style="width: 100%" placeholder="选择字段">
+                  <el-option v-for="f in ds.fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="聚合" required>
+                <el-select v-model="metricForm.agg" style="width: 100%">
+                  <el-option label="求和 sum" value="sum" />
+                  <el-option label="平均 avg" value="avg" />
+                  <el-option label="计数 count" value="count" />
+                  <el-option label="去重计数 count_distinct" value="count_distinct" />
+                  <el-option label="最大 max" value="max" />
+                  <el-option label="最小 min" value="min" />
+                </el-select>
+              </el-form-item>
+            </template>
+
+            <template v-else-if="metricForm.kind === 'expr'">
+              <el-form-item label="公式" required>
+                <el-input v-model="metricForm.expr" type="textarea" :rows="2"
+                  placeholder="如：$1 / $2 * 100（$数字 引用下方基础指标）" />
+              </el-form-item>
+              <el-form-item label="引用基础指标">
+                <div class="expr-refs">
+                  <el-tag v-for="b in libraryBaseMetrics" :key="b.id" size="small" effect="plain"
+                    class="ref-tag" @click="insertLibRef(b)">
+                    {{ b.name }}
+                  </el-tag>
+                  <span v-if="!libraryBaseMetrics.length" class="ref-empty">（暂无基础指标，请先创建「普通」类型指标）</span>
+                </div>
+              </el-form-item>
+            </template>
+
+            <template v-else>
+              <el-form-item label="衍生类型" required>
+                <el-select v-model="metricForm.derivative" style="width: 100%">
+                  <el-option v-for="d in DERIVED_OPTIONS" :key="d.value" :label="d.label" :value="d.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="引用指标" required>
+                <el-select v-model="metricForm.refId" style="width: 100%">
+                  <el-option v-for="b in libraryBaseMetrics" :key="b.id" :label="b.name" :value="b.id" />
+                </el-select>
+              </el-form-item>
+            </template>
+          </el-form>
+          <template #footer>
+            <el-button @click="metricDialog.show = false">取消</el-button>
+            <el-button type="primary" :loading="metricSaving" @click="saveMetric">保存</el-button>
+          </template>
+        </el-dialog>
       </el-tabs>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft, DataAnalysis } from '@element-plus/icons-vue'
-import { datasetApi } from '@/api'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, DataAnalysis, Plus } from '@element-plus/icons-vue'
+import { datasetApi, metricApi } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
+import { DERIVED_OPTIONS } from '@/utils/chart-utils'
 
 const route = useRoute()
 const id = Number(route.params.id)
@@ -122,6 +229,123 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = 50
 const loading = ref(false)
+const metricsLib = ref([])
+const metricsLoading = ref(false)
+const metricSaving = ref(false)
+const metricDialog = ref({ show: false, editing: null })
+const metricForm = ref(emptyMetricForm())
+
+function emptyMetricForm() {
+  return { name: '', kind: 'base', field: '', agg: 'sum', expr: '', derivative: 'share', refId: null }
+}
+
+function kindLabel(k) {
+  return { base: '普通', expr: '公式', derived: '衍生' }[k] || k
+}
+
+function metricDefinitionText(m) {
+  const d = m.definition || {}
+  if (m.kind === 'base') return `${d.field}(${d.agg})`
+  if (m.kind === 'expr') return d.expr
+  const ref = metricsLib.value.find((x) => x.id === d.refId)
+  return `${kindLabel(m.kind)}·${d.derivative} ← ${ref ? ref.name : '?'}`
+}
+
+const libraryBaseMetrics = computed(() =>
+  metricsLib.value.filter((x) => x.kind === 'base' || (metricForm.value.kind === 'derived' && x.kind !== 'derived'))
+)
+
+async function loadMetrics() {
+  metricsLoading.value = true
+  try {
+    metricsLib.value = await metricApi.list(id)
+  } finally {
+    metricsLoading.value = false
+  }
+}
+
+function onMetricKindChange() {
+  metricForm.value.field = ''
+  metricForm.value.expr = ''
+  metricForm.value.refId = null
+}
+
+function insertLibRef(b) {
+  const prefix = metricForm.value.expr && metricForm.value.expr.trim() ? `${metricForm.value.expr.trim()} ` : ''
+  metricForm.value.expr = `${prefix}$${b.id} `
+}
+
+function openMetricDialog(row) {
+  if (row) {
+    metricForm.value = {
+      name: row.name,
+      kind: row.kind,
+      field: row.definition?.field || '',
+      agg: row.definition?.agg || 'sum',
+      expr: row.definition?.expr || '',
+      derivative: row.definition?.derivative || 'share',
+      refId: row.definition?.refId ?? null,
+    }
+    metricDialog.value.editing = row
+  } else {
+    metricForm.value = emptyMetricForm()
+    metricDialog.value.editing = null
+  }
+  metricDialog.value.show = true
+}
+
+async function saveMetric() {
+  const f = metricForm.value
+  if (!f.name.trim()) return ElMessage.warning('请填写指标名称')
+  const definition = { label: f.name }
+  if (f.kind === 'base') {
+    if (!f.field) return ElMessage.warning('请选择字段')
+    definition.field = f.field
+    definition.agg = f.agg
+  } else if (f.kind === 'expr') {
+    if (!f.expr.trim()) return ElMessage.warning('请填写公式')
+    definition.expr = f.expr.trim()
+  } else {
+    if (!f.refId) return ElMessage.warning('请选择引用指标')
+    definition.derivative = f.derivative
+    definition.refId = f.refId
+  }
+  metricSaving.value = true
+  try {
+    if (metricDialog.value.editing) {
+      await metricApi.update(id, metricDialog.value.editing.id, { name: f.name.trim(), definition })
+      ElMessage.success('指标已更新')
+    } else {
+      await metricApi.create(id, { name: f.name.trim(), kind: f.kind, definition })
+      ElMessage.success('指标已创建')
+    }
+    metricDialog.value.show = false
+    await loadMetrics()
+  } catch (e) {
+    // 后端错误信息已由 http 拦截器提示
+  } finally {
+    metricSaving.value = false
+  }
+}
+
+async function removeMetric(row) {
+  try {
+    await ElMessageBox.confirm(`确认删除指标「${row.name}」？被其他指标/图表引用时将无法删除。`, '删除指标', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+  } catch (e) {
+    return
+  }
+  try {
+    await metricApi.remove(id, row.id)
+    ElMessage.success('指标已删除')
+    await loadMetrics()
+  } catch (e) {
+    // 拦截器已提示
+  }
+}
 
 function typeLabel(t) {
   return { string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t
@@ -160,7 +384,7 @@ async function updateFieldLabel(row) {
 
 async function load() {
   ds.value = await datasetApi.get(id)
-  await loadRows()
+  await Promise.all([loadRows(), loadMetrics()])
 }
 
 onMounted(load)
@@ -185,5 +409,26 @@ onMounted(load)
 
 .detail-tabs :deep(.el-tabs__header) {
   margin-bottom: 12px;
+}
+
+.metric-name {
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.expr-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.ref-tag {
+  cursor: pointer;
+}
+
+.ref-empty {
+  color: var(--app-text-secondary);
+  font-size: 12px;
 }
 </style>
