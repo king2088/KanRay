@@ -4,13 +4,18 @@ import { configApi } from '@/api'
 
 const KEY = 'kanban-app-settings'
 const THEME_MODES = ['light', 'dark', 'auto']
-const DEFAULTS = { layout: 'horizontal', collapsed: false, themeMode: 'light', primaryColor: '#409eff', size: 'default', timezone: 'Asia/Shanghai' }
+const DEFAULTS = { layout: 'horizontal', collapsed: false, themeMode: 'light', primaryColor: '#3fa49a', size: 'default', timezone: 'Asia/Shanghai' }
+
+// 浅色玻璃主题的出厂主色；旧版本默认蓝视为"未做选择"，加载时迁到新主色
+const LEGACY_DEFAULT_PRIMARY = '#409eff'
+const NEW_DEFAULT_PRIMARY = '#3fa49a'
 
 let unwatchAuto = null
 
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || '{}')
+    if (s.primaryColor === LEGACY_DEFAULT_PRIMARY) s.primaryColor = NEW_DEFAULT_PRIMARY
     let themeMode = 'light'
     if (THEME_MODES.includes(s.themeMode)) themeMode = s.themeMode
     else if (s.dark === true) themeMode = 'dark'

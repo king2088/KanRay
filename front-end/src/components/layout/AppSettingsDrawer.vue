@@ -70,7 +70,7 @@ const LAYOUTS = [
   { value: 'horizontal', label: '水平布局' },
   { value: 'mixed', label: '混合布局' },
 ]
-const COLORS = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#9c27b0']
+const COLORS = ['#3fa49a', '#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#9c27b0']
 
 const store = useAppStore()
 
