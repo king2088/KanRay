@@ -69,7 +69,7 @@
         </el-table-column>
         <el-table-column label="最近同步" min-width="170">
           <template #default="{ row }">
-            <template v-if="row.last_sync_at">{{ row.last_sync_at }}<span v-if="row.last_sync_rows != null" style="color: var(--app-text-secondary)"> · {{ row.last_sync_rows }} 行</span></template>
+            <template v-if="row.last_sync_at">{{ formatDateTime(row.last_sync_at, appStore.timezone) }}<span v-if="row.last_sync_rows != null" style="color: var(--app-text-secondary)"> · {{ row.last_sync_rows }} 行</span></template>
             <span v-else>—</span>
           </template>
         </el-table-column>
@@ -178,7 +178,9 @@
 
     <el-dialog v-model="logDialog" title="同步日志" width="720px">
       <el-table :data="logRows" v-loading="logLoading" size="small" max-height="420">
-        <el-table-column label="时间" prop="started_at" width="170" />
+        <el-table-column label="时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.started_at, appStore.timezone) }}</template>
+        </el-table-column>
         <el-table-column label="结果" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'failed' ? 'danger' : row.status === 'success' ? 'success' : 'warning'" size="small" effect="plain">{{ row.status }}</el-tag>
@@ -210,9 +212,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import SchemaNodeIcon from '@/components/SchemaNodeIcon.vue'
 import { datasourceApi, syncApi } from '@/api'
+import { formatDateTime } from '@/utils/datetime'
+import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
 const router = useRouter()
+const appStore = useAppStore()
 const ds = ref(null)
 const loading = ref(false)
 const testing = ref(false)
@@ -311,14 +316,14 @@ function createDataset(data) {
   openBuilder(`${data.schema}:${data.label}`)
 }
 
-function pad2(n) { return String(n).padStart(2, '0') }
-function fmt(d) { return d ? `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` : '' }
-
 function nextSync(row) {
   if (row.last_sync_status === 'running') return '同步中…'
   if (!row.interval_seconds || row.interval_seconds <= 0) return '手动'
   if (!row.last_sync_at) return '未同步'
-  return fmt(new Date(new Date(row.last_sync_at.replace(' ', 'T')).getTime() + row.interval_seconds * 1000))
+  const base = new Date(`${row.last_sync_at.replace(' ', 'T')}Z`)
+  if (Number.isNaN(base.getTime())) return '—'
+  const next = new Date(base.getTime() + row.interval_seconds * 1000)
+  return formatDateTime(next.toISOString(), appStore.timezone)
 }
 
 async function loadTasks() {

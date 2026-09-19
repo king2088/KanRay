@@ -66,10 +66,10 @@
             </template>
           </el-table-column>
           <el-table-column prop="expiresAt" label="过期时间" width="180">
-            <template #default="{ row }">{{ row.expiresAt ? formatTime(row.expiresAt) : '-' }}</template>
+            <template #default="{ row }">{{ row.expiresAt ? formatDateTime(row.expiresAt, appStore.timezone) : '-' }}</template>
           </el-table-column>
-          <el-table-column prop="lastUsedAt" label="最近使用" width="180">
-            <template #default="{ row }">{{ row.lastUsedAt ? formatTime(row.lastUsedAt) : '-' }}</template>
+          <el-table-column label="最近使用" width="180">
+            <template #default="{ row }">{{ row.lastUsedAt ? formatDateTime(row.lastUsedAt, appStore.timezone) : '-' }}</template>
           </el-table-column>
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
@@ -136,8 +136,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '@/api'
 import { openApiAdminApi, OPEN_SCOPES } from '@/api/open'
 import { useAuthStore } from '@/stores/auth'
+import { formatDateTime } from '@/utils/datetime'
+import { useAppStore } from '@/stores/app'
 
 const auth = useAuthStore()
+const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('apikey', 'manage'))
 
 const rows = ref([])
@@ -163,9 +166,6 @@ function usersName(id) {
 }
 function scopesOf(row) {
   return row.scopes || []
-}
-function formatTime(v) {
-  return String(v || '').replace('T', ' ').slice(0, 19)
 }
 
 function copySecret() {

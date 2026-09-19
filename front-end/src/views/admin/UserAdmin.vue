@@ -33,7 +33,9 @@
           <el-switch v-model="row.is_active" :disabled="row.id === auth.user?.id" @change="toggleActive(row)" />
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" width="170" />
+      <el-table-column label="创建时间" width="170">
+        <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="230" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEditRoles(row)">分配角色</el-button>
@@ -111,8 +113,11 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { formatDateTime } from '@/utils/datetime'
+import { useAppStore } from '@/stores/app'
 
 const auth = useAuthStore()
+const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('user', 'read'))
 const rows = ref([])
 const total = ref(0)

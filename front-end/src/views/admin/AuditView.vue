@@ -17,7 +17,9 @@
         </div>
 
         <el-table :data="rows" stripe v-loading="loading">
-          <el-table-column prop="created_at" label="时间" width="180" />
+          <el-table-column label="时间" width="180">
+            <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
+          </el-table-column>
           <el-table-column prop="action" label="操作" width="150" />
           <el-table-column prop="email" label="用户" min-width="150" />
           <el-table-column label="资源" width="130">
@@ -61,8 +63,11 @@ import { computed, onMounted, ref } from 'vue'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import JsonCodeMirror from '@/components/JsonCodeMirror.vue'
+import { formatDateTime } from '@/utils/datetime'
+import { useAppStore } from '@/stores/app'
 
 const auth = useAuthStore()
+const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('audit', 'read'))
 
 const rows = ref([])

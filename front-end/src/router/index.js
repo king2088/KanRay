@@ -22,7 +22,7 @@ const routes = [
   {
     path: '/',
     component: () => import('../views/MainLayout.vue'),
-    redirect: '/datasets',
+    redirect: '/datasources',
     children: [
       { path: 'datasources', name: 'datasources', component: () => import('../views/DataSourceList.vue'), meta: { title: '数据源' } },
       { path: 'datasources/:id', name: 'datasource-detail', component: () => import('../views/DataSourceDetail.vue'), meta: { title: '数据源详情' } },

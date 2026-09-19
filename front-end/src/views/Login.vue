@@ -28,7 +28,7 @@ async function onSubmit() {
   try {
     await auth.login(form.email, form.password)
     await auth.me()
-    router.replace(route.query.redirect || '/')
+    router.replace(route.query.redirect || '/datasources')
   } catch (e) { /* http 已提示 */ }
   finally { loading.value = false }
 }
