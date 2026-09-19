@@ -239,14 +239,14 @@ watch(() => props.value, () => { hoverLabel.value = activeGridLabel() })
   justify-content: center;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   border-radius: 4px;
-  background: #fff;
+  background: var(--app-glass-soft);
   cursor: pointer;
   color: #c8ccd4;
 }
 .pos-grid-cell:hover {
   border-color: var(--el-color-primary, #409eff);
   color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary-light-9, #ecf5ff);
+  background: var(--app-tint-primary, #ecf5ff);
 }
 .pos-grid-cell.is-active {
   border-color: var(--el-color-primary, #409eff);

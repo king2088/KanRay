@@ -151,24 +151,27 @@ onMounted(loadMeta)
 .share-gate-card {
   width: 360px;
   padding: 32px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  background: var(--app-glass-strong);
+  border: 1px solid var(--app-border-light);
+  border-radius: 12px;
+  box-shadow: var(--app-glass-edge), var(--app-shadow-card);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
 }
 
 .share-gate-card__title {
   margin: 0;
   font-size: 18px;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 
 .share-gate-card__desc {
   margin: 0;
   font-size: 13px;
-  color: #909399;
+  color: var(--app-text-secondary);
   line-height: 1.6;
 }
 
@@ -187,8 +190,8 @@ onMounted(loadMeta)
 
 .share-bar {
   height: 56px;
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background: var(--app-glass);
+  border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;

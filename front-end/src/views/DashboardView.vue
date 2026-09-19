@@ -76,7 +76,9 @@ onMounted(load)
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: #f0f2f5;
+  background-color: var(--app-bg);
+  background-image: var(--app-bg-image);
+  background-attachment: fixed;
 }
 
 .view-bar {

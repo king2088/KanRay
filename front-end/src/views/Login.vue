@@ -34,11 +34,11 @@ async function onSubmit() {
 }
 </script>
 <style scoped>
-.auth-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(rgba(0,0,0,.3), rgba(0,0,0,.3)), url('/bg.jpg') center / cover no-repeat; }
-.auth-card { width: 380px; }
+.auth-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(rgba(47, 72, 94, 0.26), rgba(47, 72, 94, 0.30)), url('/bg.jpg') center / cover no-repeat; }
+.auth-card { width: 380px; background: var(--app-glass-strong); border: 1px solid var(--app-border-light); border-radius: 12px; box-shadow: var(--app-glass-edge), var(--app-shadow-card); -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%); }
 .auth-logo { display: flex; justify-content: center; margin-bottom: 12px; }
 .auth-logo img { width: 56px; height: 56px; border-radius: 14px; }
 .auth-title { text-align: center; margin: 0 0 18px; color: var(--app-text-primary); }
 .auth-btn { width: 100%; margin-top: 4px; }
-.auth-switch { text-align: center; margin-top: 14px; font-size: 14px; color: #909399; }
+.auth-switch { text-align: center; margin-top: 14px; font-size: 14px; color: var(--app-text-secondary); }
 </style>

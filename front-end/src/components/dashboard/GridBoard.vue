@@ -518,10 +518,10 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 1;
   pointer-events: none;
-  background: rgba(64, 158, 255, 0.16);
+  background: rgba(63, 164, 154, 0.16);
   border: 2px dashed var(--app-primary);
   border-radius: var(--app-radius);
-  box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.25);
+  box-shadow: 0 0 0 1px rgba(63, 164, 154, 0.25);
 }
 
 .grid-item {
@@ -705,6 +705,6 @@ onBeforeUnmount(() => {
 .resize-e:hover,
 .resize-s:hover,
 .resize-se:hover {
-  background: rgba(64, 158, 255, 0.35);
+  background: rgba(63, 164, 154, 0.35);
 }
 </style>
