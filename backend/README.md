@@ -18,6 +18,8 @@ npm run dev        # 或 npm start
 
 首次启动自动创建 `backend/data/kanban.db`（SQLite），并幂等建表 + 写入初始管理员 `admin@kanban.local / admin123`（环境变量 `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` 可改，**生产务必改密**）。
 
+> **本地开发约定**：dev 环境默认使用 **SQLite**、**不启用 Redis**（缓存走内存，锁走 `sync_locks` 表），无需启动任何中间件。仅当需要联调外部库/Redis 时再按「存储后端」章节覆盖 `DB_TYPE` / `DB_URL` / `REDIS_URL`。
+
 ---
 
 ## 配置总览

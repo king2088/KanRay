@@ -1,21 +1,28 @@
+# MySQL 8.0 生产栈（docker-compose.mysql.yml）
+# 默认使用 PG（docker-compose.yml）；本文件供选择 MySQL 作为元数据库时使用。
+# 含 Redis（共享缓存/锁）与独立 worker（SYNC_MODE=worker）。
+#
+# 用法：
+#   ./deploy.sh up --stack mysql
+#   或 STACK=mysql ./deploy.sh up
+#
+# 注意：密码含 @ / : 等特殊字符时需在 DB_URL 中做 URL 编码（@ → %40）。
 services:
-  postgres:
-    image: postgres:16-alpine
-    env_file: .env
+  mysql:
+    image: mysql:8.0
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-kanban}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-kanban}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysqldata:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
-      interval: 3s
-      timeout: 3s
-      retries: 10
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     restart: unless-stopped
 
-  # 共享缓存 / 分布式锁；生产建议设密码（redis-server --requirepass）并同步覆盖 REDIS_URL
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -34,29 +41,25 @@ services:
       dockerfile: deploy/backend/Dockerfile
     env_file: .env
     environment:
-      DB_TYPE: postgres
-      DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DB_TYPE: mysql
+      DB_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-kanban}@mysql:3306/${MYSQL_DATABASE:-kanban}
       DATA_DIR: /data
       UPLOAD_DIR: /uploads
       PORT: "3001"
-      # API 进程只入队，不执行同步（同步交给 worker 服务）
       SYNC_MODE: worker
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     volumes:
       - kanban_data:/data
       - kanban_uploads:/uploads
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
     expose:
       - "3001"
     restart: unless-stopped
-    # 水平扩容：docker compose up -d --scale backend=3
-    # 注意：连接总数为 副本数 × DB_POOL_MAX，需与 postgres max_connections 匹配。
 
-  # 独立同步 worker：调度（入队）+ 消费 sync_jobs 执行同步；可独立水平扩容。
   worker:
     build:
       context: ..
@@ -64,8 +67,8 @@ services:
     command: ["node", "backend/src/worker/main.js"]
     env_file: .env
     environment:
-      DB_TYPE: postgres
-      DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DB_TYPE: mysql
+      DB_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-kanban}@mysql:3306/${MYSQL_DATABASE:-kanban}
       DATA_DIR: /data
       UPLOAD_DIR: /uploads
       SYNC_MODE: worker
@@ -75,11 +78,10 @@ services:
       - kanban_data:/data
       - kanban_uploads:/uploads
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # 水平扩容：docker compose up -d --scale worker=2（任务领取由 sync_jobs 行锁互斥）
     restart: unless-stopped
 
   frontend:
@@ -93,7 +95,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  mysqldata:
   redisdata:
   kanban_data:
   kanban_uploads:
