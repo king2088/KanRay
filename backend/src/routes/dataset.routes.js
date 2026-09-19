@@ -19,16 +19,23 @@ const { parsePageQuery, paginate } = require('../utils/pagination');
 
 const router = express.Router();
 
+// multer/busboy 默认按 latin1 解码 multipart 文件名，中文会乱码；还原为 UTF-8
+function decodeFilename(name) {
+  if (!name) return name;
+  const utf8 = Buffer.from(name, 'latin1').toString('utf8');
+  return utf8.includes('\uFFFD') ? name : utf8;
+}
+
 // multer 存储到临时目录：先用随机文件名，避免覆盖
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, config.uploadDir),
-  filename: (req, file, cb) => cb(null, `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}${path.extname(file.originalname || '').toLowerCase()}`),
+  filename: (req, file, cb) => cb(null, `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}${path.extname(decodeFilename(file.originalname) || '').toLowerCase()}`),
 });
 const upload = multer({
   storage,
   limits: { fileSize: config.upload.maxFileSize },
   fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
+    const ext = path.extname(decodeFilename(file.originalname) || '').toLowerCase();
     // 拒绝宏文件
     if (ext === '.xlsm') return cb(new HttpError(400, '不支持含宏的 Excel 文件(.xlsm)'));
     if (!config.upload.allowedExt.includes(ext)) {
@@ -81,7 +88,7 @@ router.post('/', requireUser, requirePermission('dataset', 'create'), upload.sin
     // 上传的文件作为「文件型数据源」登记（Excel/CSV），便于在数据源列表中统一管理
     try {
       await datasourceService.createExcelDatasource(
-        { name: parsed.data, file: req.file.originalname, rowCount: ds.row_count, columnCount: ds.column_count },
+        { name: parsed.data, file: decodeFilename(req.file.originalname), rowCount: ds.row_count, columnCount: ds.column_count },
         req.user.id, req
       );
     } catch (e) { /* 文件数据源登记失败不影响数据集创建 */ }
