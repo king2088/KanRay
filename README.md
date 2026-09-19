@@ -128,8 +128,8 @@ backend/                    ExpressJS 5 后端
     jobs/sync-scheduler.js  同步调度器（内存定时器 + 并发闸门）
     routes/                 RESTful 路由
     middleware/response.js  统一响应 + 错误处理
-  scripts/                  集成测试 / 端到端冒烟 / datasource-live(docker)
-  test/                     node:test 单元 / 集成 / LIVE 冒烟（RUN_LIVE=1）
+  scripts/                  端到端冒烟（数据源+数据集） / 数据源 live 校验 / 压测
+  test/                     node:test 单元 / 集成（自主运行，LIVE 依赖自动跳过）
 front-end/                  Vue 3 前端
   src/
     views/                  DatasetList/Detail + ChartList/Builder + Dashboard + DataSource{List,Detail,Builder,FormDialog}
@@ -163,8 +163,21 @@ cd deploy
 ## 常用命令
 
 ```bash
-# 后端集成测试（需后端已启动）
-cd backend && node scripts/integration-test.js
+# 后端测试（一条命令自主运行全部）：单元/集成 + 端到端 API 全流程 + 数据源冒烟
+# LIVE 依赖（docker 中间的库/MySQL/Trino/PG）会自动探测，未启动的自动跳过不报错
+cd backend && npm test
+
+# 仅跑单元/集成/HTTP 测试（不链数据源冒烟）
+cd backend && npm run test:unit
+
+# 强制跑全部 LIVE 测试（需 docker 基础设施已启动，脚本/datasource-live/docker-compose.yml）
+cd backend && npm run test:live
+cd backend && npm run test:pg        # 仅 PostgreSQL 应用存储矩阵（需 PG 容器）
+cd backend && npm run test:smoke     # 数据源+数据集 HTTP 端到端冒烟（需 mysql:13306）
+cd backend && npm run test:providers # 六库 provider schema 校验（跳过未运行的容器）
+
+# 前端逻辑单测（grid-layout）
+cd front-end && npm test
 
 # 端到端浏览器冒烟测试（需前后端均已启动，自动调用本机 Chrome）
 cd front-end && npm run dev   # 另一个终端：npm run dev（后端）

@@ -1,23 +1,50 @@
 // 数据源 + 数据集 端到端 HTTP smoke（临时脚本，不入库）
 // 启动真实后端 → admin 登录 → 创建 mysql 数据源 → browse(库/表/列) → 切 sync → 建同步配置 → 全量同步 → 日志 → 本地表浏览降级
+// 自主运行：mysql:13306 不可达时自动跳过（exit 0），端口随机避免占用冲突。
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
+import net from 'node:net';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
 const require = createRequire(import.meta.url);
 
-const PORT = 4199;
+const MYSQL_CFG = { host: '127.0.0.1', port: 13306, user: 'root', password: 'Kanban@123', database: 'sync_src' };
+
+function reachable(host, port, timeout = 1500) {
+  return new Promise((resolve) => {
+    const s = net.connect({ host, port });
+    s.setTimeout(timeout);
+    s.on('connect', () => { s.destroy(); resolve(true); });
+    s.on('error', () => { s.destroy(); resolve(false); });
+    s.on('timeout', () => { s.destroy(); resolve(false); });
+  });
+}
+
+const mysqlUp = await reachable(MYSQL_CFG.host, MYSQL_CFG.port);
+if (!mysqlUp) {
+  console.log(`SKIP  smoke-ds-dataset: live mysql ${MYSQL_CFG.host}:${MYSQL_CFG.port} 未运行`);
+  process.exit(0);
+}
+
+const getFreePort = () => new Promise((resolve, reject) => {
+  const s = net.createServer();
+  s.on('error', reject);
+  s.listen(0, '127.0.0.1', () => {
+    const p = s.address().port;
+    s.close(() => resolve(p));
+  });
+});
+const PORT = await getFreePort();
 const BASE = `http://127.0.0.1:${PORT}`;
 const DB_PATH = path.join(os.tmpdir(), `smoke-kanban-${Date.now()}.db`);
 const results = [];
 const admin = { email: 'admin@kanban.local', password: 'admin123' };
-const MYSQL_CFG = { host: '127.0.0.1', port: 13306, user: 'root', password: 'Kanban@123', database: 'sync_src' };
 
 const awaitSourceCount = async () => {
   const mysql = require('mysql2/promise');
-  const c = await mysql.createConnection({ host: '127.0.0.1', port: 13306, user: 'root', password: 'Kanban@123', database: 'sync_src' });
+  const c = await mysql.createConnection(MYSQL_CFG);
   const [rows] = await c.query('SELECT COUNT(*) AS n FROM sales2');
   await c.end();
   return rows[0].n;
@@ -139,7 +166,7 @@ try {
 
   r = await fetch(`${BASE}/api/datasources/${dsId}/schemas/local/tables`, { headers: { Authorization: `Bearer ${token}` } });
   d = await j(r);
-  const degT = d.data || [];
+  const degT = (d.data || []).map((t) => (typeof t === 'string' ? t : t.name));
   ok('P15 降级本地表含 sync 表', degT.includes(localTable), JSON.stringify(degT));
 
   r = await fetch(`${BASE}/api/datasources/${dsId}/schemas/local/tables/${localTable}/columns`, { headers: { Authorization: `Bearer ${token}` } });

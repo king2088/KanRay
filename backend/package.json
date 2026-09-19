@@ -7,8 +7,12 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test test/*.test.js",
-    "test:pg": "RUN_LIVE=1 LIVE_CASES=postgres node --test test/task35-pg-matrix.test.js"
+    "test": "node --test test/*.test.js && npm run test:smoke && npm run test:providers",
+    "test:unit": "node --test test/*.test.js",
+    "test:live": "RUN_LIVE=1 node --test test/*.test.js",
+    "test:pg": "RUN_LIVE=1 LIVE_CASES=postgres node --test test/task35-pg-matrix.test.js",
+    "test:smoke": "node scripts/smoke-ds-dataset.mjs",
+    "test:providers": "node scripts/datasource-live/verify-schema-scope.mjs"
   },
   "engines": {
     "node": ">=18"
