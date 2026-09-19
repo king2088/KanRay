@@ -127,6 +127,17 @@ test('流式对账：跨多页（>5000 行）仍准确删除缺失主键', async
   assert.equal(db.prepare(`SELECT id FROM ${q(local)} WHERE id = 3000`).get(), undefined);
 });
 
+test('队列：终态任务超保留期被清理', async () => {
+  const c = await sync.createConfig(dsId, { sourceTable: 'q5', strategy: 'full' });
+  const j = await queue.enqueue(c.id, 'manual');
+  await queue.claim('w1', 60000);
+  await queue.finish(j.id, 'success');
+  db.prepare('UPDATE sync_jobs SET finished_at = ? WHERE id = ?').run('2020-01-01 00:00:00', j.id);
+  const removed = await queue.pruneFinished(7);
+  assert.equal(removed, 1);
+  assert.equal(db.prepare('SELECT id FROM sync_jobs WHERE id = ?').get(j.id), undefined);
+});
+
 test('可观测性：快照包含事件循环、内存、HTTP 与同步指标', async () => {
   const metrics = require('../src/middleware/metrics');
   metrics.reset();

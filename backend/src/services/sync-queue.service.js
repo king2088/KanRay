@@ -9,6 +9,21 @@ const ACTIVE = ['queued', 'running'];
 
 function q(name) { return db.dialect.quoteIdent(name); }
 
+// 与 datetime('now') 一致的 UTC 'YYYY-MM-DD HH:MM:SS'，用于跨方言字符串比较
+function utcStamp(ms) {
+  return new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+}
+
+// 清理超过保留期的终态任务（success/failed），防止 sync_jobs 无界增长
+async function pruneFinished(retentionDays = config.sync.jobRetentionDays) {
+  const cutoff = utcStamp(Date.now() - retentionDays * 86400000);
+  const ph = db.dialect.placeholder;
+  const r = await db.prepare(
+    `DELETE FROM ${q('sync_jobs')} WHERE (${q('status')} = ${ph(1)} OR ${q('status')} = ${ph(2)}) AND ${q('finished_at')} IS NOT NULL AND ${q('finished_at')} < ${ph(3)}`,
+  ).run('success', 'failed', cutoff);
+  return Number(r?.changes || 0);
+}
+
 async function hasActive(cid, now) {
   const ph = db.dialect.placeholder;
   const sql = `SELECT id FROM ${q('sync_jobs')} WHERE ${q('sync_config_id')} = ${ph(1)} AND (${q('status')} = ${ph(2)} OR (${q('status')} = ${ph(3)} AND ${q('lease_until')} > ${ph(4)}))`;
@@ -84,4 +99,4 @@ async function queuedCount() {
   return Number(row?.c || 0);
 }
 
-module.exports = { enqueue, claim, renew, finish, getJob, hasActive, activeCount, queuedCount, ACTIVE };
+module.exports = { enqueue, claim, renew, finish, getJob, hasActive, activeCount, queuedCount, pruneFinished, ACTIVE };

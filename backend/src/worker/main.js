@@ -13,6 +13,7 @@ const { withLock } = require('../services/lock');
 const WORKER_ID = `${os.hostname()}-${process.pid}`;
 const running = new Set();
 let consumerTimer = null;
+let pruneTimer = null;
 let shuttingDown = false;
 
 async function runJob(job) {
@@ -60,6 +61,17 @@ async function main() {
   startScheduler();
   consumerTimer = setInterval(() => { consumerTick().catch((e) => console.error('[sync-worker] consumer tick:', e.message)); }, config.sync.workerPollMs);
   await consumerTick().catch((e) => console.error('[sync-worker] consumer tick:', e.message));
+  await prune();
+  pruneTimer = setInterval(prune, 3600000);
+}
+
+async function prune() {
+  try {
+    const n = await queue.pruneFinished();
+    if (n > 0) console.log(`[sync-worker] 清理过期同步任务 ${n} 条`);
+  } catch (e) {
+    console.error('[sync-worker] 清理过期任务失败:', e.message);
+  }
 }
 
 async function shutdown(signal) {
@@ -68,6 +80,7 @@ async function shutdown(signal) {
   console.log(`[sync-worker] 收到 ${signal}，等待在途任务结束（${running.size} 个）…`);
   stopScheduler();
   if (consumerTimer) { clearInterval(consumerTimer); consumerTimer = null; }
+  if (pruneTimer) { clearInterval(pruneTimer); pruneTimer = null; }
   const deadline = Date.now() + 30000;
   while (running.size > 0 && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 200));

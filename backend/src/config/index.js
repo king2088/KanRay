@@ -82,6 +82,8 @@ module.exports = {
     schedulerIntervalMs: parseInt(process.env.SYNC_SCHEDULER_INTERVAL_MS || '60000', 10),
     workerPollMs: parseInt(process.env.SYNC_WORKER_POLL_MS || '2000', 10),
     maxConcurrent: parseInt(process.env.SYNC_MAX_CONCURRENT || '2', 10),
+    // 已完成任务（success/failed）保留天数，超期清理，避免 sync_jobs 无界增长
+    jobRetentionDays: Math.max(1, parseInt(process.env.SYNC_JOB_RETENTION_DAYS || '7', 10)),
     defaultIntervalSeconds: parseInt(process.env.SYNC_DEFAULT_INTERVAL_SECONDS || '86400', 10),
     lockTtlMs: parseInt(process.env.SYNC_LOCK_TTL_MS || '1800000', 10),
   },
