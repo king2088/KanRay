@@ -58,33 +58,15 @@
             <el-option label="指标库" value="saved" />
           </el-select>
           <template v-if="m.type === 'saved'">
-            <el-select v-model="m.metricId" style="flex: 1.5" placeholder="选择指标库指标">
+            <el-select v-model="m.metricId" style="flex: 1" placeholder="选择指标库指标">
               <el-option v-for="l in library" :key="l.id" :label="metricTypeTag(l) + ' ' + l.name" :value="l.id" />
             </el-select>
-            <span class="ref-hint" style="flex: 1">复用数据集指标库中的命名指标</span>
           </template>
           <template v-else-if="m.type === 'expr'">
-            <el-input v-model="m.label" placeholder="指标名称" style="flex: 0.9" />
-            <el-input
-              v-model="m.expr"
-              :class="{ 'is-invalid': exprError(m) }"
-              placeholder="复合指标公式，如 $m0 / $m1"
-              style="flex: 1.5"
-            />
+            <el-input v-model="m.label" placeholder="指标名称" style="flex: 1" />
           </template>
           <template v-else-if="m.type === 'derived'">
-            <el-select v-model="m.kind" style="width: 104px" placeholder="类型">
-              <el-option v-for="k in DERIVED_OPTIONS" :key="k.value" :label="k.label" :value="k.value" />
-            </el-select>
-            <el-select v-model="m.ref" style="flex: 1" placeholder="引用指标">
-              <el-option
-                v-for="b in derivedRefs(mi)"
-                :key="b.key"
-                :label="'$' + b.key + ' ' + (b.label || metricFieldLabel(b))"
-                :value="b.key"
-              />
-            </el-select>
-            <el-input v-model="m.label" placeholder="指标名称" style="flex: 0.9" />
+            <el-input v-model="m.label" placeholder="指标名称" style="flex: 1" />
           </template>
           <template v-else>
             <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
@@ -95,6 +77,27 @@
             </el-select>
           </template>
           <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>
+        </div>
+        <!-- 第二行：公式 / 引用指标 独占整行，避免一行超窄 -->
+        <div v-if="m.type === 'expr'" class="metric-subrow">
+          <el-input
+            v-model="m.expr"
+            :class="{ 'is-invalid': exprError(m) }"
+            placeholder="复合指标公式，如 $m0 / $m1"
+          />
+        </div>
+        <div v-else-if="m.type === 'derived'" class="metric-subrow">
+          <el-select v-model="m.kind" style="width: 104px" placeholder="类型">
+            <el-option v-for="k in DERIVED_OPTIONS" :key="k.value" :label="k.label" :value="k.value" />
+          </el-select>
+          <el-select v-model="m.ref" style="flex: 1" placeholder="引用指标">
+            <el-option
+              v-for="b in derivedRefs(mi)"
+              :key="b.key"
+              :label="'$' + b.key + ' ' + (b.label || metricFieldLabel(b))"
+              :value="b.key"
+            />
+          </el-select>
         </div>
         <div v-if="m.type === 'derived'" class="ref-row">
           <span v-if="derivedError(m)" class="ref-error">{{ derivedError(m) }}</span>
@@ -361,6 +364,12 @@ function removeItem(arr, i) {
 
 .metric-wrap {
   margin-bottom: 8px;
+}
+
+.metric-subrow {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .ref-row {
