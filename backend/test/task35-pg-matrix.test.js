@@ -375,4 +375,19 @@ if (!LIVE) {
     assert.equal(typeof agg.s, 'number', `SUM 应为 number，实际 ${typeof agg.s}`);
     assert.equal(typeof agg.a, 'number', `AVG 应为 number，实际 ${typeof agg.a}`);
   });
+
+  test('管理列表计数（PG）：listUsers/audit.list 返回数值 total（回归 await ...get().n 优先级）', async () => {
+    const rbac = require('../src/services/rbac.service');
+    const audit = require('../src/services/audit.service');
+    await db.prepare("INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)").run(`pg-total-${process.pid}@t`, 'x', 'pg-total');
+    const u = await rbac.listUsers({ page: 1, pageSize: 5 });
+    assert.equal(typeof u.total, 'number', `users total 应为 number，实际 ${typeof u.total}（${JSON.stringify(u.total)}）`);
+    assert.ok(u.total >= 1, 'users total 应 >= 1');
+    const before = (await audit.list({ page: 1, pageSize: 1 })).total;
+    await audit.log({ userId: null, email: 'pg-total@t', action: 'unit' }, { ip: '1.2.3.4' });
+    const a = await audit.list({ page: 1, pageSize: 2 });
+    assert.equal(typeof a.total, 'number', `audit total 应为 number，实际 ${typeof a.total}（${JSON.stringify(a.total)}）`);
+    assert.equal(a.total, before + 1, 'audit total 应随新增审计 +1');
+    assert.equal(a.list[0].action, 'unit');
+  });
 }

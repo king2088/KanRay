@@ -8,7 +8,7 @@ async function log(info, req) {
 }
 
 async function list({ page = 1, pageSize = 20 } = {}) {
-  const total = await db.prepare('SELECT COUNT(*) n FROM audit_logs').get().n;
+  const total = Number((await db.prepare('SELECT COUNT(*) n FROM audit_logs').get()).n);
   const list = await db.prepare(
     'SELECT * FROM audit_logs ORDER BY id DESC LIMIT ? OFFSET ?'
   ).all(pageSize, (page - 1) * pageSize);

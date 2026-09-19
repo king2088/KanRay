@@ -79,7 +79,7 @@ async function setRolePermissions(roleId, codes) {
 }
 
 async function listUsers({ page = 1, pageSize = 20 } = {}) {
-  const total = await db.prepare('SELECT COUNT(*) n FROM users').get().n;
+  const total = Number((await db.prepare('SELECT COUNT(*) n FROM users').get()).n);
   const rows = await db.prepare('SELECT * FROM users ORDER BY id DESC LIMIT ? OFFSET ?').all(pageSize, (page - 1) * pageSize);
   const roleRows = await db.prepare('SELECT ur.user_id, r.code FROM user_roles ur JOIN roles r ON r.id = ur.role_id').all();
   const map = new Map();
