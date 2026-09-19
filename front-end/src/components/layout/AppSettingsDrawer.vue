@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" title="系统设置" size="320px">
+  <el-drawer v-model="visible" title="系统设置" size="320px" append-to-body>
     <div class="settings">
       <p class="settings__label">布局模式</p>
       <div class="settings__layouts">

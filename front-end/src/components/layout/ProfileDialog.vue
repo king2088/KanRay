@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="show" title="个人中心" width="420px">
+  <el-dialog v-model="show" title="个人中心" width="420px" append-to-body>
     <el-tabs>
       <el-tab-pane label="基本资料">
         <el-form label-position="top">

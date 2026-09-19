@@ -118,9 +118,9 @@
             <span class="tree-node__label">{{ data.label }}</span>
             <span v-if="data.type === 'column'" class="tree-node__type" :class="'type--' + typeBadge(data).type">{{ typeBadge(data).text }}</span>
             <span class="tree-node__actions">
-              <el-button v-if="data.type === 'table'" link type="primary" @click.stop="openViewData(data)">查看数据</el-button>
-              <el-button v-if="data.type === 'table'" link  type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">新建构建</el-button>
-              <el-button v-if="data.type === 'table'" link  @click.stop="createDataset(data)">创建数据集</el-button>
+              <el-button v-if="data.type === 'table'" link @click.stop="openViewData(data)">查看数据</el-button>
+              <el-button v-if="data.type === 'table'" link type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">新建构建</el-button>
+              <el-button v-if="data.type === 'table'" link type="success" @click.stop="createDataset(data)">创建数据集</el-button>
             </span>
           </span>
         </template>
@@ -487,7 +487,7 @@ onBeforeUnmount(stopPoll)
 .tree-node__type.type--primary { color: var(--el-color-primary); }
 .tree-node__type.type--warning { color: var(--el-color-warning); }
 .tree-node__type.type--success { color: var(--el-color-success); }
-.tree-node__actions { display: none; gap: 2px; flex: 0 0 auto; white-space: nowrap; }
+.tree-node__actions { display: none; gap: 2px; flex: 0 0 auto; white-space: nowrap; margin-left: 80px; }
 .el-tree-node__content:hover .tree-node__actions,
 .el-tree-node__content:focus-within .tree-node__actions { display: flex; }
 :deep(.el-tree-node__content:hover) { background: var(--app-hover); border-radius: 4px; }
