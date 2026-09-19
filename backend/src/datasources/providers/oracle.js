@@ -1,4 +1,6 @@
 const oracledb = require('oracledb');
+const { oracle: oracleDialect } = require('../dialects');
+const { toDialect } = require('../portable-sql');
 
 // thin 模式：纯 JS 实现，免装 Oracle Instant Client
 oracledb.thin = true;
@@ -64,7 +66,8 @@ async function listColumns(cfg, type, schema, table) {
       [owner, String(table).toUpperCase()],
     );
     return (r.rows || []).map((row) => ({
-      name: row.NAME,
+      // 未加引号的列名 Oracle 自动大写；与 runQuery 的行键归一化保持一致，统一转小写
+      name: String(row.NAME).toLowerCase(),
       type: row.TYPE,
       role: NUMERIC.test(row.TYPE) ? 'metric' : 'dimension',
     }));
@@ -76,9 +79,9 @@ async function listColumns(cfg, type, schema, table) {
 async function runQuery(cfg, sql, params = []) {
   const conn = await makeConn(cfg);
   try {
-    // 方言占位符 :1/:2...，oracledb 依位置绑定。
+    // 同步引擎传入可移植占位符 `?` 与 `LIMIT`，此处转成 Oracle 的 :1/:2 与 FETCH FIRST。
     // runQuery 每次新建连接，DML 需随语句提交，否则新连接不可见。
-    const r = await conn.execute(sql, params, { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: true });
+    const r = await conn.execute(toDialect(sql, oracleDialect), params, { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: true });
     // 归一化：双引号保留原始大小写，未加引号的列名 Oracle 自动大写；统一转小写以对齐其他数据源
     return (r.rows || []).map((row) => {
       const o = {};

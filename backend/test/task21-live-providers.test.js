@@ -5,6 +5,7 @@ const net = require('node:net');
 
 const prestoProvider = require('../src/datasources/providers/presto');
 const oracleProvider = require('../src/datasources/providers/oracle');
+const mssqlProvider = require('../src/datasources/providers/mssql');
 const mysqlFamily = require('../src/datasources/providers/mysql-family');
 
 function reachable(host, port, timeout = 1500) {
@@ -70,7 +71,8 @@ test('oracle: live Oracle Free 全链路 test/browse/query', { timeout: 180000 }
     const tables = await oracleProvider.listTables(cfg, 'oracle', (cfg.user || '').toUpperCase());
     assert.ok(tables.some((t) => t.name === tbl), tables.map((t) => t.name).join(','));
     const cols = await oracleProvider.listColumns(cfg, 'oracle', (cfg.user || '').toUpperCase(), tbl);
-    assert.ok(cols.some((c) => c.name === 'AMOUNT' && c.role === 'metric'), JSON.stringify(cols));
+    // 列名归一化为小写，与 runQuery 的行键一致（Oracle 未加引号列名默认大写）
+    assert.ok(cols.some((c) => c.name === 'amount' && c.role === 'metric'), JSON.stringify(cols));
     // 方言关键点：双引号标识符 + :n 位置绑定 + FETCH FIRST + TRUNC
     const agg = await oracleProvider.runQuery(
       cfg,
@@ -78,7 +80,35 @@ test('oracle: live Oracle Free 全链路 test/browse/query', { timeout: 180000 }
       [],
     );
     assert.equal(Number(agg[0].m), 31);
+    // 同步引擎可移植 SQL：? 占位符 + LIMIT/OFFSET → :1 与 OFFSET/FETCH
+    const portable = await oracleProvider.runQuery(
+      cfg,
+      `SELECT "AMOUNT" FROM "${tbl}" WHERE "ID" > ? ORDER BY "ID" ASC LIMIT 1 OFFSET 0`,
+      [0],
+    );
+    assert.equal(Number(portable[0].amount), 10.5, JSON.stringify(portable));
   } finally {
     await oracleProvider.runQuery(cfg, `DROP TABLE ${tbl}`, []).catch(() => {});
+  }
+});
+
+test('mssql: live SQL Server 全链路 + 同步可移植 SQL（? / LIMIT）', { timeout: 180000 }, async (t) => {
+  if (!(await reachable('127.0.0.1', 11433))) return t.skip('live mssql 未运行');
+  const cfg = { host: '127.0.0.1', port: 11433, database: 'live_store_test', user: 'sa', password: 'Kanban@123', schema: 'dbo' };
+  const conn = await mssqlProvider.testConnection(cfg);
+  assert.equal(conn.ok, true, conn.message);
+  const tbl = `kb_live_${Date.now() % 100000}`;
+  await mssqlProvider.runQuery(cfg, `CREATE TABLE dbo.${tbl} (id INT PRIMARY KEY, amount DECIMAL(18,2))`, []);
+  await mssqlProvider.runQuery(cfg, `INSERT INTO dbo.${tbl} (id, amount) VALUES (?, ?), (?, ?), (?, ?)`, [1, 10.5, 2, 20.5, 3, 30.5]);
+  try {
+    const cols = await mssqlProvider.listColumns(cfg, 'sqlserver', 'dbo', tbl);
+    assert.ok(cols.some((c) => c.name === 'amount' && c.role === 'metric'), JSON.stringify(cols));
+    // 同步引擎可移植 SQL：? → @p0，LIMIT → TOP，LIMIT/OFFSET → OFFSET/FETCH
+    const filtered = await mssqlProvider.runQuery(cfg, `SELECT id, amount FROM dbo.${tbl} WHERE id > ? ORDER BY id ASC LIMIT 500`, [1]);
+    assert.equal(filtered.length, 2, JSON.stringify(filtered));
+    const page = await mssqlProvider.runQuery(cfg, `SELECT id FROM dbo.${tbl} ORDER BY id ASC LIMIT 1 OFFSET 1`, []);
+    assert.equal(Number(page[0].id), 2, JSON.stringify(page));
+  } finally {
+    await mssqlProvider.runQuery(cfg, `DROP TABLE dbo.${tbl}`, []).catch(() => {});
   }
 });

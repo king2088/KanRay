@@ -1,4 +1,6 @@
 const sql = require('mssql');
+const { mssql: mssqlDialect } = require('../dialects');
+const { toDialect } = require('../portable-sql');
 
 function makeConfig(cfg) {
   return {
@@ -68,7 +70,7 @@ async function runQuery(cfg, sqlQuery, params = []) {
   try {
     const request = pool.request();
     params.forEach((p, i) => request.input(`p${i}`, p));
-    const result = await request.query(sqlQuery);
+    const result = await request.query(toDialect(sqlQuery, mssqlDialect));
     return result.recordset;
   } finally {
     await pool.close();
