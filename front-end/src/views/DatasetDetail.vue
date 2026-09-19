@@ -171,11 +171,19 @@
             </template>
 
             <template v-else-if="metricForm.kind === 'expr'">
-              <el-form-item label="复合指标公式" required>
-                <el-input v-model="metricForm.expr" type="textarea" :rows="2"
-                  placeholder="如：$1 / $2 * 100（$数字 引用下方原子指标）" />
+              <el-form-item label="指标公式" required>
+                <div class="formula-field">
+                  <el-input v-model="metricForm.expr" type="textarea" :rows="3"
+                    placeholder="如：$1 / $2 * 100（$数字 引用下方引用指标）" />
+                  <div class="formula-bar">
+                    <el-button link type="primary" size="small" @click="formulaHelp.show = true">
+                      <el-icon style="margin-right: 2px"><QuestionFilled /></el-icon>公式怎么写？查看帮助
+                    </el-button>
+                    <span class="ref-empty">点击下方指标标签可插入引用</span>
+                  </div>
+                </div>
               </el-form-item>
-              <el-form-item label="引用基础指标">
+              <el-form-item label="引用指标">
                 <div class="expr-refs">
                   <el-tag v-for="b in libraryBaseMetrics" :key="b.id" size="small" effect="plain"
                     class="ref-tag" @click="insertLibRef(b)">
@@ -204,6 +212,36 @@
             <el-button type="primary" :loading="metricSaving" @click="saveMetric">保存</el-button>
           </template>
         </el-dialog>
+
+        <el-dialog v-model="formulaHelp.show" title="指标公式帮助" width="580px" class="formula-help">
+          <div class="help-section">
+            <p class="help-lead">指标公式基于指标库中的「原子指标」做四则运算，产出一个新的命名指标（复合指标）。</p>
+            <h4>一、语法</h4>
+            <ul>
+              <li>用 <code>$数字ID</code> 引用原子指标（ID 见公式输入框下方「引用指标」），例如 <code>$2</code>。</li>
+              <li>支持运算符与括号：<code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>( )</code>，以及数字与 <code>%</code>。</li>
+              <li>整数相除会自动提升为小数，无需额外乘 1.0。</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h4>二、规则</h4>
+            <ul>
+              <li>只能引用「原子指标」，不能引用复合指标或衍生指标。</li>
+              <li>公式内不能出现字母（防止注入），仅允许数字、运算符、括号与空白。</li>
+              <li>括号必须成对，左括号与右括号数量不一致会被拒绝。</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h4>三、常用公式示例</h4>
+            <el-table :data="helpExamples" size="small" border>
+              <el-table-column prop="name" label="指标" width="120" />
+              <el-table-column prop="formula" label="公式" width="230">
+                <template #default="{ row }"><code>{{ row.formula }}</code></template>
+              </el-table-column>
+              <el-table-column prop="desc" label="说明" />
+            </el-table>
+          </div>
+        </el-dialog>
       </el-tabs>
     </div>
   </div>
@@ -213,7 +251,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, DataAnalysis, Plus } from '@element-plus/icons-vue'
+import { ArrowLeft, DataAnalysis, Plus, QuestionFilled } from '@element-plus/icons-vue'
 import { datasetApi, metricApi } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
@@ -235,6 +273,14 @@ const metricsLoading = ref(false)
 const metricSaving = ref(false)
 const metricDialog = ref({ show: false, editing: null })
 const metricForm = ref(emptyMetricForm())
+const formulaHelp = ref({ show: false })
+const helpExamples = [
+  { name: '客单价', formula: '$1 / $2', desc: '销售额 ÷ 销量' },
+  { name: '转化率（%）', formula: '$1 / $2 * 100', desc: '下单人数 ÷ 访客人数' },
+  { name: '毛利率（%）', formula: '($1 / $2) * 100', desc: '毛利 ÷ 销售额' },
+  { name: '折扣后金额', formula: '$1 * 0.9', desc: '销售额 × 9 折' },
+  { name: '同比增幅（%）', formula: '($1 - $2) / $2 * 100', desc: '本期较上期涨跌' },
+]
 
 function emptyMetricForm() {
   return { name: '', kind: 'base', field: '', agg: 'sum', expr: '', derivative: 'share', refId: null }
@@ -422,6 +468,49 @@ onMounted(load)
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+
+.formula-field {
+  width: 100%;
+}
+
+.formula-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.formula-help .help-section {
+  margin-bottom: 14px;
+}
+
+.formula-help h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--app-text-primary);
+}
+
+.formula-help .help-lead {
+  margin: 0 0 10px;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.formula-help ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.formula-help code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--app-bg-muted, rgba(0, 0, 0, 0.05));
+  font-size: 12px;
 }
 
 .ref-tag {
