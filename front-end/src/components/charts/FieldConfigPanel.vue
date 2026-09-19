@@ -70,7 +70,7 @@
           </template>
           <template v-else>
             <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
-              <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
+              <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
             </el-select>
             <el-select v-model="m.agg" style="width: 95px">
               <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
@@ -128,6 +128,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Plus, Delete, DataLine } from '@element-plus/icons-vue'
 import { AGG_OPTIONS, DERIVED_OPTIONS } from '@/utils/chart-utils'
 
@@ -146,6 +147,8 @@ const update = () => {
 const typeLabel = (t) => ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t)
 
 const NUMERIC_TYPES = ['integer', 'number']
+
+const numericFields = computed(() => props.fields.filter((f) => NUMERIC_TYPES.includes(f.type)))
 
 const typeTagStyle = (t) =>
   NUMERIC_TYPES.includes(t)
@@ -171,23 +174,24 @@ function onDrop(e, target) {
       update()
     }
   } else {
+    if (!NUMERIC_TYPES.includes(f.type)) return
     if (!props.metrics.some((m) => m.type !== 'expr' && m.field === f.name)) {
-      props.metrics.push({ type: 'base', field: f.name, agg: f.type === 'date' ? 'count' : 'sum' })
+      props.metrics.push({ type: 'base', field: f.name, agg: 'sum' })
       update()
     }
   }
 }
 
 function quickAdd(f) {
-  // Click adds to a sensible slot based on type
-  if (f.type === 'date' || (props.metrics.length === 0 && f.type !== 'number' && f.type !== 'integer')) {
-    if (!props.dims.some((d) => d.field === f.name)) {
-      props.dims.push({ field: f.name, granularity: f.type === 'date' ? 'day' : undefined })
+  // 数值字段 → 指标；文本/日期/布尔 → 维度
+  if (NUMERIC_TYPES.includes(f.type)) {
+    if (!props.metrics.some((m) => m.type !== 'expr' && m.field === f.name)) {
+      props.metrics.push({ type: 'base', field: f.name, agg: 'sum' })
       update()
     }
   } else {
-    if (!props.metrics.some((m) => m.type !== 'expr' && m.field === f.name)) {
-      props.metrics.push({ type: 'base', field: f.name, agg: f.type === 'number' || f.type === 'integer' ? 'sum' : 'count' })
+    if (!props.dims.some((d) => d.field === f.name)) {
+      props.dims.push({ field: f.name, granularity: f.type === 'date' ? 'day' : undefined })
       update()
     }
   }
