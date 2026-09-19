@@ -45,6 +45,51 @@ function normWm(v) {
   return v;
 }
 
+// 主键元组归一化为可比较键：数值/字符串统一转字符串，避免驱动类型（number vs bigint 字符串等）不一致误判
+function pkKey(vals) {
+  return JSON.stringify(vals.map((v) => (v == null ? '' : String(v))));
+}
+
+function deleteSql(localTable, pks) {
+  const q = db.dialect.quoteIdent;
+  const where = pks.map((c, i) => `${q(c)} = ${db.dialect.placeholder(i + 1)}`).join(' AND ');
+  return `DELETE FROM ${q(localTable)} WHERE ${where}`;
+}
+
+// 主键对账删除：增量同步后把「本地有、源端无」的主键从本地表删掉。
+// 源端唯一能发现硬删除的途径是比对主键全集；源/本各扫一遍，差异分批 DELETE。
+async function reconcileDeletes(provider, cfg, sc, pks, localTable) {
+  const qname = (n) => String(n);
+  const from = sc.source_schema ? `${qname(sc.source_schema)}.${qname(sc.source_table)}` : qname(sc.source_table);
+  const keyCols = pks.map(qname).join(', ');
+  const srcKeys = new Set();
+  let offset = 0;
+  while (true) {
+    const sql = `SELECT ${keyCols} FROM ${from} ORDER BY ${keyCols} ASC LIMIT ${BATCH_SIZE} OFFSET ${offset}`;
+    const rows = await provider.runQuery(cfg, sql, []);
+    if (!rows || rows.length === 0) break;
+    for (const r of rows) srcKeys.add(pkKey(pks.map((c) => r[c])));
+    offset += rows.length;
+    if (rows.length < BATCH_SIZE) break;
+  }
+  const q = db.dialect.quoteIdent;
+  const localRows = await db.prepare(`SELECT ${pks.map(q).join(', ')} FROM ${q(localTable)}`).all();
+  const missing = [];
+  for (const r of localRows) {
+    const key = pkKey(pks.map((c) => r[c]));
+    if (!srcKeys.has(key)) missing.push(pks.map((c) => r[c]));
+  }
+  if (missing.length === 0) return 0;
+  const delSql = deleteSql(localTable, pks);
+  for (let i = 0; i < missing.length; i += BATCH_SIZE) {
+    const slice = missing.slice(i, i + BATCH_SIZE);
+    await db.transaction(async (batch) => {
+      for (const vals of batch) await db.prepare(delSql).run(...vals);
+    })(slice);
+  }
+  return missing.length;
+}
+
 // 落库前把驱动可能返回的富类型转成可绑定原语（sqlite 只收 number/string/bigint/buffer/null）
 function toBindable(v) {
   if (v == null) return null;
@@ -137,7 +182,11 @@ async function incremental(cid, provider, cfg, ds, sc, cols, columns, logId) {
     continueReading = rows.length === BATCH_SIZE;
     if (total > config.upload.maxRows) throw new HttpError(400, `同步行数超过上限 ${config.upload.maxRows}`);
   }
-  return { total, watermark: lastWm, localTable };
+  let deleted = 0;
+  if (pks.length > 0 && sc.reconcile_delete !== 0) {
+    deleted = await reconcileDeletes(provider, cfg, sc, pks, localTable);
+  }
+  return { total, deleted, watermark: lastWm, localTable };
 }
 
 async function full(cid, provider, cfg, ds, sc, cols, columns, logId) {
@@ -176,10 +225,11 @@ async function runSync(cid) {
   try {
     out = sc.strategy === 'full' ? await full(cid, provider, cfg, ds, sc, cols, columns, logId)
       : await incremental(cid, provider, cfg, ds, sc, cols, columns, logId);
-    await finishLog(logId, 'success', out.total);
-    await db.prepare("UPDATE sync_configs SET last_sync_at = datetime('now'), last_watermark = ?, last_sync_status = 'success', last_sync_msg = '', updated_at = datetime('now') WHERE id = ?")
-      .run(out.watermark == null ? null : String(out.watermark), cid);
-    return { rows: out.total, localTable: out.localTable };
+    const msg = out.deleted ? `删除对账：本地删除 ${out.deleted} 行` : '';
+    await finishLog(logId, 'success', out.total, msg || null);
+    await db.prepare("UPDATE sync_configs SET last_sync_at = datetime('now'), last_watermark = ?, last_sync_status = 'success', last_sync_msg = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(out.watermark == null ? null : String(out.watermark), msg, cid);
+    return { rows: out.total, deleted: out.deleted || 0, localTable: out.localTable };
   } catch (e) {
     await finishLog(logId, 'failed', out ? out.total : 0, e.message);
     await db.prepare("UPDATE sync_configs SET last_sync_status = 'failed', last_sync_msg = ?, updated_at = datetime('now') WHERE id = ?").run(String(e.message).slice(0, 500), cid);
@@ -217,11 +267,12 @@ async function createConfig(dsId, body, req) {
     const idCol = columns.find((c) => /^id$/i.test(String(c.name)));
     if (idCol) pkRaw = JSON.stringify([idCol.name]);
   }
-  const interval = parseInt(body.syncIntervalSeconds || body.interval || config.sync.defaultIntervalSeconds, 10);
+const interval = parseInt(body.syncIntervalSeconds || body.interval || config.sync.defaultIntervalSeconds, 10);
+  const reconcile = body.reconcileDelete === false ? 0 : 1;
   const localTable = body.localTable ? String(body.localTable).replace(/[^A-Za-z0-9_]/g, '_') : nextLocalTable(dsId, sourceTable);
   try {
-    const r = await db.prepare("INSERT INTO sync_configs (datasource_id, source_schema, source_table, local_table, target_type, strategy, watermark_field, watermark_kind, primary_key, sync_interval_seconds, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))")
-      .run(dsId, body.sourceSchema || null, sourceTable, localTable, body.targetType === 'file' ? 'file' : 'app', strategy, watermarkField, watermarkKind, pkRaw, interval);
+    const r = await db.prepare("INSERT INTO sync_configs (datasource_id, source_schema, source_table, local_table, target_type, strategy, watermark_field, watermark_kind, primary_key, reconcile_delete, sync_interval_seconds, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))")
+      .run(dsId, body.sourceSchema || null, sourceTable, localTable, body.targetType === 'file' ? 'file' : 'app', strategy, watermarkField, watermarkKind, pkRaw, reconcile, interval);
     const id = Number(r.lastInsertRowid);
     if (req) await require('./audit.service').log({ userId: ds.owner_id ?? null, email: req?.user?.email, action: 'datasource.sync.create', resourceType: 'sync_config', resourceId: id, detail: { datasource_id: dsId, source_table: sourceTable, strategy } }, req).catch(() => {});
     return getConfig(id);
@@ -249,6 +300,7 @@ function toConfig(row) {
     watermark_field: row.watermark_field,
     watermark_kind: row.watermark_kind,
     primary_key: parsePk(row.primary_key),
+    reconcile_delete: row.reconcile_delete == null ? 1 : row.reconcile_delete,
     sync_interval_seconds: row.sync_interval_seconds,
     last_sync_at: row.last_sync_at,
     last_watermark: row.last_watermark,
@@ -275,8 +327,9 @@ async function updateConfig(id, body) {
   const nextInterval = body.syncIntervalSeconds != null ? parseInt(body.syncIntervalSeconds, 10) : row.sync_interval_seconds;
   const nextPk = body.primaryKey != null ? (Array.isArray(body.primaryKey) ? JSON.stringify(body.primaryKey.map(String)) : String(body.primaryKey)) : row.primary_key;
   const nextWf = body.watermarkField != null ? String(body.watermarkField) : row.watermark_field;
-  await db.prepare("UPDATE sync_configs SET strategy = ?, watermark_field = ?, primary_key = ?, sync_interval_seconds = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(nextStrategy, nextWf, nextPk, nextInterval, id);
+  const nextReconcile = body.reconcileDelete != null ? (body.reconcileDelete ? 1 : 0) : row.reconcile_delete;
+  await db.prepare("UPDATE sync_configs SET strategy = ?, watermark_field = ?, primary_key = ?, reconcile_delete = ?, sync_interval_seconds = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(nextStrategy, nextWf, nextPk, nextReconcile, nextInterval, id);
   if (nextStrategy === 'full') {
     await db.prepare("UPDATE sync_configs SET watermark_field = NULL, last_watermark = NULL WHERE id = ?").run(id);
   }

@@ -5,7 +5,6 @@ KanRay 是一款面向小白用户的开源数据看板低代码平台：无需�
 从数据接入到看板呈现的一站式能力：**多用户 + RBAC 权限 + 多数据源接入 + 数据集构建器 + Excel 分析 + 看板编排**。
 
 > 技术栈：ExpressJS 5（后端） + Vue 3 + Element Plus + ECharts（前端），前后端分离。
-> 需求文档在 [docs/](docs/README.md)：`需求清单-第一阶段.md`、`需求清单-第二阶段.md`。
 > **完整产品说明书见 [docs/README.md（文档中心）](docs/README.md)**——按角色覆盖从安装部署到日常使用的全流程。
 
 ## 快速开始
@@ -359,6 +358,7 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 | `strategy` | `incremental`（按水印增量，需 `watermark_field` + `primary_key`）或 `full`（每次全量：DROP 后重建） |
 | `watermark_field` | 单调递增的数值/时间列，增量只拉 `> 上次水印` 的行 |
 | `primary_key` | 主键集合，增量按 `ON CONFLICT ... DO UPDATE`（upsert）去重更新 |
+| `reconcile_delete` | 增量主键对账删除开关（默认 `1`）：每次增量把源端主键与本地比对，删除本地多出的行；`0` 关闭 |
 | `interval_seconds` | 定时刷新周期（秒），`0` = 仅手动 |
 | `max_rows` | 单批/单次同步行数上限（默认 `config.upload.maxRows`），超限任务标记 failed |
 | `last_watermark` | 上次成功增量水印（推进到源端 `MAX(watermark_field)`） |
@@ -366,7 +366,7 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 - **水印归一**：驱动把源端 DATETIME 转成 JS `Date` 时，落库与水印比较统一按本地时区格式化为 `YYYY-MM-DD HH:MM:SS` 字符串。
 - **首同步不注册数据集**：同步只落物理表，不自动建数据集；在数据源详情页浏览本地表后，用「创建数据集 / 注册表」手动注册即可进入图表链路。
 - **调度**：后端内存调度器每分钟 tick，按 `interval_seconds` 计算到期任务并发执行（`SYNC_MAX_CONCURRENT`，默认 2）；`MAX_ROWS` / `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_DEFAULT_INTERVAL_SECONDS` 可用环境变量覆盖。调度器为**多实例安全**设计：每次执行前抢分布式锁（配 `REDIS_URL` 时 `SET NX PX`，否则 `sync_locks` 表租约锁），多实例共享同一元数据库即自动互斥，抢不到锁的实例跳过（日志「已由其它实例执行」），无需 leader 选举。
-- **已知限制**：增量不感知源端删除（不本地删行）；Oracle 源同步受其每语句自动提交影响（长事务失败不回滚）；开放 API 限流为每实例内存计数（全局配额需网关层实现）。
+- **已知限制**：增量删除对账依赖主键比对（大表每次同步多扫一遍源端主键，可关）；Oracle 源同步受其每语句自动提交影响（长事务失败不回滚）；开放 API 限流为每实例内存计数（全局配额需网关层实现）。
 
 ### 本地实测环境（Docker）
 
@@ -417,10 +417,10 @@ docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v # �
 
 ## 已知限制（未交付项）
 
-- 看板分享已支持完整生命周期（创建/密码门禁/JWT 鉴权/启停控制/过期策略/删除）；共享授权（grants）、资源级用户/角色授权、RLS 仍规划于后续里程碑（M3/M4，见 [需求清单-第二阶段.md](docs/需求清单-第二阶段.md)）
+- 看板分享已支持完整生命周期（创建/密码门禁/JWT 鉴权/启停控制/过期策略/删除）；共享授权（grants）、资源级用户/角色授权、RLS 仍规划于后续里程碑
 - 数据生命周期 20 万行 / 20MB 以内（上传数据集）；同步落库表由 `max_rows` 控制，不受该上限约束
 - 看板布局为 flow-grid（按数组顺序流式排布），第二维度作系列时显示为多系列
-- **同步任务**：调度器多实例安全（执行前抢分布式锁：Redis `SET NX PX` 或 `sync_locks` 表租约锁，共享元数据库即互斥，详见 [部署运维手册](docs/05-部署运维手册.md#七多实例--分布式部署)）；增量不感知源端删除（不本地删行）；数据源删除/停用不停已有同步任务配置
+- **同步任务**：调度器多实例安全（执行前抢分布式锁：Redis `SET NX PX` 或 `sync_locks` 表租约锁，共享元数据库即互斥，详见 [部署运维手册](docs/05-部署运维手册.md#七多实例--分布式部署)）；增量默认主键对账删除（本地删除源端已删的行，配置项 `reconcile_delete`，默认开）；数据源删除/停用不停已有同步任务配置
 - **存储后端**：Oracle 每语句自动提交，`transaction` 退化为逐条执行，批量写中途失败不会整体回滚（其余方言支持显式事务）；缓存默认进程内存，配 `REDIS_URL` 可启用 Redis 共享缓存与锁
 - **多实例部署**：前提是共享元数据库（非 sqlite）+ 一致的 `JWT_SECRET`/`DATASOURCE_SECRET` + 共享上传存储（NFS/对象存储），建议配 `REDIS_URL`；开放 API 限流为每实例内存计数；详见 [部署运维手册](docs/05-部署运维手册.md#七多实例--分布式部署)
 - **存量数据迁移**：当前**不做**已有 SQLite 库到外部存储库的自动数据迁移。切换存储后端请在选择部署形态时决定（可导出重建），`backend/src/db/` 门面的幂等建表/列补齐对新库安全

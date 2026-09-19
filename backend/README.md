@@ -232,7 +232,7 @@ docker compose -f scripts/datasource-live/docker-compose.yml up -d
 ## 已知限制（后端视角）
 
 - Oracle 存储后端 / Oracle 同步源：每语句自动提交，`transaction` 退化为逐条执行，批量写中途失败不会整体回滚。
-- 同步增量不感知源端删除（不本地删行）。
+- 同步增量默认开启主键对账删除（`sync_configs.reconcile_delete`，默认 1）：每次增量把源端与本地主键比对，删除本地多出的行；大表有全表主键扫描成本，可置 0 关闭。
 
 ---
 

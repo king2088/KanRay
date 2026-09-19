@@ -159,6 +159,10 @@
               <el-option v-for="c in srcColumns" :key="c.name" :value="c.name" :label="`${c.name}${c.type ? ' · ' + c.type : ''}`" />
             </el-select>
           </el-form-item>
+          <el-form-item label="删除对账">
+            <el-switch v-model="syncForm.reconcileDelete" />
+            <span class="sync-form-tip">增量同步时比对主键，本地删除源端已删的行（大表每次多扫一遍主键）</span>
+          </el-form-item>
         </template>
         <el-form-item label="刷新周期" required>
           <el-input-number v-model="syncForm.intervalSeconds" :min="0" :step="60" style="width: 180px" />
@@ -303,7 +307,7 @@ async function loadTasks() {
 }
 
 async function openSyncDialog(prefill) {
-  syncForm.value = { sourceSchema: '', sourceTable: '', localTable: '', strategy: 'incremental', watermarkField: '', primaryKey: [], intervalSeconds: 0 }
+  syncForm.value = { sourceSchema: '', sourceTable: '', localTable: '', strategy: 'incremental', watermarkField: '', primaryKey: [], reconcileDelete: true, intervalSeconds: 0 }
   syncDialog.value = true
   if (prefill) Object.assign(syncForm.value, prefill)
   await loadSrcSchemas()
@@ -360,6 +364,7 @@ async function createTask() {
       strategy: f.strategy,
       watermarkField: f.strategy === 'incremental' ? f.watermarkField : null,
       primaryKey: f.strategy === 'incremental' ? f.primaryKey : null,
+      reconcileDelete: f.reconcileDelete !== false,
       intervalSeconds: f.intervalSeconds,
       runNow: true,
     })

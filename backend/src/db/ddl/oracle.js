@@ -93,6 +93,7 @@ module.exports = [
     "source_schema" VARCHAR2(255), "source_table" VARCHAR2(255) NOT NULL, "local_table" VARCHAR2(255) NOT NULL,
     "target_type" VARCHAR2(20) NOT NULL DEFAULT 'app', "strategy" VARCHAR2(20) NOT NULL DEFAULT 'incremental',
     "watermark_field" VARCHAR2(255), "watermark_kind" VARCHAR2(20) NOT NULL DEFAULT 'id', "primary_key" VARCHAR2(255),
+    "reconcile_delete" NUMBER(1) DEFAULT 1 NOT NULL,
     "sync_interval_seconds" NUMBER(10) NOT NULL DEFAULT 86400,
     "last_sync_at" TIMESTAMP, "last_watermark" VARCHAR2(255), "last_sync_status" VARCHAR2(20), "last_sync_msg" VARCHAR2(4000),
     "created_at" TIMESTAMP NOT NULL DEFAULT SYSTIMESTAMP, "updated_at" TIMESTAMP NOT NULL DEFAULT SYSTIMESTAMP,

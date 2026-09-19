@@ -30,6 +30,7 @@ const providersApi = require('../src/datasources/providers');
 
 const FAKE = {
   lastRunQuery: null,
+  queryLog: [],
   src: [],
   listColumns: () => [
     { name: 'id', type: 'int' },
@@ -38,6 +39,7 @@ const FAKE = {
   ],
   async runQuery(cfg, sql, params) {
     FAKE.lastRunQuery = { sql, params };
+    FAKE.queryLog.push({ sql, params });
     const m = sql.match(/LIMIT (\d+)/);
     const limit = m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
     let rows = FAKE.src || [];
@@ -107,10 +109,12 @@ test('同步引擎：增量水印推进 + upsert 幂等', async () => {
   assert.doesNotMatch(FAKE.lastRunQuery.sql, /WHERE/);
 
   fakeProviderPaged([]);
+  FAKE.queryLog = [];
   await sync.runSync(cfgId);
-  assert.match(FAKE.lastRunQuery.sql, /updated_at > \?/);
-  assert.match(FAKE.lastRunQuery.sql, /LIMIT 5000/);
-  assert.equal(FAKE.lastRunQuery.params[0], '2024-01-01 00:00:00');
+  const wmQuery = FAKE.queryLog.find((q) => /WHERE/.test(q.sql)) || FAKE.queryLog[0];
+  assert.match(wmQuery.sql, /updated_at > \?/);
+  assert.match(wmQuery.sql, /LIMIT 5000/);
+  assert.equal(wmQuery.params[0], '2024-01-01 00:00:00');
 });
 
 test('sync logs 写入与 running 互斥', async () => {

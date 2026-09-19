@@ -105,6 +105,7 @@ function ensureSchema(store) {
     datasets: [['source_type', "TEXT NOT NULL DEFAULT 'excel'"], ['datasource_id', 'INTEGER'], ['schema_name', 'TEXT'], ['table_name_ext', 'TEXT'], ['build_definition', 'TEXT'], ['owner_id', 'INTEGER']],
     dashboards: [['gap_x', 'INTEGER NOT NULL DEFAULT 12'], ['gap_y', 'INTEGER NOT NULL DEFAULT 12'], ['card_style', "TEXT NOT NULL DEFAULT '{}'"], ['owner_id', 'INTEGER']],
     charts: [['owner_id', 'INTEGER']],
+    sync_configs: [['reconcile_delete', 'INTEGER NOT NULL DEFAULT 1']],
   };
 
   const alterSync = () => {
