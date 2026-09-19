@@ -1,5 +1,5 @@
 <template>
-  <div class="app-logo" @click="$router.push('/datasets')">
+  <div class="app-logo" @click="$router.push('/datasources')">
     <img src="/logo.svg?v=3" class="app-logo__icon" alt="KanRay logo" />
     <span v-show="!collapsed" class="app-logo__text">KanRay</span>
   </div>
