@@ -4,8 +4,10 @@
 // db.transaction(fn) 返回可调用包装（await 后执行）。
 // INSERT 场景在同一 batch 内追加 `SELECT SCOPE_IDENTITY() AS id` 回读自增 id（同 scope 有效）。
 const sql = require('mssql');
+const { AsyncLocalStorage } = require('node:async_hooks');
 const { translate } = require('../translate');
 const { mssql: mssqlDialect } = require('../../datasources/dialects');
+const { normalizeRowDates } = require('../../utils/datetime');
 
 function parseMssqlUrl(url) {
   const u = new URL(url);
@@ -21,19 +23,23 @@ function parseMssqlUrl(url) {
 }
 
 const isInsert = (sqlText) => /^\s*INSERT\s+INTO/i.test(sqlText);
-const lowerKeys = (rows) => (rows || []).map((r) => Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v])));
+const lowerKeys = (rows) => (rows || []).map((r) => normalizeRowDates(Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v]))));
 const changesOf = (r) => (r.rowsAffected && r.rowsAffected[0]) || 0;
 
 function createMssqlDriver(url) {
   const pool = new sql.ConnectionPool(parseMssqlUrl(url));
 
-  // 事务期间：语句走同一 Transaction 下的 request（连接绑定）；事务外走池。
-  let txTrans = null;
-  let txDepth = 0;
+  // 事务用 AsyncLocalStorage 按异步调用链隔离：并发事务各自的 request 绑定自己的 Transaction。
+  // 不能用单个模块级 txTrans——并发请求会互相覆盖，出现 "Transaction has not begun" / 语句跑错事务。
+  const txStore = new AsyncLocalStorage();
   // mssql v12：pool.request() 需先 connect() 才可用；首次使用时懒连接（形状断言不触发建连）
   let connected = null;
   const ensureConnected = () => connected || (connected = pool.connect());
-  const _req = async () => { await ensureConnected(); return txTrans ? txTrans.request() : pool.request(); };
+  const _req = async () => {
+    await ensureConnected();
+    const tx = txStore.getStore();
+    return tx ? tx.trans.request() : pool.request();
+  };
 
   const statement = (text) => {
     const t = translate(text, mssqlDialect);
@@ -84,26 +90,19 @@ function createMssqlDriver(url) {
     },
     transaction(fn) {
       return async function wrapped(...args) {
-        if (txTrans) {
-          txDepth++;
-          try { return await fn(...args); }
-          finally { txDepth--; }
-        }
+        if (txStore.getStore()) return fn(...args);
         await ensureConnected();
         const trans = new sql.Transaction(pool);
-        txTrans = trans;
-        txDepth = 1;
         try {
-          await trans.begin();
-          const out = await fn(...args);
-          await trans.commit();
-          return out;
+          return await txStore.run({ trans }, async () => {
+            await trans.begin();
+            const out = await fn(...args);
+            await trans.commit();
+            return out;
+          });
         } catch (e) {
           try { await trans.rollback(); } catch (_) {}
           throw e;
-        } finally {
-          txTrans = null;
-          txDepth = 0;
         }
       };
     },

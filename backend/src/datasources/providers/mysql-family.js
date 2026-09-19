@@ -4,6 +4,7 @@ function makeConn(cfg) {
   return mysql.createConnection({
     host: cfg.host, port: Number(cfg.port) || 3306, user: cfg.user,
     password: cfg.password || '', database: cfg.database,
+    dateStrings: true,
     connectTimeout: 5000,
   });
 }

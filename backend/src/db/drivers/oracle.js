@@ -7,6 +7,7 @@
 const oracledb = require('oracledb');
 const { translate } = require('../translate');
 const { oracle: oracleDialect } = require('../../datasources/dialects');
+const { normalizeRowDates } = require('../../utils/datetime');
 
 function parseOracleUrl(url) {
   const u = new URL(url);
@@ -20,7 +21,7 @@ function parseOracleUrl(url) {
 function createOracleDriver(url) {
   oracledb.thin = true;
   const cfg = parseOracleUrl(url);
-  const lowerKeys = (r) => Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const lowerKeys = (r) => normalizeRowDates(Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v])));
   const _conn = () => oracledb.getConnection(cfg);
 
   const statement = (text) => {

@@ -4,11 +4,18 @@ const config = require('./config');
 
 const store = createStore();
 
+// 参数既支持展开 db.run(sql, a, b)，也支持数组 db.run(sql, [a, b])。
+// SQLite 驱动内部会把单数组参数归一化，但 PG/MySQL 驱动直接透传参数数组，
+// 若不归一化会出现「1 个参数喂给 N 个占位符」的绑定错误（如 lock.js 的租约锁）。
+function bindArgs(args) {
+  return args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+}
+
 const db = {
   prepare: (sql) => store.prepare(sql),
-  run: (sql, ...params) => store.run(sql, params),
-  get: (sql, ...params) => store.get(sql, params),
-  all: (sql, ...params) => store.all(sql, params),
+  run: (sql, ...params) => store.run(sql, bindArgs(params)),
+  get: (sql, ...params) => store.get(sql, bindArgs(params)),
+  all: (sql, ...params) => store.all(sql, bindArgs(params)),
   exec: (sql) => store.exec(sql),
   execBatch: (sqls) => store.execBatch(sqls),
   transaction: (fn) => store.transaction(fn),

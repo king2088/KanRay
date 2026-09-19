@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:pg": "RUN_LIVE=1 LIVE_CASES=postgres node --test test/task35-pg-matrix.test.js"
   },
   "engines": {
     "node": ">=18"

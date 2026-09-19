@@ -1,4 +1,36 @@
 const { Pool } = require('pg');
+require('../../utils/pg-types');
+const { normalizeRowsDates } = require('../../utils/datetime');
+
+// 同步引擎以 ? 作为可移植占位符（与 mysql 驱动一致），PG 需转成 $1/$2…；
+// 逐字符扫描并跳过单引号字符串字面量，避免误替换字符串里的 ?。
+function toPositional(sql) {
+  let out = '';
+  let idx = 0;
+  let i = 0;
+  const n = sql.length;
+  while (i < n) {
+    const ch = sql[i];
+    if (ch === "'") {
+      let j = i + 1;
+      while (j < n) {
+        if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue; }
+        if (sql[j] === "'") break;
+        j += 1;
+      }
+      out += sql.slice(i, j + 1);
+      i = j + 1;
+    } else if (ch === '?') {
+      idx += 1;
+      out += `$${idx}`;
+      i += 1;
+    } else {
+      out += ch;
+      i += 1;
+    }
+  }
+  return out;
+}
 
 function makePool(cfg) {
   return new Pool({
@@ -28,11 +60,12 @@ async function listSchemas() {
 }
 
 async function listTables(cfg, type, schema) {
+  const sch = schema || cfg.schema || 'public';
   const pool = makePool(cfg);
   try {
     const { rows } = await pool.query(
       'SELECT table_name AS name, table_type AS type FROM information_schema.tables WHERE table_schema = $1 ORDER BY table_name',
-      [schema]
+      [sch]
     );
     return rows.map((r) => ({ name: r.name, type: r.type === 'BASE TABLE' ? 'table' : 'view' }));
   } finally {
@@ -41,6 +74,7 @@ async function listTables(cfg, type, schema) {
 }
 
 async function listColumns(cfg, type, schema, table) {
+  const sch = schema || cfg.schema || 'public';
   const pool = makePool(cfg);
   try {
     const { rows } = await pool.query(
@@ -48,7 +82,7 @@ async function listColumns(cfg, type, schema, table) {
        FROM information_schema.columns
        WHERE table_schema = $1 AND table_name = $2
        ORDER BY ordinal_position`,
-      [schema, table]
+      [sch, table]
     );
     return rows.map((r) => ({
       name: r.name,
@@ -63,8 +97,8 @@ async function listColumns(cfg, type, schema, table) {
 async function runQuery(cfg, sql, params = []) {
   const pool = makePool(cfg);
   try {
-    const { rows } = await pool.query(sql, params);
-    return rows;
+    const { rows } = await pool.query(toPositional(sql), params);
+    return normalizeRowsDates(rows);
   } finally {
     await pool.end();
   }

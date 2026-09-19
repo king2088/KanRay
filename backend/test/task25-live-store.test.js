@@ -13,6 +13,13 @@ const CASES = [
   { name: 'sqlite', url: '/tmp/live-store-sqlite.db' },
 ];
 
+// 并发事务隔离测试用表（仅支持真正事务的多连接方言）
+const TX_TABLE_SQL = {
+  mysql: 'CREATE TABLE sv_tx (id BIGINT AUTO_INCREMENT PRIMARY KEY, v INT, tag VARCHAR(64))',
+  postgres: 'CREATE TABLE sv_tx (id BIGSERIAL PRIMARY KEY, v INTEGER, tag TEXT)',
+  mssql: 'CREATE TABLE sv_tx (id BIGINT IDENTITY(1,1) PRIMARY KEY, v INT, tag NVARCHAR(64))',
+};
+
 for (const cs of CASES) {
   if (process.env.LIVE_CASES && !process.env.LIVE_CASES.split(',').includes(cs.name)) continue;
   const needLive = cs.name !== 'sqlite';
@@ -44,4 +51,30 @@ for (const cs of CASES) {
       await store.close();
     }
   });
+
+  if (TX_TABLE_SQL[cs.name]) {
+    test(`live store: ${cs.name} 并发事务连接隔离`, {
+      skip: needLive && process.env.RUN_LIVE !== '1' ? `RUN_LIVE=1 未开启（${cs.name} 需容器）` : false,
+      timeout: 120000,
+    }, async () => {
+      const store = await createStoreFor(cs);
+      try {
+        await store.exec('DROP TABLE IF EXISTS sv_tx');
+        await store.exec(TX_TABLE_SQL[cs.name]);
+        const rollbackAt = new Set([0, 5, 10, 15]);
+        const errs = [];
+        await Promise.all(Array.from({ length: 20 }, (_, i) => store.transaction(async () => {
+          await store.prepare('INSERT INTO sv_tx (v, tag) VALUES (?, ?)').run(i, `t${i}`);
+          if (rollbackAt.has(i)) throw new Error(`rollback-${i}`);
+        })().catch((e) => { errs.push(String(e.message)); })));
+        const cnt = Number((await store.prepare('SELECT COUNT(*) AS c FROM sv_tx').get()).c);
+        assert.equal(cnt, 20 - rollbackAt.size, `${cs.name}: 提交数应等于未回滚事务数`);
+        const unexpected = errs.filter((m) => !m.startsWith('rollback-'));
+        assert.equal(unexpected.length, 0, `${cs.name}: 非预期错误 ${unexpected.join(' | ')}`);
+        await store.exec('DROP TABLE IF EXISTS sv_tx');
+      } finally {
+        await store.close();
+      }
+    });
+  }
 }

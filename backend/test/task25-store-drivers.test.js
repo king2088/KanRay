@@ -89,7 +89,8 @@ test('mysql/pg driver 暴露统一接口（不联网）', () => {
 
 test('pg driver withReturning 规则（不联网）', () => {
   const { withReturning } = require('../src/db/drivers/postgres');
-  assert.equal(withReturning('INSERT INTO t (name) VALUES (?)'), 'INSERT INTO t (name) VALUES (?) RETURNING id');
+  // 用 RETURNING * 兼容无 id 列的表（sync_locks / role_permissions 等）
+  assert.equal(withReturning('INSERT INTO t (name) VALUES (?)'), 'INSERT INTO t (name) VALUES (?) RETURNING *');
   assert.equal(withReturning('INSERT INTO t (name) VALUES (?) RETURNING id'), 'INSERT INTO t (name) VALUES (?) RETURNING id');
   assert.equal(withReturning('INSERT INTO t (name) VALUES (?) ON CONFLICT (id) DO NOTHING'), 'INSERT INTO t (name) VALUES (?) ON CONFLICT (id) DO NOTHING');
   assert.equal(withReturning('UPDATE t SET name = ?'), 'UPDATE t SET name = ?');

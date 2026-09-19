@@ -3,9 +3,11 @@
 // 统一契约：await db.prepare(sql).run/get/all(...)、db.run/get/all/exec/execBatch、
 // db.transaction(fn) 返回可调用包装（await 后执行，兼容 better-sqlite3 形态 + 参数透传）。
 const mysql2 = require('mysql2/promise');
+const { AsyncLocalStorage } = require('node:async_hooks');
 const { translate } = require('../translate');
 const config = require('../../config');
 const { mysql: mysqlDialect, mariadb: mariaDialect } = require('../../datasources/dialects');
+const { normalizeRowDates } = require('../../utils/datetime');
 
 function createMysqlDriver(url, type) {
   const pool = mysql2.createPool({
@@ -14,18 +16,23 @@ function createMysqlDriver(url, type) {
     multipleStatements: true,
     charset: 'utf8mb4',
     decimalNumbers: true,
+    dateStrings: true,
     waitForConnections: true,
     queueLimit: 0,
   });
   const dialect = type === 'mariadb' ? mariaDialect : mysqlDialect;
-  const lowerKeys = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v])));
+  const lowerKeys = (rows) => rows.map((r) => normalizeRowDates(Object.fromEntries(Object.entries(r || {}).map(([k, v]) => [k.toLowerCase(), v]))));
   const lastInsert = (r) => ({ changes: r.affectedRows, lastInsertRowid: typeof r.insertId === 'bigint' ? Number(r.insertId) : r.insertId });
 
-  // 事务期间绑定到同一连接的上下文；无非事务语句临时取连接用完即还
-  let txConn = null;
-  let txDepth = 0;
-  const current = async () => txConn || pool.getConnection();
-  const releaseIfIdle = (conn) => { if (!txConn) conn.release(); };
+  // 事务连接用 AsyncLocalStorage 按异步调用链隔离：并发事务各自绑定自己的连接。
+  // 不能用单个模块级 txConn——并发请求会互相覆盖，导致语句跑错连接、丢写。
+  const txStore = new AsyncLocalStorage();
+  const current = async () => {
+    const tx = txStore.getStore();
+    if (tx) return tx.conn;
+    return pool.getConnection();
+  };
+  const releaseIfIdle = (conn) => { if (!txStore.getStore()) conn.release(); };
 
   const statement = (sql) => {
     const t = translate(sql, dialect);
@@ -77,28 +84,22 @@ function createMysqlDriver(url, type) {
       try { for (const s of sqls) await conn.query(s); }
       finally { releaseIfIdle(conn); }
     },
-    // 事务：db.transaction(fn) 返回可调用包装；嵌套事务复用同一连接（不额外 BEGIN）
+    // 事务：db.transaction(fn) 返回可调用包装；嵌套事务复用外层连接（不额外 BEGIN）
     transaction(fn) {
       return async function wrapped(...args) {
-        if (txConn) {
-          txDepth++;
-          try { return await fn(...args); }
-          finally { txDepth--; }
-        }
+        if (txStore.getStore()) return fn(...args);
         const conn = await pool.getConnection();
-        txConn = conn;
-        txDepth = 1;
         try {
-          await conn.beginTransaction();
-          const out = await fn(...args);
-          await conn.commit();
-          return out;
+          return await txStore.run({ conn }, async () => {
+            await conn.beginTransaction();
+            const out = await fn(...args);
+            await conn.commit();
+            return out;
+          });
         } catch (e) {
           try { await conn.rollback(); } catch (_) {}
           throw e;
         } finally {
-          txConn = null;
-          txDepth = 0;
           conn.release();
         }
       };
