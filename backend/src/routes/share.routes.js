@@ -12,12 +12,12 @@ const dashSharesRouter = express.Router({ mergeParams: true });
 const sharesRouter = express.Router();
 
 const createSchema = z.object({
-  password: z.string().min(4).max(64),
+  password: z.string().min(4).max(64).optional().nullable(),
   expiresAt: z.string().optional().nullable(),
 }).strict();
 
 const patchSchema = z.object({
-  password: z.string().min(4).max(64).optional(),
+  password: z.string().min(4).max(64).optional().nullable(),
   expiresAt: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
 }).strict();

@@ -22,25 +22,40 @@ const verifyLimiter = rateLimit({
 router.get('/:token/meta', async (req, res) => {
   const share = await shareService.getShareByToken(String(req.params.token || ''));
   if (!share) {
-    ok(res, { found: false, dashboardName: null, requiresPassword: true, expired: false, inactive: false });
+    ok(res, { found: false, dashboardName: null, requiresPassword: false, expired: false, inactive: false });
     return;
   }
   const st = shareService.shareState(share);
   const dash = await shareService.getDashboardName(share.dashboardId);
-  ok(res, { found: true, dashboardName: dash?.name || '看板', requiresPassword: true, expired: st === 'expired', inactive: st === 'inactive' });
+  ok(res, { found: true, dashboardName: dash?.name || '看板', requiresPassword: !!share.passwordHash, expired: st === 'expired', inactive: st === 'inactive' });
 });
 
 // POST /api/public/shares/:token/verify
-router.post('/:token/verify', verifyLimiter, async (req, res) => {
-  const s = z.object({ password: z.string().min(1).max(128) }).strict();
-  const p = s.safeParse(req.body || {});
-  if (!p.success) throw new HttpError(400, '请输入分享密码');
-  const share = await shareService.getShareByToken(String(req.params.token || ''));
-  shareService.assertShareUsable(share);
-  const okPwd = await bcrypt.compare(p.data.password, share.passwordHash);
-  if (!okPwd) throw new HttpError(401, '密码错误', null, 40101);
-  const accessToken = signShare({ shareId: share.id, dashboardId: share.dashboardId, token: share.token });
-  ok(res, { accessToken });
+router.post('/:token/verify', async (req, res, next) => {
+  let share;
+  try {
+    share = await shareService.getShareByToken(String(req.params.token || ''));
+    shareService.assertShareUsable(share);
+  } catch (e) {
+    return next(e);
+  }
+  const issueToken = () => {
+    const accessToken = signShare({ shareId: share.id, dashboardId: share.dashboardId, token: share.token });
+    ok(res, { accessToken });
+  };
+  if (!share.passwordHash) return issueToken();
+  verifyLimiter(req, res, async (err) => {
+    if (err) return next(err);
+    try {
+      const p = z.object({ password: z.string().min(1).max(128) }).strict().safeParse(req.body || {});
+      if (!p.success) throw new HttpError(400, '请输入分享密码');
+      const okPwd = await bcrypt.compare(p.data.password, share.passwordHash);
+      if (!okPwd) throw new HttpError(401, '密码错误', null, 40101);
+      issueToken();
+    } catch (e) {
+      next(e);
+    }
+  });
 });
 
 // GET /api/public/shares/:token/dashboard

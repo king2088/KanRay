@@ -83,6 +83,23 @@ test('list/patch/delete 分享', async () => {
   assert.equal(del.status, 200);
 });
 
+test('无密码分享可创建/加密码/移除密码', async () => {
+  const token = await login('admin@kanban.local', 'admin123');
+  const open = await api(`/api/dashboards/${global.__dashId}/shares`, { method: 'POST', token, body: { password: null } });
+  assert.equal(open.status, 200);
+  assert.equal(open.json.data.hasPassword, false);
+
+  const secured = await api(`/api/shares/${open.json.data.id}`, { method: 'PATCH', token, body: { password: 'newpass1' } });
+  assert.equal(secured.status, 200);
+  assert.equal(secured.json.data.hasPassword, true);
+
+  const opened = await api(`/api/shares/${open.json.data.id}`, { method: 'PATCH', token, body: { password: null } });
+  assert.equal(opened.status, 200);
+  assert.equal(opened.json.data.hasPassword, false);
+
+  await api(`/api/shares/${open.json.data.id}`, { method: 'DELETE', token });
+});
+
 test('清理', async () => {
   await new Promise((r) => server.close(r));
 });

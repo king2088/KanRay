@@ -23,14 +23,19 @@ function generateToken() {
 function stripPassword(row) {
   if (!row) return row;
   const { passwordHash, password_hash, ...rest } = row;
-  return { ...rest, isActive: Number(row.isActive !== undefined ? row.isActive : row.is_active) };
+  return { ...rest, hasPassword: !!passwordHash, isActive: Number(row.isActive !== undefined ? row.isActive : row.is_active) };
 }
 
 function validatePassword(password) {
-  if (!password || String(password).length < 4 || String(password).length > 64) {
-    throw new HttpError(400, '分享密码需为 4-64 位');
-  }
-  return String(password);
+  if (password === null || password === undefined || password === '') return '';
+  const v = String(password);
+  if (v.length < 4 || v.length > 64) throw new HttpError(400, '分享密码需为 4-64 位');
+  return v;
+}
+
+async function hashPassword(password) {
+  const v = validatePassword(password);
+  return v ? await bcrypt.hash(v, 10) : '';
 }
 
 function parseExpiresAt(value) {
@@ -56,7 +61,7 @@ async function getShareByToken(token) {
 }
 
 async function createShare({ dashboardId, password, expiresAt, userId }) {
-  const hash = await bcrypt.hash(validatePassword(password), 10);
+  const hash = await hashPassword(password);
   const info = await db.prepare(
     'INSERT INTO dashboard_shares (dashboard_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?)'
   ).run(Number(dashboardId), generateToken(), hash, parseExpiresAt(expiresAt), Number(userId));
@@ -74,7 +79,7 @@ async function updateShare(id, body = {}) {
   const params = [];
   if (body.password !== undefined) {
     fields.push('password_hash = ?');
-    params.push(await bcrypt.hash(validatePassword(body.password), 10));
+    params.push(await hashPassword(body.password));
   }
   if (body.expiresAt !== undefined) {
     fields.push('expires_at = ?');

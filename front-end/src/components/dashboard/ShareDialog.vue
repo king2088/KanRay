@@ -6,13 +6,23 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="share-create">
-      <el-input v-model="password" type="password" show-password placeholder="访问密码（4-64 位）" style="width: 200px" />
+      <el-switch v-model="requirePassword" inline-prompt active-text="密码" inactive-text="公开"
+        style="margin-right: 2px" />
+      <el-input v-model="password" type="password" show-password :disabled="!requirePassword"
+        placeholder="访问密码（4-64 位）" style="width: 180px" />
       <el-date-picker v-model="expiresAt" type="datetime" placeholder="过期时间（可选）"
         value-format="YYYY-MM-DDTHH:mm:ssZ" style="width: 200px" />
       <el-button type="primary" :loading="creating" @click="create">创建分享</el-button>
     </div>
 
     <el-table :data="shares" v-loading="loading" empty-text="还没有分享链接">
+      <el-table-column label="访问" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" effect="plain" :type="row.hasPassword ? 'warning' : 'success'">
+            {{ row.hasPassword ? '密码' : '公开' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="链接" min-width="260">
         <template #default="{ row }">
           <span class="share-link">{{ shareUrl(row) }}</span>
@@ -53,6 +63,7 @@ const appStore = useAppStore()
 const shares = ref([])
 const loading = ref(false)
 const creating = ref(false)
+const requirePassword = ref(true)
 const password = ref('')
 const expiresAt = ref(null)
 
@@ -71,17 +82,20 @@ async function load() {
 }
 
 async function create() {
-  if (!password.value || password.value.length < 4) return ElMessage.warning('访问密码至少 4 位')
+  if (requirePassword.value && (!password.value || password.value.length < 4)) {
+    return ElMessage.warning('访问密码至少 4 位')
+  }
   creating.value = true
   try {
     const s = await dashboardApi.createShare(props.dashboardId, {
-      password: password.value,
+      password: requirePassword.value ? password.value : null,
       expiresAt: expiresAt.value || null,
     })
     shares.value.unshift(s)
     password.value = ''
     expiresAt.value = null
-    ElMessage.success('分享创建成功')
+    requirePassword.value = true
+    ElMessage.success(s.hasPassword ? '分享创建成功' : '分享创建成功（无需密码公开访问）')
   } finally {
     creating.value = false
   }

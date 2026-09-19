@@ -123,6 +123,23 @@ test('verify 频繁尝试被限流 429', async () => {
   await shareService.deleteShare(s.id);
 });
 
+test('无密码分享：meta 标记免密，verify 无需密码直接签发', async () => {
+  const s = await shareService.createShare({ dashboardId: dashId, password: null, expiresAt: null, userId: 1 });
+  const m = await api(`/api/public/shares/${s.token}/meta`, { method: 'GET' });
+  assert.equal(m.status, 200);
+  assert.equal(m.json.data.found, true);
+  assert.equal(m.json.data.requiresPassword, false);
+
+  const r = await api(`/api/public/shares/${s.token}/verify`, { body: {} });
+  assert.equal(r.status, 200);
+  assert.ok(r.json.data.accessToken);
+
+  const dash = await api(`/api/public/shares/${s.token}/dashboard`, { method: 'GET', auth: r.json.data.accessToken });
+  assert.equal(dash.status, 200);
+  assert.equal(dash.json.data.name, '公开看板');
+  await shareService.deleteShare(s.id);
+});
+
 test('清理', async () => {
   await new Promise((r) => server.close(r));
 });

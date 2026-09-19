@@ -14,11 +14,15 @@
     <div v-else-if="!boardReady" class="share-center">
       <div class="share-gate-card">
         <h3 class="share-gate-card__title">{{ meta.dashboardName }}</h3>
-        <p class="share-gate-card__desc">该看板已通过分享链接公开，请输入访问密码进行只读查看</p>
-        <el-input v-model="password" type="password" show-password placeholder="访问密码"
-          @keyup.enter="verify" />
+        <p class="share-gate-card__desc">
+          {{ meta.requiresPassword ? '该看板已通过分享链接公开，请输入访问密码进行只读查看' : '该看板已通过分享链接公开，点击下方按钮进行只读查看' }}
+        </p>
+        <el-input v-if="meta.requiresPassword" v-model="password" type="password" show-password
+          placeholder="访问密码" @keyup.enter="verify" />
         <div class="share-gate-card__actions">
-          <el-button type="primary" :loading="verifying" @click="verify">查看看板</el-button>
+          <el-button type="primary" :loading="verifying" @click="verify">
+            {{ meta.requiresPassword ? '查看看板' : '进入查看' }}
+          </el-button>
           <el-button v-if="auth.isLoggedIn" link @click="$router.push('/')">返回系统</el-button>
         </div>
       </div>
@@ -88,7 +92,9 @@ provide('shareApiOverride', {
 async function loadMeta() {
   loading.value = true
   try {
-    meta.value = await shareApi.meta(token)
+    const m = await shareApi.meta(token)
+    meta.value = m
+    if (m.found && !m.expired && !m.inactive && !m.requiresPassword) enter()
   } catch (e) {
     meta.value = { found: false }
   } finally {
@@ -97,10 +103,14 @@ async function loadMeta() {
 }
 
 async function verify() {
-  if (!password.value) return ElMessage.warning('请输入访问密码')
+  if (meta.value?.requiresPassword && !password.value) return ElMessage.warning('请输入访问密码')
+  await enter()
+}
+
+async function enter() {
   verifying.value = true
   try {
-    const res = await shareApi.verify(token, password.value)
+    const res = await shareApi.verify(token, meta.value?.requiresPassword ? password.value : '')
     sessionStorage.setItem(SHARE_TOKEN_KEY, res.accessToken)
     await buildBoard()
     boardReady.value = true
