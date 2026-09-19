@@ -144,11 +144,12 @@
               <el-input v-model="metricForm.name" placeholder="如：销售额、客单价、销售额占比" maxlength="100" />
             </el-form-item>
             <el-form-item label="指标类型" required>
-              <el-radio-group v-model="metricForm.kind" @change="onMetricKindChange">
-                <el-radio-button value="base">普通</el-radio-button>
-                <el-radio-button value="expr">公式</el-radio-button>
-                <el-radio-button value="derived">衍生</el-radio-button>
+              <el-radio-group v-model="metricForm.kind" :disabled="!!metricDialog.editing" @change="onMetricKindChange">
+                <el-radio-button value="base">原子指标</el-radio-button>
+                <el-radio-button value="expr">复合指标</el-radio-button>
+                <el-radio-button value="derived">衍生指标</el-radio-button>
               </el-radio-group>
+              <div v-if="metricDialog.editing" class="type-lock-hint">已建指标的类型不可修改，如需变更请删除后重建</div>
             </el-form-item>
 
             <template v-if="metricForm.kind === 'base'">
@@ -170,9 +171,9 @@
             </template>
 
             <template v-else-if="metricForm.kind === 'expr'">
-              <el-form-item label="公式" required>
+              <el-form-item label="复合指标公式" required>
                 <el-input v-model="metricForm.expr" type="textarea" :rows="2"
-                  placeholder="如：$1 / $2 * 100（$数字 引用下方基础指标）" />
+                  placeholder="如：$1 / $2 * 100（$数字 引用下方原子指标）" />
               </el-form-item>
               <el-form-item label="引用基础指标">
                 <div class="expr-refs">
@@ -180,7 +181,7 @@
                     class="ref-tag" @click="insertLibRef(b)">
                     {{ b.name }}
                   </el-tag>
-                  <span v-if="!libraryBaseMetrics.length" class="ref-empty">（暂无基础指标，请先创建「普通」类型指标）</span>
+                  <span v-if="!libraryBaseMetrics.length" class="ref-empty">（暂无原子指标，请先创建「原子指标」类型指标）</span>
                 </div>
               </el-form-item>
             </template>
@@ -430,5 +431,12 @@ onMounted(load)
 .ref-empty {
   color: var(--app-text-secondary);
   font-size: 12px;
+}
+
+.type-lock-hint {
+  color: var(--app-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 4px;
 }
 </style>

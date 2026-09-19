@@ -71,7 +71,7 @@ test('normalizeMetrics：公式包含字母/非白名单字符被 400', () => {
         ],
         { dialect: TEST_DIALECT, fieldsByName: { amount: { name: 'amount' } } }
       ),
-    /公式仅支持引用普通指标/
+    /复合指标公式仅支持引用原子指标/
   );
 });
 
@@ -85,7 +85,7 @@ test('normalizeMetrics：未知或不可用指标引用被 400', () => {
         ],
         { dialect: TEST_DIALECT, fieldsByName: { amount: { name: 'amount' } } }
       ),
-    /不可用的指标/
+    /不可用的原子指标/
   );
   // 自引用被拒
   assert.throws(
@@ -96,7 +96,7 @@ test('normalizeMetrics：未知或不可用指标引用被 400', () => {
         ],
         { dialect: TEST_DIALECT, fieldsByName: {} }
       ),
-    /不可用的指标/
+    /不可用的原子指标/
   );
   // 引用后置普通指标被拒
   assert.throws(
@@ -108,7 +108,7 @@ test('normalizeMetrics：未知或不可用指标引用被 400', () => {
         ],
         { dialect: TEST_DIALECT, fieldsByName: { amount: { name: 'amount' } } }
       ),
-    /不可用的指标/
+    /不可用的原子指标/
   );
 });
 
@@ -159,7 +159,7 @@ test('集成：非法表达式的复合指标 400（不命中数据库）', asyn
         datasetId: dsId,
         metrics: [{ key: 'm0', field: 'amount', agg: 'sum' }, { key: 'm1', type: 'expr', expr: '$m0 && 1' }],
       }),
-    /公式仅支持引用普通指标/
+    /复合指标公式仅支持引用原子指标/
   );
   await assert.rejects(
     () =>
@@ -167,6 +167,6 @@ test('集成：非法表达式的复合指标 400（不命中数据库）', asyn
         datasetId: dsId,
         metrics: [{ key: 'm0', field: 'amount', agg: 'sum' }, { key: 'm1', type: 'expr', expr: 'ORDER BY 1' }],
       }),
-    /公式仅支持引用普通指标/
+    /复合指标公式仅支持引用原子指标/
   );
 });

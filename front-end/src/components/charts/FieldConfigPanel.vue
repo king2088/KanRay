@@ -52,9 +52,9 @@
       <div v-for="(m, mi) in metrics" :key="mi" class="metric-wrap">
         <div class="slot-row">
           <el-select v-model="m.type" style="width: 82px" placeholder="形态" @change="onTypeChange(m)">
-            <el-option label="普通" value="base" />
-            <el-option label="公式" value="expr" />
-            <el-option label="衍生" value="derived" />
+            <el-option label="原子指标" value="base" />
+            <el-option label="复合指标" value="expr" />
+            <el-option label="衍生指标" value="derived" />
             <el-option label="指标库" value="saved" />
           </el-select>
           <template v-if="m.type === 'saved'">
@@ -68,7 +68,7 @@
             <el-input
               v-model="m.expr"
               :class="{ 'is-invalid': exprError(m) }"
-              placeholder="公式，如 $m0 / $m1"
+              placeholder="复合指标公式，如 $m0 / $m1"
               style="flex: 1.5"
             />
           </template>
@@ -98,14 +98,14 @@
         </div>
         <div v-if="m.type === 'derived'" class="ref-row">
           <span v-if="derivedError(m)" class="ref-error">{{ derivedError(m) }}</span>
-          <span v-else class="ref-hint">衍生指标基于前序普通/复合指标在结果行上计算</span>
+          <span v-else class="ref-hint">衍生指标基于前序原子/复合指标在结果行上计算</span>
         </div>
         <div v-if="m.type === 'saved'" class="ref-row">
           <span v-if="savedError(m)" class="ref-error">{{ savedError(m) }}</span>
           <span v-else-if="!library.length" class="ref-empty">（指标库为空，请先在数据集「指标库」中创建）</span>
         </div>
         <div v-if="m.type === 'expr'" class="ref-row">
-          <span class="ref-label">引用前序普通指标：</span>
+          <span class="ref-label">引用前序原子指标：</span>
           <el-tag
             v-for="b in referableFor(mi)"
             :key="b.key"
@@ -116,7 +116,7 @@
           >
             {{ '$' + b.key }} {{ b.field || '' }}
           </el-tag>
-          <span v-if="!referableFor(mi).length" class="ref-empty">（暂无，请先在上方添加普通指标）</span>
+          <span v-if="!referableFor(mi).length" class="ref-empty">（暂无，请先在上方添加原子指标）</span>
           <span v-if="exprError(m)" class="ref-error">{{ exprError(m) }}</span>
         </div>
       </div>
@@ -201,12 +201,12 @@ function onTypeChange(m) {
   if (m.type === 'expr') {
     m.field = undefined
     m.agg = undefined
-    if (!m.label) m.label = `公式${props.metrics.findIndex((x) => x === m) + 1}`
+    if (!m.label) m.label = `复合指标${props.metrics.findIndex((x) => x === m) + 1}`
   } else if (m.type === 'derived') {
     m.field = undefined
     m.agg = undefined
     if (!m.kind) m.kind = 'share'
-    if (!m.label) m.label = `衍生${props.metrics.findIndex((x) => x === m) + 1}`
+    if (!m.label) m.label = `衍生指标${props.metrics.findIndex((x) => x === m) + 1}`
   } else if (m.type === 'saved') {
     m.field = undefined
     m.agg = undefined
@@ -216,12 +216,12 @@ function onTypeChange(m) {
   update()
 }
 
-// 公式可引用的普通指标（位于其之前，仅 base；指标库指标需解锁为展开条目，前端不可直接引用）
+// 复合指标公式可引用的原子指标（位于其之前，仅 base；指标库指标需解锁为展开条目，前端不可直接引用）
 function referableFor(mi) {
   return props.metrics.slice(0, mi).filter((x) => x.type !== 'expr' && x.type !== 'derived' && x.type !== 'saved')
 }
 
-// 衍生指标可引用的前序普通/复合指标（base/expr；排除指标库引用）
+// 衍生指标可引用的前序原子/复合指标（base/expr；排除指标库引用）
 function derivedRefs(mi) {
   return props.metrics.slice(0, mi).filter((x) => x.type !== 'derived' && x.type !== 'saved')
 }
@@ -234,7 +234,7 @@ function savedError(m) {
 }
 
 function metricTypeTag(l) {
-  return { base: '普通', expr: '公式', derived: '衍生' }[l.kind] || l.kind
+  return { base: '原子指标', expr: '复合指标', derived: '衍生指标' }[l.kind] || l.kind
 }
 
 // 校验公式引用是否可用（其余语法由后端白名单把关）
@@ -249,7 +249,7 @@ function exprError(m) {
 
 function derivedError(m) {
   if (m.type !== 'derived') return ''
-  if (!derivedRefs(props.metrics.findIndex((x) => x === m)).length) return '需要先在上方添加普通/复合指标作为引用源'
+  if (!derivedRefs(props.metrics.findIndex((x) => x === m)).length) return '需要先在上方添加原子/复合指标作为引用源'
   if (!m.ref) return '请选择要引用的指标'
   return ''
 }

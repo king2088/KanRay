@@ -63,7 +63,7 @@ test('normalizeMetrics：未知衍生类型 400', () => {
 test('normalizeMetrics：缺少 ref / 无维度 / 引用其他衍生 400', () => {
   assert.throws(
     () => normalizeMetrics([{ key: 'm0', type: 'derived', kind: 'share' }], { dialect: TEST_DIALECT, dimensionCount: 1 }),
-    /需引用其前的普通\/复合指标/
+    /需引用其前的原子\/复合指标/
   );
   assert.throws(
     () => normalizeMetrics([{ key: 'm0', field: 'amount', agg: 'sum' }, { key: 'sh', type: 'derived', kind: 'share', ref: 'm0' }], { dialect: TEST_DIALECT, fieldsByName: { amount: { name: 'amount', label: '金额' } }, dimensionCount: 0 }),
@@ -94,7 +94,7 @@ test('normalizeMetrics：公式不能引用衍生指标 400', () => {
         ],
         { dialect: TEST_DIALECT, fieldsByName: { amount: { name: 'amount', label: '金额' } }, dimensionCount: 1 }
       ),
-    /不可用的指标/
+    /不可用的原子指标/
   );
 });
 

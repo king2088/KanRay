@@ -59,7 +59,7 @@ test('createMetric：基础指标校验（字段不存在/未知聚合 400）', 
 test('createMetric：公式指标校验（非法语法/悬空引用/嵌套引用 400）', async () => {
   await assert.rejects(
     lib.createMetric(dsId, { name: 'x', kind: 'expr', definition: { expr: `$${b1.id} && 1` } }),
-    /公式仅支持引用指标库指标/
+    /复合指标公式仅支持引用指标库原子指标/
   );
   await assert.rejects(
     lib.createMetric(dsId, { name: 'x', kind: 'expr', definition: { expr: '$9999 + 1' } }),
@@ -68,7 +68,7 @@ test('createMetric：公式指标校验（非法语法/悬空引用/嵌套引用
   // 公式不能引用衍生指标
   await assert.rejects(
     lib.createMetric(dsId, { name: 'x', kind: 'expr', definition: { expr: `$${d2.id} + 1` } }),
-    /只能引用基础指标/
+    /只能引用指标库原子指标/
   );
   await assert.rejects(
     lib.createMetric(dsId, { name: 'x', kind: 'expr', definition: { expr: '(' } }),

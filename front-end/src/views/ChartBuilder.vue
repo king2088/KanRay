@@ -270,7 +270,7 @@ function dimLabel(d) {
 function metricLabel(m) {
   const libMetric = m.type === 'saved' ? library.value.find((x) => x.id === m.metricId) : null
   if (m.type === 'saved') return m.label || (libMetric && libMetric.name) || '指标库指标'
-  if (m.type === 'expr') return m.label || `公式 ${m.expr || ''}`
+  if (m.type === 'expr') return m.label || `复合指标公式 ${m.expr || ''}`
   if (m.type === 'derived') {
     if (m.label) return m.label
     const kindLabel = { share: '占比', mom: '环比', yoy: '同比', cumsum: '累计', rank: '排名' }[m.kind] || m.kind
@@ -311,7 +311,7 @@ const chartSeriesNames = computed(() => {
   const m = metrics.value?.[0]
   if (!m) return []
   if (m.type === 'saved') return [metricLabel(m)]
-  if (m.type === 'expr') return [m.label || m.expr || '公式指标']
+  if (m.type === 'expr') return [m.label || m.expr || '复合指标']
   if (m.type === 'derived') return [metricLabel(m)]
   if (m.field === '*' && m.agg === 'count') return ['数据行数']
   const f = fields.value.find((x) => x.name === m.field)

@@ -46,7 +46,7 @@ function assertFormulaSyntax(expr) {
   if (!raw) throw new HttpError(400, '复合指标公式不能为空');
   const remainder = raw.replace(LIB_EXPR_TOKEN, '');
   if (!FORMULA_REMAINDER.test(remainder)) {
-    throw new HttpError(400, '公式仅支持引用指标库指标($数字ID)以及数字、+ - * / ( ) %');
+    throw new HttpError(400, '复合指标公式仅支持引用指标库原子指标($数字ID)以及数字、+ - * / ( ) %');
   }
   let depth = 0;
   for (const ch of remainder) {
@@ -66,7 +66,7 @@ function assertFormulaSyntax(expr) {
 async function assertMetricDefinition(datasetId, kind, definition) {
   const d = definition || {};
   if (kind === 'base') {
-    if (!d.field || typeof d.field !== 'string') throw new HttpError(400, '基础指标缺少 field');
+    if (!d.field || typeof d.field !== 'string') throw new HttpError(400, '原子指标缺少 field');
     if (!AGG_FUNCS[d.agg]) throw new HttpError(400, `不支持的聚合: ${d.agg}`);
     if (d.field !== '*' || d.agg !== 'count') {
       const fields = await datasetFields(datasetId);
@@ -84,7 +84,7 @@ async function assertMetricDefinition(datasetId, kind, definition) {
     for (const id of refs) {
       const rec = await getMetricRecord(datasetId, id);
       if (rec.kind !== 'base') {
-        throw new HttpError(400, `公式只能引用基础指标库指标（id=${id} 为 ${rec.kind}）`);
+        throw new HttpError(400, `复合指标公式只能引用指标库原子指标（id=${id} 为 ${rec.kind}）`);
       }
     }
     return;
@@ -133,19 +133,55 @@ async function updateMetric(datasetId, id, { name, definition } = {}) {
 }
 
 /**
- * 删除库指标：若被同数据集其他库指标引用则拒绝（避免孤儿引用）。
+ * 解析一条指标定义的被引用 ID 集合（结构化解引用，避免 `$919` 误伤 `$91` 这种子串假阳性）：
+ * - derived  -> refId
+ * - expr     -> 公式内 $数字 引用
  */
-async function deleteMetric(datasetId, id) {
-  const rec = await getMetricRecord(datasetId, id);
+function referencesIn(definitionRaw) {
+  const refs = new Set();
+  let d = definitionRaw;
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch (e) { return refs; }
+  }
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return refs;
+  if (typeof d.refId !== 'undefined' && d.refId !== null) {
+    refs.add(Number(d.refId));
+  }
+  if (typeof d.expr === 'string') {
+    String(d.expr).replace(LIB_EXPR_TOKEN, (all, id) => {
+      refs.add(Number(id));
+      return all;
+    });
+  }
+  refs.delete(NaN);
+  return refs;
+}
+
+/**
+ * 删除库指标：若被同数据集其他库指标引用、或被数据集内任一图表 saved 引用则拒绝（避免孤儿引用）。
+ */
+async function assertNoReferences(datasetId, rec) {
   const rows = await db.prepare('SELECT id, name, kind, definition FROM metrics WHERE dataset_id = ?').all(datasetId);
-  const text = (v) => String(v || '');
   for (const r of rows) {
     if (r.id === rec.id) continue;
-    if (text(r.definition).includes(`"refId":${rec.id}`) || text(r.definition).includes(`"refId": ${rec.id}`) ||
-        text(r.definition).includes(`$${rec.id}`)) {
+    if (referencesIn(r.definition).has(rec.id)) {
       throw new HttpError(400, `无法删除："${rec.name}" 被指标库其他指标 "${r.name}" 引用`);
     }
   }
+  const charts = await db.prepare('SELECT id, name, config FROM charts WHERE dataset_id = ?').all(datasetId);
+  for (const ch of charts) {
+    let cfg;
+    try { cfg = JSON.parse(ch.config || '{}'); } catch (e) { continue; }
+    const refs = (cfg.metrics || []).filter((m) => m && m.type === 'saved' && Number(m.metricId) === rec.id);
+    if (refs.length) {
+      throw new HttpError(400, `无法删除："${rec.name}" 被图表 "${ch.name}" 引用`);
+    }
+  }
+}
+
+async function deleteMetric(datasetId, id) {
+  const rec = await getMetricRecord(datasetId, id);
+  await assertNoReferences(datasetId, rec);
   await db.prepare('DELETE FROM metrics WHERE id = ? AND dataset_id = ?').run(id, datasetId);
   return { deleted: true, id: rec.id };
 }
@@ -187,7 +223,8 @@ async function emitRef(out, resolved, visiting, datasetId, id) {
 }
 
 // 图表内联公式/引用的 key 形如 m0/m1...（前端 ensureMetricShapes 生成）
-const INLINE_KEY_TOKEN = /\$m([0-9]+)/g;
+// 捕获整段 m<数字> 全键，配合 finalKeyByFrontKey 做重编号重写（capture 仅取数字会永远匹配不到）
+const INLINE_KEY_TOKEN = /\$(m[0-9]+)/g;
 
 /**
  * 展开图表指标里的 { type:'saved', metricId }：

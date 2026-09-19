@@ -41,11 +41,11 @@ function buildExprSql(expr, baseByKey) {
   if (!raw) throw new HttpError(400, '复合指标公式不能为空');
   const remainder = raw.replace(TOKEN_RE, '');
   if (!FORMULA_REMAINDER.test(remainder)) {
-    throw new HttpError(400, '公式仅支持引用普通指标($key)以及数字、+ - * / ( ) %');
+    throw new HttpError(400, '复合指标公式仅支持引用原子指标($key)以及数字、+ - * / ( ) %');
   }
   return raw.replace(TOKEN_RE, (all, key) => {
     const base = baseByKey[key];
-    if (!base) throw new HttpError(400, `公式引用了不可用的指标 "${key}"（只可引用其前的普通指标）`);
+    if (!base) throw new HttpError(400, `复合指标公式引用了不可用的原子指标 "${key}"（只可引用其前的原子指标）`);
     return `(${base.sqlExpr}) * 1.0`;
   });
 }
@@ -79,7 +79,7 @@ function normalizeMetrics(metrics, { dialect, fieldsByName, dimensionCount = 0 }
         field: key,
         agg: 'expr',
         expr: raw.expr,
-        label: raw.label || raw.expr || `公式${i + 1}`,
+        label: raw.label || raw.expr || `复合指标${i + 1}`,
         sqlExpr: buildExprSql(raw.expr, baseByKey),
         alias,
       });
@@ -93,10 +93,10 @@ function normalizeMetrics(metrics, { dialect, fieldsByName, dimensionCount = 0 }
         throw new HttpError(400, `不支持的衍生类型: ${derivedKind}（支持 share/mom/yoy/cumsum/rank）`);
       }
       const refKey = raw.ref;
-      if (!refKey) throw new HttpError(400, '衍生指标需引用其前的普通/复合指标');
+      if (!refKey) throw new HttpError(400, '衍生指标需引用其前的原子/复合指标');
       const refEntry = byKey[refKey];
       if (!refEntry) {
-        throw new HttpError(400, `衍生指标引用了不可用的指标 "${refKey}"（只可引用其前的普通/复合指标）`);
+        throw new HttpError(400, `衍生指标引用了不可用的指标 "${refKey}"（只可引用其前的原子/复合指标）`);
       }
       if (dimensionCount === 0) {
         throw new HttpError(400, `衍生指标(${derivedKind})需要至少一个维度`);
