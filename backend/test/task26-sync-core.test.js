@@ -83,6 +83,20 @@ test('sync createConfig 校验水印字段类型', async () => {
   await assert.rejects(() => sync.createConfig(dsId, { sourceTable: 't2', strategy: 'incremental', watermarkField: 'nope' }), /水印字段不存在/);
 });
 
+test('sync createConfig 拒绝不支持同步的数据源类型（回归 500）', async () => {
+  const apiDsId = Number(db.prepare("INSERT INTO data_sources (name, type, config, mode, is_active, owner_id) VALUES ('ds-api-sync', 'api', ?, 'sync', 1, 1)")
+    .run(JSON.stringify({ url: 'http://example.com', method: 'GET' })).lastInsertRowid);
+  providersApi.getProvider = REAL_GET_PROVIDER;
+  try {
+    await assert.rejects(
+      () => sync.createConfig(apiDsId, { sourceTable: 't', strategy: 'full' }),
+      /不支持数据同步/,
+    );
+  } finally {
+    fakeProviderPaged();
+  }
+});
+
 test('同步引擎：全量策略 truncate + insert', async () => {
   fakeProviderPaged([
     { id: 1, amt: 10, updated_at: '2024-01-01 00:00:00' },

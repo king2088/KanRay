@@ -304,6 +304,10 @@ async function createConfig(dsId, body, req) {
   if (!sourceTable) throw new HttpError(400, '缺少源表名 sourceTable');
   const meta = driversMeta(ds.type);
   const provider = providersApi.getProvider(meta.family);
+  // 同步源需具备表结构枚举与查询能力；http/es-rest 等 provider 不具备，提前拦截避免 500
+  if (!provider || typeof provider.listColumns !== 'function' || typeof provider.runQuery !== 'function') {
+    throw new HttpError(400, `${meta.name || ds.type} 不支持数据同步`);
+  }
   const cfg = decryptConfig(JSON.parse(ds.config));
   const columns = await provider.listColumns(cfg, ds.type, body.sourceSchema || null, sourceTable);
   if (!columns || columns.length === 0) throw new HttpError(400, `源表 ${sourceTable} 无可用列或不存在`);
