@@ -51,7 +51,7 @@
       <div v-if="!metrics.length" class="drop-hint">拖入字段作为指标</div>
       <div v-for="(m, mi) in metrics" :key="mi" class="metric-wrap">
         <div class="slot-row">
-          <el-select v-model="m.type" style="width: 82px" placeholder="形态" @change="onTypeChange(m)">
+          <el-select v-model="m.type" style="width: 100px" placeholder="形态" @change="onTypeChange(m)">
             <el-option label="原子指标" value="base" />
             <el-option label="复合指标" value="expr" />
             <el-option label="衍生指标" value="derived" />
@@ -363,7 +363,13 @@ function removeItem(arr, i) {
 }
 
 .metric-wrap {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+/* 指标间分隔线：防止相邻指标行与引用提示混淆归属 */
+.metric-wrap + .metric-wrap {
+  border-top: 1px solid var(--app-border-light);
+  padding-top: 10px;
 }
 
 .metric-subrow {
