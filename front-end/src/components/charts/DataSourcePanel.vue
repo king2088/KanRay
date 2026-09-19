@@ -15,7 +15,7 @@
       />
     </el-select>
     <div v-if="!datasets.length" style="margin-top: 8px; color: #909399; font-size: 12px">
-      还没有数据集，<el-link type="primary" @click="$router.push('/datasets/new')">去上传数据</el-link>
+      还没有数据集，<el-link type="primary" @click="$router.push('/datasources')">去「数据源」页上传</el-link>
     </div>
   </div>
 </template>

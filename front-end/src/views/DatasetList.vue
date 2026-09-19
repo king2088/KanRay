@@ -3,12 +3,7 @@
     <div class="page-header">
       <div class="page-header__main">
         <h2 class="page-title">数据集</h2>
-        <div class="page-desc">管理上传的 Excel / CSV 数据集，作为图表与看板的数据基础</div>
-      </div>
-      <div class="page-header__actions">
-        <el-button type="primary" @click="$router.push('/datasets/new')">
-          <el-icon style="margin-right: 6px"><Upload /></el-icon>上传数据
-        </el-button>
+        <div class="page-desc">管理由数据源构建 / 上传的 Excel / CSV 数据集，作为图表与看板的数据基础</div>
       </div>
     </div>
 
@@ -51,7 +46,7 @@
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有数据集，点击右上角「上传数据」开始">
+      <el-table :data="filtered" v-loading="loading" empty-text="还没有数据集，去「数据源」页上传 Excel / CSV 文件创建">
         <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
@@ -81,7 +76,7 @@
           <template #default="{ row }">
             <el-button link type="primary"  @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
             <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary"  @click="openEditBuild(row)">编辑构建</el-button>
-            <el-tooltip v-else-if="row.source_type === 'excel'" content="Excel 数据集不支持构建，请重新上传文件" placement="top">
+            <el-tooltip v-else-if="row.source_type === 'excel'" content="文件类数据集不支持「编辑构建」，如需更新数据请在数据源页重新上传" placement="top">
               <span style="display:inline-flex"><el-button link type="primary" disabled>编辑构建</el-button></span>
             </el-tooltip>
             <el-button link type="primary"  @click="openRename(row)">重命名</el-button>
