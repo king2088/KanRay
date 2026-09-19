@@ -225,8 +225,11 @@ async function runSync(cid) {
   try {
     out = sc.strategy === 'full' ? await full(cid, provider, cfg, ds, sc, cols, columns, logId)
       : await incremental(cid, provider, cfg, ds, sc, cols, columns, logId);
-    const msg = out.deleted ? `删除对账：本地删除 ${out.deleted} 行` : '';
-    await finishLog(logId, 'success', out.total, msg || null);
+    const parts = [];
+    if (out.total > 0) parts.push(`同步新增 ${out.total} 行`);
+    if (out.deleted) parts.push(`删除对账：本地删除 ${out.deleted} 行`);
+    const msg = parts.join('，') || '无变更';
+    await finishLog(logId, 'success', out.total, msg);
     await db.prepare("UPDATE sync_configs SET last_sync_at = datetime('now'), last_watermark = ?, last_sync_status = 'success', last_sync_msg = ?, updated_at = datetime('now') WHERE id = ?")
       .run(out.watermark == null ? null : String(out.watermark), msg, cid);
     return { rows: out.total, deleted: out.deleted || 0, localTable: out.localTable };

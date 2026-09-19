@@ -93,6 +93,7 @@ export const datasourceApi = {
   schemas: (id, params) => http.get(`/datasources/${id}/schemas`, { params }),
   tables: (id, schema, params) => http.get(`/datasources/${id}/schemas/${schema}/tables`, { params }),
   columns: (id, schema, table, params) => http.get(`/datasources/${id}/schemas/${schema}/tables/${table}/columns`, { params }),
+  rows: (id, schema, table, params) => http.get(`/datasources/${id}/schemas/${schema}/tables/${table}/rows`, { params }),
   registerTable: (id, payload) => http.post(`/datasources/${id}/register-table`, payload),
 }
 

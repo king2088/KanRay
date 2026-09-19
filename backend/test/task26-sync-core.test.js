@@ -184,7 +184,35 @@ test('同步型数据源浏览降级到本地表', async () => {
   assert.deepEqual(schemas, [{ name: 'local' }]);
   const localTable = sync.nextLocalTable(dsId, 't');
   const tables = await datasourceService.listTables(dsId, 'local');
-  assert.ok(tables.map(String).includes(localTable), `应含本地表 ${localTable}`);
+  assert.ok(tables.map((t) => t.name).includes(localTable), `应含本地表 ${localTable}`);
   const cols = await datasourceService.listColumns(dsId, 'local', localTable);
   assert.ok(cols.length >= 3, '本地表应能读列');
+});
+
+test('原始表数据预览：本地落库表分页', async () => {
+  const datasourceService = require('../src/services/datasource.service');
+  const localTable = sync.nextLocalTable(dsId, 't');
+  const qi = db.dialect.quoteIdent(localTable);
+  db.prepare(`DELETE FROM ${qi}`).run();
+  db.prepare(`INSERT INTO ${qi} (id, amt, updated_at) VALUES (?, ?, ?)`).run(1, 10, '2024-01-01 00:00:00');
+  db.prepare(`INSERT INTO ${qi} (id, amt, updated_at) VALUES (?, ?, ?)`).run(2, 20, '2024-01-02 00:00:00');
+  const page1 = await datasourceService.paginateRows(dsId, 'local', localTable, {}, 1, 1);
+  assert.equal(page1.schema, 'local');
+  assert.deepEqual(page1.fields, ['id', 'amt', 'updated_at']);
+  assert.equal(page1.total, 2);
+  assert.equal(page1.rows.length, 1, '每页 1 行');
+  assert.equal(page1.hasMore, true);
+  const page2 = await datasourceService.paginateRows(dsId, 'local', localTable, {}, 2, 1);
+  assert.equal(page2.rows.length, 1);
+  assert.equal(page2.hasMore, false);
+  await assert.rejects(() => datasourceService.paginateRows(dsId, 'local', 'users', {}), /本地表名/);
+});
+
+test('原始表数据预览：源表走 provider', async () => {
+  const datasourceService = require('../src/services/datasource.service');
+  fakeProviderPaged([{ id: 9, amt: 90, updated_at: '2024-02-01 00:00:00' }]);
+  const res = await datasourceService.paginateRows(dsId, 'db', 't', { source: true }, 1, 50);
+  assert.equal(res.total, null);
+  assert.deepEqual(res.rows, [{ id: 9, amt: 90, updated_at: '2024-02-01 00:00:00' }]);
+  assert.deepEqual(res.fields, ['id', 'amt', 'updated_at']);
 });

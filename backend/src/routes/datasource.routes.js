@@ -106,6 +106,15 @@ router.get('/:id/schemas/:schema/tables/:table/columns', requireUser, requirePer
   ok(res, await datasourceService.listColumns(id, req.params.schema, req.params.table, req, { source: req.query.source === '1' }));
 });
 
+// GET /api/datasources/:id/schemas/:schema/tables/:table/rows —— 数据表预览
+router.get('/:id/schemas/:schema/tables/:table/rows', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
+  const id = Number(req.params.id);
+  await access.assertResource('datasource', id, req.user, rbac);
+  const page = Math.max(1, parseInt(req.query.page || '1', 10));
+  const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize || '50', 10)));
+  ok(res, await datasourceService.paginateRows(id, req.params.schema, req.params.table, { source: req.query.source === '1' }, page, pageSize));
+});
+
 // POST /api/datasources/:id/register-table —— 注册外部表为 SQL 数据集
 router.post('/:id/register-table', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
   const id = Number(req.params.id);

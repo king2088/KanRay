@@ -3,6 +3,8 @@ const HttpError = require('../utils/http-error');
 const { encrypt, decrypt } = require('../datasources/crypto');
 const drivers = require('../datasources/drivers');
 const providers = require('../datasources/providers');
+const dialects = require('../datasources/dialects');
+const buildSql = require('../datasources/build-sql');
 const audit = require('./audit.service');
 
 // 文件型数据源（Excel/CSV 上传）不属于 drivers 列表，单独定义驱动元数据
@@ -211,7 +213,8 @@ function localTablesOf(id) {
   const prefix = `sync_${id}_`;
   return db.listTables()
     .map((t) => String(t))
-    .filter((name) => name.toLowerCase().startsWith(prefix.toLowerCase()));
+    .filter((name) => name.toLowerCase().startsWith(prefix.toLowerCase()))
+    .map((name) => ({ name, type: 'table' }));
 }
 
 function localColumnsOf(table) {
@@ -251,7 +254,52 @@ async function listColumns(id, schema, table, req, opts = {}) {
   return provider.listColumns(decryptConfig(parseConfig(row)), row.type, schema, table);
 }
 
+// 原始表数据预览：本地落库表（schema='local'）直连应用库，其余走数据源 provider
+async function paginateRows(id, schema, table, opts = {}, page = 1, pageSize = 50) {
+  const row = await db.prepare('SELECT * FROM data_sources WHERE id = ?').get(id);
+  if (!row) throw new HttpError(404, '数据源不存在');
+  if (!row.is_active) throw new HttpError(400, '数据源已停用');
+  const p = Math.max(1, Math.floor(Number(page) || 1));
+  const size = Math.min(200, Math.max(1, Math.floor(Number(pageSize) || 50)));
+  const offset = (p - 1) * size;
+  const isLocal = !opts.source && isSyncDs(row) && String(schema).toLowerCase() === 'local';
+  return isLocal
+    ? paginateLocalRows(id, table, p, size, offset)
+    : paginateSourceRows(row, schema, table, p, size, offset);
+}
+
+function paginateLocalRows(id, table, page, pageSize, offset) {
+  const t = String(table).replace(/[^A-Za-z0-9_]/g, '');
+  const expect = `sync_${id}_`;
+  if (!t.toLowerCase().startsWith(expect.toLowerCase())) throw new HttpError(400, `本地表名必须以 ${expect} 开头`);
+  if (!db.listTables().map((n) => String(n).toLowerCase()).includes(t.toLowerCase())) throw new HttpError(404, `本地表 ${t} 不存在`);
+  const q = db.dialect.quoteIdent(t);
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM ${q}`).get().n;
+  const fields = db.listColumns(t).map((c) => c.name);
+  const rows = db.prepare(`SELECT * FROM ${q} LIMIT ? OFFSET ?`).all(pageSize, offset);
+  return { schema: 'local', table: t, fields, total, page, pageSize, hasMore: offset + rows.length < total, rows };
+}
+
+async function paginateSourceRows(row, schema, table, page, pageSize, offset) {
+  const driverMeta = getDriverMeta(row.type);
+  const provider = providers.getProvider(driverMeta.family);
+  if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, `${driverMeta.name} 暂不支持查询`);
+  const cfg = decryptConfig(parseConfig(row));
+  const columns = await provider.listColumns(cfg, row.type, schema || null, table);
+  if (!columns || columns.length === 0) throw new HttpError(404, `表 ${table} 不存在或无可用列`);
+  const dialect = dialects[driverMeta.family];
+  if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
+  const q = (n) => dialect.quoteIdent(String(n));
+  const qualified = schema ? `${q(schema)}.${q(table)}` : q(table);
+  const n = offset + pageSize + 1;
+  const execSql = buildSql.applyRowLimit(dialect, `SELECT * FROM ${qualified}`, n);
+  const raw = await provider.runQuery(cfg, execSql, []);
+  const hasMore = raw.length > offset + pageSize;
+  const rows = raw.slice(offset, offset + pageSize);
+  return { schema, table, fields: columns.map((c) => c.name), total: null, page, pageSize, hasMore, rows };
+}
+
 module.exports = {
   getDriverMeta, decryptConfig, list, get, create, createExcelDatasource, update, remove,
-  testConfig, testSaved, listSchemas, listTables, listColumns,
+  testConfig, testSaved, listSchemas, listTables, listColumns, paginateRows,
 };

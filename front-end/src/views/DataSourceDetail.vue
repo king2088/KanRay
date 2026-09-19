@@ -118,6 +118,7 @@
             <span class="tree-node__label">{{ data.label }}</span>
             <span v-if="data.type === 'column'" class="tree-node__type" :class="'type--' + typeBadge(data).type">{{ typeBadge(data).text }}</span>
             <span class="tree-node__actions">
+              <el-button v-if="data.type === 'table'" link type="primary" @click.stop="openViewData(data)">查看数据</el-button>
               <el-button v-if="data.type === 'table'" link  type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">新建构建</el-button>
               <el-button v-if="data.type === 'table'" link  @click.stop="createDataset(data)">创建数据集</el-button>
             </span>
@@ -177,14 +178,28 @@
 
     <el-dialog v-model="logDialog" title="同步日志" width="720px">
       <el-table :data="logRows" v-loading="logLoading" size="small" max-height="420">
-        <el-table-column label="时间" prop="created_at" width="170" />
-        <el-table-column label="级别" width="80">
+        <el-table-column label="时间" prop="started_at" width="170" />
+        <el-table-column label="结果" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.level === 'error' ? 'danger' : row.level === 'warn' ? 'warning' : 'success'" size="small" effect="plain">{{ row.level }}</el-tag>
+            <el-tag :type="row.status === 'failed' ? 'danger' : row.status === 'success' ? 'success' : 'warning'" size="small" effect="plain">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="行数" prop="rows_synced" width="70" />
         <el-table-column label="内容" prop="message" show-overflow-tooltip />
       </el-table>
+    </el-dialog>
+
+    <el-dialog v-model="viewDialog" :title="`查看数据 · ${viewInfo.schema}.${viewInfo.table}`" width="900px" destroy-on-close>
+      <el-table :key="viewFields.join('|')" :data="viewRows" v-loading="viewLoading" size="small" max-height="440" border>
+        <el-table-column v-for="f in viewFields" :key="f" :prop="f" :label="f" min-width="140" show-overflow-tooltip />
+      </el-table>
+      <div class="view-pager">
+        <span class="view-pager__info">
+          {{ viewInfo.total != null ? `共 ${viewInfo.total} 行` : '源表预览（最多 200 行/页）' }} · 第 {{ viewInfo.page }} 页
+        </span>
+        <el-button size="small" :disabled="viewInfo.page <= 1 || viewLoading" @click="loadViewPage(viewInfo.page - 1)">上一页</el-button>
+        <el-button size="small" :disabled="!viewHasMore || viewLoading" @click="loadViewPage(viewInfo.page + 1)">下一页</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -217,6 +232,12 @@ const srcColumns = ref([])
 const logDialog = ref(false)
 const logRows = ref([])
 const logLoading = ref(false)
+const viewDialog = ref(false)
+const viewLoading = ref(false)
+const viewFields = ref([])
+const viewRows = ref([])
+const viewHasMore = ref(false)
+const viewInfo = ref({ schema: '', table: '', src: false, page: 1, total: null })
 const syncForm = ref({ sourceSchema: '', sourceTable: '', localTable: '', strategy: 'incremental', watermarkField: '', primaryKey: [], intervalSeconds: 0 })
 let pollTimer = null
 
@@ -398,6 +419,31 @@ async function openLogs(row) {
   try { logRows.value = await syncApi.logs(route.params.id, row.id) } finally { logLoading.value = false }
 }
 
+function openViewData(data) {
+  const isLocal = ds.value?.mode === 'sync' && data.schema === 'local'
+  viewInfo.value = { schema: data.schema, table: data.label, src: !isLocal, page: 1, total: null }
+  viewFields.value = []
+  viewRows.value = []
+  viewHasMore.value = false
+  viewDialog.value = true
+  loadViewPage(1)
+}
+
+async function loadViewPage(page) {
+  if (page < 1) return
+  viewLoading.value = true
+  try {
+    const { schema, table, src } = viewInfo.value
+    const params = { page, pageSize: 50 }
+    if (src) params.source = '1'
+    const r = await datasourceApi.rows(route.params.id, schema, table, params)
+    viewFields.value = r.fields || []
+    viewRows.value = r.rows || []
+    viewHasMore.value = !!r.hasMore
+    viewInfo.value = { schema, table, src, page: r.page, total: r.total }
+  } finally { viewLoading.value = false }
+}
+
 function schedulePoll() {
   if (pollTimer) return
   pollTimer = setInterval(() => {
@@ -422,6 +468,8 @@ onBeforeUnmount(stopPoll)
 
 <style scoped>
 .schema-search { margin-bottom: 8px; }
+.view-pager { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.view-pager__info { margin-right: auto; color: var(--el-text-color-secondary); font-size: 13px; }
 .tree-node { display: flex; align-items: center; gap: 6px; font-size: 14px; min-width: 0; }
 .file-meta { display: flex; align-items: center; gap: 14px; padding: 6px 0; }
 .file-meta__icon { width: 44px; height: 44px; border-radius: 10px; background: var(--app-primary-light); color: var(--app-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
