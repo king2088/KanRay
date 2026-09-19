@@ -209,16 +209,18 @@ function isSyncDs(row) {
   return row.mode === 'sync';
 }
 
-function localTablesOf(id) {
+async function localTablesOf(id) {
   const prefix = `sync_${id}_`;
-  return db.listTables()
+  const all = await db.listTables();
+  return all
     .map((t) => String(t))
     .filter((name) => name.toLowerCase().startsWith(prefix.toLowerCase()))
     .map((name) => ({ name, type: 'table' }));
 }
 
-function localColumnsOf(table) {
-  return db.listColumns(table).map((c) => {
+async function localColumnsOf(table) {
+  const cols = await db.listColumns(table);
+  return cols.map((c) => {
     const type = String(c.type || 'text').toLowerCase();
     return { name: c.name, type, role: /int|float|double|decimal|numeric|bigint|smallint|tinyint|number|real/.test(type) ? 'metric' : 'dimension' };
   });
@@ -268,15 +270,17 @@ async function paginateRows(id, schema, table, opts = {}, page = 1, pageSize = 5
     : paginateSourceRows(row, schema, table, p, size, offset);
 }
 
-function paginateLocalRows(id, table, page, pageSize, offset) {
+async function paginateLocalRows(id, table, page, pageSize, offset) {
   const t = String(table).replace(/[^A-Za-z0-9_]/g, '');
   const expect = `sync_${id}_`;
   if (!t.toLowerCase().startsWith(expect.toLowerCase())) throw new HttpError(400, `本地表名必须以 ${expect} 开头`);
-  if (!db.listTables().map((n) => String(n).toLowerCase()).includes(t.toLowerCase())) throw new HttpError(404, `本地表 ${t} 不存在`);
+  const all = (await db.listTables()).map((n) => String(n).toLowerCase());
+  if (!all.includes(t.toLowerCase())) throw new HttpError(404, `本地表 ${t} 不存在`);
   const q = db.dialect.quoteIdent(t);
-  const total = db.prepare(`SELECT COUNT(*) AS n FROM ${q}`).get().n;
-  const fields = db.listColumns(t).map((c) => c.name);
-  const rows = db.prepare(`SELECT * FROM ${q} LIMIT ? OFFSET ?`).all(pageSize, offset);
+  const total = (await db.prepare(`SELECT COUNT(*) AS n FROM ${q}`).get()).n;
+  const cols = await db.listColumns(t);
+  const fields = cols.map((c) => c.name);
+  const rows = await db.prepare(db.dialect.paginate(`SELECT * FROM ${q}`, pageSize, offset)).all();
   return { schema: 'local', table: t, fields, total, page, pageSize, hasMore: offset + rows.length < total, rows };
 }
 

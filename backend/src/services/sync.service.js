@@ -161,16 +161,16 @@ function validateWatermark(columns, wf) {
   return { kind: isTime && !isNum ? 'time' : 'id', isNum };
 }
 
-function ensureLocalTable(dsId, sourceTable, columns, pks) {
+async function ensureLocalTable(dsId, sourceTable, columns, pks) {
   const localTable = nextLocalTable(dsId, sourceTable);
-  const existing = db.listTables().map((n) => String(n).toLowerCase());
+  const existing = (await db.listTables()).map((n) => String(n).toLowerCase());
   if (existing.includes(localTable.toLowerCase())) return localTable;
   const fields = columns.map((c) => ({
     name: c.name,
     label: c.name,
     type: guessType(c.type || c.dbType),
   }));
-  db.ensureDatasetTable(localTable, fields, pks);
+  await db.ensureDatasetTable(localTable, fields, pks);
   return localTable;
 }
 
@@ -218,7 +218,7 @@ async function readPage(provider, cfg, sc, cols) {
 
 async function incremental(cid, provider, cfg, ds, sc, cols, columns, logId) {
   const pks = parsePk(sc.primary_key);
-  const localTable = ensureLocalTable(sc.datasource_id, sc.source_table, columns, pks);
+  const localTable = await ensureLocalTable(sc.datasource_id, sc.source_table, columns, pks);
   let lastWm = sc.last_watermark;
   let total = 0;
   let continueReading = true;
@@ -243,7 +243,7 @@ async function incremental(cid, provider, cfg, ds, sc, cols, columns, logId) {
 async function full(cid, provider, cfg, ds, sc, cols, columns, logId) {
   const localTable = nextLocalTable(sc.datasource_id, sc.source_table);
   await db.exec(`DROP TABLE IF EXISTS ${db.dialect.quoteIdent(localTable)}`);
-  ensureLocalTable(sc.datasource_id, sc.source_table, columns, parsePk(sc.primary_key));
+  await ensureLocalTable(sc.datasource_id, sc.source_table, columns, parsePk(sc.primary_key));
   let total = 0;
   while (true) {
     const rows = await readPage(provider, cfg, { ...sc, last_watermark: null }, cols);
@@ -420,4 +420,5 @@ async function trigger(cid, triggerType = 'manual') {
 module.exports = {
   runSync, runNow, trigger, createConfig, getConfig, listConfigs, configsOf, updateConfig, deleteConfig, logsOf,
   nextLocalTable, validateWatermark, parsePk, normWm, toBindable,
+  _internals: { ensureLocalTable },
 };
