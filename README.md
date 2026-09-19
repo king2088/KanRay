@@ -76,6 +76,8 @@ DB_TYPE=postgres DB_URL='postgresql://kanban:kanban@127.0.0.1:15432/kanban?sslmo
 
 > 六库镜像：MySQL/MariaDB 官方镜像、`postgres:16`、`mcr.microsoft.com/mssql/server`、`gvenzl/oracle-free`（也可用 `gvenzl/oracle-xe`）。本地实测栈还含 ClickHouse（18123）/ TiDB（14000）/ Elasticsearch（19200）/ Presto（18080），供数据源直连实测。
 
+> Redis 配置（`REDIS_URL` / `config.json cache.url`，用于共享缓存 + 分布式锁）、多实例分布式部署前提、Docker/systemd 部署、密钥管理与备份恢复等运维细节见 **[部署运维手册](docs/05-部署运维手册.md)**。
+
 ### 存储门面与方言差异
 
 - **门面** `backend/src/db.js`：统一 `prepare()` → `{ run, get, all }`、`exec`、`transaction(fn)`、`dialect`；远端驱动实现异步句柄，SQLite 保持同步（调用方统一 `await`，`backend/src/datasources/drivers/*.js`）。
@@ -153,6 +155,7 @@ cd deploy
 - 访问地址：`http://localhost:8080`（可通过修改 `deploy/.env` 中的 `KANBAN_PORT` 调整）
 - Swagger 文档：`http://localhost:8080/api/open/docs`
 - 管理员：`admin@kanban.local / admin123`（生产环境请修改 `deploy/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
+- 数据库 / Redis / 多副本与 systemd 等更多部署细节见 [部署运维手册](docs/05-部署运维手册.md)
 
 ## 常用命令
 
@@ -362,8 +365,8 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 
 - **水印归一**：驱动把源端 DATETIME 转成 JS `Date` 时，落库与水印比较统一按本地时区格式化为 `YYYY-MM-DD HH:MM:SS` 字符串。
 - **首同步不注册数据集**：同步只落物理表，不自动建数据集；在数据源详情页浏览本地表后，用「创建数据集 / 注册表」手动注册即可进入图表链路。
-- **调度**：后端内存调度器每分钟 tick，按 `interval_seconds` 计算到期任务并发执行（`SYNC_MAX_CONCURRENT`，默认 2）；`MAX_ROWS` / `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_DEFAULT_INTERVAL_SECONDS` 可用环境变量覆盖。
-- **已知限制**：单实例内存调度（多实例部署无分布式锁，重复实例会各自触发）；增量不感知源端删除（不本地删行）；Oracle 源同步受其每语句自动提交影响（长事务失败不回滚）。
+- **调度**：后端内存调度器每分钟 tick，按 `interval_seconds` 计算到期任务并发执行（`SYNC_MAX_CONCURRENT`，默认 2）；`MAX_ROWS` / `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_DEFAULT_INTERVAL_SECONDS` 可用环境变量覆盖。调度器为**多实例安全**设计：每次执行前抢分布式锁（配 `REDIS_URL` 时 `SET NX PX`，否则 `sync_locks` 表租约锁），多实例共享同一元数据库即自动互斥，抢不到锁的实例跳过（日志「已由其它实例执行」），无需 leader 选举。
+- **已知限制**：增量不感知源端删除（不本地删行）；Oracle 源同步受其每语句自动提交影响（长事务失败不回滚）；开放 API 限流为每实例内存计数（全局配额需网关层实现）。
 
 ### 本地实测环境（Docker）
 
@@ -417,7 +420,8 @@ docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v # �
 - 看板分享已支持完整生命周期（创建/密码门禁/JWT 鉴权/启停控制/过期策略/删除）；共享授权（grants）、资源级用户/角色授权、RLS 仍规划于后续里程碑（M3/M4，见 [需求清单-第二阶段.md](docs/需求清单-第二阶段.md)）
 - 数据生命周期 20 万行 / 20MB 以内（上传数据集）；同步落库表由 `max_rows` 控制，不受该上限约束
 - 看板布局为 flow-grid（按数组顺序流式排布），第二维度作系列时显示为多系列
-- **同步任务**：单实例内存调度（多实例部署无分布式锁，各实例会各自 tick）；增量不感知源端删除（不本地删行）；数据源删除/停用不停已有同步任务配置
-- **存储后端**：Oracle 每语句自动提交，`transaction` 退化为逐条执行，批量写中途失败不会整体回滚（其余方言支持显式事务）；缓存层仍为内存（无 Redis 分布式缓存，见 M5）
+- **同步任务**：调度器多实例安全（执行前抢分布式锁：Redis `SET NX PX` 或 `sync_locks` 表租约锁，共享元数据库即互斥，详见 [部署运维手册](docs/05-部署运维手册.md#七多实例--分布式部署)）；增量不感知源端删除（不本地删行）；数据源删除/停用不停已有同步任务配置
+- **存储后端**：Oracle 每语句自动提交，`transaction` 退化为逐条执行，批量写中途失败不会整体回滚（其余方言支持显式事务）；缓存默认进程内存，配 `REDIS_URL` 可启用 Redis 共享缓存与锁
+- **多实例部署**：前提是共享元数据库（非 sqlite）+ 一致的 `JWT_SECRET`/`DATASOURCE_SECRET` + 共享上传存储（NFS/对象存储），建议配 `REDIS_URL`；开放 API 限流为每实例内存计数；详见 [部署运维手册](docs/05-部署运维手册.md#七多实例--分布式部署)
 - **存量数据迁移**：当前**不做**已有 SQLite 库到外部存储库的自动数据迁移。切换存储后端请在选择部署形态时决定（可导出重建），`backend/src/db/` 门面的幂等建表/列补齐对新库安全
 - Excel 文件数据源（`type='excel'`）不支持同步存储方式（不入队任务，表单已禁用该选项）
