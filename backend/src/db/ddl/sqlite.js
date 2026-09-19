@@ -93,6 +93,16 @@ module.exports = [
     locked_until INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  `CREATE TABLE IF NOT EXISTS sync_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sync_config_id INTEGER NOT NULL REFERENCES sync_configs(id) ON DELETE CASCADE,
+    trigger_type TEXT NOT NULL DEFAULT 'schedule', status TEXT NOT NULL DEFAULT 'queued',
+    attempts INTEGER NOT NULL DEFAULT 0, worker_id TEXT, error TEXT,
+    lease_until INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), started_at TEXT, finished_at TEXT
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_sync_jobs_status ON sync_jobs(status, id)',
+  'CREATE INDEX IF NOT EXISTS idx_sync_jobs_config ON sync_jobs(sync_config_id)',
   `CREATE TABLE IF NOT EXISTS dashboard_shares (
     id INTEGER PRIMARY KEY AUTOINCREMENT, dashboard_id INTEGER NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,

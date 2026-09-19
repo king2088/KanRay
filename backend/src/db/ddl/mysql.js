@@ -107,6 +107,15 @@ module.exports = [
     locked_until BIGINT NOT NULL DEFAULT 0,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS sync_jobs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, sync_config_id BIGINT NOT NULL,
+    trigger_type VARCHAR(20) NOT NULL DEFAULT 'schedule', status VARCHAR(20) NOT NULL DEFAULT 'queued',
+    attempts INT NOT NULL DEFAULT 0, worker_id VARCHAR(64), error TEXT, lease_until BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, started_at DATETIME, finished_at DATETIME,
+    KEY idx_sync_jobs_status (status, id),
+    KEY idx_sync_jobs_config (sync_config_id),
+    CONSTRAINT fk_sync_jobs_cfg FOREIGN KEY (sync_config_id) REFERENCES sync_configs(id) ON DELETE CASCADE
+  )`,
   `CREATE TABLE IF NOT EXISTS dashboard_shares (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, dashboard_id BIGINT NOT NULL,
     token VARCHAR(64) NOT NULL, password_hash VARCHAR(255) NOT NULL,

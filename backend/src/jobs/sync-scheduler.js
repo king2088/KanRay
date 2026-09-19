@@ -1,9 +1,14 @@
 // src/jobs/sync-scheduler.js
 // 同步调度器：按 sync_interval_seconds 到期轮询。到期判定在 JS 完成（跨方言），
 // 避免 sqlite datetime 加减与 mysql/pg/mssql/oracle 不一致。
+//
+// 两种运行模式（config.sync.mode）：
+//  - inline：tick 直接在进程内执行 runSync（单机/测试默认）；
+//  - worker：tick 只把到期配置写入 sync_jobs 队列，由独立 worker 进程消费执行。
 const config = require('../config');
 const db = require('../db');
 const { runSync } = require('../services/sync.service');
+const queue = require('../services/sync-queue.service');
 const { withLock } = require('../services/lock');
 const running = new Set();
 let timer = null;
@@ -14,11 +19,11 @@ function parseUtc(ts) {
   return new Date(/Z$|[+-]\d{2}:\d{2}$/.test(s) ? s : `${s}Z`);
 }
 
-async function tick() {
-  if (running.size >= config.sync.maxConcurrent) return;
-  const rows = await db.all("SELECT * FROM sync_configs WHERE last_sync_status != 'running'");
+// 计算当前到期的同步配置（last_sync_at 为空或已过同步间隔），已 running 的排除
+async function dueConfigs() {
+  const rows = await db.all("SELECT * FROM sync_configs WHERE last_sync_status IS NULL OR last_sync_status != 'running'");
   const now = Date.now();
-  const due = rows
+  return rows
     .filter((sc) => {
       const last = parseUtc(sc.last_sync_at);
       if (last == null) return true;
@@ -26,6 +31,23 @@ async function tick() {
       return now >= last.getTime() + interval;
     })
     .sort((a, b) => ((a.last_sync_at == null ? 1 : 0) - (b.last_sync_at == null ? 1 : 0)) || (a.id - b.id));
+}
+
+// worker 模式：把到期配置入队（幂等，已有排队/执行中的任务则跳过）
+async function enqueueDue() {
+  const due = await dueConfigs();
+  let enqueued = 0;
+  for (const sc of due) {
+    const job = await queue.enqueue(sc.id, 'schedule');
+    if (!job.existing) enqueued += 1;
+  }
+  return { enqueued, due: due.length };
+}
+
+// inline 模式：进程内直接执行（受限并发）
+async function runDueInline() {
+  if (running.size >= config.sync.maxConcurrent) return { executed: 0, due: 0 };
+  const due = await dueConfigs();
   for (const sc of due) {
     if (running.size >= config.sync.maxConcurrent) break;
     running.add(sc.id);
@@ -36,6 +58,11 @@ async function tick() {
       .catch((e) => console.error(`[sync] cfg ${sc.id} failed:`, e.message))
       .finally(() => running.delete(sc.id));
   }
+  return { executed: due.length, due: due.length };
+}
+
+async function tick() {
+  return config.sync.mode === 'worker' ? enqueueDue() : runDueInline();
 }
 
 function startScheduler() {
@@ -49,4 +76,4 @@ function stopScheduler() {
   if (timer) { clearInterval(timer); timer = null; }
 }
 
-module.exports = { startScheduler, stopScheduler, tick, running };
+module.exports = { startScheduler, stopScheduler, tick, dueConfigs, enqueueDue, running };

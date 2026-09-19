@@ -4,12 +4,13 @@
 // db.transaction(fn) 返回可调用包装（await 后执行，兼容 better-sqlite3 形态 + 参数透传）。
 const mysql2 = require('mysql2/promise');
 const { translate } = require('../translate');
+const config = require('../../config');
 const { mysql: mysqlDialect, mariadb: mariaDialect } = require('../../datasources/dialects');
 
 function createMysqlDriver(url, type) {
   const pool = mysql2.createPool({
     uri: url,
-    connectionLimit: 10,
+    connectionLimit: config.db.poolMax,
     multipleStatements: true,
     charset: 'utf8mb4',
     decimalNumbers: true,

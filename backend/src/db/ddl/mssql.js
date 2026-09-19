@@ -105,6 +105,15 @@ module.exports = [
     locked_until BIGINT NOT NULL DEFAULT 0,
     updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
   )`,
+  `CREATE TABLE sync_jobs (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, sync_config_id BIGINT NOT NULL,
+    trigger_type NVARCHAR(20) NOT NULL DEFAULT 'schedule', status NVARCHAR(20) NOT NULL DEFAULT 'queued',
+    attempts INT NOT NULL DEFAULT 0, worker_id NVARCHAR(64), error NVARCHAR(MAX), lease_until BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), started_at DATETIME2, finished_at DATETIME2,
+    CONSTRAINT fk_sync_jobs_cfg FOREIGN KEY (sync_config_id) REFERENCES sync_configs(id) ON DELETE CASCADE
+  )`,
+  'CREATE INDEX idx_sync_jobs_status ON sync_jobs(status, id)',
+  'CREATE INDEX idx_sync_jobs_config ON sync_jobs(sync_config_id)',
   `CREATE TABLE dashboard_shares (
     id BIGINT IDENTITY(1,1) PRIMARY KEY, dashboard_id BIGINT NOT NULL,
     token NVARCHAR(64) NOT NULL, password_hash NVARCHAR(255) NOT NULL,

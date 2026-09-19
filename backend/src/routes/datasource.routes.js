@@ -144,7 +144,7 @@ router.post('/:id/sync-configs', requireUser, requirePermission('datasource', 'u
   await access.assertResource('datasource', id, req.user, rbac);
   const cfg = await syncService.createConfig(id, req.body || {}, req);
   if (req.body?.runNow !== false) {
-    syncService.runNow(cfg.id).catch((e) => console.error(`[sync] cfg ${cfg.id} 首同步失败:`, e.message));
+    syncService.trigger(cfg.id, 'startup').catch((e) => console.error(`[sync] cfg ${cfg.id} 首同步触发失败:`, e.message));
   }
   ok(res, cfg, '同步配置已创建，首同步已触发');
 });
@@ -162,8 +162,8 @@ router.delete('/:id/sync-configs/:cid', requireUser, requirePermission('datasour
 
 // POST /api/datasources/:id/sync-configs/:cid/run —— 手动立即同步
 router.post('/:id/sync-configs/:cid/run', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const result = await syncService.runNow(Number(req.params.cid));
-  ok(res, result, '同步执行完成');
+  const result = await syncService.trigger(Number(req.params.cid), 'manual');
+  ok(res, result, result.queued ? '已加入同步队列' : '同步执行完成');
 });
 
 // GET /api/datasources/:id/sync-configs/:cid/logs —— 同步日志

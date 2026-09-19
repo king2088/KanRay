@@ -9,6 +9,7 @@ const providersApi = require('../datasources/providers');
 const { decryptConfig } = require('./datasource.service');
 const { buildUpsert, guessType } = require('../datasources/build-sql');
 const config = require('../config');
+const metrics = require('../middleware/metrics');
 
 const BATCH_SIZE = 5000;
 
@@ -45,49 +46,99 @@ function normWm(v) {
   return v;
 }
 
-// 主键元组归一化为可比较键：数值/字符串统一转字符串，避免驱动类型（number vs bigint 字符串等）不一致误判
-function pkKey(vals) {
-  return JSON.stringify(vals.map((v) => (v == null ? '' : String(v))));
-}
-
 function deleteSql(localTable, pks) {
   const q = db.dialect.quoteIdent;
   const where = pks.map((c, i) => `${q(c)} = ${db.dialect.placeholder(i + 1)}`).join(' AND ');
   return `DELETE FROM ${q(localTable)} WHERE ${where}`;
 }
 
-// 主键对账删除：增量同步后把「本地有、源端无」的主键从本地表删掉。
-// 源端唯一能发现硬删除的途径是比对主键全集；源/本各扫一遍，差异分批 DELETE。
-async function reconcileDeletes(provider, cfg, sc, pks, localTable) {
-  const qname = (n) => String(n);
-  const from = sc.source_schema ? `${qname(sc.source_schema)}.${qname(sc.source_table)}` : qname(sc.source_table);
-  const keyCols = pks.map(qname).join(', ');
-  const srcKeys = new Set();
+// 主键值比较：数值优先按数值比较（避免 SQL 数值排序与字符串排序不一致），否则按字符串
+function isNumericVal(v) {
+  return typeof v === 'number' || (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v));
+}
+function cmpPkVal(a, b) {
+  if (a == null && b == null) return 0;
+  if (a == null) return -1;
+  if (b == null) return 1;
+  if (isNumericVal(a) && isNumericVal(b)) {
+    const na = Number(a); const nb = Number(b);
+    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na < nb ? -1 : 1;
+    if (na === nb) return 0;
+  }
+  const sa = String(a); const sb = String(b);
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+}
+function cmpPkTuple(a, b) {
+  for (let i = 0; i < a.length; i += 1) {
+    const c = cmpPkVal(a[i], b[i]);
+    if (c !== 0) return c;
+  }
+  return 0;
+}
+
+// 主键有序分页迭代器：单页缓冲，内存与表规模无关（有界于 BATCH_SIZE）
+async function* keyIterator(pageFn) {
   let offset = 0;
   while (true) {
-    const sql = `SELECT ${keyCols} FROM ${from} ORDER BY ${keyCols} ASC LIMIT ${BATCH_SIZE} OFFSET ${offset}`;
-    const rows = await provider.runQuery(cfg, sql, []);
-    if (!rows || rows.length === 0) break;
-    for (const r of rows) srcKeys.add(pkKey(pks.map((c) => r[c])));
+    const rows = await pageFn(offset, BATCH_SIZE);
+    if (!rows || rows.length === 0) return;
+    for (const r of rows) yield r;
+    if (rows.length < BATCH_SIZE) return;
     offset += rows.length;
-    if (rows.length < BATCH_SIZE) break;
   }
+}
+
+// 主键对账删除：增量同步后把「本地有、源端无」的主键从本地表删掉。
+// 源端唯一能发现硬删除的途径是比对主键全集；改为「源/本各自按主键有序分页 + 双路归并」，
+// 边比边删，避免把全量主键塞进内存 Set，也避免一次性 read 全表。
+async function reconcileDeletes(provider, cfg, sc, pks, localTable) {
+  const qname = (n) => String(n);
   const q = db.dialect.quoteIdent;
-  const localRows = await db.prepare(`SELECT ${pks.map(q).join(', ')} FROM ${q(localTable)}`).all();
-  const missing = [];
-  for (const r of localRows) {
-    const key = pkKey(pks.map((c) => r[c]));
-    if (!srcKeys.has(key)) missing.push(pks.map((c) => r[c]));
+  const from = sc.source_schema ? `${qname(sc.source_schema)}.${qname(sc.source_table)}` : qname(sc.source_table);
+  const keyCols = pks.map(qname).join(', ');
+  const localKeyCols = pks.map(q).join(', ');
+
+  const srcPage = (offset, limit) => provider.runQuery(
+    cfg,
+    `SELECT ${keyCols} FROM ${from} ORDER BY ${keyCols} ASC LIMIT ${limit} OFFSET ${offset}`,
+    [],
+  );
+  const locPage = async (offset, limit) => (await db.prepare(
+    db.dialect.paginate(`SELECT ${localKeyCols} FROM ${q(localTable)} ORDER BY ${localKeyCols} ASC`, limit, offset),
+  ).all());
+
+  const src = keyIterator((off, lim) => srcPage(off, lim).then((rows) => (rows || []).map((r) => pks.map((c) => r[c]))));
+  const loc = keyIterator((off, lim) => locPage(off, lim).then((rows) => (rows || []).map((r) => pks.map((c) => r[c]))));
+
+  let missing = [];
+  let deleted = 0;
+  const flush = async () => {
+    if (missing.length === 0) return;
+    const delSql = deleteSql(localTable, pks);
+    const batch = missing;
+    missing = [];
+    await db.transaction(async (rows) => {
+      for (const vals of rows) await db.prepare(delSql).run(...vals);
+    })(batch);
+    deleted += batch.length;
+  };
+
+  let s = await src.next();
+  let l = await loc.next();
+  while (!l.done) {
+    if (s.done) {
+      missing.push(l.value);
+    } else {
+      const c = cmpPkTuple(s.value, l.value);
+      if (c < 0) { s = await src.next(); continue; }
+      if (c === 0) { s = await src.next(); l = await loc.next(); continue; }
+      missing.push(l.value);
+    }
+    l = await loc.next();
+    if (missing.length >= BATCH_SIZE) await flush();
   }
-  if (missing.length === 0) return 0;
-  const delSql = deleteSql(localTable, pks);
-  for (let i = 0; i < missing.length; i += BATCH_SIZE) {
-    const slice = missing.slice(i, i + BATCH_SIZE);
-    await db.transaction(async (batch) => {
-      for (const vals of batch) await db.prepare(delSql).run(...vals);
-    })(slice);
-  }
-  return missing.length;
+  await flush();
+  return deleted;
 }
 
 // 落库前把驱动可能返回的富类型转成可绑定原语（sqlite 只收 number/string/bigint/buffer/null）
@@ -221,6 +272,7 @@ async function runSync(cid) {
   await db.prepare("UPDATE sync_configs SET last_sync_status = 'running', updated_at = datetime('now') WHERE id = ?").run(cid);
 
   const logId = await startLog(cid);
+  const startedAt = Date.now();
   let out;
   try {
     out = sc.strategy === 'full' ? await full(cid, provider, cfg, ds, sc, cols, columns, logId)
@@ -232,10 +284,12 @@ async function runSync(cid) {
     await finishLog(logId, 'success', out.total, msg);
     await db.prepare("UPDATE sync_configs SET last_sync_at = datetime('now'), last_watermark = ?, last_sync_status = 'success', last_sync_msg = ?, updated_at = datetime('now') WHERE id = ?")
       .run(out.watermark == null ? null : String(out.watermark), msg, cid);
+    metrics.recordSync({ ok: true, rows: out.total, deleted: out.deleted || 0, durationMs: Date.now() - startedAt });
     return { rows: out.total, deleted: out.deleted || 0, localTable: out.localTable };
   } catch (e) {
     await finishLog(logId, 'failed', out ? out.total : 0, e.message);
     await db.prepare("UPDATE sync_configs SET last_sync_status = 'failed', last_sync_msg = ?, updated_at = datetime('now') WHERE id = ?").run(String(e.message).slice(0, 500), cid);
+    metrics.recordSync({ ok: false, rows: out ? out.total : 0, durationMs: Date.now() - startedAt });
     throw e;
   }
 }
@@ -354,7 +408,16 @@ async function runNow(cid) {
   return runSync(cid);
 }
 
+// 触发同步：worker 模式入队（返回 { queued: true, jobId, existing }），inline 模式直接执行。
+async function trigger(cid, triggerType = 'manual') {
+  if (config.sync.mode === 'worker') {
+    const job = await require('./sync-queue.service').enqueue(cid, triggerType);
+    return { queued: true, jobId: job.id, existing: !!job.existing };
+  }
+  return runNow(cid);
+}
+
 module.exports = {
-  runSync, runNow, createConfig, getConfig, listConfigs, configsOf, updateConfig, deleteConfig, logsOf,
+  runSync, runNow, trigger, createConfig, getConfig, listConfigs, configsOf, updateConfig, deleteConfig, logsOf,
   nextLocalTable, validateWatermark, parsePk, normWm, toBindable,
 };

@@ -13,7 +13,8 @@ async function main() {
     console.warn('[kanban-backend] 警告: 使用默认 JWT_SECRET/管理员密码，生产环境请通过环境变量配置（见 backend/.env.example）');
   }
 
-  startScheduler();
+  // worker 模式下同步由独立 worker 进程调度，API 进程不启动调度器
+  if (config.sync.mode === 'inline') startScheduler();
 
   app.listen(config.port, () => {
     console.log(`[kanban-backend] 启动成功: http://localhost:${config.port}`);

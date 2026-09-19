@@ -52,6 +52,8 @@ module.exports = {
     type: dbType,
     url: dbUrl,
     sqlitePath: dbSqlitePath,
+    // 连接池上限（postgres/mysql 应用存储驱动使用），多副本部署时按副本数 × 此值估算总连接
+    poolMax: Math.max(1, parseInt(process.env.DB_POOL_MAX || '10', 10)),
   },
   // 兼容旧引用：sqlite 返回路径，其它类型返回 url
   get dbPath() {
@@ -74,10 +76,18 @@ module.exports = {
     previewRows: 50,
   },
   sync: {
+    // inline: 调度与执行都在 API 进程内（默认，单机/测试）；
+    // worker: 调度只入队，由独立 worker 进程消费执行（多副本/生产）。
+    mode: String(process.env.SYNC_MODE || 'inline').toLowerCase() === 'worker' ? 'worker' : 'inline',
     schedulerIntervalMs: parseInt(process.env.SYNC_SCHEDULER_INTERVAL_MS || '60000', 10),
+    workerPollMs: parseInt(process.env.SYNC_WORKER_POLL_MS || '2000', 10),
     maxConcurrent: parseInt(process.env.SYNC_MAX_CONCURRENT || '2', 10),
     defaultIntervalSeconds: parseInt(process.env.SYNC_DEFAULT_INTERVAL_SECONDS || '86400', 10),
     lockTtlMs: parseInt(process.env.SYNC_LOCK_TTL_MS || '1800000', 10),
+  },
+  query: {
+    // 聚合查询在未显式指定 groupLimit 时的分组数上限，防止超大分组结果全量物化
+    maxGroups: Math.max(1, parseInt(process.env.QUERY_MAX_GROUPS || '10000', 10)),
   },
   timezone: String(process.env.TIMEZONE || 'Asia/Shanghai'),
   openApi: {

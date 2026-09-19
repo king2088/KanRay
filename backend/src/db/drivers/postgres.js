@@ -5,6 +5,7 @@
 // `run` 对 INSERT INTO 自动追加 `RETURNING id`（无 RETURNING / 非 ON CONFLICT 结尾）以回读自增 id。
 const { Pool } = require('pg');
 const { translate } = require('../translate');
+const config = require('../../config');
 const { pg: pgDialect } = require('../../datasources/dialects');
 
 const INSERT_RE = /^INSERT\s+INTO/i;
@@ -25,7 +26,7 @@ function withReturning(sql) {
 const mapRow = (r) => r ?? undefined;
 
 function createPostgresDriver(url) {
-  const pool = new Pool({ connectionString: url, max: 10 });
+  const pool = new Pool({ connectionString: url, max: config.db.poolMax });
 
   let txClient = null;
   let txDepth = 0;

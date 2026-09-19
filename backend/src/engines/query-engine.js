@@ -1,4 +1,5 @@
 const db = require('../db');
+const config = require('../config');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow, getFieldsOrThrow } = require('../services/dataset.service');
 const sqlDataProvider = require('../datasources/sql-data-provider');
@@ -181,9 +182,11 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
     if (parts.length) sql += ` ORDER BY ${parts.join(', ')} ${sortOrder}`;
   }
 
-  // 分组限制
+  // 分组限制：显式 groupLimit 优先；未指定时对聚合分组施加上限，避免超大分组全量物化
   if (query.groupLimit && Number.isInteger(query.groupLimit) && query.groupLimit > 0) {
     sql = d.limit(sql, query.groupLimit);
+  } else if (dimGroups.length > 0 && config.query.maxGroups > 0) {
+    sql = d.limit(sql, config.query.maxGroups);
   }
 
   const start = Date.now();

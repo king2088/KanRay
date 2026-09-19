@@ -93,6 +93,16 @@ module.exports = [
     locked_until BIGINT NOT NULL DEFAULT 0,
     updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
+  `CREATE TABLE IF NOT EXISTS sync_jobs (
+    id BIGSERIAL PRIMARY KEY,
+    sync_config_id BIGINT NOT NULL REFERENCES sync_configs(id) ON DELETE CASCADE,
+    trigger_type TEXT NOT NULL DEFAULT 'schedule', status TEXT NOT NULL DEFAULT 'queued',
+    attempts INTEGER NOT NULL DEFAULT 0, worker_id TEXT, error TEXT,
+    lease_until BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT now(), started_at TIMESTAMP, finished_at TIMESTAMP
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_sync_jobs_status ON sync_jobs(status, id)',
+  'CREATE INDEX IF NOT EXISTS idx_sync_jobs_config ON sync_jobs(sync_config_id)',
   `CREATE TABLE IF NOT EXISTS dashboard_shares (
     id BIGSERIAL PRIMARY KEY, dashboard_id BIGINT NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,

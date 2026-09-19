@@ -26,6 +26,8 @@ services:
       DATA_DIR: /data
       UPLOAD_DIR: /uploads
       PORT: "3001"
+      # API 进程只入队，不执行同步（同步交给 worker 服务）
+      SYNC_MODE: worker
     volumes:
       - kanban_data:/data
       - kanban_uploads:/uploads
@@ -34,6 +36,31 @@ services:
         condition: service_healthy
     expose:
       - "3001"
+    restart: unless-stopped
+    # 水平扩容：docker compose up -d --scale backend=3
+    # 注意：连接总数为 副本数 × DB_POOL_MAX，需与 postgres max_connections 匹配。
+
+  # 独立同步 worker：调度（入队）+ 消费 sync_jobs 执行同步；可独立水平扩容。
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/backend/Dockerfile
+    command: ["node", "backend/src/worker/main.js"]
+    env_file: .env
+    environment:
+      DB_TYPE: postgres
+      DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATA_DIR: /data
+      UPLOAD_DIR: /uploads
+      SYNC_MODE: worker
+      SYNC_MAX_CONCURRENT: "4"
+    volumes:
+      - kanban_data:/data
+      - kanban_uploads:/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # 水平扩容：docker compose up -d --scale worker=2（任务领取由 sync_jobs 行锁互斥）
     restart: unless-stopped
 
   frontend:
