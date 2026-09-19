@@ -12,22 +12,24 @@
       </el-aside>
 
       <el-container class="app-main-wrap">
-        <el-header class="app-header">
-          <div class="app-header__left">
-            <el-tooltip content="折叠 / 展开侧栏" placement="bottom">
-              <el-icon class="collapse-btn" @click="store.toggleCollapsed()">
-                <component :is="store.collapsed ? 'Expand' : 'Fold'" />
-              </el-icon>
-            </el-tooltip>
-            <el-breadcrumb separator="/">
-              <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-              <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
-            </el-breadcrumb>
-          </div>
-          <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
-        </el-header>
         <el-main class="app-main">
-          <router-view />
+          <el-header class="app-header">
+            <div class="app-header__left">
+              <el-tooltip content="折叠 / 展开侧栏" placement="bottom">
+                <el-icon class="collapse-btn" @click="store.toggleCollapsed()">
+                  <component :is="store.collapsed ? 'Expand' : 'Fold'" />
+                </el-icon>
+              </el-tooltip>
+              <el-breadcrumb separator="/">
+                <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+                <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
+              </el-breadcrumb>
+            </div>
+            <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
+          </el-header>
+          <div class="app-main__body">
+            <router-view />
+          </div>
         </el-main>
       </el-container>
     </template>
@@ -40,19 +42,21 @@
       </el-aside>
 
       <el-container class="app-main-wrap">
-        <el-header class="app-header">
-          <div class="app-header__left">
-            <TopMenu
-              :active-menu="activeMenu"
-              mode="mixed"
-              :group="activeGroup"
-              @select-group="onSelectGroup"
-            />
-          </div>
-          <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
-        </el-header>
         <el-main class="app-main">
-          <router-view />
+          <el-header class="app-header">
+            <div class="app-header__left">
+              <TopMenu
+                :active-menu="activeMenu"
+                mode="mixed"
+                :group="activeGroup"
+                @select-group="onSelectGroup"
+              />
+            </div>
+            <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
+          </el-header>
+          <div class="app-main__body">
+            <router-view />
+          </div>
         </el-main>
       </el-container>
     </template>
@@ -60,15 +64,17 @@
     <!-- 水平布局：顶部菜单，无侧栏 -->
     <template v-else>
       <el-container class="app-main-wrap">
-        <el-header class="app-header app-header--horizontal">
-          <div class="app-header__left">
-            <AppLogo :collapsed="true" />
-            <TopMenu :active-menu="activeMenu" />
-          </div>
-          <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
-        </el-header>
         <el-main class="app-main">
-          <router-view />
+          <el-header class="app-header app-header--horizontal">
+            <div class="app-header__left">
+              <AppLogo :collapsed="true" />
+              <TopMenu :active-menu="activeMenu" />
+            </div>
+            <HeaderBar :settings-open="settingsOpen" @update:settings-open="settingsOpen = $event" />
+          </el-header>
+          <div class="app-main__body">
+            <router-view />
+          </div>
         </el-main>
       </el-container>
     </template>
@@ -134,13 +140,17 @@ const currentTitle = computed(() => route.meta.title || 'KanRay')
 
 .app-header {
   height: var(--app-header-height);
-  background: var(--app-card);
+  background: var(--app-header-bg);
   border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px 0 12px;
   flex-shrink: 0;
+  /* 吸顶：让内容从头部下方滚过，实现真正的磨砂玻璃 */
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .app-header--horizontal {
@@ -170,6 +180,19 @@ const currentTitle = computed(() => route.meta.title || 'KanRay')
 .app-main {
   overflow: auto;
   padding: 0;
-  background: var(--app-bg);
+  background-color: var(--app-bg);
+  background-image: var(--app-bg-image);
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 内容区：占满头部以下视口，超高时整体随 app-main 滚动、从吸顶头部下方穿过 */
+.app-main__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 </style>
