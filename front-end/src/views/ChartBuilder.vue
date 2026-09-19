@@ -748,7 +748,7 @@ onMounted(async () => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: var(--app-card);
+  background: var(--app-card-solid);
   border-left: 1px solid var(--app-border-light);
   padding: 4px 16px 0;
   flex-shrink: 0;

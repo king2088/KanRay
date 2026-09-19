@@ -40,6 +40,8 @@
 
   /* 兼容旧引用（--app-card → 玻璃面板） */
   --app-card: var(--app-glass);
+  /* 不透明面板：图表构建器右侧配置栏等需要实底以保证可读 */
+  --app-card-solid: #ffffff;
 
   --app-text-primary: #2f3a52;
   --app-text-regular: #55637a;
@@ -493,6 +495,7 @@ html.dark {
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
     var(--app-glass-header);
   --app-card: var(--app-glass);
+  --app-card-solid: #18222e;
 
   --app-text-primary: #e7eef7;
   --app-text-regular: #c3cdd9;
