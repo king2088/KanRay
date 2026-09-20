@@ -59,7 +59,7 @@ async function listSchemas(cfg) {
 }
 
 async function listTables(cfg, type, schema) {
-  const esc = clickhouseEscape(schema);
+  const esc = clickhouseEscape(schema || cfg.database);
   const rows = await q(cfg, `SELECT name, engine FROM system.tables WHERE database = '${esc}' ORDER BY name`);
   return rows.map((r) => {
     const engine = String(r.engine || '');
@@ -68,7 +68,7 @@ async function listTables(cfg, type, schema) {
 }
 
 async function listColumns(cfg, type, schema, table) {
-  const rows = await q(cfg, `SELECT name, type FROM system.columns WHERE database = '${clickhouseEscape(schema)}' AND table = '${clickhouseEscape(table)}' ORDER BY position`);
+  const rows = await q(cfg, `SELECT name, type FROM system.columns WHERE database = '${clickhouseEscape(schema || cfg.database)}' AND table = '${clickhouseEscape(table)}' ORDER BY position`);
   return rows.map((r) => {
     const colType = String(r.type || 'String');
     return {

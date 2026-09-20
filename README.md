@@ -319,6 +319,8 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 | ◐ 协议兼容 | 6 | Apache Doris、StarRocks、Greenplum、人大金仓 KingbaseES、GaussDB、Amazon Redshift（复用 mysql/pg 协议族，未逐一生资实测） |
 
 > 说明：仅 `dataset: true` 的类型可注册为数据集建图表；Elasticsearch 与 API/Web Service、以及 Excel/CSV 上传的文件数据源均已达全能力（连接测试/结构浏览/数据集）。实测 16 种数据源全部支持同步存储（`mode='sync'`，含 DB2/达梦/Hive/Impala/MaxCompute，其方言翻译在 `dialects.js` 内完成）；文件型数据源（`type='excel'`）不支持同步。
+>
+> **真实环境联调**：`backend/scripts/datasource-live/docker-compose.yml`（9 个数据库容器）+ `verify-schema-scope.mjs` / `live-e2e.mjs`（实连十族做浏览→查询→全链路，含 MySQL/SQL Server 6500 行 keyset 全量同步实测）。Hive/Impala 走 HS2，当前 hive-driver 1.0.1 与 HiveServer2 二进制 openSession 存在上游兼容问题（服务端已用 JDBC beeline 验证健康），超时归为 SKIP；db2/dameng 需本机原生驱动（ibm_db/odbc），macOS 下自动走友好报错降级。
 
 ### 架构
 

@@ -30,7 +30,7 @@ async function listTables(cfg, type, schema) {
   const pool = await sql.connect(makeConfig(cfg));
   try {
     const result = await pool.request()
-      .input('schema', sql.NVarChar, String(schema))
+      .input('schema', sql.NVarChar, String(schema || cfg.schema || 'dbo'))
       .query(
         "SELECT t.name AS name, t.type_desc AS type FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id WHERE s.name = @schema ORDER BY t.name"
       );
@@ -44,7 +44,7 @@ async function listColumns(cfg, type, schema, table) {
   const pool = await sql.connect(makeConfig(cfg));
   try {
     const result = await pool.request()
-      .input('schema', sql.NVarChar, String(schema))
+      .input('schema', sql.NVarChar, String(schema || cfg.schema || 'dbo'))
       .input('table', sql.NVarChar, String(table))
       .query(
         `SELECT c.name AS name, tp.name AS type

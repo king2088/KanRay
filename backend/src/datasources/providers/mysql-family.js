@@ -31,7 +31,7 @@ async function listTables(cfg, type, schema) {
   try {
     const [rows] = await conn.query(
       'SELECT TABLE_NAME AS name, TABLE_TYPE AS type FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME',
-      [schema]
+      [schema || cfg.database]
     );
     return rows.map((r) => ({ name: r.name, type: r.type === 'BASE TABLE' ? 'table' : 'view' }));
   } finally {
@@ -47,7 +47,7 @@ async function listColumns(cfg, type, schema, table) {
        FROM information_schema.COLUMNS
        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
        ORDER BY ORDINAL_POSITION`,
-      [schema, table]
+      [schema || cfg.database, table]
     );
     return rows.map((r) => ({
       name: r.name,
