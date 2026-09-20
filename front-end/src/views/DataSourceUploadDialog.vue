@@ -53,6 +53,12 @@
                 style="width: 320px; margin-left: auto"
                 maxlength="100"
               />
+              <el-input
+                v-model="sheetName"
+                placeholder="工作表（缺省第一张，如 Sheet2 或 1）"
+                style="width: 220px"
+                clearable
+              />
             </div>
             <div class="file-panel__actions">
               <el-button type="primary" :loading="parsing" @click="doPreview">
@@ -142,6 +148,7 @@ const router = useRouter()
 const step = ref(0)
 const selectedFile = ref(null)
 const datasetName = ref('')
+const sheetName = ref('')
 const parsing = ref(false)
 const creating = ref(false)
 const preview = ref({ header: [], previewRows: [], rowCount: 0 })
@@ -154,6 +161,7 @@ function resetWizard() {
   step.value = 0
   selectedFile.value = null
   datasetName.value = ''
+  sheetName.value = ''
   parsing.value = false
   creating.value = false
   preview.value = { header: [], previewRows: [], rowCount: 0 }
@@ -175,7 +183,7 @@ async function doPreview() {
   if (!selectedFile.value) return ElMessage.warning('请先选择文件')
   parsing.value = true
   try {
-    preview.value = await datasetApi.preview(selectedFile.value)
+    preview.value = await datasetApi.preview(selectedFile.value, sheetName.value.trim())
     previewHeader.value = preview.value.header.map((h) => ({ ...h }))
     step.value = 1
   } finally {
@@ -187,7 +195,7 @@ async function doCreate() {
   creating.value = true
   try {
     const name = datasetName.value.trim() || (selectedFile.value ? selectedFile.value.name : '未命名')
-    const ds = await datasetApi.create(selectedFile.value, name)
+    const ds = await datasetApi.create(selectedFile.value, name, sheetName.value.trim())
     createdId.value = ds.id
     createdName.value = ds.name
     createdRowCount.value = ds.row_count

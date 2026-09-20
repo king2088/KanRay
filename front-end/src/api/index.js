@@ -8,15 +8,17 @@ export const datasetApi = {
   list: () => http.get('/datasets'),
   listPaged: (page, pageSize) => listPaged('/datasets', page, pageSize),
   get: (id) => http.get(`/datasets/${id}`),
-  preview: (file) => {
+  preview: (file, sheet) => {
     const fd = new FormData()
     fd.append('file', file)
+    if (sheet != null && sheet !== '') fd.append('sheet', String(sheet))
     return http.post('/datasets/preview', fd, { timeout: 120000 })
   },
-  create: (file, name) => {
+  create: (file, name, sheet) => {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('name', name)
+    if (sheet != null && sheet !== '') fd.append('sheet', String(sheet))
     return http.post('/datasets', fd, { timeout: 120000 })
   },
   remove: (id) => http.delete(`/datasets/${id}`),
