@@ -216,6 +216,30 @@ async function readPage(provider, cfg, sc, cols) {
   return provider.runQuery(cfg, sql, params);
 }
 
+// keyset 分页页读：以排序列做游标 WHERE col > lastValue，适配无 OFFSET 方言（Hive/MaxCompute），
+// 修复全量同步 >5000 行的死循环（旧实现每次取回同一段）。
+async function readPageKeyset(provider, cfg, sc, cols, orderCol, lastValue) {
+  const qname = (n) => String(n);
+  const sel = cols.map(qname).join(', ');
+  const from = sc.source_schema ? `${qname(sc.source_schema)}.${qname(sc.source_table)}` : qname(sc.source_table);
+  let sql = `SELECT ${sel} FROM ${from}`;
+  const params = [];
+  if (lastValue != null) {
+    sql += ` WHERE ${qname(orderCol)} > ?`;
+    params.push(lastValue);
+  }
+  sql += ` ORDER BY ${qname(orderCol)} ASC LIMIT ${BATCH_SIZE}`;
+  return provider.runQuery(cfg, sql, params);
+}
+
+// 选择全量同步的 keyset 排序列：主键首列 > id 型列 > 首列
+function pickOrderCol(sc, columns, pks) {
+  if (pks.length > 0) return pks[0];
+  if (sc.watermark_field) return sc.watermark_field;
+  const idLike = columns.find((c) => /^id$/i.test(String(c.name)));
+  return idLike ? String(idLike.name) : String((columns[0] || {}).name);
+}
+
 async function incremental(cid, provider, cfg, ds, sc, cols, columns, logId) {
   const pks = parsePk(sc.primary_key);
   const localTable = await ensureLocalTable(sc.datasource_id, sc.source_table, columns, pks);
@@ -242,14 +266,18 @@ async function incremental(cid, provider, cfg, ds, sc, cols, columns, logId) {
 
 async function full(cid, provider, cfg, ds, sc, cols, columns, logId) {
   const localTable = nextLocalTable(sc.datasource_id, sc.source_table);
+  const pks = parsePk(sc.primary_key);
+  const orderCol = pickOrderCol(sc, columns, pks);
   await db.exec(`DROP TABLE IF EXISTS ${db.dialect.quoteIdent(localTable)}`);
-  await ensureLocalTable(sc.datasource_id, sc.source_table, columns, parsePk(sc.primary_key));
+  await ensureLocalTable(sc.datasource_id, sc.source_table, columns, pks);
   let total = 0;
+  let lastValue = null;
   while (true) {
-    const rows = await readPage(provider, cfg, { ...sc, last_watermark: null }, cols);
+    const rows = await readPageKeyset(provider, cfg, { ...sc, watermark_field: null }, cols, orderCol, lastValue);
     if (!rows || rows.length === 0) break;
     await writeBatch(localTable, cols, [], rows);
     total += rows.length;
+    lastValue = normWm(rows[rows.length - 1][orderCol]);
     if (total > config.upload.maxRows) throw new HttpError(400, `同步行数超过上限 ${config.upload.maxRows}`);
     if (rows.length < BATCH_SIZE) break;
   }

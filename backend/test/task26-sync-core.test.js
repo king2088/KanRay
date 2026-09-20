@@ -224,3 +224,35 @@ test('原始表数据预览：源表走 provider', async () => {
   assert.deepEqual(res.rows, [{ id: 9, amt: 90, updated_at: '2024-02-01 00:00:00' }]);
   assert.deepEqual(res.fields, ['id', 'amt', 'updated_at']);
 });
+
+test('全量 keyset：>5000 行多页拉取不重复、不死循环', async () => {
+  const origMax = config.upload.maxRows;
+  config.upload.maxRows = 100000;
+  const bigCfg = await sync.createConfig(dsId, { sourceTable: 'big', strategy: 'full' });
+  fakeProviderPaged(Array.from({ length: 12000 }, (_, i) => ({ id: i, amt: i, updated_at: `2024-03-01 00:00:${String(i % 60).padStart(2, '0')}` })));
+  FAKE.queryLog = [];
+  const res = await sync.runSync(bigCfg.id);
+  assert.equal(res.rows, 12000);
+  const qi = db.dialect.quoteIdent(res.localTable);
+  const cnt = db.prepare(`SELECT COUNT(*) n FROM ${qi}`).get().n;
+  assert.equal(cnt, 12000);
+  assert.deepEqual(db.prepare(`SELECT id FROM ${qi} ORDER BY id LIMIT 5`).all().map((r) => r.id), [0, 1, 2, 3, 4]);
+  const keyset = FAKE.queryLog.filter((q) => /id > \?/.test(q.sql));
+  assert.equal(keyset.length, 2, `应恰有 2 次 keyset 游标推进，实际 ${keyset.length}`);
+  config.upload.maxRows = origMax;
+});
+
+test('全量 keyset：4 批整 BATCH 恰好收敛（杜绝重复整批）', async () => {
+  const origMax = config.upload.maxRows;
+  config.upload.maxRows = 100000;
+  const evenCfg = await sync.createConfig(dsId, { sourceTable: 'even', strategy: 'full' });
+  fakeProviderPaged(Array.from({ length: 15000 }, (_, i) => ({ id: i, amt: i })));
+  FAKE.queryLog = [];
+  const res = await sync.runSync(evenCfg.id);
+  assert.equal(res.rows, 15000);
+  const qi = db.dialect.quoteIdent(res.localTable);
+  const cnt = db.prepare(`SELECT COUNT(*) n FROM ${qi}`).get().n;
+  assert.equal(cnt, 15000);
+  assert.equal(FAKE.queryLog.filter((q) => /id > \?/.test(q.sql)).length, 3);
+  config.upload.maxRows = origMax;
+});
