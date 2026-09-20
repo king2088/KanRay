@@ -8,6 +8,9 @@ const CASES = [
   { label: 'clickhouse', family: 'clickhouse', cfg: { host: '127.0.0.1', port: 18123, database: 'testdb', user: 'default',   password: 'Kanban@123' }, expect: 'testdb' },
   { label: 'postgres',   family: 'pg',         cfg: { host: '127.0.0.1', port: 15432, database: 'testdb', user: 'postgres',  password: 'Kanban@123' }, expect: 'public' },
   { label: 'mssql',      family: 'mssql',      cfg: { host: '127.0.0.1', port: 11433, database: 'testdb', user: 'sa',        password: 'Kanban@123' }, expect: 'dbo' },
+  { label: 'trino(presto)', family: 'presto',  cfg: { host: '127.0.0.1', port: 18080, user: 'trino', catalog: 'system' },                          expect: 'information_schema', match: 'any' },
+  { label: 'oracle',     family: 'oracle',     cfg: { host: '127.0.0.1', port: 11521, service_name: 'FREEPDB1', user: 'system', password: 'Kanban@123' }, expect: 'SYSTEM' },
+  { label: 'elasticsearch', family: 'es-rest', cfg: { host: '127.0.0.1', port: 19200, scheme: 'http' },                                            expect: null },
 ]
 
 function reachable(host, port, timeout = 1500) {
@@ -32,8 +35,12 @@ for (const c of CASES) {
     const prov = getProvider(c.family)
     if (!prov) { console.log(`[FAIL] ${c.label}: provider not found`); failed++; continue }
     const schemas = await prov.listSchemas(c.cfg)
-    const ok = schemas.length === 1 && schemas[0].name === c.expect
-    console.log(`[${ok ? 'PASS' : 'FAIL'}] ${c.label} expect=[${c.expect}] got=${JSON.stringify(schemas.map((s) => s.name))}`)
+    const got = schemas.map((s) => s.name)
+    let ok
+    if (c.expect == null) ok = true // 宽松校验：仅要求连通且能列 schema
+    else if (c.match === 'any') ok = got.includes(c.expect)
+    else ok = schemas.length === 1 && schemas[0].name === c.expect
+    console.log(`[${ok ? 'PASS' : 'FAIL'}] ${c.label} expect=[${c.expect ?? '-'}] got=${JSON.stringify(got)}`)
     if (!ok) failed++
   } catch (e) {
     console.log(`[FAIL] ${c.label}: ${e.message}`)

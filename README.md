@@ -315,21 +315,19 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 
 | 状态 | 数量 | 数据源 |
 | --- | --- | --- |
-| ✅ 本期实测 | 11 | MySQL、PostgreSQL、SQL Server、MariaDB、TiDB、ClickHouse、Elasticsearch（仅连接测试/结构浏览）、API/Web Service（仅连接测试）、Oracle、南大通用 GBASE、Presto |
+| ✅ 本期实测 | 16 | MySQL、PostgreSQL、SQL Server、MariaDB、TiDB、ClickHouse、Elasticsearch、API/Web Service、Oracle、南大通用 GBASE、Presto、DB2、达梦 DM、Apache Hive、Apache Impala、阿里云 MaxCompute |
 | ◐ 协议兼容 | 6 | Apache Doris、StarRocks、Greenplum、人大金仓 KingbaseES、GaussDB、Amazon Redshift（复用 mysql/pg 协议族，未逐一生资实测） |
-| ○ 规划中 | 5 | DB2、达梦 DM、Apache Hive、Apache Impala、阿里云 MaxCompute（接入对话框中暂禁用） |
 
-> 说明：仅 `dataset: true` 的类型可注册为数据集建图表；Elasticsearch 与 API 类型本期不参与数据集。
-> **同步存储**（见下节）要求连接可执行 SQL，仅支持 mysql / pg / mssql / oracle 协议族（实测 4 族 + 同族兼容驱动）；ClickHouse / Presto / Elasticsearch / API 不参与同步。
+> 说明：仅 `dataset: true` 的类型可注册为数据集建图表；Elasticsearch 与 API/Web Service、以及 Excel/CSV 上传的文件数据源均已达全能力（连接测试/结构浏览/数据集）。实测 16 种数据源全部支持同步存储（`mode='sync'`，含 DB2/达梦/Hive/Impala/MaxCompute，其方言翻译在 `dialects.js` 内完成）；文件型数据源（`type='excel'`）不支持同步。
 
 ### 架构
 
 - **驱动注册表** `backend/src/datasources/drivers.js`：22 条驱动元数据（类型、分类、协议族、状态、能力、字段表单、默认端口）
-- **协议族 Provider** `backend/src/datasources/providers/`：`mysql` / `pg` / `clickhouse` / `mssql` / `es-rest` / `http` 六个 Provider，统一实现 `testConnection` / `listSchemas` / `listTables` / `listColumns` / `runQuery`
+- **协议族 Provider** `backend/src/datasources/providers/`：`mysql` / `pg` / `clickhouse` / `mssql` / `oracle` / `presto` / `es-rest` / `http` / `db2` / `dameng` / `hive` / `impala` / `maxcompute` / `file` 十四个 Provider，统一实现 `testConnection` / `listSchemas` / `listTables` / `listColumns` / `runQuery`
 - **SQL 方言抽象** `backend/src/datasources/dialects.js`：标识符引用、占位符（`?` / `$n` / `@pN`）、`LIMIT`/`TOP`、时间粒度、聚合函数映射
 - **SqlDataProvider** `backend/src/datasources/sql-data-provider.js`：外部库表桥接查询引擎，聚合 SQL 供图表/看板消费，表/字段名仅取自已注册元数据
 - **配置加密**：密码字段 AES-256-GCM 加密存储（`iv:tag:ciphertext` 三段 base64），接口出参统一脱敏
-- **同步引擎** `backend/src/services/sync.service.js`：增量按水印拉取 + `ON CONFLICT ... DO UPDATE` upsert，全量 DROP 后重建，单批 5000 行，本地物理表带主键；`backend/src/jobs/sync-scheduler.js` 内存调度 + 并发闸门（跨方言定时计算在 JS 侧完成）
+- **同步引擎** `backend/src/services/sync.service.js`：增量按水印拉取 + `ON CONFLICT ... DO UPDATE` upsert，全量 DROP 后按 keyset 游标分页重建（`WHERE <orderCol> > 上一页末值`，规避大表死循环），单批 5000 行，本地物理表带主键；`backend/src/jobs/sync-scheduler.js` 内存调度 + 并发闸门（跨方言定时计算在 JS 侧完成）
 
 ### 数据源接口（/api/datasources，需对应权限点）
 
