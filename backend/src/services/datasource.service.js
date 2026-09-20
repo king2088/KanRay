@@ -14,7 +14,7 @@ const FILE_META = {
   category: '文件',
   family: 'file',
   status: 'tested',
-  capabilities: { test: true, browse: false, dataset: false },
+  capabilities: { test: true, browse: true, dataset: true },
   defaultPort: null,
   fields: [],
 };
@@ -114,14 +114,19 @@ async function create({ name, type, config, mode }, ownerId, req) {
 }
 
 /**
- * 文件型数据源：Excel/CSV 上传后在 data_sources 登记一行（type='excel'），config 仅存文件元数据
+ * 文件型数据源：Excel/CSV 上传后在 data_sources 登记一行（type='excel'），config 存文件元数据；
+ * 数据集创建后回写落库表名 tableName 与列信息，供「文件数据源 schema 浏览」读取。
  */
-async function createExcelDatasource({ name, file, rowCount, columnCount }, ownerId, req) {
+async function createExcelDatasource({ name, file, rowCount, columnCount, tableName, columns }, ownerId, req) {
   const cfg = {
     file: String(file || '').trim().slice(0, 300),
     rowCount: rowCount || 0,
     columnCount: columnCount || 0,
   };
+  if (tableName) cfg.tableName = String(tableName);
+  if (Array.isArray(columns) && columns.length) {
+    cfg.columns = columns.map((c) => ({ name: String(c.name), label: c.label != null ? String(c.label) : String(c.name), type: String(c.type || 'string') }));
+  }
   const len = String(name || (file ? String(file).replace(/\.(xlsx|xls|csv)$/i, '') : '') || '未命名文件').trim().slice(0, 100);
   const r = await db.prepare('INSERT INTO data_sources (name, type, config, owner_id) VALUES (?, ?, ?, ?)')
     .run(len, 'excel', JSON.stringify(cfg), ownerId == null ? null : Number(ownerId));
@@ -294,7 +299,9 @@ async function paginateSourceRows(row, schema, table, page, pageSize, offset) {
   const dialect = dialects[driverMeta.family];
   if (!dialect) throw new HttpError(500, `未知方言: ${driverMeta.family}`);
   const q = (n) => dialect.quoteIdent(String(n));
-  const qualified = schema ? `${q(schema)}.${q(table)}` : q(table);
+  const qualified = schema && driverMeta.family !== 'file'
+    ? `${q(schema)}.${q(table)}`
+    : q(table);
   const n = offset + pageSize + 1;
   const execSql = buildSql.applyRowLimit(dialect, `SELECT * FROM ${qualified}`, n);
   const raw = await provider.runQuery(cfg, execSql, []);

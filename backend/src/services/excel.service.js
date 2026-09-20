@@ -156,19 +156,56 @@ function matrixToResult(matrix) {
 
 /**
  * 读取 Excel/CSV 文件，第一行作为列名
+ * @param {string} filePath 文件路径
+ * @param {{ sheet?: string|number }} [opts] sheet：工作表名或 0 基序号（缺省第一张表）
  * @returns {Promise<{ header: Array<{key,label,type}>, rows: Array<object> }>}
  */
-async function parseExcelFile(filePath) {
+async function parseExcelFile(filePath, opts = {}) {
   const ext = path.extname(filePath).toLowerCase();
   let matrix;
   if (ext === '.csv') {
     const text = await fs.promises.readFile(filePath, 'utf8');
     matrix = parseCsv(text).map((r) => r.map(csvCellValue));
+  } else if (ext === '.xls') {
+    // 旧版二进制 XLS 走 SheetJS；与 .xlsx 一样产出二维数组
+    const XLSX = require('xlsx');
+    const wb = XLSX.readFile(filePath, { cellDates: true });
+    const name = resolveSheet(wb.SheetNames, opts.sheet);
+    matrix = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
   } else {
     // 返回二维数组：每行是数组，值类型为 string | number | boolean | Date | null
-    matrix = await readSheet(filePath);
+    try {
+      matrix = await readSheet(filePath, pickSheet(opts.sheet));
+    } catch (e) {
+      if (/not found|worksheet/i.test(String(e.message))) {
+        throw new HttpError(400, `工作表不存在: ${opts.sheet}`);
+      }
+      throw e;
+    }
   }
   return matrixToResult(matrix);
+}
+
+// 工作表选择：字符串工作表名或 0 基整数序号；缺省取第一张表。
+// readSheet 的 sheetNumber 为 1 基，这里把用户可见的 0 基序号 +1 后透传。
+function pickSheet(sheet) {
+  if (sheet == null || sheet === '') return undefined;
+  const n = Number(sheet);
+  if (Number.isInteger(n) && !Number.isNaN(n) && String(sheet).trim() === String(n)) return n + 1;
+  return String(sheet);
+}
+
+function resolveSheet(names, sheet) {
+  if (!names.length) throw new HttpError(400, '文件没有工作表');
+  if (sheet == null || sheet === '') return names[0];
+  const target = String(sheet).trim();
+  const n = Number(target);
+  if (Number.isInteger(n) && !Number.isNaN(n) && String(target) === String(n)) {
+    if (n >= 0 && n < names.length) return names[n];
+    throw new HttpError(400, `工作表序号不存在: ${sheet}（共 ${names.length} 张表）`);
+  }
+  if (names.includes(target)) return target;
+  throw new HttpError(400, `工作表不存在: ${sheet}（可选: ${names.join(', ')}）`);
 }
 
 module.exports = { parseExcelFile, inferColumnType, TYPE_MAP };

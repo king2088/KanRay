@@ -70,7 +70,7 @@ router.get('/:id', requireUser, requirePermission('dataset', 'read'), async (req
 router.post('/preview', requireUser, requirePermission('dataset', 'create'), upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, '请上传文件');
   try {
-    const preview = await datasetService.previewExcel(req.file.path);
+    const preview = await datasetService.previewExcel(req.file.path, req.body.sheet);
     ok(res, preview);
   } finally {
     cleanup(req.file.path);
@@ -84,11 +84,19 @@ router.post('/', requireUser, requirePermission('dataset', 'create'), upload.sin
   const parsed = nameSchema.safeParse(req.body.name);
   try {
     if (!parsed.success) throw new HttpError(400, '数据集名称不能为空且不超过 100 字符');
-    const ds = await datasetService.parseAndCreate(parsed.data, req.file.path, req.user.id);
-    // 上传的文件作为「文件型数据源」登记（Excel/CSV），便于在数据源列表中统一管理
+    const ds = await datasetService.parseAndCreate(parsed.data, req.file.path, req.user.id, req.body.sheet);
+    // 上传的文件作为「文件型数据源」登记（Excel/CSV），便于在数据源列表中统一管理；
+    // 回写落库表名与列信息，供文件数据源 schema 浏览使用
     try {
       await datasourceService.createExcelDatasource(
-        { name: parsed.data, file: decodeFilename(req.file.originalname), rowCount: ds.row_count, columnCount: ds.column_count },
+        {
+          name: parsed.data,
+          file: decodeFilename(req.file.originalname),
+          rowCount: ds.row_count,
+          columnCount: ds.column_count,
+          tableName: ds.table_name,
+          columns: (ds.fields || []).map((f) => ({ name: f.name, label: f.label, type: f.type })),
+        },
         req.user.id, req
       );
     } catch (e) { /* 文件数据源登记失败不影响数据集创建 */ }

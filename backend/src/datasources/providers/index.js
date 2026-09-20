@@ -11,6 +11,7 @@ const dameng = require('./dameng');
 const hive = require('./hive');
 const impala = require('./impala');
 const maxcompute = require('./maxcompute');
+const fileProvider = require('./file');
 
 const MAP = {
   mysql: mysqlFamily,
@@ -26,6 +27,7 @@ const MAP = {
   hive,
   impala,
   maxcompute,
+  file: fileProvider,
 };
 
 function getProvider(family) {
