@@ -190,7 +190,7 @@ services:
 
   # 达梦 DM 真连测试 —— DM8 单实例社区镜像（macOS arm64 无官方驱动，仅在 Linux 真连）
   dameng:
-    image: registry.cn-hangzhou.aliyuncs.com/qinjx/dm8-single
+    image: docker.io/qinjx/dm8-single
     container_name: kanban-live-dameng
     platform: linux/amd64
     environment:

@@ -1,7 +1,12 @@
 # Linux 真连准备文档（db2/dameng/impala/hive/maxcompute）
 
-在 x86_64 Linux（或可用 Rosetta 的 amd64 容器）上对 5 个「原生驱动家族」做真实环境测试。
+在 Linux 上对 5 个「原生驱动家族」做真实环境测试。
 macOS arm64 缺 ibm_db/odbc 原生驱动且 hive-driver×HS2 有上游兼容问题，因此走本流程。
+
+> 实测环境：Fedora 42 **aarch64**（4 核 / 8.9Gi）、docker + qemu amd64 模拟。
+> 注意：本机为 arm64 —— ibm_db 编译期直接拒绝（"ARM64 processor is not supported on linux platform"），
+> odbc 的 node-pre-gyp 也会失败；仅在 **x86_64** 主机（或用 Rosetta/amd64 容器）可装。
+> 若宿主是 x86_64，跳过「已知边界」里的 arm64 限制即可。
 
 ## 1. 系统依赖（apt/Ubuntu 为例）
 
@@ -61,7 +66,24 @@ cd backend
 node scripts/datasource-live/live-e2e.mjs
 ```
 
-期望输出样例（Linux）：`db2 真连 …达标`、`达梦 DM 真连 …`、`Impala 真连 …`、`hive HS2 真实连接…`。
+脚本会自动给空库预植幂等种子表（`live_seed`/ES 索引），全新容器也能通过浏览+查询。
+
+### aarch64（Fedora 42 + qemu）实测结果 2026-09-20：10 PASS / 1 FAIL
+
+```
+[PASS] mysql / mariadb / tidb / postgres / clickhouse 浏览+查询（预植后命中真表）
+[PASS] presto(trino) 浏览+查询 schema=information_schema table=applicable_roles
+[PASS] elasticsearch 浏览+查询 schema=live_seed 列2 行1
+[PASS] db2 / dameng 原生驱动缺失 → 友好报错（ibm_db 拒绝 arm64；odbc 无驱动）
+[PASS] MySQL 真实全量同步 6500 行 → 本地 6500 行（keyset 分页）
+[SKIP] hive HS2 openSession 超时（上游 AHA 兼容问题，Linux/Mac 一致复现）
+[SKIP] DB2/达梦/Impala 真连（arm64 装不了原生驱动；impala/dm8 镜像在 CN 镜像源 403/not-found）
+[SKIP] MaxCompute（未提供 MC_* 环境变量——需阿里云账号）
+[FAIL] SQL Server 真实全量同步 —— 镜像在 arm64+qemu 下 Segfault（Exited 139）
+```
+
+结论：x86_64 原生族跑通（浏览/查询/真同步）；hive 服务端容器健康与否不影响判断，
+HS2 驱动层超时两平台一致复现，属上游问题。
 
 ## 5. MaxCompute（阿里云，无容器）——用真实账号
 
@@ -84,3 +106,9 @@ node scripts/datasource-live/live-e2e.mjs
 - db2 社区镜像需要 privileged + amd64；`TESTDB` 为内置示例库。
 - 三族（db2/dameng/impala）真连同步仅验证小数据量（100/100/10 行）全量链路；
   >5000 行 keyset 分页已在 MySQL/SQL Server 真库上验证。
+- **aarch64 + qemu 限制（本文档实测机）**：
+  - mssql 容器必崩（SQL Server on Linux 仅 x86_64），其 keyset 同步只能在 x86 平台验证。
+  - `apache/impala:4.1.0`、`qinjx/dm8-single` 在可用镜像源（daocloud/1ms/1panel/rat.dev 等）
+    全部 403/not-found（直连 Docker Hub 超时）；dm8 已改 `docker.io/qinjx/dm8-single` 待 x86 机拉取。
+  - 若需覆盖 db2/dameng 真连，改用 x86_64（或 amd64 容器内 npm i ibm_db/odbc），
+    DM 的 `libdodbc.so` 需官网注册下载；DB2 client 由 ibm_db 从 IBM CDN 拉取。

@@ -320,7 +320,7 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 
 > 说明：仅 `dataset: true` 的类型可注册为数据集建图表；Elasticsearch 与 API/Web Service、以及 Excel/CSV 上传的文件数据源均已达全能力（连接测试/结构浏览/数据集）。实测 16 种数据源全部支持同步存储（`mode='sync'`，含 DB2/达梦/Hive/Impala/MaxCompute，其方言翻译在 `dialects.js` 内完成）；文件型数据源（`type='excel'`）不支持同步。
 >
-> **真实环境联调**：`backend/scripts/datasource-live/docker-compose.yml`（13 容器）+ `verify-schema-scope.mjs` / `live-e2e.mjs`（实连十族做浏览→查询→全链路，含 MySQL/SQL Server 6500 行 keyset 全量同步实测）。Hive/Impala 走 HS2，当前 hive-driver 1.0.1 与 HiveServer2 二进制 openSession 存在上游兼容问题（服务端已用 JDBC beeline 验证健康），超时归为 SKIP；db2/dameng 需本机原生驱动（ibm_db/odbc，macOS 无），Linux 原生驱动 + 容器的真连步骤见 `backend/scripts/datasource-live/verify-linux.md`；MaxCompute 为阿里云服务，提供 `MC_*` 环境变量即可真连。
+> **真实环境联调**：`backend/scripts/datasource-live/docker-compose.yml`（13 容器）+ `verify-schema-scope.mjs` / `live-e2e.mjs`（实连十族做浏览→查询→全链路，含 MySQL/SQL Server 6500 行 keyset 全量同步实测；空库会自动预植幂等种子表）。Hive/Impala 走 HS2，当前 hive-driver 1.0.1 与 HiveServer2 二进制 openSession 存在上游兼容问题（服务端已用 JDBC beeline 验证健康），超时归为 SKIP；db2/dameng 需本机原生驱动（ibm_db/odbc，macOS 无），Linux 原生驱动 + 容器的真连步骤见 `backend/scripts/datasource-live/verify-linux.md`；MaxCompute 为阿里云服务，提供 `MC_*` 环境变量即可真连。已在 Fedora 42 aarch64（qemu 模拟 x86 容器）实测：8 个活库浏览/查询 + MySQL 6500 行同步全过，mssql 镜像在 arm64 下 Segfault（需 x86 平台），详见 verify-linux.md。
 
 ### 架构
 

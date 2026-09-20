@@ -48,7 +48,56 @@ async function probe(cfg, type, dialect, family) {
   } catch (e) { bad(`${type} 浏览+查询`, e); }
 }
 
+// ─── 1.5) 空库自预植：全新容器无业务表，浏览阶段会「无表」；建幂等种子表，保证探针命中真实表 ─
+async function ensureSeedTables() {
+  const jobs = [];
+  // mysql/mariadb/tidb（mysql2，纯 JS）
+  for (const [label, port, extra] of [
+    ['mysql', 13306, ''], ['mariadb', 13307, ''], ['tidb', 14000, 'CREATE DATABASE IF NOT EXISTS testdb;'],
+  ]) {
+    jobs.push((async () => {
+      const mysql2 = require('mysql2/promise');
+      const conn = await mysql2.createConnection({ host: '127.0.0.1', port, user: 'root', password: port === 14000 ? '' : 'Kanban@123' });
+      if (extra) await conn.query(extra);
+      await conn.query('CREATE TABLE IF NOT EXISTS testdb.live_seed (id INT PRIMARY KEY, name VARCHAR(50))');
+      await conn.query("INSERT IGNORE INTO testdb.live_seed (id,name) VALUES (1,'s'),(2,'s')");
+      await conn.end();
+      console.log(`[seed] ${label} testdb.live_seed`);
+    })());
+  }
+  // postgres
+  jobs.push((async () => {
+    const { Client } = require('pg');
+    const c = new Client({ host: '127.0.0.1', port: 15432, database: 'testdb', user: 'postgres', password: 'Kanban@123' });
+    await c.connect();
+    await c.query('CREATE TABLE IF NOT EXISTS public.live_seed (id INT PRIMARY KEY, name VARCHAR(50))');
+    await c.query("INSERT INTO live_seed VALUES (1,'s'),(2,'s') ON CONFLICT DO NOTHING");
+    await c.end();
+    console.log('[seed] postgres public.live_seed');
+  })());
+  // clickhouse（HTTP）
+  jobs.push((async () => {
+    const base = 'http://127.0.0.1:18123';
+    const auth = 'Basic ' + Buffer.from('default:Kanban@123').toString('base64');
+    for (const q of [
+      'CREATE TABLE IF NOT EXISTS testdb.live_seed (id Int32, name String) ENGINE=Memory',
+      'INSERT INTO testdb.live_seed VALUES (1, \'s\'), (2, \'s\')',
+    ]) {
+      await fetch(base + '/?query=' + encodeURIComponent(q), { method: 'POST', headers: { Authorization: auth } });
+    }
+    console.log('[seed] clickhouse testdb.live_seed');
+  })());
+  // elasticsearch（REST，建索引）
+  jobs.push((async () => {
+    await fetch('http://127.0.0.1:19200/live_seed', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings: { properties: { id: { type: 'integer' }, name: { type: 'keyword' } } } }) });
+    await fetch('http://127.0.0.1:19200/live_seed/_doc/1', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 's' }) });
+    console.log('[seed] elasticsearch live_seed');
+  })());
+  await Promise.allSettled(jobs);
+}
+
 // ─── 1) 各活库浏览 + 查询 ─────────────────────
+await ensureSeedTables();
 const cases = [
   { type: 'mysql', dialect: 'mysql', family: 'mysql', cfg: { host: '127.0.0.1', port: 13306, database: 'testdb', user: 'root', password: 'Kanban@123' } },
   { type: 'mariadb', dialect: 'mysql', family: 'mysql', cfg: { host: '127.0.0.1', port: 13307, database: 'testdb', user: 'root', password: 'Kanban@123' } },
