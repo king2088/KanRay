@@ -6,6 +6,11 @@ const elasticsearch = require('./elasticsearch');
 const apiService = require('./api-service');
 const oracle = require('./oracle');
 const presto = require('./presto');
+const db2 = require('./db2');
+const dameng = require('./dameng');
+const hive = require('./hive');
+const impala = require('./impala');
+const maxcompute = require('./maxcompute');
 
 const MAP = {
   mysql: mysqlFamily,
@@ -16,6 +21,11 @@ const MAP = {
   http: apiService,
   oracle,
   presto,
+  db2,
+  dameng,
+  hive,
+  impala,
+  maxcompute,
 };
 
 function getProvider(family) {

@@ -83,18 +83,12 @@ test('sync createConfig 校验水印字段类型', async () => {
   await assert.rejects(() => sync.createConfig(dsId, { sourceTable: 't2', strategy: 'incremental', watermarkField: 'nope' }), /水印字段不存在/);
 });
 
-test('sync createConfig 拒绝不支持同步的数据源类型（回归 500）', async () => {
-  const apiDsId = Number(db.prepare("INSERT INTO data_sources (name, type, config, mode, is_active, owner_id) VALUES ('ds-api-sync', 'api', ?, 'sync', 1, 1)")
-    .run(JSON.stringify({ url: 'http://example.com', method: 'GET' })).lastInsertRowid);
-  providersApi.getProvider = REAL_GET_PROVIDER;
-  try {
-    await assert.rejects(
-      () => sync.createConfig(apiDsId, { sourceTable: 't', strategy: 'full' }),
-      /不支持数据同步/,
-    );
-  } finally {
-    fakeProviderPaged();
-  }
+test('sync createConfig 拒绝文件型数据源同步（api 已全能力化，文件型仍被拦截，无 500 回归）', async () => {
+  const dsApi = require('../src/services/datasource.service');
+  await assert.rejects(
+    () => dsApi.create({ name: 'ds-file', type: 'excel', config: { file: 'x.xlsx' }, mode: 'sync' }, 1, {}),
+    /文件型数据源不支持同步模式/,
+  );
 });
 
 test('同步引擎：全量策略 truncate + insert', async () => {
