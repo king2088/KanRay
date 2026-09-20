@@ -167,13 +167,16 @@ test('POST /api/datasources/test returns ok:false for invalid mysql config', asy
   assert.ok(body.data.message);
 });
 
-test('POST /api/datasources/test rejects planned type', async () => {
+test('POST /api/datasources/test db2 缺原生驱动时友好失败（原 planned 拦截已放开）', async () => {
   const res = await fetch(`${base}/api/datasources/test`, {
     method: 'POST',
     headers: auth(adminToken),
-    body: JSON.stringify({ type: 'db2', config: { host: 'x' } }),
+    body: JSON.stringify({ type: 'db2', config: { host: '127.0.0.1', port: 1, database: 'x', user: 'x', password: 'x' } }),
   });
-  assert.equal(res.status, 400);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.ok, false);
+  assert.ok(body.data.message);
 });
 
 test('POST /api/datasources/test returns ok:false for unreachable oracle', async () => {

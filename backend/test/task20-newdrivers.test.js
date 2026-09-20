@@ -51,15 +51,38 @@ test('gbase reuses mysql family; oracle/presto have dedicated providers', () => 
 });
 
 test('new providers expose full connector surface', () => {
-  for (const family of ['oracle', 'presto']) {
+  for (const family of ['oracle', 'presto', 'db2', 'dameng', 'hive', 'impala', 'maxcompute', 'es-rest', 'http']) {
     const p = providers.getProvider(family);
+    assert.ok(p, `${family} provider missing`);
     for (const fn of ['testConnection', 'listSchemas', 'listTables', 'listColumns', 'runQuery']) {
       assert.equal(typeof p[fn], 'function', `${family}.${fn} missing`);
     }
   }
 });
 
-test('still 5 planned drivers (db2/dameng/hive/impala/maxcompute)', () => {
-  const planned = drivers.filter((d) => d.status === 'planned').map((d) => d.type);
-  assert.deepEqual(planned, ['db2', 'dameng', 'hive', 'impala', 'maxcompute']);
+test('5 新家族 tested 全配套（dialect + provider + drivers）', () => {
+  const NEW = {
+    db2: { family: 'db2', dialect: 'db2' },
+    dameng: { family: 'dameng', dialect: 'dameng' },
+    hive: { family: 'hive', dialect: 'hive' },
+    impala: { family: 'impala', dialect: 'impala' },
+    maxcompute: { family: 'maxcompute', dialect: 'maxcompute' },
+  };
+  for (const [type, spec] of Object.entries(NEW)) {
+    const d = drivers.find((x) => x.type === type);
+    assert.ok(d, `${type} missing in drivers`);
+    assert.equal(d.status, 'tested', `${type} should be tested`);
+    assert.deepEqual(d.capabilities, { test: true, browse: true, dataset: true }, `${type} full capabilities`);
+    assert.equal(d.family, spec.family, `${type} family`);
+    assert.ok(dialects[d.family], `${type} dialect missing`);
+    assert.ok(providers.getProvider(d.family), `${type} provider missing`);
+  }
+});
+
+test('es-rest / http 已达全能力 dataset', () => {
+  for (const type of ['elasticsearch', 'api']) {
+    const d = drivers.find((x) => x.type === type);
+    assert.deepEqual(d.capabilities, { test: true, browse: true, dataset: true }, `${type} full capabilities`);
+    assert.ok(providers.getProvider(d.family), `${type} provider missing`);
+  }
 });

@@ -24,15 +24,13 @@ test('tested drivers have full capabilities', () => {
   const tested = drivers.filter((d) => d.status === 'tested');
   for (const d of tested) {
     assert.equal(d.capabilities.test, true, `${d.type} should support test`);
+    assert.deepEqual(d.capabilities, { test: true, browse: true, dataset: true }, `${d.type} should be fully capable`);
   }
 });
 
-test('planned drivers are disabled (capabilities false)', () => {
+test('no planned drivers remain; all drivers fully capable', () => {
   const planned = drivers.filter((d) => d.status === 'planned');
-  for (const d of planned) {
-    assert.equal(d.capabilities.browse, false, `${d.type} browse should be false`);
-    assert.equal(d.capabilities.dataset, false, `${d.type} dataset should be false`);
-  }
+  assert.equal(planned.length, 0, `expected no planned drivers, got: ${planned.map((d) => d.type).join(', ')}`);
 });
 
 test('field schemas have name, label, type, required', () => {
