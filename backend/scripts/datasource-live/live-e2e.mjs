@@ -59,24 +59,29 @@ const cases = [
   { type: 'oracle', dialect: 'oracle', family: 'oracle', cfg: { host: '127.0.0.1', port: 11521, service_name: 'FREEPDB1', user: 'system', password: 'Kanban@123', schema: 'SYSTEM' } },
   { type: 'presto', dialect: 'presto', family: 'presto', cfg: { host: '127.0.0.1', port: 18080, catalog: 'tpch', user: 'trino' } },
   { type: 'elasticsearch', dialect: 'es', family: 'es-rest', cfg: { scheme: 'http', host: '127.0.0.1', port: 19200 } },
-  { type: 'db2', dialect: 'db2', family: 'db2', cfg: { host: '127.0.0.1', port: 15500, database: 'TESTDB' }, missingNative: true },
-  { type: 'dameng', dialect: 'dameng', family: 'dameng', cfg: { host: '127.0.0.1', port: 10500 }, missingNative: true },
+  // 原生驱动家族：驱动可加载且容器可达才真连（Linux + npm i ibm_db/odbc 后启用），否则走友好降级/SKIP
+  { type: 'db2', dialect: 'db2', family: 'db2', nativeDriver: 'ibm_db', cfg: { host: '127.0.0.1', port: 50000, database: 'TESTDB', user: 'db2inst1', password: 'Kanban@123' } },
+  { type: 'dameng', dialect: 'dameng', family: 'dameng', nativeDriver: 'odbc', seedOdbc: true, cfg: { host: '127.0.0.1', port: 5236, user: 'SYSDBA', password: 'SYSDBA001' } },
 ];
 
 for (const c of cases) {
-  if (c.missingNative) {
-    // 无 macOS 原生驱动（ibm_db / odbc+unixODBC），验证友好降级路径
-    try {
-      const p = getProvider(c.family);
-      const r = await p.testConnection(c.cfg, c.type);
-      ok(`${c.type} 原生驱动缺失 → 友好报错（got ${typeof r}: ${JSON.stringify(r).slice(0, 80)}）`);
-      continue;
-    } catch (e) {
-      const m = String(e && e.message || e);
-      const friendly = /未安装|not installed|不支持|ibm_db|odbc/i.test(m) || /npm i/.test(m);
-      if (friendly) ok(`${c.type} 原生驱动缺失 → 友好报错:${m.slice(0, 60)}`);
-      else bad(`${c.type} 原生驱动缺失 → 非友好错误:`, e.message);
-      continue;
+  if (c.nativeDriver) {
+    // 原生驱动不可用（如 macOS 无 ibm_db/odbc）→ 验证友好降级路径
+    let loadable = true;
+    try { require(c.nativeDriver); } catch (e) { loadable = false; }
+    if (!loadable) {
+      try {
+        const p = getProvider(c.family);
+        const r = await p.testConnection(c.cfg, c.type);
+        ok(`${c.type} 原生驱动缺失 → 友好报错（got ${typeof r}: ${JSON.stringify(r).slice(0, 80)}）`);
+        continue;
+      } catch (e) {
+        const m = String(e && e.message || e);
+        const friendly = /未安装|not installed|不支持|ibm_db|odbc/i.test(m) || /npm i/.test(m);
+        if (friendly) ok(`${c.type} 原生驱动缺失 → 友好报错:${m.slice(0, 60)}`);
+        else bad(`${c.type} 原生驱动缺失 → 非友好错误:`, e.message);
+        continue;
+      }
     }
   }
   if (!(await reachable(c.cfg.host, c.cfg.port))) {
@@ -174,6 +179,90 @@ if (await reachable('127.0.0.1', 11000)) {
   }
 } else {
   console.log('[SKIP] hive: 127.0.0.1:11000 未运行');
+}
+
+// ─── 4) Linux 原生驱动家族真连（db2/dameng/impala）────────────────
+// 启用条件：本机可 require 原生驱动（npm i ibm_db odbc，Linux 可用）且容器可达。
+async function linuxFamily(label, type, family, driver, port, makeCfg, ddl, insertFns, probeSchema) {
+  let okD = true;
+  try { require(driver); } catch (e) { okD = false; }
+  if (!okD) { console.log(`[SKIP] ${label}: 原生驱动 ${driver} 未安装（Linux 可 npm i）`); return; }
+  if (!(await reachable('127.0.0.1', port))) { console.log(`[SKIP] ${label}: ${port} 未运行（docker compose up -d ${type}）`); return; }
+  try {
+    const p = getProvider(family);
+    const cfg = makeCfg();
+    const t = await p.testConnection(cfg, type);
+    if (!t || t.ok !== true) throw new Error(`testConnection 失败: ${JSON.stringify(t)}`);
+    await p.runQuery(cfg, ddl, []);
+    for (const fn of insertFns) await fn(cfg, p);
+    const schema = probeSchema(cfg);
+    const tables = await p.listTables(cfg, type, schema);
+    const t0 = (tables || []).find((x) => /live_orders/i.test(x.name)) || (tables && tables[0]);
+    if (!t0) throw new Error('listTables 无表');
+    const cols = await p.listColumns(cfg, type, schema, t0.name);
+    const rows = await p.runQuery(cfg, `SELECT * FROM ${t0.name} LIMIT 5`, []);
+    ok(`${label} 真连 浏览+查询 schema=${schema} table=${t0.name} 列${cols.length} 行${rows.length}`);
+    const r = db.prepare('INSERT INTO data_sources (name, type, config, mode, owner_id) VALUES (?, ?, ?, ?, ?)').run(`live-${type}`, type, JSON.stringify(cfg), 'sync', 1);
+    const sc = await sync.createConfig(r.lastInsertRowid, { sourceTable: t0.name, strategy: 'full' });
+    const out = await sync.runSync(sc.id);
+    const cnt = db.prepare(`SELECT COUNT(*) c FROM ${db.dialect.quoteIdent(out.localTable)}`).get().c;
+    const expect = insertFns[0].expect || 1;
+    if (cnt !== expect) throw new Error(`本地行数 ${cnt} !== ${expect}`);
+    ok(`${label} 真连全量同步 → 本地 ${cnt} 行`);
+  } catch (e) { bad(`${label} 真连`, e); }
+}
+
+const mkDb2 = () => ({ host: '127.0.0.1', port: 50000, database: 'TESTDB', user: 'db2inst1', password: 'Kanban@123' });
+await linuxFamily('DB2', 'db2', 'db2', 'ibm_db', 50000, mkDb2,
+  'CREATE TABLE LIVE_ORDERS (ID INT NOT NULL PRIMARY KEY, NAME VARCHAR(40), AMOUNT DECIMAL(12,2))',
+  [
+    async (cfg, p) => {
+      const vals = []; let sql = 'INSERT INTO LIVE_ORDERS (ID, NAME, AMOUNT) VALUES ';
+      for (let i = 0; i < 100; i++) { if (i) sql += ','; sql += '(?,?,?)'; vals.push(i, `r${i}`, String(i % 10 + 0.5)); }
+      await p.runQuery(cfg, sql, vals);
+      await p.runQuery(cfg, 'INSERT INTO LIVE_ORDERS (ID, NAME, AMOUNT) VALUES (100, \'r100\', 100.5)');
+    },
+  ].map((fn) => { fn.expect = 101; return fn; }),
+  () => 'DB2INST1');
+
+await linuxFamily('达梦 DM', 'dameng', 'dameng', 'odbc', 5236,
+  () => ({ host: '127.0.0.1', port: 5236, user: 'SYSDBA', password: 'SYSDBA001' }),
+  'CREATE TABLE LIVE_ORDERS (ID INT, NAME VARCHAR(40), AMOUNT DECIMAL(12,2))',
+  [
+    async (cfg, p) => {
+      const vals = []; let sql = 'INSERT INTO LIVE_ORDERS (ID, NAME, AMOUNT) VALUES ';
+      for (let i = 0; i < 100; i++) { if (i) sql += ','; sql += '(?,?,?)'; vals.push(i, `r${i}`, String(i % 10 + 0.5)); }
+      await p.runQuery(cfg, sql, vals);
+    },
+  ].map((fn) => { fn.expect = 100; return fn; }),
+  () => 'SYSDBA');
+
+await linuxFamily('Impala', 'impala', 'impala', 'hive-driver', 21050,
+  () => ({ host: '127.0.0.1', port: 21050, database: 'default', user: '', password: '' }),
+  'CREATE TABLE live_orders (id INT, name STRING, amount DOUBLE) STORED AS PARQUET',
+  [
+    async (cfg, p) => { for (let i = 0; i < 10; i++) await p.runQuery(cfg, `INSERT INTO live_orders VALUES (${i}, 'r${i}', ${i % 5 + 0.5})`, []); },
+  ].map((fn) => { fn.expect = 10; return fn; }),
+  () => 'default');
+
+// ─── 5) MaxCompute（阿里云，无容器）────────────────
+// 需环境变量 MC_ENDPOINT / MC_ACCESS_KEY_ID / MC_ACCESS_KEY_SECRET / MC_PROJECT，可选 MC_TABLE
+if (process.env.MC_ENDPOINT && process.env.MC_ACCESS_KEY_ID) {
+  try {
+    const p = getProvider('maxcompute');
+    const cfg = { endpoint: process.env.MC_ENDPOINT, access_key_id: process.env.MC_ACCESS_KEY_ID, access_key_secret: process.env.MC_ACCESS_KEY_SECRET, project: process.env.MC_PROJECT || 'default' };
+    const t = await p.testConnection(cfg, 'maxcompute');
+    if (!t.ok) throw new Error(JSON.stringify(t));
+    const schemas = await p.listSchemas(cfg, 'maxcompute');
+    ok(`MaxCompute 真连 schema=${schemas && schemas[0] && schemas[0].name}`);
+    if (process.env.MC_TABLE) {
+      const cols = await p.listColumns(cfg, 'maxcompute', cfg.project, process.env.MC_TABLE);
+      const rows = await p.runQuery(cfg, `SELECT * FROM ${process.env.MC_TABLE} LIMIT 5`, []);
+      ok(`MaxCompute 查询 ${process.env.MC_TABLE} 列${cols.length} 行${rows.length}`);
+    }
+  } catch (e) { bad('MaxCompute 真连', e); }
+} else {
+  console.log('[SKIP] MaxCompute: 未提供 MC_ENDPOINT/MC_ACCESS_KEY_ID 等环境变量（阿里云账号）');
 }
 
 // ─── 结果 ─────────────────────
