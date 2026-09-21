@@ -1,4 +1,4 @@
-# P3 数据源接入 live 实测环境（13 容器：9 个 PHP 直连族 + hive/db2/dameng/impala 原生驱动族）
+# P3 数据源接入 live 实测环境（16 容器：9 个 PHP 直连族 + hive/db2/dameng + impala quickstart 四服务）
 # 用法：
 #   预下载镜像：docker compose -f backend/scripts/datasource-live/docker-compose.yml pull
 #   启动：       docker compose -f backend/scripts/datasource-live/docker-compose.yml up -d
@@ -6,6 +6,7 @@
 #   停止清理：   docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v
 # 说明：全部映射高位端口避免与本机冲突；统一测试密码 Kanban@123（仅本机测试用）。
 #       db2/dameng/impala/hive 走 amd64 镜像（Linux 原生；macOS arm64 经 Rosetta，仅 hive/db2 等可跑）。
+#       Impala 无单容器镜像，用 4.5.0 quickstart 四服务（HMS/statestored/catalogd/impalad）。
 #       原生驱动家族真连还需本机安装原生驱动，见 verify-linux.md。
 services:
   mysql:
@@ -160,8 +161,24 @@ services:
     environment:
       SERVICE_NAME: hiveserver2
       HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:derby:;databaseName=/opt/hive/metastore_db;create=true"
+    # Derby 元数据库位于容器层 /opt/hive/metastore_db（镜像默认相对路径）。
+    # 重启容器时 entrypoint 会再次 initSchema 并因 NUCLEUS_ASCII 已存在而退出，
+    # 故用标记文件判断：首次初始化，之后 IS_RESUME=true 跳过。
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        export HIVE_CONF_DIR=/opt/hive/conf
+        if [ -f /opt/hive/.hive_schema_ok ]; then
+          echo "[hive-init] 元数据库已初始化，跳过 initSchema"
+        else
+          echo "[hive-init] 首次启动：初始化 Derby 元数据库"
+          /opt/hive/bin/schematool -dbType derby -initSchema && touch /opt/hive/.hive_schema_ok
+        fi
+        IS_RESUME=true /entrypoint.sh
     ports:
       - "11000:10000"   # HS2 Thrift 二进制
+      - "11001:10001"   # HS2 Thrift HTTP
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/10000 && /opt/hive/bin/beeline -u jdbc:hive2://localhost:10000 -e 'SELECT 1' >/dev/null 2>&1 || exit 1"]
       interval: 20s
@@ -205,16 +222,82 @@ services:
       retries: 40
       start_period: 90s
 
-  # Impala 真连测试 —— Apache Impala 官方镜像（单节点 impalad+catalogd+statestored）
-  impala:
-    image: apache/impala:4.1.0
-    container_name: kanban-live-impala
+  # Impala 真连测试 —— Apache Impala 官方 quickstart 四服务集群。
+  # 注意：Docker Hub 没有 4.1.0（也不存在单容器镜像），只有 4.5.0-<role> 系列；
+  #       镜像较大且需 4 个容器协同，国内直连 Docker Hub 不通时给镜像加镜像站前缀，
+  #       例如 docker.m.daocloud.io/apache/impala:4.5.0-impalad_coord_exec。
+  # 启动：docker compose up -d impala-hms impala-statestored impala-catalogd impala-impalad
+  impala-hms:
+    image: apache/impala:4.5.0-impala_quickstart_hms
+    container_name: quickstart-hive-metastore
     platform: linux/amd64
+    command: ["hms"]
+    volumes:
+      - impala-quickstart-warehouse:/var/lib/hive
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/hive/conf:ro
+    networks:
+      - quickstart-network
+    healthcheck:
+      test: ["CMD-SHELL", "</dev/tcp/127.0.0.1/9083"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+
+  impala-statestored:
+    image: apache/impala:4.5.0-statestored
+    container_name: quickstart-statestored
+    platform: linux/amd64
+    command: ["-redirect_stdout_stderr=false", "-logtostderr", "-v=1"]
+    volumes:
+      - ./quickstart_conf:/opt/impala/conf:ro
+    networks:
+      - quickstart-network
+
+  impala-catalogd:
+    image: apache/impala:4.5.0-catalogd
+    container_name: quickstart-catalogd
+    platform: linux/amd64
+    depends_on:
+      - impala-statestored
+      - impala-hms
+    command: ["-redirect_stdout_stderr=false", "-logtostderr", "-v=1",
+              "-hms_event_polling_interval_s=1", "-invalidate_tables_timeout_s=999999"]
+    volumes:
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/impala/conf:ro
+    networks:
+      - quickstart-network
+
+  impala-impalad:
+    image: apache/impala:4.5.0-impalad_coord_exec
+    container_name: quickstart-impalad
+    platform: linux/amd64
+    depends_on:
+      - impala-statestored
+      - impala-catalogd
     ports:
       - "21050:21050"   # HS2 协议
+      - "25000:25000"   # debug web UI
+      - "28000:28000"   # HS2 HTTP
+    command: ["-v=1", "-redirect_stdout_stderr=false", "-logtostderr", "-mem_limit=2gb"]
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx1g
+    volumes:
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/impala/conf:ro
+    networks:
+      - quickstart-network
     healthcheck:
       test: ["CMD-SHELL", "</dev/tcp/127.0.0.1/21050"]
       interval: 15s
       timeout: 10s
       retries: 40
       start_period: 120s
+
+volumes:
+  impala-quickstart-warehouse:
+
+networks:
+  quickstart-network:

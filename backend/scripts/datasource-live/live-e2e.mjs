@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const db = require('../../src/db');
 const { getProvider } = require('../../src/datasources/providers/index');
 const sync = require('../../src/services/sync.service');
+const tedious = require('tedious');
 db.initSchema();
 
 const PASS = [];
@@ -26,6 +27,13 @@ function reachable(host, port) {
     s.once('connect', () => { s.destroy(); res(true); });
     s.once('error', () => { s.destroy(); res(false); });
   });
+}
+
+// odbc npm 可加载 ≠ DM 驱动已注册；未注册时 unixODBC 报「Data source name not found」。
+function dmOdbcDriverRegistered() {
+  const fs = require('fs');
+  const paths = ['/etc/odbcinst.ini', '/usr/local/etc/odbcinst.ini', process.env.HOME && `${process.env.HOME}/.odbcinst.ini`].filter(Boolean);
+  return paths.some((f) => { try { return /^\s*\[DM8\]/mi.test(fs.readFileSync(f, 'utf8')); } catch (e) { return false; } });
 }
 
 async function probe(cfg, type, dialect, family) {
@@ -93,7 +101,44 @@ async function ensureSeedTables() {
     await fetch('http://127.0.0.1:19200/live_seed/_doc/1', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, name: 's' }) });
     console.log('[seed] elasticsearch live_seed');
   })());
-  await Promise.allSettled(jobs);
+  // mssql（全新容器无 testdb；缺库时 sa 登录会报「Login failed for user 'sa'」）
+  jobs.push((async () => {
+    const conn = new tedious.Connection({ server: '127.0.0.1', options: { port: 11433, encrypt: false, trustServerCertificate: true, database: 'master' }, authentication: { type: 'default', options: { userName: 'sa', password: 'Kanban@123' } } });
+    const connect = () => new Promise((resolve, reject) => {
+      let done = false;
+      const finish = (fn, e) => { if (!done) { done = true; fn(e); } };
+      conn.on('connect', () => finish(resolve));
+      conn.on('error', (e) => finish(reject, e));
+      setTimeout(() => finish(reject, new Error('mssql seed connect timeout')), 30000);
+    });
+    conn.connect();
+    await connect();
+    await new Promise((res, rej) => {
+      const q = new tedious.Request("IF DB_ID(N'testdb') IS NULL CREATE DATABASE testdb", (e) => (e ? rej(e) : res()));
+      conn.execSql(q);
+    });
+    await new Promise((res, rej) => {
+      const q = new tedious.Request("USE testdb; IF OBJECT_ID(N'dbo.live_seed', N'U') IS NULL CREATE TABLE dbo.live_seed (id INT NOT NULL PRIMARY KEY, name NVARCHAR(50)); IF NOT EXISTS (SELECT 1 FROM dbo.live_seed) INSERT INTO dbo.live_seed VALUES (1, N's'), (2, N's')", (e) => (e ? rej(e) : res()));
+      conn.execSql(q);
+    });
+    conn.close();
+    console.log('[seed] mssql testdb');
+  })());
+  // dameng（达梦 odbc；仅驱动可用且 5236 可达时建种子表）
+  jobs.push((async () => {
+    let odbc; try { odbc = require('odbc'); } catch (e) { return; }
+    if (!dmOdbcDriverRegistered()) return;
+    const up = await reachable('127.0.0.1', 5236);
+    if (!up) return;
+    const dm = require('../../src/datasources/providers/dameng').createProvider(() => odbc);
+    const cfg = { host: '127.0.0.1', port: 5236, user: 'SYSDBA', password: 'SYSDBA001' };
+    await dm.runQuery(cfg, 'DROP TABLE IF EXISTS LIVE_SEED', []).catch(() => {});
+    await dm.runQuery(cfg, 'CREATE TABLE LIVE_SEED (ID INT, NAME VARCHAR(50))', []);
+    await dm.runQuery(cfg, 'INSERT INTO LIVE_SEED (ID, NAME) VALUES (?, ?)', [1, 's']);
+    console.log('[seed] dameng SYSDBA.LIVE_SEED');
+  })());
+  const results = await Promise.allSettled(jobs);
+  for (const r of results) if (r.status === 'rejected') console.error('[seed] 失败:', r.reason && r.reason.message || r.reason);
 }
 
 // ─── 1) 各活库浏览 + 查询 ─────────────────────
@@ -110,7 +155,7 @@ const cases = [
   { type: 'elasticsearch', dialect: 'es', family: 'es-rest', cfg: { scheme: 'http', host: '127.0.0.1', port: 19200 } },
   // 原生驱动家族：驱动可加载且容器可达才真连（Linux + npm i ibm_db/odbc 后启用），否则走友好降级/SKIP
   { type: 'db2', dialect: 'db2', family: 'db2', nativeDriver: 'ibm_db', cfg: { host: '127.0.0.1', port: 50000, database: 'TESTDB', user: 'db2inst1', password: 'Kanban@123' } },
-  { type: 'dameng', dialect: 'dameng', family: 'dameng', nativeDriver: 'odbc', seedOdbc: true, cfg: { host: '127.0.0.1', port: 5236, user: 'SYSDBA', password: 'SYSDBA001' } },
+  { type: 'dameng', dialect: 'dameng', family: 'dameng', nativeDriver: 'odbc', odbcDriver: 'DM8', seedOdbc: true, cfg: { host: '127.0.0.1', port: 5236, user: 'SYSDBA', password: 'SYSDBA001' } },
 ];
 
 for (const c of cases) {
@@ -132,6 +177,10 @@ for (const c of cases) {
         continue;
       }
     }
+  }
+  if (c.odbcDriver && !dmOdbcDriverRegistered()) {
+    console.log(`[SKIP] ${c.type}: 未注册 ODBC 驱动 [${c.odbcDriver}]`);
+    continue;
   }
   if (!(await reachable(c.cfg.host, c.cfg.port))) {
     console.log(`[SKIP] ${c.type}: ${c.cfg.host}:${c.cfg.port} 未运行`);
@@ -201,15 +250,19 @@ await seedAndSync('SQL Server', 'sqlserver', mssqlSeedCfg);
 
 // ─── 3) Hive HS2 真实连接（stored As TEXTFILE round-trip + 全量同步）────────────────
 if (await reachable('127.0.0.1', 11000)) {
-  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('hive-driver×HS2 openSession 超时（上游 AHA 兼容问题；服务端已用 JDBC beeline 验证健康）')), 60000));
+  // HiveServer2 3.x 二进制传输即使 auth=NONE 也走 SASL 分帧：必须 auth_type=plain
+  // （SASL PLAIN），否则 hive-driver 的 NoSasl(TBufferedTransport) 会卡在 openSession。
+  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('hive HS2 超时（120s）')), 120000));
   try {
     const p = getProvider('hive');
-    const cfg = { host: '127.0.0.1', port: 11000, user: 'hive', password: '' };
+    const cfg = { host: '127.0.0.1', port: 11000, user: 'hive', password: 'x', auth_type: 'plain' };
     const t = await Promise.race([p.testConnection(cfg, 'hive'), timeout]);
     if (!t) throw new Error('testConnection 返回 false: ' + JSON.stringify(t));
     const schemas = await p.listSchemas(cfg, 'hive');
     const s = (schemas && schemas[0] && schemas[0].name) || 'default';
-    await p.runQuery(cfg, 'CREATE TABLE IF NOT EXISTS hive_orders (id INT, name STRING, amount DOUBLE) STORED AS TEXTFILE', []);
+    // 幂等：先 DROP 再建表，避免重复运行累积重复 id 触发本地同步表 UNIQUE 约束
+    await p.runQuery(cfg, 'DROP TABLE IF EXISTS hive_orders', []);
+    await p.runQuery(cfg, 'CREATE TABLE hive_orders (id INT, name STRING, amount DOUBLE) STORED AS TEXTFILE', []);
     await p.runQuery(cfg, "INSERT INTO hive_orders VALUES (1,'a',1.5),(2,'b',2.5)", []);
     const cols = await p.listColumns(cfg, 'hive', s, 'hive_orders');
     const rows = await p.runQuery(cfg, 'SELECT * FROM hive_orders LIMIT 5', []);
@@ -220,11 +273,7 @@ if (await reachable('127.0.0.1', 11000)) {
     const cnt = db.prepare(`SELECT COUNT(*) c FROM ${db.dialect.quoteIdent(out.localTable)}`).get().c;
     ok(`hive HS2 真实全量同步 本地 ${cnt} 行`);
   } catch (e) {
-    if (/超时/.test(String(e && e.message || e))) {
-      console.log(`[SKIP] hive HS2: ${e.message}`);
-    } else {
-      bad('hive HS2', e);
-    }
+    bad('hive HS2', e);
   }
 } else {
   console.log('[SKIP] hive: 127.0.0.1:11000 未运行');
@@ -232,10 +281,14 @@ if (await reachable('127.0.0.1', 11000)) {
 
 // ─── 4) Linux 原生驱动家族真连（db2/dameng/impala）────────────────
 // 启用条件：本机可 require 原生驱动（npm i ibm_db odbc，Linux 可用）且容器可达。
-async function linuxFamily(label, type, family, driver, port, makeCfg, ddl, insertFns, probeSchema) {
+async function linuxFamily(label, type, family, driver, port, makeCfg, ddl, insertFns, probeSchema, preflight) {
   let okD = true;
   try { require(driver); } catch (e) { okD = false; }
   if (!okD) { console.log(`[SKIP] ${label}: 原生驱动 ${driver} 未安装（Linux 可 npm i）`); return; }
+  if (preflight) {
+    const r = await preflight();
+    if (r && r.skip) { console.log(`[SKIP] ${label}: ${r.reason}`); return; }
+  }
   if (!(await reachable('127.0.0.1', port))) { console.log(`[SKIP] ${label}: ${port} 未运行（docker compose up -d ${type}）`); return; }
   try {
     const p = getProvider(family);
@@ -252,7 +305,7 @@ async function linuxFamily(label, type, family, driver, port, makeCfg, ddl, inse
     const rows = await p.runQuery(cfg, `SELECT * FROM ${t0.name} LIMIT 5`, []);
     ok(`${label} 真连 浏览+查询 schema=${schema} table=${t0.name} 列${cols.length} 行${rows.length}`);
     const r = db.prepare('INSERT INTO data_sources (name, type, config, mode, owner_id) VALUES (?, ?, ?, ?, ?)').run(`live-${type}`, type, JSON.stringify(cfg), 'sync', 1);
-    const sc = await sync.createConfig(r.lastInsertRowid, { sourceTable: t0.name, strategy: 'full' });
+    const sc = await sync.createConfig(r.lastInsertRowid, { sourceTable: t0.name, sourceSchema: schema, strategy: 'full' });
     const out = await sync.runSync(sc.id);
     const cnt = db.prepare(`SELECT COUNT(*) c FROM ${db.dialect.quoteIdent(out.localTable)}`).get().c;
     const expect = insertFns[0].expect || 1;
@@ -261,11 +314,12 @@ async function linuxFamily(label, type, family, driver, port, makeCfg, ddl, inse
   } catch (e) { bad(`${label} 真连`, e); }
 }
 
-const mkDb2 = () => ({ host: '127.0.0.1', port: 50000, database: 'TESTDB', user: 'db2inst1', password: 'Kanban@123' });
+const mkDb2 = () => ({ host: '127.0.0.1', port: 50000, database: 'TESTDB', user: 'db2inst1', password: 'Kanban@123', security: 'SERVER' });
 await linuxFamily('DB2', 'db2', 'db2', 'ibm_db', 50000, mkDb2,
-  'CREATE TABLE LIVE_ORDERS (ID INT NOT NULL PRIMARY KEY, NAME VARCHAR(40), AMOUNT DECIMAL(12,2))',
+  'BEGIN DECLARE CONTINUE HANDLER FOR SQLSTATE \'42710\' BEGIN END; EXECUTE IMMEDIATE \'DROP TABLE LIVE_ORDERS\'; END',
   [
     async (cfg, p) => {
+      await p.runQuery(cfg, 'CREATE TABLE LIVE_ORDERS (ID INT NOT NULL PRIMARY KEY, NAME VARCHAR(40), AMOUNT DECIMAL(12,2))', []);
       const vals = []; let sql = 'INSERT INTO LIVE_ORDERS (ID, NAME, AMOUNT) VALUES ';
       for (let i = 0; i < 100; i++) { if (i) sql += ','; sql += '(?,?,?)'; vals.push(i, `r${i}`, String(i % 10 + 0.5)); }
       await p.runQuery(cfg, sql, vals);
@@ -276,21 +330,26 @@ await linuxFamily('DB2', 'db2', 'db2', 'ibm_db', 50000, mkDb2,
 
 await linuxFamily('达梦 DM', 'dameng', 'dameng', 'odbc', 5236,
   () => ({ host: '127.0.0.1', port: 5236, user: 'SYSDBA', password: 'SYSDBA001' }),
-  'CREATE TABLE LIVE_ORDERS (ID INT, NAME VARCHAR(40), AMOUNT DECIMAL(12,2))',
+  'DROP TABLE IF EXISTS LIVE_ORDERS',
   [
     async (cfg, p) => {
+      await p.runQuery(cfg, 'CREATE TABLE LIVE_ORDERS (ID INT, NAME VARCHAR(40), AMOUNT DECIMAL(12,2))', []);
       const vals = []; let sql = 'INSERT INTO LIVE_ORDERS (ID, NAME, AMOUNT) VALUES ';
       for (let i = 0; i < 100; i++) { if (i) sql += ','; sql += '(?,?,?)'; vals.push(i, `r${i}`, String(i % 10 + 0.5)); }
       await p.runQuery(cfg, sql, vals);
     },
   ].map((fn) => { fn.expect = 100; return fn; }),
-  () => 'SYSDBA');
+  () => 'SYSDBA',
+  () => (dmOdbcDriverRegistered() ? null : { skip: true, reason: '未注册 ODBC 驱动 [DM8]（见 verify-linux.md「达梦 DM ODBC 驱动注册」）' }));
 
 await linuxFamily('Impala', 'impala', 'impala', 'hive-driver', 21050,
   () => ({ host: '127.0.0.1', port: 21050, database: 'default', user: '', password: '' }),
-  'CREATE TABLE live_orders (id INT, name STRING, amount DOUBLE) STORED AS PARQUET',
+  'DROP TABLE IF EXISTS live_orders',
   [
-    async (cfg, p) => { for (let i = 0; i < 10; i++) await p.runQuery(cfg, `INSERT INTO live_orders VALUES (${i}, 'r${i}', ${i % 5 + 0.5})`, []); },
+    async (cfg, p) => {
+      await p.runQuery(cfg, 'CREATE TABLE live_orders (id INT, name STRING, amount DOUBLE) STORED AS PARQUET', []);
+      for (let i = 0; i < 10; i++) await p.runQuery(cfg, `INSERT INTO live_orders VALUES (${i}, 'r${i}', ${i % 5 + 0.5})`, []);
+    },
   ].map((fn) => { fn.expect = 10; return fn; }),
   () => 'default');
 

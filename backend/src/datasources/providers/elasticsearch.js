@@ -62,7 +62,9 @@ function parseEsSql(sql) {
   }
   const fm = rest.match(/\bFROM\s+([^\s]+)/i);
   if (!fm) throw new Error('ES 查询缺少 FROM 索引');
-  const index = unq(fm[1]);
+  // 应用浏览层会生成 `schema`.`table` 限定名；ES 只有索引概念，取最后一段作为索引名
+  const cleaned = String(fm[1]).replace(/[`"]/g, '');
+  const index = cleaned.includes('.') ? cleaned.split('.').pop() : cleaned;
   const afterFrom = rest.slice(fm.index + fm[0].length);
   const wherePart = afterFrom.match(/^\s*WHERE\s+([\s\S]+)$/i);
   const selM = rest.slice(0, fm.index).match(/SELECT\s+([\s\S]*)$/i);

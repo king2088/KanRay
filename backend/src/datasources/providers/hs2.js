@@ -26,7 +26,7 @@ function makeKerberosAuth(cfg, driver) {
     { fqdn: cfg.host, service: 'hive' },
     kerberos,
   );
-  const opts = { username: cfg.username, password: cfg.password };
+  const opts = { username: cfg.username || cfg.user, password: cfg.password };
   const http = cfg.transport === 'http';
   return http
     ? new driver.auth.KerberosHttpAuthentication(opts, authProcess)
@@ -34,12 +34,14 @@ function makeKerberosAuth(cfg, driver) {
 }
 
 // auth_type: none | plain | kerberos（plain 兼容 LDAP）
+// 注意：HiveServer2 二进制传输（3.x）即使 auth=NONE 也走 SASL 分帧，必须用 plain
+// （SASL PLAIN）才能建会话；NoSasl 走 TBufferedTransport 仅 Impala 接受。
 function makeAuth(cfg, driver) {
   const authType = String(cfg.auth_type || 'none').toLowerCase();
   const http = cfg.transport === 'http';
   if (authType === 'kerberos') return makeKerberosAuth(cfg, driver);
   if (authType === 'plain' || authType === 'ldap') {
-    const opts = { username: cfg.username, password: cfg.password };
+    const opts = { username: cfg.username || cfg.user, password: cfg.password };
     return http
       ? new driver.auth.PlainHttpAuthentication(opts)
       : new driver.auth.PlainTcpAuthentication(opts);
@@ -47,13 +49,21 @@ function makeAuth(cfg, driver) {
   return new driver.auth.NoSaslAuthentication();
 }
 
+// hive-driver 内部 FetchOrientation.FETCH_NEXT 的枚举值为 1（注意与其 thrift
+// 生成枚举 TFetchOrientation.FETCH_NEXT=0 不同）。HiveOperation.fetch 依据该内部
+// 枚举判断方向：不传则默认走 firstFetch（FETCH_FIRST）。Impala 对 FETCH_FIRST 会触发
+// RestartFetch，未开启 query result caching 时直接报
+// "Restarting of fetch requires enabling of query result caching."，故所有批次统一
+// 显式使用 FETCH_NEXT（Hive/Impala 均支持）。
+const FETCH_NEXT = 1;
+
 function buildSession(client, session, driver) {
   const utils = new driver.HiveUtils(driver.thrift.TCLIService_types);
   return {
     async execute(sql) {
       const op = await session.executeStatement(sql, { runAsync: true });
       await utils.waitUntilReady(op, false, () => {});
-      await utils.fetchAll(op);
+      await utils.fetchAll(op, FETCH_NEXT);
       const handler = await utils.getResult(op);
       const value = handler && handler.getValue ? handler.getValue() : [];
       try { await op.close(); } catch (err) { /* ignore */ }

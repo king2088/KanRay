@@ -298,7 +298,8 @@ const drivers = [
       { name: 'database', label: '数据库名', type: 'text', required: true, default: 'default' },
       { name: 'user', label: '用户名', type: 'text', required: false },
       { name: 'password', label: '密码', type: 'password', required: false },
-      { name: 'auth_type', label: '认证方式', type: 'select', required: false, options: ['none', 'kerberos'], default: 'none' },
+      // HiveServer2 3.x 二进制传输即使 auth=NONE 也走 SASL 分帧，需用 plain（SASL PLAIN）
+      { name: 'auth_type', label: '认证方式', type: 'select', required: false, options: ['plain', 'none', 'kerberos'], default: 'plain' },
       { name: 'transport', label: '传输协议', type: 'select', required: false, options: ['tcp', 'http'], default: 'tcp' },
     ],
   },

@@ -70,8 +70,8 @@ test('dameng: 连接串 + 元数据查询 + runQuery 经 LIMIT OFFSET', async ()
 
   await dm.listTables({}, 'dameng', 'SYSDBA');
   await dm.listColumns({}, 'dameng', 'SYSDBA', 'T');
-  assert.match(calls.queries[0].sql, /SELECT DISTINCT OWNER AS NAME/);
-  assert.match(calls.queries[1].sql, /ALL_TABLES/);
+  assert.match(calls.queries[0].sql, /SELECT DISTINCT USERNAME AS NAME FROM ALL_USERS/);
+  assert.match(calls.queries[1].sql, /FROM SYSOBJECTS/);
   assert.match(calls.queries[2].sql, /ALL_TAB_COLUMNS/);
 
   await dm.runQuery({}, 'SELECT * FROM t LIMIT 5', []);

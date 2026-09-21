@@ -40,7 +40,7 @@ class FakeClient {
 class FakeHiveUtils {
   constructor() {}
   async waitUntilReady() {}
-  async fetchAll() {}
+  async fetchAll(op, orientation) { captured.fetchOrientation = orientation; }
   async getResult() { return { getValue: () => rows }; }
 }
 
@@ -81,6 +81,13 @@ test('makeAuth: plain + tcp → PlainTcpAuthentication 带用户名密码', () =
   assert.equal(a.o.password, 'p');
 });
 
+test('makeAuth: plain 兼容 UI 的 user 字段（无 username 时回退）', () => {
+  const a = makeAuth({ auth_type: 'plain', user: 'hive', password: 'x' }, fakeDriver());
+  assert.equal(a.marker, 'plain-tcp');
+  assert.equal(a.o.username, 'hive');
+  assert.equal(a.o.password, 'x');
+});
+
 test('makeAuth: plain + http → PlainHttpAuthentication', () => {
   const a = makeAuth({ auth_type: 'plain', transport: 'http', username: 'u', password: 'p' }, fakeDriver());
   assert.equal(a.marker, 'plain-http');
@@ -108,6 +115,8 @@ test('connect: tcp + none，执行返回对象行数组并正确收尾', async (
   assert.equal(captured.conn.marker, 'tcp');
   assert.equal(captured.auth.marker, 'none');
   assert.equal(captured.sessionOpts.client_protocol, 'V10');
+  // 必须显式传 hive-driver 内部 FETCH_NEXT(=1)，否则默认 FETCH_FIRST 会被 Impala 拒绝
+  assert.equal(captured.fetchOrientation, 1);
   await session.close();
   assert.equal(captured.sessionClosed, true);
   assert.equal(captured.clientClosed, true);

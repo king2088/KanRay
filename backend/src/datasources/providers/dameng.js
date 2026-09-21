@@ -17,7 +17,10 @@ function loadOdbc() {
 
 function connString(cfg) {
   if (cfg.dsn) return `DSN=${String(cfg.dsn)};UID=${String(cfg.user || '')};PWD=${String(cfg.password || '')}`;
-  return `SERVER=${String(cfg.host || '')};PORT=${Number(cfg.port) || 5236};UID=${String(cfg.user || '')};PWD=${String(cfg.password || '')}`;
+  // unixODBC 的 SQLDriverConnect 必须显式带 DRIVER/DSN，裸 SERVER 串会「Data source name not found」。
+  // 驱动名默认 DM8（odbcinst.ini 注册名），可用 cfg.driver 覆盖。
+  const driver = String(cfg.driver || 'DM8');
+  return `DRIVER=${driver};SERVER=${String(cfg.host || '')};PORT=${Number(cfg.port) || 5236};UID=${String(cfg.user || '')};PWD=${String(cfg.password || '')}`;
 }
 
 const NUMERIC = /INT|FLOAT|DOUBLE|DECIMAL|DEC|NUMERIC|REAL|BIGINT|SMALLINT|BIT/i;
@@ -47,7 +50,10 @@ function createProvider(odbcModule) {
 
   async function listSchemas(cfg) {
     return withConn(cfg, async (conn) => {
-      const res = await conn.query('SELECT DISTINCT OWNER AS NAME FROM ALL_TABLES ORDER BY NAME');
+      // 当前登录用户排首位，便于默认定位自身 schema。
+      const res = await conn.query(
+        'SELECT DISTINCT USERNAME AS NAME FROM ALL_USERS ORDER BY CASE WHEN USERNAME = USER() THEN 0 ELSE 1 END, USERNAME',
+      );
       const rows = res.rows || res;
       return rows.map((r) => ({ name: String(r.NAME != null ? r.NAME : r.name) }));
     });
@@ -55,8 +61,11 @@ function createProvider(odbcModule) {
 
   async function listTables(cfg, type, schema) {
     return withConn(cfg, async (conn) => {
+      // 达梦原生 SYSOBJECTS 自关联 SYSSCHEMAS（同表 TYPE$='SCH'）按 schema 过滤。
+      // 不用 ALL_TABLES：DM ODBC 驱动对 ALL_TABLES 的 prepare 不稳定（arm64 驱动实测必败）。
+      // 排除 ## 前缀的内部临时/计划表。
       const res = await conn.query(
-        'SELECT TABLE_NAME AS NAME, TABLE_TYPE AS TYPE FROM ALL_TABLES WHERE OWNER = ? ORDER BY TABLE_NAME',
+        "SELECT t.NAME AS NAME, DECODE(t.SUBTYPE$, 'VIEW', 'view', 'table') AS TYPE FROM SYSOBJECTS t JOIN SYSOBJECTS s ON t.SCHID = s.ID WHERE t.TYPE$ = 'SCHOBJ' AND t.SUBTYPE$ IN ('UTAB', 'VIEW') AND s.TYPE$ = 'SCH' AND s.NAME = ? AND t.NAME NOT LIKE '##%' ORDER BY t.NAME",
         [String(schema)],
       );
       const rows = res.rows || res;

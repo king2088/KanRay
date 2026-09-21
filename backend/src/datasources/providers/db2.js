@@ -15,14 +15,16 @@ function loadDriver() {
 }
 
 function connString(cfg) {
-  return [
+  const parts = [
     `DATABASE=${String(cfg.database || '')}`,
     `HOSTNAME=${String(cfg.host || '')}`,
     `PORT=${Number(cfg.port) || 50000}`,
     `PROTOCOL=TCPIP`,
     `UID=${String(cfg.user || '')}`,
     `PWD=${String(cfg.password || '')}`,
-  ].join(';');
+  ];
+  if (cfg.security) parts.push(`SECURITY=${String(cfg.security)}`);
+  return parts.join(';');
 }
 
 const NUMERIC = /INT|FLOAT|DOUBLE|DECIMAL|DEC|NUMERIC|REAL|BIGINT|SMALLINT/i;
