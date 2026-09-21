@@ -1,0 +1,25 @@
+# backend 与 worker 共享的应用数据卷；多副本（replicas>1）时必须改为 ReadWriteMany 的共享存储。
+# postgres / redis 的卷由各自 StatefulSet 的 volumeClaimTemplates 自动生成（pgdata-postgres-0 / redisdata-redis-0）。
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kanban-data
+  namespace: kanban
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kanban-uploads
+  namespace: kanban
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 20Gi

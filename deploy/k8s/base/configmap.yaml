@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kanban-backend-config
+  namespace: kanban
+data:
+  # 与 backend/src/config/index.js 的读取键一一对应；敏感项在 Secret kanban-secrets 中。
+  DB_TYPE: "postgres"
+  DATA_DIR: "/data"
+  UPLOAD_DIR: "/uploads"
+  PORT: "3001"
+  DB_POOL_MAX: "10"
+  CACHE_TTL_MS: "60000"
+  SYNC_MODE: "worker"
+  SYNC_SCHEDULER_INTERVAL_MS: "60000"
+  SYNC_WORKER_POLL_MS: "2000"
+  SYNC_MAX_CONCURRENT: "4"
+  SYNC_JOB_RETENTION_DAYS: "7"
+  SYNC_DEFAULT_INTERVAL_SECONDS: "86400"
+  SYNC_LOCK_TTL_MS: "1800000"
+  QUERY_MAX_GROUPS: "10000"
+  TIMEZONE: "Asia/Shanghai"
+  OPEN_API_RATE_PER_MIN: "120"
+  OPEN_API_MAX_ROWS: "10000"

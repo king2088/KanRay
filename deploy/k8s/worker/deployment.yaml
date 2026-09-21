@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: kanban
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: kanban-backend:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["node", "backend/src/worker/main.js"]
+          envFrom:
+            - configMapRef:
+                name: kanban-backend-config
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: kanban-secrets
+                  key: JWT_SECRET
+            - name: DATASOURCE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: kanban-secrets
+                  key: DATASOURCE_SECRET
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kanban-secrets
+                  key: DB_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kanban-secrets
+                  key: REDIS_URL
+          volumeMounts:
+            - name: kanban-data
+              mountPath: /data
+            - name: kanban-uploads
+              mountPath: /uploads
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+      volumes:
+        - name: kanban-data
+          persistentVolumeClaim:
+            claimName: kanban-data
+        - name: kanban-uploads
+          persistentVolumeClaim:
+            claimName: kanban-uploads
+  # 多副本 worker 需 kanban-data/kanban-uploads 为 ReadWriteMany 共享存储；
+  # 任务领取由 sync_jobs 条件 UPDATE + 租约互斥，无需探针（依赖 SIGTERM 优雅退出与任务回收）。
