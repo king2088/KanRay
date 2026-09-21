@@ -1,22 +1,22 @@
-# MySQL 8.0 生产栈（docker-compose.mysql.yml）
-# 默认使用 PG（docker-compose.yml）；本文件供选择 MySQL 作为元数据库时使用。
+# MariaDB 11 生产栈（docker-compose.mariadb.yml）
+# 默认使用 PG（docker-compose.yml）；本文件供选择 MariaDB 作为元数据库时使用。
 # 含 Redis（共享缓存/锁）与独立 worker（SYNC_MODE=worker）。
 #
 # 用法：
-#   ./deploy.sh up --stack mysql
-#   或 STACK=mysql ./deploy.sh up
+#   ./deploy.sh up --stack mariadb
+#   或 STACK=mariadb ./deploy.sh up
 #
-# 注意：密码含 @ / : 等特殊字符时需在 DB_URL 中做 URL 编码（@ → %40）。
+# 注意：MariaDB 复用 mysql 驱动，DB_TYPE=mariadb；密码特殊字符需 URL 编码。
 services:
-  mysql:
-    image: mysql:8.0
+  mariadb:
+    image: mariadb:11
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-kanban}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-kanban}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-kanray}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-kanray}
     volumes:
-      - mysqldata:/var/lib/mysql
+      - mariadbdata:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -37,22 +37,22 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: deploy/backend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
     env_file: .env
     environment:
-      DB_TYPE: mysql
-      DB_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-kanban}@mysql:3306/${MYSQL_DATABASE:-kanban}
+      DB_TYPE: mariadb
+      DB_URL: mysql://root:${MARIADB_ROOT_PASSWORD:-kanray}@mariadb:3306/${MARIADB_DATABASE:-kanray}
       DATA_DIR: /data
       UPLOAD_DIR: /uploads
       PORT: "3001"
       SYNC_MODE: worker
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     volumes:
-      - kanban_data:/data
-      - kanban_uploads:/uploads
+      - kanray_data:/data
+      - kanray_uploads:/uploads
     depends_on:
-      mysql:
+      mariadb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -62,23 +62,23 @@ services:
 
   worker:
     build:
-      context: ..
-      dockerfile: deploy/backend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
     command: ["node", "backend/src/worker/main.js"]
     env_file: .env
     environment:
-      DB_TYPE: mysql
-      DB_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-kanban}@mysql:3306/${MYSQL_DATABASE:-kanban}
+      DB_TYPE: mariadb
+      DB_URL: mysql://root:${MARIADB_ROOT_PASSWORD:-kanray}@mariadb:3306/${MARIADB_DATABASE:-kanray}
       DATA_DIR: /data
       UPLOAD_DIR: /uploads
       SYNC_MODE: worker
       SYNC_MAX_CONCURRENT: "4"
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     volumes:
-      - kanban_data:/data
-      - kanban_uploads:/uploads
+      - kanray_data:/data
+      - kanray_uploads:/uploads
     depends_on:
-      mysql:
+      mariadb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -86,16 +86,16 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: deploy/frontend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/frontend/Dockerfile
     ports:
-      - "${KANBAN_PORT:-8080}:80"
+      - "${KANRAY_PORT:-8080}:80"
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
-  mysqldata:
+  mariadbdata:
   redisdata:
-  kanban_data:
-  kanban_uploads:
+  kanray_data:
+  kanray_uploads:

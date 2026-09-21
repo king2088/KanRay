@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: worker
-  namespace: kanban
+  namespace: kanray
 spec:
   replicas: 1
   selector:
@@ -15,37 +15,37 @@ spec:
     spec:
       containers:
         - name: worker
-          image: kanban-backend:1.0.0
+          image: kanray-backend:1.0.0
           imagePullPolicy: IfNotPresent
           command: ["node", "backend/src/worker/main.js"]
           envFrom:
             - configMapRef:
-                name: kanban-backend-config
+                name: kanray-backend-config
           env:
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: JWT_SECRET
             - name: DATASOURCE_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: DATASOURCE_SECRET
             - name: DB_URL
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: DB_URL
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: REDIS_URL
           volumeMounts:
-            - name: kanban-data
+            - name: kanray-data
               mountPath: /data
-            - name: kanban-uploads
+            - name: kanray-uploads
               mountPath: /uploads
           resources:
             requests:
@@ -55,11 +55,11 @@ spec:
               cpu: "2"
               memory: 1Gi
       volumes:
-        - name: kanban-data
+        - name: kanray-data
           persistentVolumeClaim:
-            claimName: kanban-data
-        - name: kanban-uploads
+            claimName: kanray-data
+        - name: kanray-uploads
           persistentVolumeClaim:
-            claimName: kanban-uploads
-  # 多副本 worker 需 kanban-data/kanban-uploads 为 ReadWriteMany 共享存储；
+            claimName: kanray-uploads
+  # 多副本 worker 需 kanray-data/kanray-uploads 为 ReadWriteMany 共享存储；
   # 任务领取由 sync_jobs 条件 UPDATE + 租约互斥，无需探针（依赖 SIGTERM 优雅退出与任务回收）。

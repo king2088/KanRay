@@ -3,12 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 K8S_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_ROOT="$(cd "$K8S_DIR/../.." && pwd)"
 cd "$K8S_DIR"
 
 KUBECTL="${KUBECTL:-kubectl}"
-NAMESPACE="${NAMESPACE:-kanban}"
-SECRET_NAME="kanban-secrets"
+NAMESPACE="${NAMESPACE:-kanray}"
+SECRET_NAME="kanray-secrets"
 KEEP_DATA=0
 LOG_TARGET="deployment/backend"
 
@@ -28,12 +27,6 @@ EOF
 rand_b64() { openssl rand -base64 32 2>/dev/null | tr -d '\n'; }
 rand_hex() { openssl rand -hex 24 2>/dev/null; }
 
-source_dotenv() {
-  local f="$REPO_ROOT/deploy/.env"
-  [[ -f "$f" ]] || return 0
-  set -a; . "$f"; set +a
-}
-
 check_cluster() {
   "$KUBECTL" cluster-info >/dev/null 2>&1 \
     || die "无法访问 Kubernetes 集群（kubectl cluster-info 失败）。请检查 kubeconfig 与集群状态。"
@@ -44,10 +37,10 @@ ensure_secret() {
     info "Secret ${SECRET_NAME} 已存在，复用（如需轮换请先手动删除）"
     return
   fi
-  source_dotenv
+  # 密钥仅随机生成，并可用同名环境变量覆盖；不读取其他部署目录（docker 与 k8s 完全隔离）
   local pgu pgp pgd url jwt ds admin
-  pgu="${POSTGRES_USER:-kanban}"
-  pgd="${POSTGRES_DB:-kanban}"
+  pgu="${POSTGRES_USER:-kanray}"
+  pgd="${POSTGRES_DB:-kanray}"
   pgp="${POSTGRES_PASSWORD:-$(rand_hex)}"
   url="${DB_URL:-postgresql://${pgu}:${pgp}@postgres:5432/${pgd}}"
   jwt="${JWT_SECRET:-$(rand_b64)}"
@@ -108,7 +101,7 @@ cmd_down() {
 
 cmd_status() {
   "$KUBECTL" -n "$NAMESPACE" get deploy,sts,svc,pods,pvc -o wide
-  "$KUBECTL" get pv 2>/dev/null | grep kanban || true
+  "$KUBECTL" get pv 2>/dev/null | grep kanray || true
 }
 
 cmd_logs() {

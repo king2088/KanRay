@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
-  namespace: kanban
+  namespace: kanray
 spec:
   replicas: 1
   selector:
@@ -15,44 +15,44 @@ spec:
     spec:
       containers:
         - name: backend
-          image: kanban-backend:1.0.0
+          image: kanray-backend:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 3001
           envFrom:
             - configMapRef:
-                name: kanban-backend-config
+                name: kanray-backend-config
           env:
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: JWT_SECRET
             - name: DATASOURCE_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: DATASOURCE_SECRET
             - name: DB_URL
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: DB_URL
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: REDIS_URL
             - name: ADMIN_INITIAL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: ADMIN_INITIAL_PASSWORD
           volumeMounts:
-            - name: kanban-data
+            - name: kanray-data
               mountPath: /data
-            - name: kanban-uploads
+            - name: kanray-uploads
               mountPath: /uploads
           readinessProbe:
             httpGet:
@@ -77,12 +77,12 @@ spec:
               cpu: "2"
               memory: 1Gi
       volumes:
-        - name: kanban-data
+        - name: kanray-data
           persistentVolumeClaim:
-            claimName: kanban-data
-        - name: kanban-uploads
+            claimName: kanray-data
+        - name: kanray-uploads
           persistentVolumeClaim:
-            claimName: kanban-uploads
+            claimName: kanray-uploads
   # 无状态 API：水平扩容改 replicas 与 DB_POOL_MAX（总连接 = 副本数 × poolMax）
   strategy:
     type: RollingUpdate

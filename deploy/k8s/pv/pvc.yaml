@@ -3,8 +3,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: kanban-data
-  namespace: kanban
+  name: kanray-data
+  namespace: kanray
 spec:
   accessModes: ["ReadWriteOnce"]
   storageClassName: ""
@@ -15,8 +15,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: kanban-uploads
-  namespace: kanban
+  name: kanray-uploads
+  namespace: kanray
 spec:
   accessModes: ["ReadWriteOnce"]
   storageClassName: ""

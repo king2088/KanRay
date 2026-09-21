@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: redis
-  namespace: kanban
+  namespace: kanray
 spec:
   serviceName: redis
   replicas: 1

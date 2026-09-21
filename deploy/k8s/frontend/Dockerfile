@@ -7,7 +7,7 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 RUN rm -f /etc/nginx/conf.d/default.conf
-COPY deploy/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/k8s/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/front-end/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: backend
-  namespace: kanban
+  namespace: kanray
 spec:
   selector:
     app: backend

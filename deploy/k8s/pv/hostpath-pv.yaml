@@ -1,11 +1,11 @@
 # 单节点/本地集群（kind / minikube / k3s 等）测试示例。请勿用于多节点生产集群。
-# 生产请替换为共享持久存储：kanban-data / kanban-uploads 多副本共享时需 ReadWriteMany
+# 生产请替换为共享持久存储：kanray-data / kanray-uploads 多副本共享时需 ReadWriteMany
 # （Longhorn / NFS / CSI 等）；postgres / redis 数据卷为 ReadWriteOnce，用存储类即可。
 # 若改用存储类（如 local-path / standard），将下方 storageClassName: "" 改为存储类名并删除本文件。
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: kanban-pg-pv
+  name: kanray-pg-pv
 spec:
   capacity:
     storage: 5Gi
@@ -13,13 +13,13 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   hostPath:
-    path: /mnt/kanban/postgres
+    path: /mnt/kanray/postgres
     type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: kanban-redis-pv
+  name: kanray-redis-pv
 spec:
   capacity:
     storage: 1Gi
@@ -27,13 +27,13 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   hostPath:
-    path: /mnt/kanban/redis
+    path: /mnt/kanray/redis
     type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: kanban-data-pv
+  name: kanray-data-pv
 spec:
   capacity:
     storage: 10Gi
@@ -41,13 +41,13 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   hostPath:
-    path: /mnt/kanban/data
+    path: /mnt/kanray/data
     type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: kanban-uploads-pv
+  name: kanray-uploads-pv
 spec:
   capacity:
     storage: 20Gi
@@ -55,5 +55,5 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   hostPath:
-    path: /mnt/kanban/uploads
+    path: /mnt/kanray/uploads
     type: DirectoryOrCreate

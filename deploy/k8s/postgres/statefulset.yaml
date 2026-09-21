@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: kanban
+  namespace: kanray
 spec:
   serviceName: postgres
   replicas: 1
@@ -24,17 +24,17 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  name: kanban-secrets
+                  name: kanray-secrets
                   key: POSTGRES_DB
           volumeMounts:
             - name: pgdata

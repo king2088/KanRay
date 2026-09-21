@@ -56,9 +56,9 @@ npm run dev
 ```bash
 cd backend
 # 方式一：环境变量（优先）
-DB_TYPE=postgres DB_URL='postgresql://kanban:kanban@127.0.0.1:15432/kanban?sslmode=disable' npm start
+DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmode=disable' npm start
 # 方式二：config.json（backend/config.json）
-# { "db": { "type": "postgres", "url": "postgresql://kanban:kanban@127.0.0.1:15432/kanban?sslmode=disable" } }
+# { "db": { "type": "postgres", "url": "postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmode=disable" } }
 ```
 
 首次启动即对所选库执行幂等建表 + 老库列补齐（`IF NOT EXISTS` / 列存在性探测），之后正常使用。
@@ -144,7 +144,7 @@ front-end/                  Vue 3 前端
 默认启动 PostgreSQL 生产栈（postgres + redis + backend + 同步 worker + frontend(nginx)），无需手动安装 Node/PostgreSQL/Redis：
 
 ```bash
-cd deploy
+cd deploy/docker
 ./deploy.sh                    # 默认 PG 栈：自动生成 .env（含随机密钥）并构建启动
 ./deploy.sh up --stack sqlite  # SQLite 演示栈（免外部库/Redis，单机）
 ./deploy.sh up --stack mysql   # MySQL 栈（含 redis + worker）
@@ -154,9 +154,10 @@ cd deploy
 ./deploy.sh down -v            # 停机并清除所有数据（-v 删除数据卷，不可恢复）
 ```
 
-- 访问地址：`http://localhost:8080`（可通过修改 `deploy/.env` 中的 `KANBAN_PORT` 调整）
+- 访问地址：`http://localhost:8080`（可通过修改 `deploy/docker/.env` 中的 `KANRAY_PORT` 调整）
 - Swagger 文档：`http://localhost:8080/api/open/docs`
-- 管理员：`admin@kanban.local / admin123`（生产环境请修改 `deploy/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
+- 管理员：`admin@kanban.local / admin123`（生产环境请修改 `deploy/docker/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
+- **Kubernetes 部署**：进入 `deploy/k8s/`，用 `deploy/k8s/scripts/build-images.sh` 构建镜像、`deploy/k8s/scripts/deploy.sh up` 部署（详见 `deploy/k8s/README.md`）。docker 与 k8s 两套部署各自独立、不共用文件
 - 本地开发默认 **SQLite 且不启用 Redis**：`cd backend && npm run dev` 即可，无需任何中间件
 - 数据库栈 / Redis / 多副本与 systemd 等更多部署细节见 [部署运维手册](docs/05-部署运维手册.md)
 

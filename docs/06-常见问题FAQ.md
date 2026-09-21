@@ -11,7 +11,7 @@
 账号被管理员停用。联系管理员启用后即可登录。
 
 **Q3：初始管理员账号是什么？**
-`admin@kanban.local / admin123`（Docker 部署时可用 `.env` 中 `ADMIN_INITIAL_PASSWORD` 自定义）。生产环境务必第一时间修改。
+`admin@kanban.local / admin123`（Docker 部署时可用 `deploy/docker/.env` 中 `ADMIN_INITIAL_PASSWORD` 自定义）。生产环境务必第一时间修改。
 
 **Q4：密码有什么要求？**
 至少 8 位，且同时包含字母和数字。
@@ -87,16 +87,16 @@ Excel/CSV 上传后即作为本地数据集直接使用，无需（也不支持�
 ## 六、部署与运维
 
 **Q25：Docker 部署后 Swagger 打不开？**
-确认容器正常（`./deploy.sh ps`）且访问 `/api/open/docs`；该地址由 backend 提供，nginx 已反代 `/api`。
+确认容器正常（`deploy/docker/deploy.sh ps`）且访问 `/api/open/docs`；该地址由 backend 提供，nginx 已反代 `/api`。
 
 **Q26：修改端口/换域名怎么改？**
-改 `deploy/.env` 的 `KANBAN_PORT`，重启 `./deploy.sh restart` 生效；nginx 反代外部端口即可对外暴露。
+改 `deploy/docker/.env` 的 `KANRAY_PORT`，重启 `deploy/docker/deploy.sh restart` 生效；nginx 反代外部端口即可对外暴露。
 
-**Q27：`./deploy.sh down -v` 有什么风险？**
-删除全部数据卷（元数据库与同步落库数据不可恢复）。日常停机用 `./deploy.sh down`（保留数据）。
+**Q27：`deploy/docker/deploy.sh down -v` 有什么风险？**
+删除全部数据卷（元数据库与同步落库数据不可恢复）。日常停机用 `deploy/docker/deploy.sh down`（保留数据）。
 
 **Q28：怎么看同步/操作日志？**
-同步日志在数据源详情页「同步任务 → 日志」查看；平台操作记录在「系统管理 → 操作审计」查看，容器日志用 `./deploy.sh logs`。
+同步日志在数据源详情页「同步任务 → 日志」查看；平台操作记录在「系统管理 → 操作审计」查看，容器日志用 `deploy/docker/deploy.sh logs`。
 
 ## 七、其他
 

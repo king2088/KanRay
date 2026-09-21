@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: kanban
+  namespace: kanray
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: kanban-frontend:1.0.0
+          image: kanray-frontend:1.0.0-k8s
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

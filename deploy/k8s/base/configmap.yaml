@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kanban-backend-config
-  namespace: kanban
+  name: kanray-backend-config
+  namespace: kanray
 data:
-  # 与 backend/src/config/index.js 的读取键一一对应；敏感项在 Secret kanban-secrets 中。
+  # 与 backend/src/config/index.js 的读取键一一对应；敏感项在 Secret kanray-secrets 中。
   DB_TYPE: "postgres"
   DATA_DIR: "/data"
   UPLOAD_DIR: "/uploads"

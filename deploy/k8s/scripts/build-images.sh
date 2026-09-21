@@ -8,18 +8,18 @@ cd "$REPO_ROOT"
 die() { echo "[error] $*" >&2; exit 1; }
 
 BACKEND_TAG="${BACKEND_TAG:-1.0.0}"
-FRONTEND_TAG="${FRONTEND_TAG:-1.0.0}"
-BACKEND_IMAGE="kanban-backend:${BACKEND_TAG}"
-FRONTEND_IMAGE="kanban-frontend:${FRONTEND_TAG}"
+FRONTEND_TAG="${FRONTEND_TAG:-1.0.0-k8s}"
+BACKEND_IMAGE="kanray-backend:${BACKEND_TAG}"
+FRONTEND_IMAGE="kanray-frontend:${FRONTEND_TAG}"
 
-[[ -f deploy/backend/Dockerfile ]] || die "deploy/backend/Dockerfile 不存在"
-[[ -f deploy/frontend/Dockerfile ]] || die "deploy/frontend/Dockerfile 不存在"
+[[ -f deploy/k8s/backend/Dockerfile ]] || die "deploy/k8s/backend/Dockerfile 不存在"
+[[ -f deploy/k8s/frontend/Dockerfile ]] || die "deploy/k8s/frontend/Dockerfile 不存在"
 
 echo "[images] 构建 ${BACKEND_IMAGE} ..."
-docker build -t "${BACKEND_IMAGE}" -f deploy/backend/Dockerfile .
+docker build -t "${BACKEND_IMAGE}" -f deploy/k8s/backend/Dockerfile .
 
 echo "[images] 构建 ${FRONTEND_IMAGE} ..."
-docker build -t "${FRONTEND_IMAGE}" -f deploy/frontend/Dockerfile .
+docker build -t "${FRONTEND_IMAGE}" -f deploy/k8s/frontend/Dockerfile .
 
 if [[ -n "${PUSH_REGISTRY:-}" ]]; then
   echo "[images] 推送至 ${PUSH_REGISTRY} ..."

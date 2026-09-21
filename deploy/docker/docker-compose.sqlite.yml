@@ -8,20 +8,20 @@
 services:
   backend:
     build:
-      context: ..
-      dockerfile: deploy/backend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
     env_file: .env
     environment:
       DB_TYPE: sqlite
-      DB_PATH: /data/kanban.db
+      DB_PATH: /data/kanray.db
       DATA_DIR: /data
       UPLOAD_DIR: /uploads
       PORT: "3001"
       # 单进程内调度 + 执行同步；无 Redis，使用内存缓存 + sync_locks 表租约锁
       SYNC_MODE: inline
     volumes:
-      - kanban_data:/data
-      - kanban_uploads:/uploads
+      - kanray_data:/data
+      - kanray_uploads:/uploads
     expose:
       - "3001"
     # SQLite 单写者：不要对 backend 做 --scale 多副本
@@ -29,14 +29,14 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: deploy/frontend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/frontend/Dockerfile
     ports:
-      - "${KANBAN_PORT:-8080}:80"
+      - "${KANRAY_PORT:-8080}:80"
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
-  kanban_data:
-  kanban_uploads:
+  kanray_data:
+  kanray_uploads:

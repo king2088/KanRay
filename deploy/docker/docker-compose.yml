@@ -30,8 +30,8 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: deploy/backend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
     env_file: .env
     environment:
       DB_TYPE: postgres
@@ -43,8 +43,8 @@ services:
       SYNC_MODE: worker
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     volumes:
-      - kanban_data:/data
-      - kanban_uploads:/uploads
+      - kanray_data:/data
+      - kanray_uploads:/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,8 +59,8 @@ services:
   # 独立同步 worker：调度（入队）+ 消费 sync_jobs 执行同步；可独立水平扩容。
   worker:
     build:
-      context: ..
-      dockerfile: deploy/backend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
     command: ["node", "backend/src/worker/main.js"]
     env_file: .env
     environment:
@@ -72,8 +72,8 @@ services:
       SYNC_MAX_CONCURRENT: "4"
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     volumes:
-      - kanban_data:/data
-      - kanban_uploads:/uploads
+      - kanray_data:/data
+      - kanray_uploads:/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,10 +84,10 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: deploy/frontend/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/frontend/Dockerfile
     ports:
-      - "${KANBAN_PORT:-8080}:80"
+      - "${KANRAY_PORT:-8080}:80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -95,5 +95,5 @@ services:
 volumes:
   pgdata:
   redisdata:
-  kanban_data:
-  kanban_uploads:
+  kanray_data:
+  kanray_uploads:

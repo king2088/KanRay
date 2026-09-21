@@ -86,7 +86,7 @@ case "$ACTION" in
     echo "[deploy] stack=${STACK} 编排文件=${COMPOSE_FILE}"
     "${COMPOSE[@]}" up -d --build ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
     "${COMPOSE[@]}" ps
-    PORT="$(grep -E '^KANBAN_PORT=' .env 2>/dev/null | cut -d= -f2)"
+    PORT="$(grep -E '^KANRAY_PORT=' .env 2>/dev/null | cut -d= -f2)"
     PORT="${PORT:-8080}"
     echo
     echo "[deploy] stack=${STACK} 访问地址：http://localhost:${PORT}"

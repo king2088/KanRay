@@ -4,11 +4,11 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: frontend
-  namespace: kanban
+  namespace: kanray
 spec:
   ingressClassName: nginx
   rules:
-    - host: kanban.example.local
+    - host: kanray.example.local
       http:
         paths:
           - path: /
