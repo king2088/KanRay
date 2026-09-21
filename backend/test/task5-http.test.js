@@ -199,7 +199,7 @@ test('跨用户访问他人资源 → 403（B 为编辑者，有权限但非 own
 });
 
 test('管理员可读他人资源（isAdmin 放行）', async () => {
-  const at = await login('admin@kanban.local', 'admin123');
+  const at = await login('admin@kanray.local', 'admin123');
   assert.ok(at);
   const chart = await api(`/api/charts/${chartIdA}`, { method: 'GET', token: at });
   assert.equal(chart.status, 200, JSON.stringify(chart.json));
@@ -231,7 +231,7 @@ test('列表按 owner 过滤（路由 scoping）：各自只见自己的资源�
   const chartsB = await api('/api/charts', { method: 'GET', token: bat });
   assert.ok(!chartsB.json.data.some((x) => x.id === chartIdA));
 
-  const adminAt = await login('admin@kanban.local', 'admin123');
+  const adminAt = await login('admin@kanray.local', 'admin123');
   const all = await api('/api/dashboards', { method: 'GET', token: adminAt });
   assert.equal(all.status, 200);
   assert.ok(all.json.data.some((x) => x.id === dashboardIdA) && all.json.data.some((x) => x.id === dashboardIdB));

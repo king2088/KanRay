@@ -91,7 +91,7 @@ case "$ACTION" in
     echo
     echo "[deploy] stack=${STACK} 访问地址：http://localhost:${PORT}"
     echo "[deploy] Swagger 文档：http://localhost:${PORT}/api/open/docs"
-    echo "[deploy] 初始管理员：admin@kanban.local / admin123（请尽快改密）"
+    echo "[deploy] 初始管理员：admin@kanray.local / admin123（请尽快改密）"
     ;;
   down)
     "${COMPOSE[@]}" down ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}

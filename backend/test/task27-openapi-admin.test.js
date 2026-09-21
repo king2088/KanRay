@@ -45,7 +45,7 @@ async function boot() {
   const other = await authService.register({ email: 'other@x.com', password: 'Password123!', name: 'O' });
   otherId = other.id;
   server = await listen();
-  jAdmin = (await login('admin@kanban.local', 'admin123')).body.data.accessToken;
+  jAdmin = (await login('admin@kanray.local', 'admin123')).body.data.accessToken;
   jCust = (await login('cust@x.com', 'Password123!')).body.data.accessToken;
 }
 test.before(async () => await boot());

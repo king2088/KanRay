@@ -56,7 +56,7 @@ ensure_secret() {
     --from-literal=REDIS_URL="${REDIS_URL:-redis://redis:6379/0}" \
     --from-literal=ADMIN_INITIAL_PASSWORD="$admin"
   info "Secret ${SECRET_NAME} 已生成"
-  info "初始管理员：admin@kanban.local / ${admin}（请尽快改密）"
+  info "初始管理员：admin@kanray.local / ${admin}（请尽快改密）"
 }
 
 cmd_up() {

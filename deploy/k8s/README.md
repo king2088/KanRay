@@ -43,7 +43,7 @@ deploy/k8s/scripts/deploy.sh up
 # 3) 访问
 #    端口转发：kubectl -n kanray port-forward svc/frontend 8080:80  →  http://localhost:8080
 #    NodePort：http://<节点IP>:30080
-#    初始管理员：admin@kanban.local / admin123（请尽快改密）
+#    初始管理员：admin@kanray.local / admin123（请尽快改密）
 ```
 
 `deploy.sh` 子命令：`up` / `down`（`--keep-data` 保留数据）/ `status` / `logs [目标]`。

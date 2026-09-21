@@ -156,7 +156,7 @@ cd deploy/docker
 
 - 访问地址：`http://localhost:8080`（可通过修改 `deploy/docker/.env` 中的 `KANRAY_PORT` 调整）
 - Swagger 文档：`http://localhost:8080/api/open/docs`
-- 管理员：`admin@kanban.local / admin123`（生产环境请修改 `deploy/docker/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
+- 管理员：`admin@kanray.local / admin123`（生产环境请修改 `deploy/docker/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
 - **Kubernetes 部署**：进入 `deploy/k8s/`，用 `deploy/k8s/scripts/build-images.sh` 构建镜像、`deploy/k8s/scripts/deploy.sh up` 部署（详见 `deploy/k8s/README.md`）。docker 与 k8s 两套部署各自独立、不共用文件
 - 本地开发默认 **SQLite 且不启用 Redis**：`cd backend && npm run dev` 即可，无需任何中间件
 - 数据库栈 / Redis / 多副本与 systemd 等更多部署细节见 [部署运维手册](docs/05-部署运维手册.md)
@@ -198,13 +198,13 @@ cd front-end && npm run build
 - **认证**：邮箱+密码注册/登录，JWT 访问令牌（默认 15 分钟）+ 刷新令牌（默认 7 天，服务端哈希存储、单次使用轮换）；登出/改密/禁用即吊销
 - **内置角色**：管理员（全部 29 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
 - **资源隔离**：数据集/图表/看板按 owner 隔离，管理与越权访问统一返回 403
-- **默认管理员**：首次启动自动创建 `admin@kanban.local / admin123`（请尽快改密）
+- **默认管理员**：首次启动自动创建 `admin@kanray.local / admin123`（请尽快改密）
 
 ### 环境变量
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `ADMIN_EMAIL` | `admin@kanban.local` | 初始管理员邮箱 |
+| `ADMIN_EMAIL` | `admin@kanray.local` | 初始管理员邮箱 |
 | `ADMIN_INITIAL_PASSWORD` | `admin123` | 初始管理员密码 |
 | `JWT_SECRET` | `dev-secret-change-me` | JWT 签名密钥（生产必须注入） |
 | `ACCESS_TTL` | `15m` | 访问令牌有效期 |

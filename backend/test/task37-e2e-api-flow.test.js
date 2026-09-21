@@ -19,7 +19,7 @@ test('启动临时服务并登录管理员', async () => {
   const app = require('../src/app');
   await new Promise((resolve) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); }); });
 
-  const login = await api('POST', '/api/auth/login', { body: { email: 'admin@kanban.local', password: 'admin123' } });
+  const login = await api('POST', '/api/auth/login', { body: { email: 'admin@kanray.local', password: 'admin123' } });
   assert.equal(login.status, 200, JSON.stringify(login.json));
   token = login.json.data.accessToken;
   assert.ok(token);

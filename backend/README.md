@@ -16,7 +16,7 @@ npm install
 npm run dev        # 或 npm start
 ```
 
-首次启动自动创建 `backend/data/kanban.db`（SQLite），并幂等建表 + 写入初始管理员 `admin@kanban.local / admin123`（环境变量 `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` 可改，**生产务必改密**）。
+首次启动自动创建 `backend/data/kanban.db`（SQLite），并幂等建表 + 写入初始管理员 `admin@kanray.local / admin123`（环境变量 `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` 可改，**生产务必改密**）。
 
 > **本地开发约定**：dev 环境默认使用 **SQLite**、**不启用 Redis**（缓存走内存，锁走 `sync_locks` 表），无需启动任何中间件。仅当需要联调外部库/Redis 时再按「存储后端」章节覆盖 `DB_TYPE` / `DB_URL` / `REDIS_URL`。
 
@@ -42,7 +42,7 @@ npm run dev        # 或 npm start
 | `DB_PATH` | `data/kanban.db` | sqlite 文件路径（支持绝对路径） |
 | `DATA_DIR` | `backend/data` | 运行时数据目录（也决定 `config.json` 首个读取位置） |
 | `UPLOAD_DIR` | `backend/uploads` | 上传文件目录 |
-| `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` | `admin@kanban.local` / `admin123` | 初始管理员 |
+| `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` | `admin@kanray.local` / `admin123` | 初始管理员 |
 | `JWT_SECRET` | `dev-secret-change-me` | JWT 密钥（生产必须注入） |
 | `ACCESS_TTL` / `REFRESH_TTL_DAYS` | `15m` / `7` | 令牌有效期 |
 | `MAX_FILE_SIZE` / `MAX_ROWS` | `20MB` / `200000` | 上传大小与行数上限 |
@@ -103,7 +103,7 @@ DB_TYPE=oracle DB_URL='oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1' np
 
 1. 读取连接串，检查可达性；
 2. 对所选库执行**幂等建表**（`IF NOT EXISTS` 等）+ **老库列补齐**（按方言探测已有表结构并补列）,建表 DDL 见 `src/db/ddl/*.js`；
-3. 若库中无管理员则自动播种 `admin@kanban.local`；
+3. 若库中无管理员则自动播种 `admin@kanray.local`；
 4. 直接进入正常使用，无需手工建表。
 
 增量大表 / 生产切换建议先人工在目标库执行 `src/db/schema.js` 对应的引导逻辑演练一遍，再切正式流量。

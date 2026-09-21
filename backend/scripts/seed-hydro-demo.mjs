@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 const BASE = process.argv.find((a) => a.startsWith('--base='))?.split('=')[1] || 'http://127.0.0.1:3001';
-const ADMIN = { email: 'admin@kanban.local', password: 'admin123' };
+const ADMIN = { email: 'admin@kanray.local', password: 'admin123' };
 const MYSQL = { host: '127.0.0.1', port: 13306, user: 'root', password: 'Kanban@123', database: 'testdb' };
 const HYDRO_KEYWORDS = ['水电站', '流域发电', '省份装机']; // 用于识别水电站域资源名
 

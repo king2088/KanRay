@@ -51,7 +51,7 @@ test('viewer 无 dashboard:share 权限被拒', async () => {
 });
 
 test('analyst 非 owner 创建他人分享被拒', async () => {
-  const token = await login('admin@kanban.local', 'admin123');
+  const token = await login('admin@kanray.local', 'admin123');
   const r = await api(`/api/dashboards/${global.__dashId}/shares`, { method: 'POST', token, body: { password: 'pass1234' } });
   assert.equal(r.status, 200);
   assert.ok(r.json.data.token);
@@ -67,7 +67,7 @@ test('analyst 非 owner 创建他人分享被拒', async () => {
 });
 
 test('list/patch/delete 分享', async () => {
-  const token = await login('admin@kanban.local', 'admin123');
+  const token = await login('admin@kanray.local', 'admin123');
   const list = await api(`/api/dashboards/${global.__dashId}/shares`, { method: 'GET', token });
   assert.equal(list.status, 200);
   assert.ok(Array.isArray(list.json.data));
@@ -84,7 +84,7 @@ test('list/patch/delete 分享', async () => {
 });
 
 test('无密码分享可创建/加密码/移除密码', async () => {
-  const token = await login('admin@kanban.local', 'admin123');
+  const token = await login('admin@kanray.local', 'admin123');
   const open = await api(`/api/dashboards/${global.__dashId}/shares`, { method: 'POST', token, body: { password: null } });
   assert.equal(open.status, 200);
   assert.equal(open.json.data.hasPassword, false);

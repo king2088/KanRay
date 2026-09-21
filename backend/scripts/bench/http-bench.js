@@ -6,7 +6,7 @@
 // 用法：
 //   node scripts/bench/http-bench.js \
 //     --url http://localhost:3001 \
-//     --email admin@kanban.local --password admin123 \
+//     --email admin@kanray.local --password admin123 \
 //     --path /api/datasets --method GET \
 //     --concurrency 20 --duration 15
 //
@@ -21,7 +21,7 @@ function parseArgs(argv) {
     url: 'http://localhost:3001',
     path: '/api/datasets',
     method: 'GET',
-    email: 'admin@kanban.local',
+    email: 'admin@kanray.local',
     password: 'admin123',
     concurrency: 20,
     duration: 15,

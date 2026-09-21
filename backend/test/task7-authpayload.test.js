@@ -7,7 +7,7 @@ const authService = require('../src/services/auth.service');
 
 test('admin 登录返回全部权限', async () => {
   await resetDb();
-  const r = await authService.login('admin@kanban.local', 'admin123');
+  const r = await authService.login('admin@kanray.local', 'admin123');
   assert.ok(Array.isArray(r.user.permissions));
   assert.equal(r.user.permissions.length, 29);
   assert.ok(r.user.permissions.includes('dataset:create'));
@@ -24,7 +24,7 @@ test('默认 viewer 仅返回播放权限', async () => {
 
 test('userWithRoles 返回 permissions', async () => {
   await resetDb();
-  const adminRow = db.prepare("SELECT id FROM users WHERE email = 'admin@kanban.local'").get();
+  const adminRow = db.prepare("SELECT id FROM users WHERE email = 'admin@kanray.local'").get();
   const u = await authService.userWithRoles(adminRow.id);
   assert.equal(u.permissions.length, 29);
 });

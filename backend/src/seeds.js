@@ -56,7 +56,7 @@ async function seedRoles(permIds) {
 }
 
 async function seedAdmin() {
-  const email = process.env.ADMIN_EMAIL || 'admin@kanban.local';
+  const email = process.env.ADMIN_EMAIL || 'admin@kanray.local';
   const password = process.env.ADMIN_INITIAL_PASSWORD || 'admin123';
   const existing = (await db.prepare('SELECT id FROM users WHERE email = ?').get(email));
   let uid;

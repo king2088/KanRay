@@ -9,7 +9,7 @@ const authService = require('../src/services/auth.service');
 
 test('permissionsOf：admin 含所有权限点', async () => {
   await resetDb();
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanban.local');
+  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
   const perms = await rbac.permissionsOf(admin.id);
   assert.ok(perms.includes('dashboard:delete'));
   assert.ok(perms.includes('user:read'));
@@ -34,7 +34,7 @@ test('hasPermission 受角色影响', async () => {
 
 test('access.assertResource：管理员可访问他人资源，非管理员只可访问自己资源', async () => {
   await resetDb();
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanban.local');
+  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
   const u1 = await authService.register({ email: 'u1@x.com', password: 'Password123!', name: 'U1' });
   const u2 = await authService.register({ email: 'u2@x.com', password: 'Password123!', name: 'U2' });
   db.exec(`INSERT INTO dashboards (name, layout, owner_id) VALUES ('d1','[]',${u1.id})`);
@@ -45,7 +45,7 @@ test('access.assertResource：管理员可访问他人资源，非管理员只�
 
 test('scopedWhere：admin 无过滤，其余加 owner_id', async () => {
   await resetDb();
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanban.local');
+  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
   assert.equal(await access.scopedWhere('dashboards', { id: admin.id }, rbac), '');
   const u = await authService.register({ email: 's@x.com', password: 'Password123!', name: 'S' });
   const w = await access.scopedWhere('dashboards', { id: u.id }, rbac);
@@ -109,6 +109,6 @@ test('isAdmin：非内置 admin 角色的 user:read+role:read 不算管理员', 
   const r = await rbac.createRole('usermgr', '用户管理', ['user:read', 'role:read', 'user:update']);
   const u = await rbac.createUser('um@x.com', 'Password123!', 'UM', [r.id]);
   assert.equal(await access.isAdmin({ id: u.id }, rbac), false);
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanban.local');
+  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
   assert.equal(await access.isAdmin({ id: admin.id }, rbac), true);
 });

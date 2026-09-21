@@ -99,7 +99,7 @@ if (process.env.RUN_LIVE !== '1') {
     server = app.listen(0);
     await new Promise((r) => server.once('listening', r));
     base = `http://127.0.0.1:${server.address().port}`;
-    const admin = await authService.login('admin@kanban.local', 'admin123');
+    const admin = await authService.login('admin@kanray.local', 'admin123');
     adminToken = admin.accessToken;
 
     await ensureDirtyTable();

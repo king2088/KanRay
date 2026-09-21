@@ -26,7 +26,7 @@ test('seeds 四个内置角色且 admin 拥有全部权限', async () => {
 
 test('seeds 默认管理员：bcrypt 密码可校验', async () => {
   await resetDb();
-  const admin = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@kanban.local');
+  const admin = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@kanray.local');
   assert.ok(admin, '缺少默认管理员');
   const bcrypt = require('bcryptjs');
   assert.ok(bcrypt.compareSync('admin123', admin.password_hash));
@@ -36,7 +36,7 @@ test('seeds 默认管理员：bcrypt 密码可校验', async () => {
 
 test('既有数据集/图表/看板回填 owner_id 为管理员', async () => {
   await resetDb();
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanban.local');
+  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
   db.exec("INSERT INTO datasets (name, original_file, row_count, column_count, table_name, owner_id) VALUES ('a','a.xlsx',1,1,'ds_x', NULL)");
   db.exec("INSERT INTO charts (name, dataset_id, chart_type, config) VALUES ('c', 1, 'bar', '{}')");
   db.exec("INSERT INTO dashboards (name, layout) VALUES ('d', '[]')");
@@ -51,7 +51,7 @@ test('seeds 幂等：连续 seed() 不重复写入', async () => {
   await seed();
   const perms = db.prepare('SELECT COUNT(*) n FROM permissions').get().n;
   const roles = db.prepare('SELECT COUNT(*) n FROM roles').get().n;
-  const users = db.prepare('SELECT COUNT(*) n FROM users WHERE email = ?').get('admin@kanban.local').n;
+  const users = db.prepare('SELECT COUNT(*) n FROM users WHERE email = ?').get('admin@kanray.local').n;
   assert.equal(perms, 29, '权限点应保持 29 个');
   assert.equal(roles, 4, '角色应保持 4 个');
   assert.equal(users, 1, '默认管理员应恰好存在一次');

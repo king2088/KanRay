@@ -40,7 +40,7 @@ const PORT = await getFreePort();
 const BASE = `http://127.0.0.1:${PORT}`;
 const DB_PATH = path.join(os.tmpdir(), `smoke-kanban-${Date.now()}.db`);
 const results = [];
-const admin = { email: 'admin@kanban.local', password: 'admin123' };
+const admin = { email: 'admin@kanray.local', password: 'admin123' };
 
 const awaitSourceCount = async () => {
   const mysql = require('mysql2/promise');

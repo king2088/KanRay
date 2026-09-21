@@ -40,7 +40,7 @@ before(async () => {
   server = app.listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
-  token = (await authService.login('admin@kanban.local', 'admin123')).accessToken;
+  token = (await authService.login('admin@kanray.local', 'admin123')).accessToken;
 
   const ds = await datasetService.createDataset(
     'metrics-lib-edge',

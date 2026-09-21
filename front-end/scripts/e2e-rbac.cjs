@@ -58,7 +58,7 @@ async function login(email, password) {
   assert(mkChart.status === 403, 'viewer POST /api/charts 403', `got=${mkChart.status}`);
 
   // 6. 管理员登录 → 全量数据 + 管理接口 200
-  const admin = await login('admin@kanban.local', 'admin123');
+  const admin = await login('admin@kanray.local', 'admin123');
   assert(admin && admin.accessToken, '管理员登录成功');
   const allCharts = await api('/api/charts', { token: admin.accessToken });
   assert(allCharts.status === 200 && allCharts.json.code === 0 && allCharts.json.data.length > 0, '管理员 GET /api/charts 全量', `n=${allCharts.json.data && allCharts.json.data.length}`);

@@ -11,7 +11,7 @@
 账号被管理员停用。联系管理员启用后即可登录。
 
 **Q3：初始管理员账号是什么？**
-`admin@kanban.local / admin123`（Docker 部署时可用 `deploy/docker/.env` 中 `ADMIN_INITIAL_PASSWORD` 自定义）。生产环境务必第一时间修改。
+`admin@kanray.local / admin123`（Docker 部署时可用 `deploy/docker/.env` 中 `ADMIN_INITIAL_PASSWORD` 自定义）。生产环境务必第一时间修改。
 
 **Q4：密码有什么要求？**
 至少 8 位，且同时包含字母和数字。
