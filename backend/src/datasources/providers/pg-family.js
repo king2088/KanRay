@@ -55,8 +55,24 @@ async function testConnection(cfg) {
   }
 }
 
-async function listSchemas() {
-  return [{ name: 'public' }];
+async function listSchemas(cfg) {
+  const pool = makePool(cfg);
+  try {
+    const { rows } = await pool.query(
+      `SELECT nspname AS name FROM pg_catalog.pg_namespace
+       WHERE nspname <> 'information_schema'
+         AND nspname NOT LIKE 'pg\\_%'
+       ORDER BY nspname`
+    );
+    let names = rows.map((r) => r.name);
+    const primary = cfg.schema || 'public';
+    if (names.includes(primary)) names = [primary, ...names.filter((n) => n !== primary)];
+    else names = [primary, ...names];
+    if (!names.length) names = ['public'];
+    return names.map((name) => ({ name }));
+  } finally {
+    await pool.end();
+  }
 }
 
 async function listTables(cfg, type, schema) {
@@ -67,7 +83,16 @@ async function listTables(cfg, type, schema) {
       'SELECT table_name AS name, table_type AS type FROM information_schema.tables WHERE table_schema = $1 ORDER BY table_name',
       [sch]
     );
-    return rows.map((r) => ({ name: r.name, type: r.type === 'BASE TABLE' ? 'table' : 'view' }));
+    if (rows.length) return rows.map((r) => ({ name: r.name, type: r.type === 'BASE TABLE' ? 'table' : 'view' }));
+    const { rows: rows2 } = await pool.query(
+      `SELECT c.relname AS name, (CASE WHEN c.relkind = 'v' THEN 'view' ELSE 'table' END) AS type
+       FROM pg_catalog.pg_class c
+       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = $1 AND c.relkind IN ('r','p','v','m')
+       ORDER BY c.relname`,
+      [sch]
+    );
+    return rows2.map((r) => ({ name: r.name, type: r.type }));
   } finally {
     await pool.end();
   }
@@ -84,11 +109,27 @@ async function listColumns(cfg, type, schema, table) {
        ORDER BY ordinal_position`,
       [sch, table]
     );
-    return rows.map((r) => ({
+    let cols = rows.map((r) => ({
       name: r.name,
       type: r.type,
       role: /int|float|double|decimal|numeric|bigint|smallint/.test(r.type) ? 'metric' : 'dimension',
     }));
+    if (cols.length) return cols;
+    const { rows: rows2 } = await pool.query(
+      `SELECT a.attname AS name, format_type(a.atttypid, a.atttypmod) AS type
+       FROM pg_catalog.pg_attribute a
+       JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = $1 AND c.relname = $2 AND a.attnum > 0 AND NOT a.attisdropped
+       ORDER BY a.attnum`,
+      [sch, table]
+    );
+    cols = rows2.map((r) => ({
+      name: r.name,
+      type: r.type,
+      role: /int|float|double|decimal|numeric|bigint|smallint/.test(r.type) ? 'metric' : 'dimension',
+    }));
+    return cols;
   } finally {
     await pool.end();
   }

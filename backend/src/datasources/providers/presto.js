@@ -11,7 +11,7 @@ function makeClient(cfg) {
     user: cfg.user || 'trino',
     catalog: cfg.catalog,
     schema: cfg.schema,
-    engine: 'trino', // `presto-client` 用 engine 参数区分 headers；Presto → 'presto'，Trino → 'trino'
+    engine: cfg.engine || 'trino', // `presto-client` 用 engine 参数区分 headers；Presto → 'presto'，Trino → 'trino'
     checkInterval: 300,
     timeout: 30000,
   });
