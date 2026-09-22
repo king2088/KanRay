@@ -21,7 +21,7 @@ function makeComp(overrides: any) {
     opacity: 100,
     props: {},
     style: { backgroundColor: 'transparent', borderWidth: 0, borderColor: '#000', borderRadius: 0, boxShadowX: 0, boxShadowY: 0, boxShadowBlur: 0, boxShadowColor: 'rgba(0,0,0,0)' },
-    data: { type: 'static', value: '' },
+    data: { type: 'static', value: '', datasetId: null, categoryField: '', valueFields: [] },
     animation: { type: 'none', duration: 500, delay: 0 },
     interaction: {},
     ...overrides
