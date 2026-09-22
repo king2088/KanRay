@@ -988,7 +988,7 @@ onUnmounted(() => {
 .drawer-preview-actions { display: flex; align-items: center; gap: 8px; }
 .drawer-error { font-size: 12px; color: var(--el-color-danger); }
 .drawer-section-title { font-size: 14px; font-weight: 600; color: var(--app-text-secondary); margin-bottom: 6px; }
-.etl-sql-editor :deep(.sql-codemirror) { height: 160px; }
+.etl-sql-editor :deep(.sql-editor-wrap) { height: 160px; }
 .drawer-table { width: 100%; margin-bottom: 10px; }
 .drawer-table :deep(.el-table__header th) { padding: 5px 0; font-size: 12px; }
 .drawer-table :deep(.el-input__wrapper), .drawer-table :deep(.el-select) { width: 100%; }
