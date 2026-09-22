@@ -5,6 +5,7 @@ const PERMISSIONS = [
   ['dataset:read', '查看数据集'], ['dataset:create', '创建数据集'], ['dataset:update', '编辑数据集'], ['dataset:delete', '删除数据集'],
   ['chart:read', '查看图表'], ['chart:create', '创建图表'], ['chart:update', '编辑图表'], ['chart:delete', '删除图表'],
   ['dashboard:read', '查看看板'], ['dashboard:create', '创建看板'], ['dashboard:update', '编辑看板'], ['dashboard:delete', '删除看板'], ['dashboard:share', '分享看板'],
+  ['big_screen:read', '查看大屏'], ['big_screen:create', '创建大屏'], ['big_screen:update', '编辑大屏'], ['big_screen:delete', '删除大屏'], ['big_screen:share', '分享大屏'],
   ['datasource:read', '查看数据源'], ['datasource:create', '创建数据源'], ['datasource:update', '编辑数据源'], ['datasource:delete', '删除数据源'],
   ['sqllab:execute', '执行 SQL'],
   ['user:read', '查看用户'], ['user:create', '创建用户'], ['user:update', '编辑用户'], ['user:delete', '删除用户'],
@@ -19,7 +20,7 @@ const ALL = PERMISSIONS.map((p) => p[0]);
 const ROLES = [
   { code: 'admin', name: '管理员', description: '全部权限', isBuiltin: 1, permissions: ALL },
   { code: 'analyst', name: '数据工程师/分析师', description: '管理数据源/数据集/图表/看板，可执行 SQL', isBuiltin: 1, permissions: ALL.filter((p) => !p.startsWith('user:') && !p.startsWith('role:') && !p.startsWith('audit:') && p !== 'system:config' && !p.startsWith('apikey:')) },
-  { code: 'editor', name: '看板编辑者', description: '构建图表与排版看板，可看数据集', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'chart:create', 'chart:update', 'chart:delete', 'dashboard:read', 'dashboard:create', 'dashboard:update', 'dashboard:delete', 'dashboard:share'] },
+  { code: 'editor', name: '看板编辑者', description: '构建图表与排版看板，可看数据集', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'chart:create', 'chart:update', 'chart:delete', 'dashboard:read', 'dashboard:create', 'dashboard:update', 'dashboard:delete', 'dashboard:share', 'big_screen:read', 'big_screen:create', 'big_screen:update', 'big_screen:delete', 'big_screen:share'] },
   { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read'] },
 ];
 
@@ -73,7 +74,7 @@ async function seedAdmin() {
 }
 
 async function backfillOwner(adminId) {
-  for (const t of ['datasets', 'charts', 'dashboards']) {
+  for (const t of ['datasets', 'charts', 'dashboards', 'big_screens']) {
     await db.prepare(`UPDATE ${t} SET owner_id = ? WHERE owner_id IS NULL`).run(adminId);
   }
 }

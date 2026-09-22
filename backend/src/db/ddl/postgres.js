@@ -70,6 +70,12 @@ module.exports = [
   'CREATE INDEX IF NOT EXISTS idx_datasets_owner ON datasets(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_charts_owner ON charts(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_dashboards_owner ON dashboards(owner_id)',
+  `CREATE TABLE IF NOT EXISTS big_screens (
+    id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+    thumbnail TEXT NOT NULL DEFAULT '', config TEXT NOT NULL DEFAULT '{}', components TEXT NOT NULL DEFAULT '[]',
+    owner_id BIGINT, created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_big_screens_owner ON big_screens(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash)',
   `CREATE TABLE IF NOT EXISTS sync_configs (
     id BIGSERIAL PRIMARY KEY, datasource_id BIGINT NOT NULL REFERENCES data_sources(id) ON DELETE CASCADE,
@@ -110,6 +116,13 @@ module.exports = [
     created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
   'CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE IF NOT EXISTS big_screen_shares (
+    id BIGSERIAL PRIMARY KEY, big_screen_id BIGINT NOT NULL REFERENCES big_screens(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+    expires_at TIMESTAMP, is_active SMALLINT NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_big_screen_shares_screen ON big_screen_shares(big_screen_id)',
   `CREATE TABLE IF NOT EXISTS api_keys (
     id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'static',
     user_id BIGINT NOT NULL, key_hash TEXT NOT NULL UNIQUE, key_prefix TEXT NOT NULL,

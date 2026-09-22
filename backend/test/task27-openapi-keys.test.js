@@ -92,11 +92,11 @@ test('effectivePermissions：static 取交集、PAT 继承', async () => {
   assert.deepEqual(apiKeyService.effectivePermissions(patRow, userPerms), userPerms);
 });
 
-test('seeds：apikey:manage 已登记且仅 admin 授予（29 个权限点）', async () => {
+test('seeds：apikey:manage 已登记且仅 admin 授予（34 个权限点）', async () => {
   await reset();
   const perms = store.all('SELECT code FROM permissions ORDER BY code').map((r) => r.code);
   assert.ok(perms.includes('apikey:manage'), '应登记 apikey:manage');
-  assert.equal(perms.length, 29, '权限点总数应为 29');
+  assert.equal(perms.length, 34, '权限点总数应为 34');
   for (const role of ['admin', 'analyst', 'editor', 'viewer']) {
     const rows = store.all(
       `SELECT p.code FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
@@ -105,6 +105,6 @@ test('seeds：apikey:manage 已登记且仅 admin 授予（29 个权限点）', 
     ).map((x) => x.code);
     if (role === 'admin') assert.ok(rows.includes('apikey:manage'), 'admin 应含 apikey:manage');
     else assert.ok(!rows.includes('apikey:manage'), `${role} 不应含 apikey:manage`);
-    if (role === 'admin') assert.equal(rows.length, 29);
+    if (role === 'admin') assert.equal(rows.length, 34);
   }
 });

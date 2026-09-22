@@ -83,6 +83,12 @@ module.exports = [
   'CREATE INDEX IF NOT EXISTS idx_datasets_owner ON datasets(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_charts_owner ON charts(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_dashboards_owner ON dashboards(owner_id)',
+  `CREATE TABLE IF NOT EXISTS big_screens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, description TEXT NOT NULL,
+    thumbnail TEXT NOT NULL, config LONGTEXT NOT NULL, components LONGTEXT NOT NULL,
+    owner_id BIGINT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_big_screens_owner (owner_id)
+  )`,
   `CREATE TABLE IF NOT EXISTS sync_configs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, datasource_id BIGINT NOT NULL,
     source_schema VARCHAR(255), source_table VARCHAR(255) NOT NULL, local_table VARCHAR(255) NOT NULL,
@@ -124,6 +130,15 @@ module.exports = [
     UNIQUE KEY uq_dashboard_shares_token (token),
     KEY idx_dashboard_shares_dashboard (dashboard_id),
     CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS big_screen_shares (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, big_screen_id BIGINT NOT NULL,
+    token VARCHAR(64) NOT NULL, password_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME, is_active TINYINT(1) NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_big_screen_shares_token (token),
+    KEY idx_big_screen_shares_screen (big_screen_id),
+    CONSTRAINT fk_big_screen_shares_scr FOREIGN KEY (big_screen_id) REFERENCES big_screens(id) ON DELETE CASCADE
   )`,
   `CREATE TABLE IF NOT EXISTS api_keys (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, type VARCHAR(16) NOT NULL DEFAULT 'static',

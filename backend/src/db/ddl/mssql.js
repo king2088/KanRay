@@ -81,6 +81,12 @@ module.exports = [
   'CREATE INDEX idx_datasets_owner ON datasets(owner_id)',
   'CREATE INDEX idx_charts_owner ON charts(owner_id)',
   'CREATE INDEX idx_dashboards_owner ON dashboards(owner_id)',
+  `CREATE TABLE big_screens (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, description NVARCHAR(MAX) NOT NULL DEFAULT '',
+    thumbnail NVARCHAR(MAX) NOT NULL DEFAULT '', config NVARCHAR(MAX) NOT NULL DEFAULT '{}', components NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+    owner_id BIGINT, created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+  )`,
+  'CREATE INDEX idx_big_screens_owner ON big_screens(owner_id)',
   'CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash)',
   `CREATE TABLE sync_configs (
     id BIGINT IDENTITY(1,1) PRIMARY KEY, datasource_id BIGINT NOT NULL,
@@ -123,6 +129,15 @@ module.exports = [
     CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
   )`,
   'CREATE INDEX idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE big_screen_shares (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, big_screen_id BIGINT NOT NULL,
+    token NVARCHAR(64) NOT NULL, password_hash NVARCHAR(255) NOT NULL,
+    expires_at DATETIME2, is_active BIT NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT uq_big_screen_shares_token UNIQUE (token),
+    CONSTRAINT fk_big_screen_shares_scr FOREIGN KEY (big_screen_id) REFERENCES big_screens(id) ON DELETE CASCADE
+  )`,
+  'CREATE INDEX idx_big_screen_shares_screen ON big_screen_shares(big_screen_id)',
   `CREATE TABLE api_keys (
     id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, type NVARCHAR(16) NOT NULL DEFAULT 'static',
     user_id BIGINT NOT NULL, key_hash NVARCHAR(64) NOT NULL, key_prefix NVARCHAR(32) NOT NULL,

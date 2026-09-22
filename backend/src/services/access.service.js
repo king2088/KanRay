@@ -5,6 +5,7 @@ const RESOURCE_TABLES = {
   dataset: 'datasets', datasets: 'datasets',
   chart: 'charts', charts: 'charts',
   dashboard: 'dashboards', dashboards: 'dashboards',
+  big_screen: 'big_screens', big_screens: 'big_screens',
   datasource: 'data_sources', datasources: 'data_sources',
 };
 

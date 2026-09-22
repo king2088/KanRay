@@ -9,7 +9,7 @@ test('admin 登录返回全部权限', async () => {
   await resetDb();
   const r = await authService.login('admin@kanray.local', 'admin123');
   assert.ok(Array.isArray(r.user.permissions));
-  assert.equal(r.user.permissions.length, 29);
+  assert.equal(r.user.permissions.length, 34);
   assert.ok(r.user.permissions.includes('dataset:create'));
   assert.ok(r.user.permissions.includes('user:read'));
   assert.ok(r.user.permissions.includes('audit:read'));
@@ -26,5 +26,5 @@ test('userWithRoles 返回 permissions', async () => {
   await resetDb();
   const adminRow = db.prepare("SELECT id FROM users WHERE email = 'admin@kanray.local'").get();
   const u = await authService.userWithRoles(adminRow.id);
-  assert.equal(u.permissions.length, 29);
+  assert.equal(u.permissions.length, 34);
 });
