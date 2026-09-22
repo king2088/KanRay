@@ -20,6 +20,30 @@ const routes = [
     meta: { title: '分享查看', public: true },
   },
   {
+    path: '/big-screen/share/:token',
+    name: 'big-screen-share',
+    component: () => import('../screen-designer/views/Share.vue'),
+    meta: { title: '大屏分享', public: true },
+  },
+  {
+    path: '/big-screen/design/:id',
+    name: 'big-screen-design',
+    component: () => import('../screen-designer/views/Designer.vue'),
+    meta: { title: '大屏设计器' },
+  },
+  {
+    path: '/big-screen/preview/:id',
+    name: 'big-screen-preview',
+    component: () => import('../screen-designer/views/Preview.vue'),
+    meta: { title: '大屏预览' },
+  },
+  {
+    path: '/big-screen/settings',
+    name: 'big-screen-settings',
+    component: () => import('../screen-designer/views/Settings.vue'),
+    meta: { title: '大屏设置' },
+  },
+  {
     path: '/',
     component: () => import('../views/MainLayout.vue'),
     redirect: '/datasources',
@@ -35,6 +59,7 @@ const routes = [
       { path: 'dashboards', name: 'dashboards', component: () => import('../views/DashboardList.vue'), meta: { title: '看板中心' } },
       { path: 'dashboards/:id', name: 'dashboard-view', component: () => import('../views/DashboardView.vue'), meta: { title: '看板查看' } },
       { path: 'dashboards/:id/edit', name: 'dashboard-edit', component: () => import('../views/DashboardEditor.vue'), meta: { title: '编辑看板' } },
+      { path: 'big-screen', name: 'big-screens', component: () => import('../views/BigScreenList.vue'), meta: { title: '大屏设计' } },
       { path: 'admin/users', name: 'admin-users', component: () => import('../views/admin/UserAdmin.vue'), meta: { title: '用户管理' } },
       { path: 'admin/roles', name: 'admin-roles', component: () => import('../views/admin/RoleAdmin.vue'), meta: { title: '角色管理' } },
       { path: 'admin/audit', name: 'admin-audit', component: () => import('../views/admin/AuditView.vue'), meta: { title: '操作审计' } },

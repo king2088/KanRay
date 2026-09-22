@@ -3,6 +3,7 @@ export const MENU_ITEMS = [
   { path: '/datasets', title: '数据集', icon: 'FolderOpened' },
   { path: '/charts', title: '图表中心', icon: 'PieChart' },
   { path: '/dashboards', title: '看板中心', icon: 'Odometer' },
+  { path: '/big-screen', title: '大屏设计', icon: 'Monitor' },
   { path: '/admin', title: '系统管理', icon: 'Setting' },
 ]
 
@@ -40,6 +41,7 @@ export function activeMenuOf(path) {
   if (path.startsWith('/datasources')) return '/datasources'
   if (path.startsWith('/dashboards')) return '/dashboards'
   if (path.startsWith('/charts')) return '/charts'
+  if (path.startsWith('/big-screen')) return '/big-screen'
   return '/datasets'
 }
 

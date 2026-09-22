@@ -59,6 +59,20 @@ export const dashboardApi = {
   deleteShare: (shareId) => http.delete(`/shares/${shareId}`),
 }
 
+export const bigScreenApi = {
+  list: (params) => http.get('/big-screens', { params }),
+  listPaged: (page, pageSize) => listPaged('/big-screens', page, pageSize),
+  get: (id) => http.get(`/big-screens/${id}`),
+  create: (data) => http.post('/big-screens', data),
+  mock: (data) => http.post('/big-screens/mock', data),
+  update: (id, data) => http.patch(`/big-screens/${id}`, data),
+  remove: (id) => http.delete(`/big-screens/${id}`),
+  shares: (id) => http.get(`/big-screens/${id}/shares`),
+  createShare: (id, data) => http.post(`/big-screens/${id}/shares`, data),
+  updateShare: (shareId, data) => http.patch(`/big-screen-shares/${shareId}`, data),
+  deleteShare: (shareId) => http.delete(`/big-screen-shares/${shareId}`),
+}
+
 export const authApi = {
   register: (payload) => http.post('/auth/register', payload),
   login: (payload) => http.post('/auth/login', payload),

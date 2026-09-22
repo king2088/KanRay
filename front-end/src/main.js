@@ -4,12 +4,16 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import * as echarts from 'echarts'
+import 'echarts-liquidfill'
 
 import App from './App.vue'
 import router from './router'
 import { pinia } from './stores'
 import { useAppStore } from './stores/app'
 import './assets/main.css'
+
+window.echarts = echarts
 
 const app = createApp(App)
 
@@ -23,5 +27,15 @@ app.use(ElementPlus, { locale: zhCn })
 
 useAppStore(pinia).applyInitial()
 useAppStore(pinia).loadConfig()
+
+router.afterEach((to) => {
+  if (to.path.startsWith('/big-screen')) {
+    const onBeforeSubmit = (e) => e.preventDefault()
+    document.addEventListener('submit', onBeforeSubmit, true)
+    window.__bigScreenUnsubSubmit = () => document.removeEventListener('submit', onBeforeSubmit, true)
+  } else {
+    window.__bigScreenUnsubSubmit?.()
+  }
+})
 
 app.mount('#app')
