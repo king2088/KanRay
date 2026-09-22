@@ -36,6 +36,15 @@ const togglePanel = () => { rightPanelCollapsed.value = !rightPanelCollapsed.val
 const expandedSections = ref<string[]>(['canvas'])
 const showDataEditor = ref(false)
 
+const selectedComponent = computed(() => {
+  if (componentsStore.selectedIds.length === 1) {
+    return componentsStore.components.find(c => c.id === componentsStore.selectedIds[0])
+  }
+  return null
+})
+
+const isMobilePreview = computed(() => canvasStore.previewDevice !== 'pc')
+
 // 数据集数据源
 const datasetList = ref<{ id: number; name: string }[]>([])
 const datasetFields = ref<{ name: string; label: string; type: string }[]>([])
@@ -79,15 +88,6 @@ function onDataTypeChange(t: string) {
   }
   selectedComponent.value.data = data
 }
-
-const isMobilePreview = computed(() => canvasStore.previewDevice !== 'pc')
-
-const selectedComponent = computed(() => {
-  if (componentsStore.selectedIds.length === 1) {
-    return componentsStore.components.find(c => c.id === componentsStore.selectedIds[0])
-  }
-  return null
-})
 
 // Auto-expand props when component selected, collapse canvas
 watch(() => componentsStore.selectedIds, (ids) => {

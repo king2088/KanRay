@@ -64,7 +64,7 @@
       </template>
     </el-dialog>
 
-    <ShareDialog v-model="share.show" :shares="share.list" :creating="share.creating" @create="createShare" @toggle="toggleShare" @expire="expireShare" @delete="deleteShare" />
+    <BigScreenShareDialog v-model="share.show" :screen-id="share.screenId" :name="share.screenName" />
   </div>
 </template>
 
@@ -75,7 +75,7 @@ import { Plus, Search, Monitor } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import { bigScreenApi } from '@/api'
-import ShareDialog from '@/components/dashboard/ShareDialog.vue'
+import BigScreenShareDialog from '@/components/dashboard/BigScreenShareDialog.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -87,7 +87,7 @@ const search = ref('')
 const showCreate = ref(false)
 const creating = ref(false)
 const createForm = ref({ name: '' })
-const share = ref({ show: false, creating: false, list: [], screenId: null })
+const share = ref({ show: false, screenId: null, screenName: '' })
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -149,53 +149,8 @@ async function remove(row) {
 
 async function openShare(row) {
   share.value.screenId = row.id
-  try {
-    share.value.list = await bigScreenApi.shares(row.id)
-  } catch (e) {
-    share.value.list = []
-  }
+  share.value.screenName = row.name
   share.value.show = true
-}
-
-async function createShare({ password, expiresAt }) {
-  share.value.creating = true
-  try {
-    await bigScreenApi.createShare(share.value.screenId, { password: password || null, expiresAt: expiresAt || null })
-    share.value.list = await bigScreenApi.shares(share.value.screenId)
-    ElMessage.success('分享创建成功')
-  } catch (e) {
-    ElMessage.error(e.message || '创建分享失败')
-  } finally {
-    share.value.creating = false
-  }
-}
-
-async function toggleShare(s) {
-  try {
-    await bigScreenApi.updateShare(s.id, { isActive: !s.isActive })
-    share.value.list = await bigScreenApi.shares(share.value.screenId)
-  } catch (e) {
-    ElMessage.error(e.message || '更新失败')
-  }
-}
-
-async function expireShare(s, expiresAt) {
-  try {
-    await bigScreenApi.updateShare(s.id, { expiresAt })
-    share.value.list = await bigScreenApi.shares(share.value.screenId)
-  } catch (e) {
-    ElMessage.error(e.message || '更新失败')
-  }
-}
-
-async function deleteShare(s) {
-  try {
-    await bigScreenApi.deleteShare(s.id)
-    share.value.list = await bigScreenApi.shares(share.value.screenId)
-    ElMessage.success('删除成功')
-  } catch (e) {
-    ElMessage.error(e.message || '删除失败')
-  }
 }
 </script>
 
