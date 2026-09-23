@@ -159,17 +159,21 @@ function groupIcon(label) {
   font-size: 14px;
   font-weight: 500;
   padding: 10px 0;
+  background-color: var(--app-card-solid);
 }
 .config-collapse :deep(.el-collapse-item.is-active > .el-collapse-item__header) {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--app-card);
+  background: var(--app-card-solid);
   box-sizing: border-box;
   width: calc(100% + 12px);
   margin: 0 -10px;
   padding-left: 10px;
   padding-right: 10px;
+}
+.config-collapse :deep(.el-collapse-item__wrap) {
+  background-color: var(--app-card-solid);
 }
 .config-collapse :deep(.el-collapse-item__content) {
   padding-top: 4px;

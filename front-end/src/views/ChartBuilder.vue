@@ -806,6 +806,7 @@ onMounted(async () => {
 
 .right-config-view {
   padding: 0 10px 16px;
+  background: var(--app-card-solid);
 }
 
 
