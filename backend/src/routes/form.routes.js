@@ -11,9 +11,9 @@ const rbac = require('../services/rbac.service');
 
 const router = express.Router();
 
-// GET /api/forms  (当前用户可见/自建的表单；viewer 仅自己 role 可见？—— 列表即本人创建)
+// GET /api/forms  (管理员看全部；普通用户仅本人创建；与数据集/图表列表同一套访问策略)
 router.get('/', requireUser, requirePermission('form', 'read'), async (req, res) => {
-  const items = await formService.listForms('owner_id = ?', [req.user.id]);
+  const items = await formService.listForms(await access.scopedWhere('form', req.user, rbac));
   ok(res, items);
 });
 

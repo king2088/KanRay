@@ -74,6 +74,27 @@ test('RBAC：viewer 不能创建表单，editor 可以', async () => {
   assert.equal(r.body.data.name, 'V表单');
 });
 
+test('列表：管理员看全部表单，editor 仅本人，viewer 无自建则空', async () => {
+  const editorOwned = await req(server, { method: 'POST', path: '/api/forms', headers: hdr(editorToken), body: { name: 'E表单' } });
+  assert.equal(editorOwned.status, 200, editorOwned.raw);
+
+  let r = await req(server, { path: '/api/forms', headers: hdr(adminToken) });
+  assert.equal(r.status, 200);
+  const adminNames = r.body.data.map((f) => f.name);
+  assert.ok(adminNames.includes('V表单'), 'admin 应看到自己创建的表单');
+  assert.ok(adminNames.includes('E表单'), 'admin 应看到他人创建的表单');
+
+  r = await req(server, { path: '/api/forms', headers: hdr(editorToken) });
+  assert.equal(r.status, 200);
+  const editorNames = r.body.data.map((f) => f.name);
+  assert.ok(editorNames.includes('E表单'), 'editor 应看到自己的表单');
+  assert.ok(!editorNames.includes('V表单'), 'editor 不应看到他人表单');
+
+  r = await req(server, { path: '/api/forms', headers: hdr(viewerToken) });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.data, [], 'viewer 无自建表单应为空列表');
+});
+
 test('保存 schema 前后行为', async () => {
   let r = await req(server, { method: 'PATCH', path: `/api/forms/${createdId}`, headers: hdr(adminToken), body: { schemaJson: SCHEMA, submitConfig: { allowRepeat: false } } });
   assert.equal(r.status, 200);
