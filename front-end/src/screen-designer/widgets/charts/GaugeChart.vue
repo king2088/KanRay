@@ -63,6 +63,7 @@ const getChartOption = () => {
     case 'gauge-car': return getCarGauge(p, val)
     case 'gauge-multi': return getMultiGauge(p)
     case 'liquid-fill': return getLiquidFill(p, val)
+    case 'water-ball': return getLiquidFill(p, val)
     default: return getDefaultGauge(p, val)
   }
 }

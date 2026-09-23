@@ -123,6 +123,12 @@ module.exports = [
     created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   'CREATE INDEX IF NOT EXISTS idx_big_screen_shares_screen ON big_screen_shares(big_screen_id)',
+  `CREATE TABLE IF NOT EXISTS big_screen_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+    thumbnail TEXT NOT NULL DEFAULT '', config TEXT NOT NULL DEFAULT '{}', components TEXT NOT NULL DEFAULT '[]',
+    owner_id INTEGER, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_big_screen_templates_owner ON big_screen_templates(owner_id)',
   `CREATE TABLE IF NOT EXISTS api_keys (
     id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'static',
     user_id INTEGER NOT NULL, key_hash TEXT NOT NULL UNIQUE, key_prefix TEXT NOT NULL,

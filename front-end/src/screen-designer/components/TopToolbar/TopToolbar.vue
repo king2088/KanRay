@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
 import { useCanvasStore } from '../../stores/canvas'
 import { useComponentsStore } from '../../stores/components'
 import { useHistoryStore } from '../../stores/history'
@@ -9,6 +10,7 @@ import { bigScreenApi } from '@/api'
 import { datasetApi } from '@/api'
 import { rowsToChartData, queryRowsToChartData, buildQueryPayload } from '../../utils/chartData'
 import html2canvas from 'html2canvas'
+import ScreenIcon from '../ScreenIcon.vue'
 
 const props = defineProps<{
   dashboardId: string
@@ -21,6 +23,9 @@ const historyStore = useHistoryStore()
 
 const dashboardName = ref('新建大屏')
 const previewMode = ref<'pc' | 'mobile'>('pc')
+const showSaveTemplate = ref(false)
+const savingTemplate = ref(false)
+const templateForm = ref<{ name: string; description: string }>({ name: '', description: '' })
 
 const captureThumbnail = async (): Promise<string> => {
   try {
@@ -49,7 +54,7 @@ const bakeDatasetData = async (components: any[]): Promise<any[]> => {
     if (copy.data && copy.data.type === 'dataset' && copy.data.datasetId) {
       try {
         if (copy.data.query && copy.data.query.metrics?.length) {
-          const res = await datasetApi.query(copy.data.datasetId, buildQueryPayload(copy.data.query))
+          const res = await datasetApi.query(copy.data.datasetId, buildQueryPayload(copy.data.query), { silent: true })
           copy.data.value = queryRowsToChartData(res)
         } else {
           const page = await datasetApi.rows(copy.data.datasetId, 1, 1000)
@@ -81,6 +86,45 @@ const saveDashboard = async () => {
     ElMessage.success('保存成功')
   } catch (e: any) {
     ElMessage.error(e?.message || '保存失败')
+  }
+}
+
+const openSaveTemplate = () => {
+  templateForm.value = { name: dashboardName.value || '我的模板', description: '' }
+  showSaveTemplate.value = true
+}
+
+const onSaveCommand = (cmd: 'save-as') => {
+  if (cmd === 'save-as') openSaveTemplate()
+}
+
+const handleSave = async () => {
+  await saveDashboard()
+}
+
+const submitSaveTemplate = async () => {
+  const name = templateForm.value.name.trim()
+  if (!name) {
+    ElMessage.warning('请填写模板名称')
+    return
+  }
+  savingTemplate.value = true
+  try {
+    const thumbnail = await captureThumbnail()
+    const components = await bakeDatasetData(componentsStore.components)
+    await bigScreenApi.createTemplate({
+      name,
+      description: templateForm.value.description.trim(),
+      config: canvasStore.config,
+      components,
+      thumbnail
+    })
+    showSaveTemplate.value = false
+    ElMessage.success('已保存为模板')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存模板失败')
+  } finally {
+    savingTemplate.value = false
   }
 }
 
@@ -177,16 +221,36 @@ const setPreviewMode = (mode: 'pc' | 'mobile') => {
     </div>
 
     <div class="right">
-      <el-button type="primary" @click="saveDashboard" title="保存 (Ctrl+S)">
-        <el-icon><FolderChecked /></el-icon>
-        保存
-      </el-button>
-
       <el-button @click="previewDashboard" title="预览">
-        <el-icon><View /></el-icon>
+        <ScreenIcon name="eye" :size="15" />
         预览
       </el-button>
+
+      <el-dropdown split-button type="primary" title="保存 (Ctrl+S)" trigger="click" @click="handleSave" @command="onSaveCommand">
+        <ScreenIcon name="save" :size="15" />
+        保存
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="save-as">另存为模板</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
+
+    <el-dialog v-model="showSaveTemplate" title="另存为模板" width="440px" @closed="templateForm.description = ''">
+      <el-form @submit.prevent="submitSaveTemplate">
+        <el-form-item label="模板名称" required>
+          <el-input v-model.trim="templateForm.name" placeholder="请输入模板名称" @keyup.enter="submitSaveTemplate" />
+        </el-form-item>
+        <el-form-item label="模板描述">
+          <el-input v-model.trim="templateForm.description" type="textarea" :rows="2" placeholder="可选，描述模板用途" maxlength="500" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showSaveTemplate = false">取消</el-button>
+        <el-button type="primary" :loading="savingTemplate" @click="submitSaveTemplate">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

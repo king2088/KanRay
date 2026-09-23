@@ -15,6 +15,29 @@ const { getData, startAllFetches, stopAllFetches } = useDataFetch()
 
 const getWidgetComponent = (type: string) => getComponent(type)
 
+const getWidgetData = (component: any): any => {
+  const type = component.data?.type
+  if (type === 'dataset' || type === 'api') {
+    return getData(component.id) ?? null
+  }
+  return component.data
+}
+
+const isDataEmpty = (component: any): boolean => {
+  const type = component.data?.type
+  if (type !== 'dataset' && type !== 'api') return false
+  const data = getData(component.id)
+  if (!data) return true
+  if (typeof data.value === 'string') {
+    try {
+      const parsed = JSON.parse(data.value)
+      const hasSeriesData = (parsed.series || []).some((s: any) => (s.data || []).length > 0)
+      return !hasSeriesData
+    } catch { return false }
+  }
+  return false
+}
+
 const canvasRef = ref<HTMLDivElement>()
 const viewportRef = ref<HTMLDivElement>()
 
@@ -1042,7 +1065,8 @@ function ctxAction(action: string) {
             :style="getComponentStyle(component)"
             v-show="component.visible && !(isMobilePreview && component.mobile?.hideOnMobile)">
             <div class="component-content" :style="{ backgroundColor: component.style.backgroundColor, borderWidth: component.style.borderWidth + 'px', borderColor: component.style.borderColor, borderStyle: component.style.borderWidth > 0 ? 'solid' : 'none', borderRadius: component.style.borderRadius + 'px', boxShadow: `${component.style.boxShadowX}px ${component.style.boxShadowY}px ${component.style.boxShadowBlur}px ${component.style.boxShadowColor}` }">
-              <component v-if="getWidgetComponent(component.type)" :is="getWidgetComponent(component.type)" :componentType="component.type" :data="getData(component.id) || component.data" :style="component.style" :props="component.props" />
+              <component v-if="getWidgetComponent(component.type) && !isDataEmpty(component)" :is="getWidgetComponent(component.type)" :componentType="component.type" :data="getWidgetData(component)" :style="component.style" :props="component.props" />
+              <div v-else-if="getWidgetComponent(component.type) && isDataEmpty(component)" class="component-no-data">暂无数据</div>
               <div v-else class="component-placeholder">{{ component.name }}</div>
             </div>
             <div v-if="componentsStore.selectedIds.includes(component.id) && !component.locked" class="resize-handles">
@@ -1154,6 +1178,7 @@ function ctxAction(action: string) {
 .component.dragging .component-content { pointer-events: none; }
 .component.dragging { cursor: move; }
 .component-placeholder { color: rgba(255, 255, 255, 0.5); font-size: 12px; text-align: center; padding: 5px; }
+.component-no-data { color: rgba(255, 255, 255, 0.45); font-size: 13px; text-align: center; padding: 5px; }
 .resize-handles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
 .handle { position: absolute; width: 12px; height: 12px; background: #409eff; border: 2px solid white; pointer-events: auto; }
 .handle.top-left { top: -6px; left: -6px; cursor: nw-resize; }
@@ -1208,7 +1233,7 @@ function ctxAction(action: string) {
 .ctx-item {
   padding: 8px 16px;
   font-size: 13px;
-  color: #333;
+  color: var(--scr-text-1);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -1218,7 +1243,7 @@ function ctxAction(action: string) {
 .ctx-divider { height: 1px; background: var(--scr-border-lighter); margin: 4px 0; }
 
 .ctx-submenu { position: relative; }
-.ctx-arrow { float: right; margin-left: 20px; font-size: 9px; color: #999; }
+.ctx-arrow { float: right; margin-left: 20px; font-size: 9px; color: var(--scr-text-3); }
 .ctx-submenu-panel {
   display: none;
   position: absolute;

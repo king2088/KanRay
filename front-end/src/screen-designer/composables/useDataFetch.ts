@@ -51,7 +51,7 @@ async function fetchDatasetData(comp: any): Promise<void> {
   try {
     let value: string
     if (cfg.query && cfg.query.metrics?.length) {
-      const res = await datasetApi.query(cfg.datasetId, buildQueryPayload(cfg.query))
+      const res = await datasetApi.query(cfg.datasetId, buildQueryPayload(cfg.query), { silent: true })
       value = queryRowsToChartData(res)
     } else {
       const page = await datasetApi.rows(cfg.datasetId, 1, 1000)

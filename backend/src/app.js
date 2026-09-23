@@ -13,6 +13,7 @@ const datasourceRoutes = require('./routes/datasource.routes');
 const { dashSharesRouter, sharesRouter } = require('./routes/share.routes');
 const publicShareRoutes = require('./routes/public-share.routes');
 const { bigScreensRouter, sharesRouter: bigScreenSharesRouter } = require('./routes/big-screen.routes');
+const bigScreenTemplatesRouter = require('./routes/big-screen-templates.routes');
 const publicBigScreenRoutes = require('./routes/public-big-screen.routes');
 const openApiRoutes = require('./routes/open-api.routes');
 const { adminApiKeysRouter, tokenRouter } = require('./routes/api-key.routes');
@@ -55,6 +56,7 @@ app.use('/api/shares', sharesRouter);
 app.use('/api/public/shares', publicShareRoutes);
 app.use('/api/big-screens', bigScreensRouter);
 app.use('/api/big-screen-shares', bigScreenSharesRouter);
+app.use('/api/big-screen-templates', bigScreenTemplatesRouter);
 app.use('/api/public/big-screens', publicBigScreenRoutes);
 // 开放 API：spec JSON 与文档 UI（公开只读引用）
 app.get('/api/open/v1/openapi.json', (req, res) => res.json(swaggerSpec));

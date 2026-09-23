@@ -25,6 +25,7 @@ import VideoConfig from './configs/VideoConfig.vue'
 import CustomChartConfig from './configs/CustomChartConfig.vue'
 import CustomChartDataHint from './configs/CustomChartDataHint.vue'
 import DatasetQueryDialog from './DatasetQueryDialog.vue'
+import ScreenIcon from '../ScreenIcon.vue'
 
 const componentsStore = useComponentsStore()
 const canvasStore = useCanvasStore()
@@ -93,10 +94,10 @@ function onDatasetSelect(id: number | null) {
   selectedComponent.value.data = data
 }
 
-// Auto-expand props when component selected, collapse canvas
+// Auto-expand data+props when component selected, collapse canvas
 watch(() => componentsStore.selectedIds, (ids) => {
   if (ids.length === 1) {
-    expandedSections.value = ['props']
+    expandedSections.value = ['data', 'props']
   } else if (ids.length === 0) {
     expandedSections.value = ['canvas']
   }
@@ -417,7 +418,7 @@ const presetResolutions = [
       <el-collapse v-model="expandedSections" class="panel-collapse">
       <el-collapse-item name="canvas">
         <template #title>
-          <div class="collapse-title">画布</div>
+          <div class="collapse-title"><ScreenIcon name="canvas" :size="15" /><span>画布</span></div>
         </template>
         <div v-if="!isMobilePreview" class="section">
           <div class="section-title">画布尺寸</div>
@@ -527,7 +528,7 @@ const presetResolutions = [
       <template v-if="selectedComponent">
         <el-collapse-item v-if="isMobilePreview" name="mobile">
           <template #title>
-            <div class="collapse-title">移动端</div>
+            <div class="collapse-title"><ScreenIcon name="mobile" :size="15" /><span>移动端</span></div>
           </template>
           <div class="section">
             <div class="section-title">移动端配置</div>
@@ -562,9 +563,94 @@ const presetResolutions = [
           </div>
         </el-collapse-item>
 
+        <el-collapse-item name="data">
+          <template #title>
+            <div class="collapse-title"><ScreenIcon name="data" :size="15" /><span>数据</span></div>
+          </template>
+          <CustomChartDataHint v-if="selectedComponent.type === 'custom-chart'" />
+          <div class="section">
+            <div class="section-title">数据源</div>
+            <el-form label-width="70px" size="small">
+              <el-form-item label="类型">
+                <el-select v-model="selectedComponent.data.type" class="rc-w100" @change="onDataTypeChange">
+                  <el-option label="静态数据" value="static" />
+                  <el-option label="API请求" value="api" />
+                  <el-option label="数据集" value="dataset" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'static'" label="数据">
+                <div class="rc-row-mb">
+                  <el-button size="small" @click="clearData">清空</el-button>
+                  <el-button size="small" type="primary" @click="showDataEditor = true">编辑数据</el-button>
+                </div>
+                <div class="data-preview" @click="showDataEditor = true">
+                  {{ selectedComponent.data.value ? '已配置数据，点击编辑...' : '暂无数据，请点击编辑' }}
+                </div>
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'" label="URL">
+                <el-input v-model="selectedComponent.data.url" placeholder="https://api.example.com/data" />
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'" label="方法">
+                <el-select v-model="selectedComponent.data.method" class="rc-w100">
+                  <el-option label="GET" value="GET" />
+                  <el-option label="POST" value="POST" />
+                  <el-option label="PUT" value="PUT" />
+                  <el-option label="DELETE" value="DELETE" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'" label="Headers">
+                <el-input
+                  v-model="selectedComponent.data.headers"
+                  type="textarea"
+                  :rows="3"
+                  placeholder='{"Content-Type": "application/json"}'
+                />
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api' && selectedComponent.data.method !== 'GET'" label="Body">
+                <el-input
+                  v-model="selectedComponent.data.body"
+                  type="textarea"
+                  :rows="3"
+                  placeholder='{"key": "value"}'
+                />
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'" label="响应路径">
+                <el-input v-model="selectedComponent.data.responsePath" placeholder="data.list (点号路径)" />
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'" label="字段映射">
+                <el-input
+                  v-model="selectedComponent.data.fieldMapping"
+                  type="textarea"
+                  :rows="2"
+                  placeholder='{"name": "label", "value": "amount"}'
+                />
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'" label="刷新(秒)">
+                <el-input-number v-model="selectedComponent.data.refreshInterval" :min="0" :step="1" controls-position="right" class="rc-w100" />
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'api'">
+                <el-button type="primary" size="small" @click="refreshComponent(selectedComponent.id)">
+                  手动刷新
+                </el-button>
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'dataset'" label="数据集">
+                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100" @change="onDatasetSelect($event)">
+                  <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="维度指标">
+                <div class="rc-row-mb">
+                  <span class="query-summary">{{ querySummary }}</span>
+                  <el-button size="small" type="primary" @click="showQueryDialog = true">配置维度/指标</el-button>
+                </div>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-collapse-item>
+
         <el-collapse-item name="props">
           <template #title>
-            <div class="collapse-title">属性</div>
+            <div class="collapse-title"><ScreenIcon name="props" :size="15" /><span>属性</span></div>
           </template>
           <div class="section">
             <div class="section-title">基本信息</div>
@@ -1134,101 +1220,16 @@ const presetResolutions = [
           <VideoConfig v-if="selectedComponent.type === 'video'" :component="selectedComponent" @update-props="updateProps" />
         </el-collapse-item>
 
-        <el-collapse-item name="data">
-          <template #title>
-            <div class="collapse-title">数据</div>
-          </template>
-          <CustomChartDataHint v-if="selectedComponent.type === 'custom-chart'" />
-          <div class="section">
-            <div class="section-title">数据源</div>
-            <el-form label-width="70px" size="small">
-              <el-form-item label="类型">
-                <el-select v-model="selectedComponent.data.type" class="rc-w100" @change="onDataTypeChange">
-                  <el-option label="静态数据" value="static" />
-                  <el-option label="API请求" value="api" />
-                  <el-option label="数据集" value="dataset" />
-                </el-select>
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'static'" label="数据">
-                <div class="rc-row-mb">
-                  <el-button size="small" @click="clearData">清空</el-button>
-                  <el-button size="small" type="primary" @click="showDataEditor = true">编辑数据</el-button>
-                </div>
-                <div class="data-preview" @click="showDataEditor = true">
-                  {{ selectedComponent.data.value ? '已配置数据，点击编辑...' : '暂无数据，请点击编辑' }}
-                </div>
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'" label="URL">
-                <el-input v-model="selectedComponent.data.url" placeholder="https://api.example.com/data" />
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'" label="方法">
-                <el-select v-model="selectedComponent.data.method" class="rc-w100">
-                  <el-option label="GET" value="GET" />
-                  <el-option label="POST" value="POST" />
-                  <el-option label="PUT" value="PUT" />
-                  <el-option label="DELETE" value="DELETE" />
-                </el-select>
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'" label="Headers">
-                <el-input
-                  v-model="selectedComponent.data.headers"
-                  type="textarea"
-                  :rows="3"
-                  placeholder='{"Content-Type": "application/json"}'
-                />
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api' && selectedComponent.data.method !== 'GET'" label="Body">
-                <el-input
-                  v-model="selectedComponent.data.body"
-                  type="textarea"
-                  :rows="3"
-                  placeholder='{"key": "value"}'
-                />
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'" label="响应路径">
-                <el-input v-model="selectedComponent.data.responsePath" placeholder="data.list (点号路径)" />
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'" label="字段映射">
-                <el-input
-                  v-model="selectedComponent.data.fieldMapping"
-                  type="textarea"
-                  :rows="2"
-                  placeholder='{"name": "label", "value": "amount"}'
-                />
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'" label="刷新(秒)">
-                <el-input-number v-model="selectedComponent.data.refreshInterval" :min="0" :step="1" controls-position="right" class="rc-w100" />
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'api'">
-                <el-button type="primary" size="small" @click="refreshComponent(selectedComponent.id)">
-                  手动刷新
-                </el-button>
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'dataset'" label="数据集">
-                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100" @change="onDatasetSelect($event)">
-                  <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
-                </el-select>
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="维度指标">
-                <div class="rc-row-mb">
-                  <span class="query-summary">{{ querySummary }}</span>
-                  <el-button size="small" type="primary" @click="showQueryDialog = true">配置维度/指标</el-button>
-                </div>
-              </el-form-item>
-            </el-form>
-          </div>
-        </el-collapse-item>
-
         <el-collapse-item v-if="selectedComponent.type === 'custom-chart'" name="code">
           <template #title>
-            <div class="collapse-title">代码</div>
+            <div class="collapse-title"><ScreenIcon name="code" :size="15" /><span>代码</span></div>
           </template>
           <CustomChartConfig :component="selectedComponent" />
         </el-collapse-item>
 
         <el-collapse-item name="style">
           <template #title>
-            <div class="collapse-title">样式</div>
+            <div class="collapse-title"><ScreenIcon name="style" :size="15" /><span>样式</span></div>
           </template>
           <div class="section">
             <div class="section-title">背景</div>
@@ -1361,8 +1362,12 @@ const presetResolutions = [
   padding: 0 16px;
   font-size: 13px;
   font-weight: 500;
-  background: var(--scr-surface-3);
+  background-color: var(--scr-surface);
+  background-image: linear-gradient(var(--scr-surface-3), var(--scr-surface-3));
   border-bottom: 1px solid var(--scr-border-lighter);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 :deep(.el-collapse-item__wrap) {
@@ -1374,8 +1379,15 @@ const presetResolutions = [
 }
 
 .collapse-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 500;
   color: var(--scr-text-1);
+}
+
+.collapse-title :deep(.screen-icon) {
+  color: var(--scr-text-2);
 }
 
 .section {

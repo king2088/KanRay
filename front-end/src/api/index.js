@@ -26,7 +26,7 @@ export const datasetApi = {
   rows: (id, page, pageSize) => http.get(`/datasets/${id}/rows`, { params: { page, pageSize }, silent: true }),
   rowCounts: (ids) => http.post('/datasets/row-counts', { ids }, { silent: true }),
   updateFieldLabel: (id, fieldId, label) => http.patch(`/datasets/${id}/fields/${fieldId}`, { label }),
-  query: (id, payload) => http.post(`/datasets/${id}/query`, payload),
+  query: (id, payload, config) => http.post(`/datasets/${id}/query`, payload, config),
 }
 
 export const metricApi = {
@@ -71,6 +71,9 @@ export const bigScreenApi = {
   createShare: (id, data) => http.post(`/big-screens/${id}/shares`, data),
   updateShare: (shareId, data) => http.patch(`/big-screen-shares/${shareId}`, data),
   deleteShare: (shareId) => http.delete(`/big-screen-shares/${shareId}`),
+  listTemplates: () => http.get('/big-screen-templates'),
+  createTemplate: (data) => http.post('/big-screen-templates', data),
+  deleteTemplate: (id) => http.delete(`/big-screen-templates/${id}`),
 }
 
 export const authApi = {

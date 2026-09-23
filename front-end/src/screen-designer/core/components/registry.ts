@@ -48,6 +48,7 @@ export const componentRegistry: Record<string, any> = {
   'candlestick': defineAsyncComponent(() => import('../../widgets/charts/CandlestickChart.vue')),
   'stacked-area': defineAsyncComponent(() => import('../../widgets/charts/StackedAreaChart.vue')),
   'mixed-positive-negative': defineAsyncComponent(() => import('../../widgets/charts/MixedPositiveNegativeChart.vue')),
+  'area-stack': defineAsyncComponent(() => import('../../widgets/charts/StackedAreaChart.vue')),
   'polar-bar': defineAsyncComponent(() => import('../../widgets/charts/PolarBarChart.vue')),
   'positive-negative-bar': defineAsyncComponent(() => import('../../widgets/charts/PositiveNegativeBarChart.vue')),
   'dynamic-bar-race': defineAsyncComponent(() => import('../../widgets/charts/DynamicBarRaceChart.vue')),
@@ -66,6 +67,7 @@ export const componentRegistry: Record<string, any> = {
   'gauge-car': defineAsyncComponent(() => import('../../widgets/charts/GaugeChart.vue')),
   'gauge-multi': defineAsyncComponent(() => import('../../widgets/charts/GaugeChart.vue')),
   'liquid-fill': defineAsyncComponent(() => import('../../widgets/charts/GaugeChart.vue')),
+  'water-ball': defineAsyncComponent(() => import('../../widgets/charts/GaugeChart.vue')),
 
   // === Tables (表格组件) ===
   'table-normal': defineAsyncComponent(() => import('../../widgets/charts/TableChart.vue')),
@@ -85,6 +87,30 @@ export const componentRegistry: Record<string, any> = {
 
   // === iframe ===
   'iframe': defineAsyncComponent(() => import('../../widgets/iframe/IframeWidget.vue')),
+
+  // === 模板别名字边框 (border-1 ~ border-13, 对应 widgets/decoration/BorderBox*) ===
+  'border-1': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox1.vue')),
+  'border-2': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox2.vue')),
+  'border-3': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox3.vue')),
+  'border-4': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox4.vue')),
+  'border-5': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox5.vue')),
+  'border-6': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox6.vue')),
+  'border-7': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox7.vue')),
+  'border-8': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox8.vue')),
+  'border-9': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox9.vue')),
+  'border-10': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox10.vue')),
+  'border-11': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox11.vue')),
+  'border-12': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox12.vue')),
+  'border-13': defineAsyncComponent(() => import('../../widgets/decoration/BorderBox13.vue')),
+
+  // === 模板别名字装饰 (deco-*, border-tech/border-glow) ===
+  'deco-glow': defineAsyncComponent(() => import('../../widgets/decoration/GlowEffect.vue')),
+  'deco-corner': defineAsyncComponent(() => import('../../widgets/decoration/BorderDecoration.vue')),
+  'deco-line': defineAsyncComponent(() => import('../../widgets/decoration/BorderDecoration.vue')),
+  'deco-1': defineAsyncComponent(() => import('../../widgets/decoration/BorderDecoration.vue')),
+  'deco-5': defineAsyncComponent(() => import('../../widgets/decoration/BorderDecoration.vue')),
+  'border-tech': defineAsyncComponent(() => import('../../widgets/decoration/BorderDecoration.vue')),
+  'border-glow': defineAsyncComponent(() => import('../../widgets/decoration/BorderDecoration.vue')),
 
   // === DataV边框 (13种，匹配官方@jiaminghi/data-view) ===
   'dv-border-1': defineAsyncComponent(() => import('../../widgets/datav-border/DvBorder1.vue')),

@@ -396,8 +396,8 @@ defineExpose({ sortedComponents, componentIcons })
           <div class="category-header" @click="expandedCategories.includes(category.key) ? expandedCategories.splice(expandedCategories.indexOf(category.key), 1) : expandedCategories.push(category.key)">
             <el-icon><component :is="category.icon" /></el-icon>
             <span>{{ category.name }}</span>
-            <el-icon class="expand-icon" :class="{ expanded: expandedCategories.includes(category.key) }">
-              <ArrowDown />
+            <el-icon class="expand-icon">
+              <component :is="expandedCategories.includes(category.key) ? 'ArrowDown' : 'ArrowRight'" />
             </el-icon>
           </div>
           <div v-show="expandedCategories.includes(category.key)" class="category-content">
@@ -504,6 +504,10 @@ defineExpose({ sortedComponents, componentIcons })
   font-weight: 500;
   color: var(--scr-text-1);
   transition: background 0.2s;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--scr-surface);
 }
 
 .category-header:hover {
@@ -513,10 +517,6 @@ defineExpose({ sortedComponents, componentIcons })
 .expand-icon {
   margin-left: auto;
   transition: transform 0.2s;
-}
-
-.expand-icon.expanded {
-  transform: rotate(180deg);
 }
 
 .category-content {

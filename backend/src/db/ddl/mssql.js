@@ -138,6 +138,12 @@ module.exports = [
     CONSTRAINT fk_big_screen_shares_scr FOREIGN KEY (big_screen_id) REFERENCES big_screens(id) ON DELETE CASCADE
   )`,
   'CREATE INDEX idx_big_screen_shares_screen ON big_screen_shares(big_screen_id)',
+  `CREATE TABLE big_screen_templates (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(100) NOT NULL, description NVARCHAR(500) NOT NULL DEFAULT '',
+    thumbnail NVARCHAR(1000) NOT NULL DEFAULT '', config NVARCHAR(MAX) NOT NULL, components NVARCHAR(MAX) NOT NULL,
+    owner_id BIGINT, created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+  )`,
+  'CREATE INDEX idx_big_screen_templates_owner ON big_screen_templates(owner_id)',
   `CREATE TABLE api_keys (
     id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, type NVARCHAR(16) NOT NULL DEFAULT 'static',
     user_id BIGINT NOT NULL, key_hash NVARCHAR(64) NOT NULL, key_prefix NVARCHAR(32) NOT NULL,
