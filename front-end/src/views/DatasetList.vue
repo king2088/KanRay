@@ -76,8 +76,8 @@
           <template #default="{ row }">
             <el-button link type="primary"  @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
             <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary"  @click="openEditBuild(row)">编辑构建</el-button>
-            <el-tooltip v-else-if="row.source_type === 'excel'" content="文件类数据集不支持「编辑构建」，如需更新数据请在数据源页重新上传" placement="top">
-              <span style="display:inline-flex"><el-button link type="primary" disabled>编辑构建</el-button></span>
+            <el-tooltip v-else-if="row.source_type === 'excel' || row.source_type === 'form'" :content="editBuildDisabledTip(row)" placement="top">
+              <span class="edit-build-tip"><el-button link type="primary" disabled>编辑构建</el-button></span>
             </el-tooltip>
             <el-button link type="primary"  @click="openRename(row)">重命名</el-button>
             <el-button link type="danger"  @click="remove(row)">删除</el-button>
@@ -205,6 +205,11 @@ async function openEditBuild(row) {
   router.push({ path: `/datasources/${row.datasource_id}/builder`, query: { editDatasetId: row.id } })
 }
 
+function editBuildDisabledTip(row) {
+  if (row.source_type === 'form') return '表单填报数据集不支持「编辑构建」，数据随表单收集自动更新'
+  return '文件类数据集不支持「编辑构建」，如需更新数据请在数据源页重新上传'
+}
+
 async function remove(row) {
   await ElMessageBox.confirm(`确定删除数据集「${row.name}」？删除后其下图表数据将不可用。`, '删除确认', {
     type: 'warning',
@@ -245,5 +250,14 @@ onMounted(load)
 .cell-muted {
   color: var(--app-text-secondary);
   font-size: 14px;
+}
+
+.edit-build-tip {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 12px;
+}
+.edit-build-tip .el-button {
+  margin-left: 0;
 }
 </style>
