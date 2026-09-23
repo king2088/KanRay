@@ -94,11 +94,67 @@ if (!LIVE) {
     fs.rmSync(process.env.UPLOAD_DIR, { recursive: true, force: true });
   });
 
-  test('schema 引导：核心表齐备（含 sync_jobs）', async () => {
+  test('schema 引导：核心表齐备（含 sync_jobs、大屏三表）', async () => {
     const tables = (await db.listTables()).map((n) => String(n).toLowerCase());
-    for (const t of ['data_sources', 'sync_configs', 'sync_jobs', 'sync_logs', 'users', 'audit_logs']) {
+    for (const t of ['data_sources', 'sync_configs', 'sync_jobs', 'sync_logs', 'users', 'audit_logs',
+      'big_screens', 'big_screen_shares', 'big_screen_templates']) {
       assert.ok(tables.includes(t), `缺少表 ${t}（实际: ${tables.join(',')}）`);
     }
+    const tmplCols = (await db.listColumns('big_screen_templates')).map((c) => String(c.name).toLowerCase());
+    for (const c of ['id', 'name', 'description', 'thumbnail', 'config', 'components', 'owner_id', 'created_at', 'updated_at']) {
+      assert.ok(tmplCols.includes(c), `big_screen_templates 缺少列 ${c}（实际: ${tmplCols.join(',')}）`);
+    }
+    const shareCols = (await db.listColumns('big_screen_shares')).map((c) => String(c.name).toLowerCase());
+    for (const c of ['id', 'big_screen_id', 'token', 'password_hash', 'expires_at', 'is_active', 'created_by', 'created_at', 'updated_at']) {
+      assert.ok(shareCols.includes(c), `big_screen_shares 缺少列 ${c}（实际: ${shareCols.join(',')}）`);
+    }
+  });
+
+  test('大屏三表（PG）：service 级大屏/模板/分享 CRUD + datetime(\'now\') + FK 级联', async () => {
+    const bigScreenService = require('../src/services/big-screen.service');
+    const templateService = require('../src/services/big-screen-template.service');
+
+    const screen = await bigScreenService.createBigScreen({
+      name: 'PG 矩阵大屏',
+      description: 'matrix',
+      config: { width: 1920, height: 1080 },
+      components: [{ id: 'w1', type: 'bar' }],
+    }, 1);
+    assert.ok(screen.id, 'createBigScreen 应返回 id（RETURNING * 回读）');
+    assert.equal(screen.config.width, 1920, 'config JSON 列应解析回对象');
+    assert.equal(screen.components.length, 1);
+
+    const updated = await bigScreenService.updateBigScreen(screen.id, { name: 'PG 矩阵大屏 v2' });
+    assert.equal(updated.name, 'PG 矩阵大屏 v2');
+    assert.ok(updated.updatedAt, 'updatedAt 别名应保留（quoteAliases）');
+    assert.match(String(updated.updatedAt), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/,
+      `updated_at 应由 datetime('now')→now() 写回为规范时间，实际: ${updated.updatedAt}`);
+
+    const list = await bigScreenService.listBigScreens();
+    assert.ok(list.some((s) => s.id === screen.id), '列表应含新建大屏');
+
+    const tpl = await templateService.createTemplate({
+      name: 'PG 模板', description: 't', config: { width: 1920 }, components: [{ id: 'w1' }],
+    }, 1);
+    const tpls = await templateService.listTemplates();
+    assert.ok(tpls.some((t) => t.id === tpl.id), '模板列表应含新建模板');
+    await templateService.deleteTemplate(tpl.id);
+    await assert.rejects(() => templateService.getTemplateOrThrow(tpl.id), Error, '删除后应 404');
+
+    const share = await bigScreenService.createShare({ bigScreenId: screen.id, password: 'pass1234', userId: 1 });
+    assert.ok(share.token, '分享应生成 token');
+    assert.equal(share.hasPassword, true);
+    assert.equal(bigScreenService.shareState(share), 'active');
+    const off = await bigScreenService.updateShare(share.id, { isActive: false });
+    assert.equal(off.isActive, 0);
+    assert.equal(bigScreenService.shareState(off), 'inactive', '停用后 shareState 应为 inactive');
+    assert.equal((await bigScreenService.listShares(screen.id)).length, 1);
+
+    // FK ON DELETE CASCADE：删大屏后分享随删（生产部署依赖此约束）
+    await bigScreenService.deleteBigScreen(screen.id);
+    const orphan = await db.prepare('SELECT COUNT(*) AS c FROM big_screen_shares WHERE big_screen_id = ?').get(screen.id);
+    assert.equal(Number(orphan.c), 0, '删除大屏后分享应级联删除');
+    assert.equal(await bigScreenService.getBigScreen(screen.id), undefined, '大屏应已删除');
   });
 
   test('时间归一化：now() 写回为 UTC naive 秒，且与进程 UTC 时钟一致', async () => {

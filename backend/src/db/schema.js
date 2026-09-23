@@ -42,7 +42,10 @@ function listColumns(store, table) {
   else if (t === 'mysql' || t === 'mariadb') q = store.all(`SHOW COLUMNS FROM \`${table}\``);
   else if (t === 'postgres') q = store.all('SELECT column_name AS name FROM information_schema.columns WHERE table_name = ?', [table]);
   else if (t === 'sqlserver') q = store.all('SELECT COLUMN_NAME AS name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?', [table]);
-  else if (t === 'oracle') q = store.all('SELECT column_name AS name FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = UPPER(?) ORDER BY column_id', [table]);
+  // Oracle 未加引号建表（现默认，如 big_screens → 存储为大写 BIG_SCREENS），或旧版双引号小写
+  // 建表（"big_screens"）；TABLE_NAME = UPPER(?) 匹配不到带引号小写 → hasColumn 误判为列缺失
+  // → ensureSchema 重复 ALTER 报 ORA-01430。大小写不敏感兼容两种建表方式。
+  else if (t === 'oracle') q = store.all('SELECT column_name AS name FROM ALL_TAB_COLUMNS WHERE UPPER(TABLE_NAME) = UPPER(?) ORDER BY column_id', [table]);
   else return [];
   const mapFn = (rows) => {
     if (t === 'sqlite') return rows.map((c) => ({ name: c.name }));
@@ -65,17 +68,29 @@ function runDdl(store) {
   const existingSet = (rows) => new Set(rows.map((n) => String(n).toUpperCase()));
 
   const doRun = (existing) => {
-    const stmts = ddl.filter((rawStmt) => {
-      const m = rawStmt.trim().match(/^CREATE TABLE(?:\s+IF NOT EXISTS)?\s+"?([A-Za-z_$][\w$]*)"?/i);
-      return withIfNotExists || !m || !existing.has(String(m[1]).toUpperCase());
-    });
+    // MySQL 不支持 CREATE INDEX IF NOT EXISTS（仅 MariaDB 支持）：
+    // 去掉修饰后靠「重复索引名」错误容忍实现幂等，语义与 mssql/oracle 路径一致。
+    const mysqlStripIndexIfNotExists = (stmt) => (
+      store.type === 'mysql' && /^CREATE INDEX\s+IF NOT EXISTS/i.test(String(stmt).trim())
+        ? String(stmt).replace(/CREATE INDEX\s+IF NOT EXISTS/i, 'CREATE INDEX')
+        : stmt
+    );
+    const stmts = ddl
+      .filter((rawStmt) => {
+        const m = rawStmt.trim().match(/^CREATE TABLE(?:\s+IF NOT EXISTS)?\s+"?([A-Za-z_$][\w$]*)"?/i);
+        return withIfNotExists || !m || !existing.has(String(m[1]).toUpperCase());
+      })
+      .map(mysqlStripIndexIfNotExists);
 
     // 逐条执行 DDL，兼容同步（SQLite）与异步（Postgres）驱动；每条只执行一次
     const runSafe = (i) => {
       if (i >= stmts.length) return;
       const stmt = translate(stmts[i], store.dialect);
       const isIndexStmt = /CREATE INDEX/i.test(stmt);
-      const tolerate = (e) => !withIfNotExists && isIndexStmt && /(already exists|ORA-01408|ORA-00955|name is already used)/i.test(String(e.message));
+      // tolerate：mssql/oracle 无 IF NOT EXISTS 的索引重跑；mysql 去掉 IF NOT EXISTS 后重复键名重跑
+      const tolerate = (e) => isIndexStmt
+        && (!withIfNotExists || store.type === 'mysql')
+        && /(already exists|ORA-01408|ORA-00955|name is already used|Duplicate key name|ER_DUP_KEYNAME)/i.test(String(e.message));
       try {
         const execResult = store.exec(stmt);
         if (isThenable(execResult)) {
@@ -111,7 +126,9 @@ function ensureSchema(store) {
 
   const alterSync = () => {
     for (const [table, cols] of Object.entries(needCols)) {
-      const existing = new Set(listColumns(store, table).map((c) => c.name));
+      // Oracle 未加引号建表时列名以大写存储（保留字 "mode" 等仍为带引号小写），
+      // 与 needCols 的小写列名比较需忽略大小写，否则旧库补齐会误发 ALTER 报 ORA-01430。
+      const existing = new Set(listColumns(store, table).map((c) => String(c.name).toLowerCase()));
       for (const [col, ddl] of cols) {
         if (!existing.has(col)) {
           store.exec(translate(`ALTER TABLE ${store.dialect.quoteIdent(table)} ADD ${store.dialect.quoteIdent(col)} ${ddl}`, store.dialect));
@@ -126,7 +143,8 @@ function ensureSchema(store) {
   const alterAsync = async () => {
     for (const [table, cols] of Object.entries(needCols)) {
       const colList = await listColumns(store, table);
-      const existing = new Set(colList.map((c) => c.name));
+      // 同 alterSync：Oracle 大写存储列名，忽略大小写避免误 ALTER
+      const existing = new Set(colList.map((c) => String(c.name).toLowerCase()));
       for (const [col, ddl] of cols) {
         if (!existing.has(col)) {
           const r = store.exec(translate(`ALTER TABLE ${store.dialect.quoteIdent(table)} ADD ${store.dialect.quoteIdent(col)} ${ddl}`, store.dialect));
