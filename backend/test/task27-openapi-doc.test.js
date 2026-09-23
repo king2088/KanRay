@@ -7,6 +7,7 @@ const { resetDb } = require('./helpers/db');
 const app = require('../src/app');
 const fs = require('fs');
 const path = require('path');
+const { PERMISSIONS } = require('../src/seeds');
 
 function listen() {
   const server = http.createServer(app);
@@ -50,8 +51,9 @@ test('swagger UI 可访问（返回 HTML）', async () => {
   assert.match(r.raw, /swagger-ui|<html/i);
 });
 
-test('README 权限点数量为 44 且含 apikey:manage 文档', () => {
+test('README 权限点数量与 seeds 一致且含 apikey:manage 文档', () => {
   const readme = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
+  const count = PERMISSIONS.length;
   assert.match(readme, /apikey:manage/, 'README 应提及 apikey:manage 权限点');
-  assert.match(readme, /44 个权限点/, 'README 应写明权限点总数 44');
+  assert.match(readme, new RegExp(`${count} 个权限点`), `README 应写明权限点总数 ${count}`);
 });
