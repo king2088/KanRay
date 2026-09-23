@@ -378,6 +378,11 @@ body {
   box-shadow: 0 0 0 1px var(--app-primary) inset !important;
   background-color: rgba(255, 255, 255, 0.6);
 }
+html.dark .el-input.is-focus .el-input__wrapper,
+html.dark .el-select .el-input.is-focus .el-input__wrapper,
+html.dark .el-select .el-select__wrapper.is-focused {
+  background-color: rgba(255, 255, 255, 0.08);
+}
 
 .el-checkbox__inner {
   background-color: var(--app-glass-soft);
