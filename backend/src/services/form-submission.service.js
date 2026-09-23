@@ -132,17 +132,26 @@ async function insert(form, values, userId) {
   return rowId;
 }
 
-/** 更新单条提交（管理员/拥有者）。全量重校验。 */
+/** 更新单条提交（管理员/拥有者）。部分更新：仅覆盖传入字段，其余保留。 */
 async function update(form, submissionId, values) {
   const table = qFormOrThrow(form);
-  const row = await db.prepare(`SELECT id FROM ${table} WHERE id = ?`).get(Number(submissionId));
+  const row = await db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(Number(submissionId));
   if (!row) throw new HttpError(404, `提交记录不存在: id=${submissionId}`);
 
-  const cleaned = validateValues(form, values || {});
-  const keys = Object.keys(cleaned);
-  if (keys.length === 0) throw new HttpError(400, '没有可更新的字段');
-  const sets = keys.map((k) => `${db.dialect.quoteIdent(k)} = ?`).join(', ');
-  await db.prepare(`UPDATE ${table} SET ${sets} WHERE id = ?`).run(...keys.map((k) => cleaned[k]), Number(submissionId));
+  // 已有值并入，未传字段保持原状；整体校验保证必填/类型仍成立
+  const merged = {};
+  for (const f of form.schema.fields || []) {
+    if (f.type === 'static') continue;
+    merged[f.key] = row[f.key] === undefined ? null : row[f.key];
+  }
+  for (const [k, v] of Object.entries(values || {})) {
+    if (k in merged) merged[k] = v;
+  }
+  const cleaned = validateValues(form, merged);
+
+  if (!Object.keys(cleaned).length) throw new HttpError(400, '没有可更新的字段');
+  const sets = Object.keys(cleaned).map((k) => `${db.dialect.quoteIdent(k)} = ?`).join(', ');
+  await db.prepare(`UPDATE ${table} SET ${sets} WHERE id = ?`).run(...Object.keys(cleaned).map((k) => cleaned[k]), Number(submissionId));
   return { id: Number(submissionId), updated: true };
 }
 

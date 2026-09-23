@@ -23,7 +23,7 @@ const ROLES = [
   { code: 'admin', name: '管理员', description: '全部权限', isBuiltin: 1, permissions: ALL },
   { code: 'analyst', name: '数据工程师/分析师', description: '管理数据源/数据集/图表/看板，可执行 SQL', isBuiltin: 1, permissions: ALL.filter((p) => !p.startsWith('user:') && !p.startsWith('role:') && !p.startsWith('audit:') && p !== 'system:config' && !p.startsWith('apikey:')) },
   { code: 'editor', name: '看板编辑者', description: '构建图表与排版看板，可看数据集', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'chart:create', 'chart:update', 'chart:delete', 'dashboard:read', 'dashboard:create', 'dashboard:update', 'dashboard:delete', 'dashboard:share', 'big_screen:read', 'big_screen:create', 'big_screen:update', 'big_screen:delete', 'big_screen:share', 'form:read', 'form:create', 'form:update', 'form:delete', 'form:publish', 'form:share', 'form:submit', 'form:submission:read', 'form:submission:update', 'form:submission:delete'] },
-  { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read', 'form:read', 'form:submit'] },
+  { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read', 'form:read', 'form:submit', 'form:submission:read'] },
 ];
 
 async function seedPermissions() {

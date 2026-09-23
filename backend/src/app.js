@@ -17,6 +17,9 @@ const bigScreenTemplatesRouter = require('./routes/big-screen-templates.routes')
 const publicBigScreenRoutes = require('./routes/public-big-screen.routes');
 const openApiRoutes = require('./routes/open-api.routes');
 const { adminApiKeysRouter, tokenRouter } = require('./routes/api-key.routes');
+const formRoutes = require('./routes/form.routes');
+const formSharesRouter = require('./routes/form-share.routes');
+const publicFormRoutes = require('./routes/public-form.routes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./openapi/swagger');
 const { configRouter } = require('./routes/system.routes');
@@ -64,6 +67,9 @@ app.use('/api/open/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { custom
 app.use('/api/open/v1', openApiRoutes);
 app.use('/api/admin/api-keys', adminApiKeysRouter);
 app.use('/api/auth/tokens', tokenRouter);
+app.use('/api/forms', formRoutes);
+app.use('/api/forms', formSharesRouter);
+app.use('/api/public/forms', publicFormRoutes);
 app.get('/api/config', configRouter);
 
 app.use(notFound);
