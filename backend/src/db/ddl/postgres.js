@@ -120,6 +120,7 @@ module.exports = [
     id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'draft', schema_json TEXT NOT NULL,
     submit_config TEXT NOT NULL, table_name TEXT, dataset_id BIGINT,
+    submission_seq BIGINT NOT NULL DEFAULT 0,
     owner_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
   'CREATE INDEX IF NOT EXISTS idx_forms_owner ON forms(owner_id)',

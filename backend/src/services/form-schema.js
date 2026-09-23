@@ -19,6 +19,7 @@ const fieldSchema = z.object({
   span: z.union([z.literal(1), z.literal(2)]).default(2),
   group: z.string().max(50).nullable().default(null),
   options: z.array(optionSchema).max(100).default([]),
+  content: z.string().max(5000).default(''),
 }).strict();
 
 const formSchema = z.object({

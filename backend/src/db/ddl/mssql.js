@@ -133,6 +133,7 @@ module.exports = [
     id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, description NVARCHAR(1000) NOT NULL DEFAULT '',
     status NVARCHAR(20) NOT NULL DEFAULT 'draft', schema_json NVARCHAR(MAX) NOT NULL,
     submit_config NVARCHAR(MAX) NOT NULL, table_name NVARCHAR(255), dataset_id BIGINT,
+    submission_seq BIGINT NOT NULL DEFAULT 0,
     owner_id BIGINT NOT NULL, created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
   )`,
   'CREATE INDEX idx_forms_owner ON forms(owner_id)',

@@ -120,6 +120,7 @@ module.exports = [
     id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'draft', schema_json TEXT NOT NULL DEFAULT '{}',
     submit_config TEXT NOT NULL DEFAULT '{}', table_name TEXT, dataset_id INTEGER,
+    submission_seq INTEGER NOT NULL DEFAULT 0,
     owner_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,

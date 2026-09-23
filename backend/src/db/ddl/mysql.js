@@ -135,6 +135,7 @@ module.exports = [
     id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, description VARCHAR(1000) NOT NULL DEFAULT '',
     status VARCHAR(20) NOT NULL DEFAULT 'draft', schema_json LONGTEXT NOT NULL,
     submit_config LONGTEXT NOT NULL, table_name VARCHAR(255), dataset_id BIGINT,
+    submission_seq BIGINT NOT NULL DEFAULT 0,
     owner_id BIGINT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_forms_owner (owner_id)
   )`,
