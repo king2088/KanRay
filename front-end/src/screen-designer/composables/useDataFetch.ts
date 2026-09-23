@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue'
 import { useComponentsStore } from '../stores/components'
 import { datasetApi } from '@/api'
-import { rowsToChartData } from '../utils/chartData'
+import { rowsToChartData, queryRowsToChartData, buildQueryPayload } from '../utils/chartData'
 
 interface FetchedData {
   [componentId: string]: any
@@ -49,9 +49,16 @@ async function fetchDatasetData(comp: any): Promise<void> {
   const cfg = comp.data
   if (!cfg.datasetId) return
   try {
-    const page = await datasetApi.rows(cfg.datasetId, 1, 1000)
-    const rows = page?.rows || []
-    fetchedData.value[comp.id] = { value: rowsToChartData(rows, cfg.categoryField, cfg.valueFields) }
+    let value: string
+    if (cfg.query && cfg.query.metrics?.length) {
+      const res = await datasetApi.query(cfg.datasetId, buildQueryPayload(cfg.query))
+      value = queryRowsToChartData(res)
+    } else {
+      const page = await datasetApi.rows(cfg.datasetId, 1, 1000)
+      const rows = page?.rows || []
+      value = rowsToChartData(rows, cfg.categoryField, cfg.valueFields)
+    }
+    fetchedData.value[comp.id] = { value }
   } catch (err) {
     console.error(`[DataFetch] ${comp.name}:`, err)
     fetchedData.value[comp.id] = null
@@ -153,7 +160,7 @@ export function useDataFetch() {
   }
 
   watch(
-    () => componentsStore.components.map(c => ({ id: c.id, url: c.data?.url, type: c.data?.type, method: c.data?.method, body: c.data?.body, refreshInterval: c.data?.refreshInterval, datasetId: c.data?.datasetId, categoryField: c.data?.categoryField, valueFields: c.data?.valueFields })),
+    () => componentsStore.components.map(c => ({ id: c.id, url: c.data?.url, type: c.data?.type, method: c.data?.method, body: c.data?.body, refreshInterval: c.data?.refreshInterval, datasetId: c.data?.datasetId, categoryField: c.data?.categoryField, valueFields: c.data?.valueFields, query: c.data?.query })),
     (newList, oldList) => {
       const oldMap = new Map((oldList || []).map((c: any) => [c.id, c]))
       newList.forEach(comp => {
