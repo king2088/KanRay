@@ -171,3 +171,25 @@ function onPageChange(v) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.cell-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cell-name__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--app-radius);
+  background: var(--app-primary-light);
+  color: var(--app-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cell-muted {
+  color: var(--el-text-color-secondary);
+}
+</style>

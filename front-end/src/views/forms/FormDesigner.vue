@@ -461,7 +461,7 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   height: calc(100vh - 60px);
-  background: #f5f6f8;
+  background: var(--app-bg);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -470,9 +470,12 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #fff;
+  background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
   gap: 8px;
+}
+html.dark .fd-header {
+  background: var(--app-card-solid);
 }
 .fd-header__left,
 .fd-header__actions {
@@ -490,7 +493,7 @@ onMounted(load)
 }
 .fd-palette {
   width: 200px;
-  background: #fff;
+  background: var(--el-bg-color);
   border-right: 1px solid var(--el-border-color-lighter);
   padding: 14px;
   overflow-y: auto;
@@ -539,7 +542,7 @@ onMounted(load)
 .fd-canvas__inner {
   max-width: 760px;
   margin: 0 auto;
-  background: #fff;
+  background: var(--app-card-solid);
   border: 1px dashed var(--el-border-color);
   border-radius: 12px;
   padding: 20px;
@@ -559,7 +562,7 @@ onMounted(load)
   border-radius: 8px;
   margin-bottom: 12px;
   padding: 8px 12px;
-  background: #fff;
+  background: var(--el-bg-color);
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -602,7 +605,7 @@ onMounted(load)
 }
 .fd-props {
   width: 300px;
-  background: #fff;
+  background: var(--el-bg-color);
   border-left: 1px solid var(--el-border-color-lighter);
   padding: 14px;
   overflow-y: auto;

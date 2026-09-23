@@ -130,16 +130,21 @@ onMounted(metaLoad)
   display: flex;
   justify-content: center;
   padding: 48px 16px;
-  background: linear-gradient(180deg, #f5f7fb 0%, #eef1f8 100%);
+  background-color: var(--app-bg);
+  background-image: var(--app-bg-image);
 }
 .share-shell__card {
   width: 100%;
   max-width: 720px;
-  background: #fff;
+  background: var(--app-card-solid);
+  border: 1px solid var(--app-border-light);
   border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(31, 45, 61, 0.08);
+  box-shadow: var(--app-shadow-card);
   padding: 28px 36px 36px;
   align-self: flex-start;
+}
+html.dark .share-shell__card {
+  background-image: var(--app-header-bg);
 }
 .share-shell__brand {
   display: flex;
