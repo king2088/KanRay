@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const db = require('../src/db');
 const formSvc = require('../src/services/form.service');
 const submissionSvc = require('../src/services/form-submission.service');
+const datasetSvc = require('../src/services/dataset.service');
 const { resetDb } = require('./helpers/db');
 
 const OWNER = 9;
@@ -215,6 +216,26 @@ describe('form-submission.service 提交', () => {
     assert.equal(r2.id, 2);
     const ds = await db.prepare('SELECT row_count FROM datasets WHERE id = ?').get(f.datasetId);
     assert.equal(ds.row_count, 2);
+  });
+
+  test('refreshRowCounts 对 form 数据集做本地表懒计数', async () => {
+    const f = await makePublished();
+    await submissionSvc.insert(f, { name: 'a', city: 'bj' }, null);
+    await submissionSvc.insert(f, { name: 'b', city: 'sh' }, null);
+    const id = f.datasetId;
+
+    // 模拟行数漂移（如手工改表），懒计算应基于 ds_* 表实际行数重算并返回
+    await db.prepare('UPDATE datasets SET row_count = 0 WHERE id = ?').run(id);
+    const counts = await datasetSvc.refreshRowCounts([id]);
+    assert.deepEqual(counts, { [id]: 2 });
+    const ds = await db.prepare('SELECT row_count FROM datasets WHERE id = ?').get(id);
+    assert.equal(ds.row_count, 2);
+
+    // 已计过数的（row_count>0）不再重算
+    await db.prepare('UPDATE datasets SET row_count = 99 WHERE id = ?').run(id);
+    assert.deepEqual(await datasetSvc.refreshRowCounts([id]), {});
+    const after = await db.prepare('SELECT row_count FROM datasets WHERE id = ?').get(id);
+    assert.equal(after.row_count, 99);
   });
 
   test('update 更新单条提交；remove 删除并回减行数', async () => {

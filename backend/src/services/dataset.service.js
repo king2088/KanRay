@@ -337,34 +337,58 @@ async function refreshRowCounts(ids, scope = '') {
   const unique = [...new Set((ids || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
   if (!unique.length) return out;
   const placeholders = unique.map(() => '?').join(',');
-  const cond = [
+  const upd = db.prepare('UPDATE datasets SET row_count = ? WHERE id = ?');
+
+  // SQL 数据集（外部数据源）走 SqlDataProvider 远程计数
+  const sqlCond = [
     `d.id IN (${placeholders})`,
     `d.source_type = 'sql'`,
     `d.row_count = 0`,
     `d.datasource_id IS NOT NULL`,
     scope ? `(${scope})` : '',
   ].filter(Boolean).join(' AND ');
-  const targets = await listDatasets(cond, unique);
-  if (!targets.length) return out;
-
-  const sqlDataProvider = require('../datasources/sql-data-provider');
-  const upd = db.prepare('UPDATE datasets SET row_count = ? WHERE id = ?');
-  const CONCURRENCY = 3;
-  let i = 0;
-  const worker = async () => {
-    while (i < targets.length) {
-      const target = targets[i++];
-      try {
-        const count = await sqlDataProvider.countRows(target);
-        await upd.run(count, target.id);
-        out[target.id] = count;
-      } catch (e) {
-        console.warn(`[row-count] 数据集 ${target.id} 计数失败: ${(e && e.message) || e}`);
-        out[target.id] = 0;
+  const sqlTargets = await listDatasets(sqlCond, unique);
+  if (sqlTargets.length) {
+    const sqlDataProvider = require('../datasources/sql-data-provider');
+    const CONCURRENCY = 3;
+    let i = 0;
+    const worker = async () => {
+      while (i < sqlTargets.length) {
+        const target = sqlTargets[i++];
+        try {
+          const count = await sqlDataProvider.countRows(target);
+          await upd.run(count, target.id);
+          out[target.id] = count;
+        } catch (e) {
+          console.warn(`[row-count] 数据集 ${target.id} 计数失败: ${(e && e.message) || e}`);
+          out[target.id] = 0;
+        }
       }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, sqlTargets.length) }, () => worker()));
+  }
+
+  // 本地数据表数据集（表单 ds_* / 上传 excel ds_*）直接对表计数
+  const localCond = [
+    `d.id IN (${placeholders})`,
+    `d.source_type IN ('form', 'excel')`,
+    `d.row_count = 0`,
+    scope ? `(${scope})` : '',
+  ].filter(Boolean).join(' AND ');
+  const localTargets = await listDatasets(localCond, unique);
+  for (const target of localTargets) {
+    const q = db.dialect.quoteIdent(target.table_name);
+    if (!q) continue;
+    try {
+      const row = await db.prepare(`SELECT COUNT(*) AS n FROM ${q}`).get();
+      const n = Number(row?.n || 0);
+      await upd.run(n, target.id);
+      out[target.id] = n;
+    } catch (e) {
+      console.warn(`[row-count] 数据集 ${target.id} 计数失败: ${(e && e.message) || e}`);
+      out[target.id] = 0;
     }
-  };
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targets.length) }, () => worker()));
+  }
   return out;
 }
 
