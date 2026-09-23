@@ -85,3 +85,32 @@ test('dry-run 只统计不写入', async () => {
   assert.equal(res.tables.find((t) => t.table === 'users').rows, 1);
   assert.ok(!fs.existsSync(dstPath), 'dry-run 不应落库');
 });
+test('ensureSchema 为旧库 forms 表补齐 submission_seq 列', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kbmig-'));
+  const dbPath = path.join(dir, 'legacy-forms.db');
+  const store = createStore({ type: 'sqlite', sqlitePath: dbPath });
+
+  // 旧版 forms 表：无 submission_seq（早于该列上线的库形态）
+  store.run(`CREATE TABLE forms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'draft', schema_json TEXT NOT NULL DEFAULT '{}',
+    submit_config TEXT NOT NULL DEFAULT '{}', table_name TEXT, dataset_id INTEGER,
+    owner_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')))`);
+
+  ensureSchema(store);
+
+  const cols = store.all('PRAGMA table_info(forms)').map((c) => c.name);
+  assert.ok(cols.includes('submission_seq'), '应补齐 submission_seq');
+
+  // 既有行默认值 0
+  store.run('INSERT INTO forms (name, owner_id, schema_json) VALUES (?, ?, ?)', ['旧表单', 1, '{}']);
+  const row = store.all('SELECT submission_seq FROM forms WHERE name = ?', ['旧表单'])[0];
+  assert.equal(row.submission_seq, 0, 'submission_seq 默认 0');
+
+  // 幂等：重复 ensureSchema 不报错、不产生重复列
+  ensureSchema(store);
+  const again = store.all('PRAGMA table_info(forms)').filter((c) => c.name === 'submission_seq');
+  assert.equal(again.length, 1, '不应重复加列');
+  store.close();
+});

@@ -106,6 +106,7 @@ function ensureSchema(store) {
     dashboards: [['gap_x', 'INTEGER NOT NULL DEFAULT 12'], ['gap_y', 'INTEGER NOT NULL DEFAULT 12'], ['card_style', "TEXT NOT NULL DEFAULT '{}'"], ['owner_id', 'INTEGER']],
     charts: [['owner_id', 'INTEGER']],
     sync_configs: [['reconcile_delete', 'INTEGER NOT NULL DEFAULT 1']],
+    forms: [['submission_seq', 'INTEGER NOT NULL DEFAULT 0']],
   };
 
   const alterSync = () => {
