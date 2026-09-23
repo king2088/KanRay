@@ -132,11 +132,11 @@ async function load() {
 
 async function create() {
   try {
-    const { data } = await ElMessageBox.prompt('给表单起个名字', '新建表单', {
+    const { value } = await ElMessageBox.prompt('给表单起个名字', '新建表单', {
       inputValidator: (v) => (v && v.trim() ? true : '名称不能为空'),
       inputPlaceholder: '如：员工满意度调查',
     })
-    const f = await formApi.create(data)
+    const f = await formApi.create(value)
     ElMessage.success('已创建，开始设计吧')
     router.push(`/forms/${f.id}/design`)
   } catch (e) {
