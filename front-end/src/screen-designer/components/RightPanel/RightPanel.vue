@@ -86,6 +86,13 @@ function onDataTypeChange(t: string) {
   selectedComponent.value.data = data
 }
 
+function onDatasetSelect(id: number | null) {
+  if (!selectedComponent.value) return
+  const data = { ...selectedComponent.value.data, datasetId: id }
+  delete data.query
+  selectedComponent.value.data = data
+}
+
 // Auto-expand props when component selected, collapse canvas
 watch(() => componentsStore.selectedIds, (ids) => {
   if (ids.length === 1) {
@@ -1198,7 +1205,7 @@ const presetResolutions = [
                 </el-button>
               </el-form-item>
               <el-form-item v-if="selectedComponent.data.type === 'dataset'" label="数据集">
-                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100">
+                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100" @change="onDatasetSelect($event)">
                   <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
                 </el-select>
               </el-form-item>
