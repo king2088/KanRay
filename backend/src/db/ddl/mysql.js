@@ -131,6 +131,22 @@ module.exports = [
     KEY idx_dashboard_shares_dashboard (dashboard_id),
     CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS forms (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, description VARCHAR(1000) NOT NULL DEFAULT '',
+    status VARCHAR(20) NOT NULL DEFAULT 'draft', schema_json LONGTEXT NOT NULL,
+    submit_config LONGTEXT NOT NULL, table_name VARCHAR(255), dataset_id BIGINT,
+    owner_id BIGINT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_forms_owner (owner_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS form_shares (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, form_id BIGINT NOT NULL,
+    token VARCHAR(64) NOT NULL, password_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME, is_active TINYINT(1) NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_form_shares_token (token),
+    KEY idx_form_shares_form (form_id),
+    CONSTRAINT fk_form_shares_form FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )`,
   `CREATE TABLE IF NOT EXISTS big_screen_shares (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, big_screen_id BIGINT NOT NULL,
     token VARCHAR(64) NOT NULL, password_hash VARCHAR(255) NOT NULL,

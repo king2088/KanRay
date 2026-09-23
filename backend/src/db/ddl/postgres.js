@@ -116,6 +116,20 @@ module.exports = [
     created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
   'CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE IF NOT EXISTS forms (
+    id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'draft', schema_json TEXT NOT NULL,
+    submit_config TEXT NOT NULL, table_name TEXT, dataset_id BIGINT,
+    owner_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_forms_owner ON forms(owner_id)',
+  `CREATE TABLE IF NOT EXISTS form_shares (
+    id BIGSERIAL PRIMARY KEY, form_id BIGINT NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+    expires_at TIMESTAMP, is_active SMALLINT NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_form_shares_form ON form_shares(form_id)',
   `CREATE TABLE IF NOT EXISTS big_screen_shares (
     id BIGSERIAL PRIMARY KEY, big_screen_id BIGINT NOT NULL REFERENCES big_screens(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,

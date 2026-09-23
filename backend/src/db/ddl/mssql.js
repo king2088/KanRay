@@ -129,6 +129,22 @@ module.exports = [
     CONSTRAINT fk_dashboard_shares_dash FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
   )`,
   'CREATE INDEX idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE forms (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(255) NOT NULL, description NVARCHAR(1000) NOT NULL DEFAULT '',
+    status NVARCHAR(20) NOT NULL DEFAULT 'draft', schema_json NVARCHAR(MAX) NOT NULL,
+    submit_config NVARCHAR(MAX) NOT NULL, table_name NVARCHAR(255), dataset_id BIGINT,
+    owner_id BIGINT NOT NULL, created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+  )`,
+  'CREATE INDEX idx_forms_owner ON forms(owner_id)',
+  `CREATE TABLE form_shares (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY, form_id BIGINT NOT NULL,
+    token NVARCHAR(64) NOT NULL, password_hash NVARCHAR(255) NOT NULL,
+    expires_at DATETIME2, is_active BIT NOT NULL DEFAULT 1, created_by BIGINT NOT NULL,
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT uq_form_shares_token UNIQUE (token),
+    CONSTRAINT fk_form_shares_form FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
+  )`,
+  'CREATE INDEX idx_form_shares_form ON form_shares(form_id)',
   `CREATE TABLE big_screen_shares (
     id BIGINT IDENTITY(1,1) PRIMARY KEY, big_screen_id BIGINT NOT NULL,
     token NVARCHAR(64) NOT NULL, password_hash NVARCHAR(255) NOT NULL,

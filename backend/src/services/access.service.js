@@ -8,6 +8,7 @@ const RESOURCE_TABLES = {
   big_screen: 'big_screens', big_screens: 'big_screens',
   big_screen_template: 'big_screen_templates', big_screen_templates: 'big_screen_templates',
   datasource: 'data_sources', datasources: 'data_sources',
+  form: 'forms', forms: 'forms',
 };
 
 async function isAdmin(user, rbac) {

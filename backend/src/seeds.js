@@ -8,6 +8,8 @@ const PERMISSIONS = [
   ['big_screen:read', '查看大屏'], ['big_screen:create', '创建大屏'], ['big_screen:update', '编辑大屏'], ['big_screen:delete', '删除大屏'], ['big_screen:share', '分享大屏'],
   ['datasource:read', '查看数据源'], ['datasource:create', '创建数据源'], ['datasource:update', '编辑数据源'], ['datasource:delete', '删除数据源'],
   ['sqllab:execute', '执行 SQL'],
+  ['form:read', '查看表单'], ['form:create', '创建表单'], ['form:update', '编辑表单'], ['form:delete', '删除表单'], ['form:publish', '发布表单'], ['form:share', '分享表单'], ['form:submit', '填报表单'],
+  ['form:submission:read', '查看提交记录'], ['form:submission:update', '编辑提交记录'], ['form:submission:delete', '删除提交记录'],
   ['user:read', '查看用户'], ['user:create', '创建用户'], ['user:update', '编辑用户'], ['user:delete', '删除用户'],
   ['role:read', '查看角色'], ['role:create', '创建角色'], ['role:update', '编辑角色'], ['role:delete', '删除角色'],
   ['audit:read', '查看审计日志'],
@@ -20,8 +22,8 @@ const ALL = PERMISSIONS.map((p) => p[0]);
 const ROLES = [
   { code: 'admin', name: '管理员', description: '全部权限', isBuiltin: 1, permissions: ALL },
   { code: 'analyst', name: '数据工程师/分析师', description: '管理数据源/数据集/图表/看板，可执行 SQL', isBuiltin: 1, permissions: ALL.filter((p) => !p.startsWith('user:') && !p.startsWith('role:') && !p.startsWith('audit:') && p !== 'system:config' && !p.startsWith('apikey:')) },
-  { code: 'editor', name: '看板编辑者', description: '构建图表与排版看板，可看数据集', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'chart:create', 'chart:update', 'chart:delete', 'dashboard:read', 'dashboard:create', 'dashboard:update', 'dashboard:delete', 'dashboard:share', 'big_screen:read', 'big_screen:create', 'big_screen:update', 'big_screen:delete', 'big_screen:share'] },
-  { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read'] },
+  { code: 'editor', name: '看板编辑者', description: '构建图表与排版看板，可看数据集', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'chart:create', 'chart:update', 'chart:delete', 'dashboard:read', 'dashboard:create', 'dashboard:update', 'dashboard:delete', 'dashboard:share', 'big_screen:read', 'big_screen:create', 'big_screen:update', 'big_screen:delete', 'big_screen:share', 'form:read', 'form:create', 'form:update', 'form:delete', 'form:publish', 'form:share', 'form:submit', 'form:submission:read', 'form:submission:update', 'form:submission:delete'] },
+  { code: 'viewer', name: '查看者', description: '只读', isBuiltin: 1, permissions: ['dataset:read', 'chart:read', 'dashboard:read', 'form:read', 'form:submit'] },
 ];
 
 async function seedPermissions() {

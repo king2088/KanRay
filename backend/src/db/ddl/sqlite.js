@@ -116,6 +116,21 @@ module.exports = [
     created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   'CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard ON dashboard_shares(dashboard_id)',
+  `CREATE TABLE IF NOT EXISTS forms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'draft', schema_json TEXT NOT NULL DEFAULT '{}',
+    submit_config TEXT NOT NULL DEFAULT '{}', table_name TEXT, dataset_id INTEGER,
+    owner_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_forms_owner ON forms(owner_id)',
+  `CREATE TABLE IF NOT EXISTS form_shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+    expires_at TEXT, is_active INTEGER NOT NULL DEFAULT 1, created_by INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_form_shares_form ON form_shares(form_id)',
   `CREATE TABLE IF NOT EXISTS big_screen_shares (
     id INTEGER PRIMARY KEY AUTOINCREMENT, big_screen_id INTEGER NOT NULL REFERENCES big_screens(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,

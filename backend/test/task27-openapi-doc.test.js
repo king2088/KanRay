@@ -50,8 +50,8 @@ test('swagger UI 可访问（返回 HTML）', async () => {
   assert.match(r.raw, /swagger-ui|<html/i);
 });
 
-test('README 权限点数量为 34 且含 apikey:manage 文档', () => {
+test('README 权限点数量为 44 且含 apikey:manage 文档', () => {
   const readme = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
   assert.match(readme, /apikey:manage/, 'README 应提及 apikey:manage 权限点');
-  assert.match(readme, /34 个权限点/, 'README 应写明权限点总数 34');
+  assert.match(readme, /44 个权限点/, 'README 应写明权限点总数 44');
 });
