@@ -50,7 +50,7 @@
         <el-table-column prop="name" label="名称" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
-              <div class="cell-name__icon"><DbIcon v-if="row.source_type === 'sql'" :type="row.db_type" :size="16" /><el-icon v-else :size="16"><Files /></el-icon></div>
+              <div class="cell-name__icon"><DbIcon v-if="row.source_type === 'sql'" :type="row.db_type" :size="16" /><el-icon v-else-if="row.source_type === 'form'" :size="16"><Tickets /></el-icon><el-icon v-else :size="16"><Files /></el-icon></div>
               <el-link type="primary" @click="$router.push(`/datasets/${row.id}`)">{{ row.name }}</el-link>
             </div>
           </template>
