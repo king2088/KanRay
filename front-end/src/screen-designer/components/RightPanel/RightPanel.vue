@@ -24,6 +24,7 @@ import CarouselConfig from './configs/CarouselConfig.vue'
 import VideoConfig from './configs/VideoConfig.vue'
 import CustomChartConfig from './configs/CustomChartConfig.vue'
 import CustomChartDataHint from './configs/CustomChartDataHint.vue'
+import DatasetQueryDialog from './DatasetQueryDialog.vue'
 
 const componentsStore = useComponentsStore()
 const canvasStore = useCanvasStore()
@@ -35,6 +36,7 @@ const togglePanel = () => { rightPanelCollapsed.value = !rightPanelCollapsed.val
 
 const expandedSections = ref<string[]>(['canvas'])
 const showDataEditor = ref(false)
+const showQueryDialog = ref(false)
 
 const selectedComponent = computed(() => {
   if (componentsStore.selectedIds.length === 1) {
@@ -45,10 +47,20 @@ const selectedComponent = computed(() => {
 
 const isMobilePreview = computed(() => canvasStore.previewDevice !== 'pc')
 
+const querySummary = computed(() => {
+  const q = selectedComponent.value?.data?.query
+  if (!q || !q.metrics?.length) return '未配置'
+  return `${(q.dimensions || []).length} 个维度 / ${q.metrics.length} 个指标`
+})
+
+function onQueryConfirm(payload: { datasetId: number | null; query: any }) {
+  if (!selectedComponent.value) return
+  const data = { ...selectedComponent.value.data, datasetId: payload.datasetId, query: payload.query }
+  selectedComponent.value.data = data
+}
+
 // 数据集数据源
 const datasetList = ref<{ id: number; name: string }[]>([])
-const datasetFields = ref<{ name: string; label: string; type: string }[]>([])
-const datasetLoadedId = ref<number | null>(null)
 
 async function loadDatasetList() {
   if (datasetList.value.length) return
@@ -57,26 +69,11 @@ async function loadDatasetList() {
   } catch { datasetList.value = [] }
 }
 
-async function loadDatasetFields(datasetId: number | null) {
-  if (!datasetId) { datasetFields.value = []; datasetLoadedId.value = null; return }
-  if (datasetLoadedId.value === datasetId) return
-  try {
-    const ds = await datasetApi.get(datasetId)
-    datasetFields.value = ds?.fields || []
-    datasetLoadedId.value = datasetId
-  } catch { datasetFields.value = []; datasetLoadedId.value = null }
-}
-
 watch(() => selectedComponent.value?.data?.type, (t) => {
   if (t === 'dataset') {
     loadDatasetList()
-    loadDatasetFields(selectedComponent.value?.data?.datasetId ?? null)
   }
 }, { immediate: true })
-
-watch(() => selectedComponent.value?.data?.datasetId, (id) => {
-  if (selectedComponent.value?.data?.type === 'dataset') loadDatasetFields(id ?? null)
-})
 
 function onDataTypeChange(t: string) {
   if (!selectedComponent.value) return
@@ -1201,19 +1198,15 @@ const presetResolutions = [
                 </el-button>
               </el-form-item>
               <el-form-item v-if="selectedComponent.data.type === 'dataset'" label="数据集">
-                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100" @change="loadDatasetFields($event)">
+                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100">
                   <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
                 </el-select>
               </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="分类字段">
-                <el-select v-model="selectedComponent.data.categoryField" class="rc-w100">
-                  <el-option v-for="f in datasetFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-                </el-select>
-              </el-form-item>
-              <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="数值字段">
-                <el-select v-model="selectedComponent.data.valueFields" class="rc-w100" multiple>
-                  <el-option v-for="f in datasetFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-                </el-select>
+              <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="维度指标">
+                <div class="rc-row-mb">
+                  <span class="query-summary">{{ querySummary }}</span>
+                  <el-button size="small" type="primary" @click="showQueryDialog = true">配置维度/指标</el-button>
+                </div>
               </el-form-item>
             </el-form>
           </div>
@@ -1287,6 +1280,12 @@ const presetResolutions = [
         <el-button type="primary" @click="showDataEditor = false">确定</el-button>
       </template>
     </el-dialog>
+    <DatasetQueryDialog
+      v-model="showQueryDialog"
+      :datasetId="selectedComponent ? selectedComponent.data.datasetId ?? null : null"
+      :query="selectedComponent ? selectedComponent.data.query : undefined"
+      @confirm="onQueryConfirm"
+    />
   </div>
 </template>
 
@@ -1306,6 +1305,12 @@ const presetResolutions = [
 .right-panel.collapsed {
   width: 0;
   border-left: none;
+}
+
+.query-summary {
+  font-size: 12px;
+  color: var(--scr-text-3);
+  margin-right: 8px;
 }
 
 .rp-float-btn {
