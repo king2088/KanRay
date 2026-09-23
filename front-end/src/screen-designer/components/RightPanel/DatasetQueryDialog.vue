@@ -107,6 +107,10 @@
   </el-dialog>
 </template>
 
+<script lang="ts">
+const fieldCache = new Map<number, { name: string; label: string; type: string }[]>()
+</script>
+
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -205,17 +209,25 @@ async function loadDatasets() {
   }
 }
 
-async function onDatasetChange(id: number | null) {
-  fields.value = []
-  dimensions.value = []
-  metrics.value = []
-  if (!id) return
+async function loadFields(id: number) {
+  if (fieldCache.has(id)) {
+    fields.value = fieldCache.get(id)!
+    return
+  }
   try {
     const ds = await datasetApi.get(id)
     fields.value = ds?.fields || []
+    fieldCache.set(id, fields.value)
   } catch {
     fields.value = []
   }
+}
+
+async function onDatasetChange(id: number | null) {
+  dimensions.value = []
+  metrics.value = []
+  if (!id) return
+  await loadFields(id)
 }
 
 function initFromConfig() {
@@ -230,9 +242,12 @@ function initFromConfig() {
 }
 
 async function open() {
+  fields.value = []
+  dimensions.value = []
+  metrics.value = []
   plot.value.datasetId = props.datasetId ?? null
   await loadDatasets()
-  if (plot.value.datasetId) await onDatasetChange(plot.value.datasetId)
+  if (plot.value.datasetId) await loadFields(plot.value.datasetId)
   initFromConfig()
 }
 
