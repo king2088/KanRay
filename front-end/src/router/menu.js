@@ -4,6 +4,7 @@ export const MENU_ITEMS = [
   { path: '/charts', title: '图表中心', icon: 'PieChart' },
   { path: '/dashboards', title: '看板中心', icon: 'Odometer' },
   { path: '/big-screen', title: '大屏设计', icon: 'Monitor' },
+  { path: '/forms', title: '表单中心', icon: 'Tickets' },
   { path: '/admin', title: '系统管理', icon: 'Setting' },
 ]
 
@@ -42,6 +43,7 @@ export function activeMenuOf(path) {
   if (path.startsWith('/dashboards')) return '/dashboards'
   if (path.startsWith('/charts')) return '/charts'
   if (path.startsWith('/big-screen')) return '/big-screen'
+  if (path.startsWith('/forms')) return '/forms'
   return '/datasets'
 }
 

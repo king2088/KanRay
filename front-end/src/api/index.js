@@ -76,8 +76,25 @@ export const bigScreenApi = {
   deleteTemplate: (id) => http.delete(`/big-screen-templates/${id}`),
 }
 
+export const formApi = {
+  list: () => http.get('/forms'),
+  get: (id) => http.get(`/forms/${id}`),
+  create: (name, description) => http.post('/forms', { name, description }),
+  update: (id, payload) => http.patch(`/forms/${id}`, payload),
+  publish: (id) => http.post(`/forms/${id}/publish`),
+  close: (id) => http.post(`/forms/${id}/close`),
+  remove: (id) => http.delete(`/forms/${id}`),
+  submit: (id, values) => http.post(`/forms/${id}/submissions`, { values }),
+  submissions: (id, mine) => http.get(`/forms/${id}/submissions`, { params: { mine: mine ? 1 : 0 } }),
+  updateSubmission: (id, subId, values) => http.patch(`/forms/${id}/submissions/${subId}`, { values }),
+  removeSubmission: (id, subId) => http.delete(`/forms/${id}/submissions/${subId}`),
+  shares: (id) => http.get(`/forms/${id}/shares`),
+  createShare: (id, payload) => http.post(`/forms/${id}/shares`, payload),
+  updateShare: (id, shareId, payload) => http.patch(`/forms/${id}/shares/${shareId}`, payload),
+  deleteShare: (id, shareId) => http.delete(`/forms/${id}/shares/${shareId}`),
+}
+
 export const authApi = {
-  register: (payload) => http.post('/auth/register', payload),
   login: (payload) => http.post('/auth/login', payload),
   refresh: (payload) => http.post('/auth/refresh', payload),
   logout: () => http.post('/auth/logout'),

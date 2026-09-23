@@ -26,6 +26,12 @@ const routes = [
     meta: { title: '大屏分享', public: true },
   },
   {
+    path: '/f/:token',
+    name: 'form-share-fill',
+    component: () => import('../views/FormShareView.vue'),
+    meta: { title: '表单填写', public: true },
+  },
+  {
     path: '/big-screen/design/:id',
     name: 'big-screen-design',
     component: () => import('../screen-designer/views/Designer.vue'),
@@ -60,6 +66,10 @@ const routes = [
       { path: 'dashboards/:id', name: 'dashboard-view', component: () => import('../views/DashboardView.vue'), meta: { title: '看板查看' } },
       { path: 'dashboards/:id/edit', name: 'dashboard-edit', component: () => import('../views/DashboardEditor.vue'), meta: { title: '编辑看板' } },
       { path: 'big-screen', name: 'big-screens', component: () => import('../views/BigScreenList.vue'), meta: { title: '大屏设计' } },
+      { path: 'forms', name: 'forms', component: () => import('../views/forms/FormList.vue'), meta: { title: '表单中心' } },
+      { path: 'forms/:id/design', name: 'form-design', component: () => import('../views/forms/FormDesigner.vue'), meta: { title: '表单设计' } },
+      { path: 'forms/:id/fill', name: 'form-fill', component: () => import('../views/forms/FormFill.vue'), meta: { title: '填报表单' } },
+      { path: 'forms/:id/submissions', name: 'form-submissions', component: () => import('../views/forms/FormSubmissions.vue'), meta: { title: '提交记录' } },
       { path: 'admin/users', name: 'admin-users', component: () => import('../views/admin/UserAdmin.vue'), meta: { title: '用户管理' } },
       { path: 'admin/roles', name: 'admin-roles', component: () => import('../views/admin/RoleAdmin.vue'), meta: { title: '角色管理' } },
       { path: 'admin/audit', name: 'admin-audit', component: () => import('../views/admin/AuditView.vue'), meta: { title: '操作审计' } },
