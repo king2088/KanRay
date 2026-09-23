@@ -80,6 +80,7 @@ async function metaLoad() {
     meta.value = await formShareApi.meta(token)
     if (!meta.value.found) return
     opened.value = !verifyNeeded()
+    if (opened.value) await verify()
   } finally {
     ready.value = true
   }
@@ -98,7 +99,8 @@ async function verify() {
     const { accessToken } = await formShareApi.verify(token, password.value)
     sessionStorage.setItem(FORM_SHARE_TOKEN_KEY, accessToken)
     opened.value = true
-    form.value = await formShareApi.form(token)
+    const { form: fillView } = await formShareApi.form(token)
+    form.value = fillView
   } catch (e) {
     /* 拦截器已提示 */
   } finally {
