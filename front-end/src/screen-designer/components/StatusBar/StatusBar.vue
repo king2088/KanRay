@@ -71,14 +71,14 @@ const shortcuts = [
 <style scoped>
 .status-bar {
   height: 30px;
-  background: white;
-  border-top: 1px solid #ebeef5;
+  background: var(--scr-surface);
+  border-top: 1px solid var(--scr-border-lighter);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
   font-size: 12px;
-  color: #606266;
+  color: var(--scr-text-2);
 }
 
 .left, .right {

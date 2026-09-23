@@ -445,8 +445,8 @@ defineExpose({ sortedComponents, componentIcons })
 .left-panel {
   width: 240px;
   height: 100%;
-  background: white;
-  border-right: 1px solid #e4e7ed;
+  background: var(--scr-surface);
+  border-right: 1px solid var(--scr-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -454,7 +454,7 @@ defineExpose({ sortedComponents, componentIcons })
 
 .panel-tabs {
   display: flex;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--scr-border);
 }
 
 .tab-item {
@@ -464,7 +464,7 @@ defineExpose({ sortedComponents, componentIcons })
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #606266;
+  color: var(--scr-text-2);
 }
 
 .tab-item:hover {
@@ -480,9 +480,9 @@ defineExpose({ sortedComponents, componentIcons })
   padding: 10px;
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--scr-surface);
   z-index: 10;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--scr-fill);
 }
 
 .component-list {
@@ -491,7 +491,7 @@ defineExpose({ sortedComponents, componentIcons })
 }
 
 .category {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--scr-fill);
 }
 
 .category-header {
@@ -502,12 +502,12 @@ defineExpose({ sortedComponents, componentIcons })
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #303133;
+  color: var(--scr-text-1);
   transition: background 0.2s;
 }
 
 .category-header:hover {
-  background: #f5f7fa;
+  background: var(--scr-surface-2);
 }
 
 .expand-icon {
@@ -529,7 +529,7 @@ defineExpose({ sortedComponents, componentIcons })
 
 .group-title {
   font-size: 11px;
-  color: #909399;
+  color: var(--scr-text-3);
   padding: 4px 8px;
   text-transform: uppercase;
 }
@@ -551,7 +551,7 @@ defineExpose({ sortedComponents, componentIcons })
 }
 
 .component-item:hover {
-  background: #ecf5ff;
+  background: var(--scr-accent-bg);
 }
 
 .component-item:active {
@@ -574,7 +574,7 @@ defineExpose({ sortedComponents, componentIcons })
 
 .item-name {
   font-size: 10px;
-  color: #606266;
+  color: var(--scr-text-2);
   text-align: center;
   line-height: 1.2;
 }
@@ -591,15 +591,15 @@ defineExpose({ sortedComponents, componentIcons })
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--scr-fill);
 }
 
 .layer-item:hover {
-  background: #f5f7fa;
+  background: var(--scr-surface-2);
 }
 
 .layer-item.selected {
-  background: #ecf5ff;
+  background: var(--scr-accent-bg);
   color: #409eff;
 }
 
@@ -613,13 +613,13 @@ defineExpose({ sortedComponents, componentIcons })
 
 .layer-type {
   font-size: 11px;
-  color: #909399;
+  color: var(--scr-text-3);
 }
 
 .empty-layers {
   padding: 20px;
   text-align: center;
-  color: #909399;
+  color: var(--scr-text-3);
   font-size: 13px;
 }
 </style>

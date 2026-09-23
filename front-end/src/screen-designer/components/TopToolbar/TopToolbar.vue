@@ -188,8 +188,8 @@ const setPreviewMode = (mode: 'pc' | 'mobile') => {
 <style scoped>
 .top-toolbar {
   height: 50px;
-  background: white;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--scr-surface);
+  border-bottom: 1px solid var(--scr-border-lighter);
   display: flex;
   align-items: center;
   justify-content: space-between;

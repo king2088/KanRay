@@ -566,3 +566,70 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(150, 180, 214, 0.4);
 }
+
+/* ============================================================
+   screen-designer chrome 命名空间（--scr-*）
+   —— 仅设计器「框架(chrome)」用；图表/图层类型/数据色板(用户内容)不得引用
+   浅色模式：浅值 = 原硬编码 hex（逐像素不变 = 同余）
+   暗色模式：随 html.dark 应用原生暗黑 chrome 调色板
+   ============================================================ */
+:root {
+  /* ---- 表面 ----
+     说明：浅值必须 == 当前文件里的硬编码 hex（这些是审计后逐文件核对过的），
+     浅色模式因此保持“像素级不变”。深值来自应用暗黑 chrome 调色板。 */
+  --scr-bg:            #f5f7fa;   /* 主画布工作区背景（原 Canvas 工具区底盘） */
+  --scr-surface:       #ffffff;   /* 面板/工具栏/状态栏 主表面 */
+  --scr-surface-2:     #f5f7fa;   /* 次级表面：左/右面板内边距背景、分组标题带 */
+  --scr-surface-3:     #fafafa;   /* 三级表面：option/hover 备用表面 */
+  --scr-fill:          #f0f0f0;   /* 分隔线/填充用细带 */
+  --scr-glass:         rgba(255,255,255,0.62);  /* 玻璃插件（原 --app-glass 值，设计器独立持有以免被 :root 玻璃覆盖干扰） */
+
+  /* ---- 边框 ---- */
+  --scr-border:        #dcdfe6;   /* 主边框（面板外缘） */
+  --scr-border-light:  #e4e7ed;   /* 细边框（分组/行分隔） */
+  --scr-border-lighter:#ebeef5;   /* 更细边框（面板块间分隔） */
+
+  /* ---- 文本 ---- */
+  --scr-text-1:        #303133;   /* 主文字 */
+  --scr-text-2:        #606266;   /* 常规文字 */
+  --scr-text-3:        #909399;   /* 次要文字 */
+  --scr-text-4:        #c0c4cc;   /* 占位文字 */
+
+  /* ---- chromium 交互色 ---- */
+  --scr-accent:        #409eff;   /* chrome 的选中/悬停强调（保留） */
+  --scr-accent-bg:     #ecf5ff;   /* chrome 选中/悬停强调底 */
+  --scr-on-accent:     #ffffff;   /* 强调色块上的文字（浅色） */
+  --scr-danger:        #f56c6c;   /* chrome 删除/危险文字 */
+  --scr-danger-bg:     #fef0f0;   /* chrome 危险悬停底 */
+  --scr-dot:           #c0c4cc;   /* 位置/状态指示点 */
+}
+
+html.dark {
+  /* ---- 表面（应用原生暗黑 chrome） ---- */
+  --scr-bg:            #0d1520;                /* 应用暗黑画布底盘 */
+  --scr-surface:       #18222e;                /* 面板/工具栏/状态栏 暗黑金属表面 */
+  --scr-surface-2:     rgba(150,180,214,0.10); /* 次级表面：分组标题带 */
+  --scr-surface-3:     rgba(150,180,214,0.08); /* 三级表面 */
+  --scr-fill:          rgba(150,180,214,0.12); /* 分隔线/填充用细带 */
+  --scr-glass:         rgba(23,34,48,0.55);    /* 玻璃插件（应用暗黑玻璃值） */
+
+  /* ---- 边框 ---- */
+  --scr-border:        rgba(150,180,214,0.20);  /* 主边框 */
+  --scr-border-light:  rgba(150,180,214,0.14);  /* 细边框 */
+  --scr-border-lighter:rgba(150,180,214,0.11);  /* 更细边框 */
+
+  /* ---- 文本 ---- */
+  --scr-text-1:        #e7eef7;   /* 主文字 */
+  --scr-text-2:        #c3cdd9;   /* 常规文字 */
+  --scr-text-3:        #8fa0b6;   /* 次要文字 */
+  --scr-text-4:        #6f8096;   /* 占位文字 */
+
+  /* ---- chromium 交互色 ---- */
+  --scr-accent:        #57c4b4;   /* chrome 强调（暗黑用应用主色） */
+  --scr-accent-bg:     rgba(87,196,180,0.14);  /* chrome 强调底 */
+  --scr-on-accent:     #e7eef7;  /* 强调色块上的文字（暗色近白保持对比） */
+  --scr-danger:        #f87171;   /* chrome 危险文字 */
+  --scr-danger-bg:     rgba(243,110,110,0.16); /* chrome 危险悬停底 */
+  --scr-dot:           #6f8096;   /* 位置/状态指示点 */
+}
+

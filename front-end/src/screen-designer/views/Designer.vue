@@ -126,7 +126,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #fff;
+  background: var(--scr-surface);
   padding: 0 8px;
   box-sizing: border-box;
 }

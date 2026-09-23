@@ -1197,8 +1197,8 @@ function ctxAction(action: string) {
 
 .context-menu {
   position: fixed;
-  background: #fff;
-  border: 1px solid #e4e7ed;
+  background: var(--scr-surface);
+  border: 1px solid var(--scr-border);
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   padding: 4px 0;
@@ -1212,10 +1212,10 @@ function ctxAction(action: string) {
   cursor: pointer;
   white-space: nowrap;
 }
-.ctx-item:hover { background: #f5f7fa; color: #409eff; }
+.ctx-item:hover { background: var(--scr-surface-2); color: #409eff; }
 .ctx-danger { color: #f56c6c; }
 .ctx-danger:hover { background: #fef0f0; color: #f56c6c; }
-.ctx-divider { height: 1px; background: #ebeef5; margin: 4px 0; }
+.ctx-divider { height: 1px; background: var(--scr-border-lighter); margin: 4px 0; }
 
 .ctx-submenu { position: relative; }
 .ctx-arrow { float: right; margin-left: 20px; font-size: 9px; color: #999; }
@@ -1224,8 +1224,8 @@ function ctxAction(action: string) {
   position: absolute;
   left: 100%;
   top: -4px;
-  background: #fff;
-  border: 1px solid #e4e7ed;
+  background: var(--scr-surface);
+  border: 1px solid var(--scr-border);
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   padding: 4px 0;

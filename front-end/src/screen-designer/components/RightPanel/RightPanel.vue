@@ -1295,8 +1295,8 @@ const presetResolutions = [
   position: relative;
   width: 350px;
   height: 100%;
-  background: white;
-  border-left: 1px solid #ebeef5;
+  background: var(--scr-surface);
+  border-left: 1px solid var(--scr-border-lighter);
   display: flex;
   flex-direction: column;
   overflow: visible;
@@ -1318,9 +1318,9 @@ const presetResolutions = [
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
-  color: #606266;
-  border: 1px solid #ebeef5;
+  background: var(--scr-surface);
+  color: var(--scr-text-2);
+  border: 1px solid var(--scr-border-lighter);
   border-radius: 6px 0 0 6px;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.08);
   cursor: pointer;
@@ -1349,12 +1349,12 @@ const presetResolutions = [
   padding: 0 16px;
   font-size: 13px;
   font-weight: 500;
-  background: #fafafa;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--scr-surface-3);
+  border-bottom: 1px solid var(--scr-border-lighter);
 }
 
 :deep(.el-collapse-item__wrap) {
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--scr-border-lighter);
 }
 
 :deep(.el-collapse-item__content) {
@@ -1363,12 +1363,12 @@ const presetResolutions = [
 
 .collapse-title {
   font-weight: 500;
-  color: #303133;
+  color: var(--scr-text-1);
 }
 
 .section {
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--scr-fill);
 }
 
 .section:last-child {
@@ -1378,7 +1378,7 @@ const presetResolutions = [
 .section-title {
   font-weight: 500;
   margin-bottom: 10px;
-  color: #303133;
+  color: var(--scr-text-1);
   font-size: 12px;
 }
 
@@ -1388,9 +1388,9 @@ const presetResolutions = [
   align-items: center;
   gap: 2px;
   padding: 8px;
-  background: #f5f7fa;
+  background: var(--scr-surface-2);
   border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--scr-border);
 }
 
 .pos-row {
@@ -1404,8 +1404,8 @@ const presetResolutions = [
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
-  border: 1px solid #dcdfe6;
+  background: var(--scr-surface);
+  border: 1px solid var(--scr-border);
   border-radius: 3px;
   cursor: pointer;
   transition: all 0.15s;
@@ -1413,7 +1413,7 @@ const presetResolutions = [
 
 .pos-cell:hover {
   border-color: #409eff;
-  background: #ecf5ff;
+  background: var(--scr-accent-bg);
 }
 
 .pos-cell.active {
@@ -1422,14 +1422,14 @@ const presetResolutions = [
 }
 
 .pos-cell.active .pos-dot {
-  background: #fff;
+  background: var(--scr-surface);
 }
 
 .pos-dot {
   width: 6px;
   height: 6px;
   border-radius: 1px;
-  background: #c0c4cc;
+  background: var(--scr-dot);
   transition: background 0.15s;
 }
 
@@ -1439,7 +1439,7 @@ const presetResolutions = [
 
 .pos-label {
   font-size: 11px;
-  color: #909399;
+  color: var(--scr-text-3);
   margin-top: 4px;
 }
 
@@ -1454,12 +1454,12 @@ const presetResolutions = [
   align-items: center;
   gap: 4px;
   padding: 8px 16px;
-  background: #f5f7fa;
-  border: 1px solid #dcdfe6;
+  background: var(--scr-surface-2);
+  border: 1px solid var(--scr-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
-  color: #606266;
+  color: var(--scr-text-2);
 }
 
 .dir-cell:hover {
@@ -1469,7 +1469,7 @@ const presetResolutions = [
 
 .dir-cell.active {
   border-color: #409eff;
-  background: #ecf5ff;
+  background: var(--scr-accent-bg);
   color: #409eff;
 }
 
@@ -1528,10 +1528,10 @@ const presetResolutions = [
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--scr-border);
   border-radius: 4px;
-  background: #fff;
-  color: #606266;
+  background: var(--scr-surface);
+  color: var(--scr-text-2);
   cursor: pointer;
   font-size: 13px;
   transition: all 0.15s;
@@ -1546,7 +1546,7 @@ const presetResolutions = [
 .font-toggle.active {
   background: #409eff;
   border-color: #409eff;
-  color: #fff;
+  color: var(--scr-on-accent);
 }
 
 .font-toggle b,
@@ -1558,7 +1558,7 @@ const presetResolutions = [
 .toggle-divider {
   width: 1px;
   height: 16px;
-  background: #dcdfe6;
+  background: var(--scr-border);
   margin: 0 2px;
 }
 
@@ -1587,13 +1587,13 @@ const presetResolutions = [
   height: 40px;
   object-fit: cover;
   border-radius: 4px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--scr-border);
 }
 
 .image-upload-area {
   width: 100%;
   height: 100px;
-  border: 1px dashed #dcdfe6;
+  border: 1px dashed var(--scr-border);
   border-radius: 6px;
   cursor: pointer;
   display: flex;
@@ -1618,7 +1618,7 @@ const presetResolutions = [
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  color: #909399;
+  color: var(--scr-text-3);
   font-size: 12px;
 }
 
@@ -1635,7 +1635,7 @@ const presetResolutions = [
   height: 60px;
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--scr-border);
 }
 
 .carousel-img-item img {
@@ -1664,14 +1664,14 @@ const presetResolutions = [
 .add-img-btn {
   width: 60px;
   height: 60px;
-  border: 1px dashed #dcdfe6;
+  border: 1px dashed var(--scr-border);
   border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  color: #909399;
+  color: var(--scr-text-3);
   font-size: 10px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1686,11 +1686,11 @@ const presetResolutions = [
   width: 100%;
   height: 60px;
   padding: 8px 12px;
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
+  background: var(--scr-surface-2);
+  border: 1px solid var(--scr-border);
   border-radius: 4px;
   font-size: 12px;
-  color: #909399;
+  color: var(--scr-text-3);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1705,7 +1705,7 @@ const presetResolutions = [
 
 .style-btn-group {
   display: inline-flex;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--scr-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1717,22 +1717,22 @@ const presetResolutions = [
   justify-content: center;
   cursor: pointer;
   border: none;
-  background: #fff;
-  color: #606266;
+  background: var(--scr-surface);
+  color: var(--scr-text-2);
   font-size: 14px;
   padding: 0;
   transition: all 0.15s;
-  border-right: 1px solid #dcdfe6;
+  border-right: 1px solid var(--scr-border);
 }
 .style-btn:last-child {
   border-right: none;
 }
 .style-btn:hover {
-  background: #f5f7fa;
+  background: var(--scr-surface-2);
   color: #409eff;
 }
 .style-btn.active {
-  background: #ecf5ff;
+  background: var(--scr-accent-bg);
   color: #409eff;
 }
 .style-btn svg {
