@@ -106,6 +106,7 @@ DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmo
 - **数据集**：Excel(.xlsx/.xls/.csv) 上传、字段类型自动识别/手工调整、字段别名、数据分页预览、重命名/删除
 - **图表**：柱状/折线/饼图/环形/条形/表格/数值统计卡；多维度（第二维度作系列）、多指标、聚合方式（求和/平均/计数/去重计数/最大/最小）、时间粒度（日/月/年）、分组排序
 - **看板**：12 列 flow-grid 布局、拖拽添加图表、标题/文本组件（HTML）、跨图表筛选联动、全屏预览、自动保存布局、分享看板（密码门禁 + JWT 鉴权 + 启停控制 + 过期策略）
+- **大屏设计**：自由画布式可视化大屏（像素级布局、组件自由缩放/对齐吸附），组件库含图表 / 表格 / 文本 / 媒体 / DataV 装饰，支持静态数据 / API 请求（定时刷新）/ 数据集绑定、PC 与移动端预览、系统预设与「我的模板」、JSON 导入导出、密码/公开分享大屏（详见 [大屏设计器使用手册](docs/07-大屏设计器使用手册.md)）
 - **开放 API**：`/api/open/v1` 独立前缀 + API Key / PAT 长效凭证，提供图表/数据集/看板发现、图表取数、数据集自定义聚合、看板快照导出（JSON / CSV），Swagger 文档（`/api/open/docs`）
 - **查询引擎**：统一聚合 SQL 生成 + 字段白名单校验，数据访问层抽象（为第二阶段多数据库预留）
 
@@ -132,9 +133,10 @@ backend/                    ExpressJS 5 后端
   test/                     node:test 单元 / 集成（自主运行，LIVE 依赖自动跳过）
 front-end/                  Vue 3 前端
   src/
-    views/                  DatasetList/Detail + ChartList/Builder + Dashboard + DataSource{List,Detail,Builder,FormDialog}
+    views/                  DatasetList/Detail + ChartList/Builder + Dashboard + BigScreenList + DataSource{List,Detail,Builder,FormDialog}
     components/charts/      EChartRenderer
     components/dashboard/   DashboardCanvas / ChartTile / FilterComponent
+    screen-designer/        大屏设计器（Designer/Preview/Settings/Share 视图 + Canvas/LeftPanel/RightPanel/TopToolbar + 组件注册表/预设模板）
     api/                    统一 axios 封装（datasourceApi / syncApi）
     utils/                  ECharts 按需引入 + 图表 option 构建
 ```
@@ -196,7 +198,7 @@ cd front-end && npm run build
 第二阶段 M1 已交付多用户认证 + RBAC + 管理后台：
 
 - **认证**：邮箱+密码注册/登录，JWT 访问令牌（默认 15 分钟）+ 刷新令牌（默认 7 天，服务端哈希存储、单次使用轮换）；登出/改密/禁用即吊销
-- **内置角色**：管理员（全部 44 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
+- **内置角色**：管理员（全部 49 个权限点）、数据工程师/分析师、看板编辑者、查看者（只读）；支持自定义角色与用户多角色分配
 - **资源隔离**：数据集/图表/看板按 owner 隔离，管理与越权访问统一返回 403
 - **默认管理员**：首次启动自动创建 `admin@kanray.local / admin123`（请尽快改密）
 
