@@ -122,7 +122,7 @@ async function getFillView(share) {
   const form = await getForm(Number(share.formId));
   if (!form) throw new HttpError(404, '表单不存在或已被删除');
   if (form.status !== 'published') throw new HttpError(403, '表单当前不可填写', null, 40302);
-  return { share: share, form: fillSchema(form) };
+  return { share: stripPassword(share), form: fillSchema(form) };
 }
 
 module.exports = {

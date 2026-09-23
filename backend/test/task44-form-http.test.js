@@ -164,6 +164,8 @@ test('分享：创建(带密码) -> 密码错误 401 -> verify 拿 accessToken -
   assert.equal(r.status, 200, r.raw);
   assert.equal(r.body.data.form.schema.fields.length, 5);
   assert.ok(!('tableName' in r.body.data.form));
+  assert.ok(!('passwordHash' in r.body.data.share), '公开接口不得泄漏密码 hash');
+  assert.ok(!('password_hash' in r.body.data.share));
 
   r = await req(server, { method: 'POST', path: `/api/public/forms/${token}/submissions`, headers: hdr(accessToken), body: { values: { name: '匿名者', city: 'sh' } } });
   assert.equal(r.status, 200, r.raw);
@@ -176,6 +178,40 @@ test('分享：创建(带密码) -> 密码错误 401 -> verify 拿 accessToken -
   // 删除分享
   r = await req(server, { method: 'DELETE', path: `/api/forms/${createdId}/shares/${shareId}`, headers: hdr(adminToken) });
   assert.equal(r.status, 200);
+});
+
+test('分享：公开创建(password null) 成功；PATCH 布尔切换与清空密码；列表与公开响应不含密码 hash', async () => {
+  // 公开分享创建（前端关掉密码开关时的真实入参）
+  let r = await req(server, { method: 'POST', path: `/api/forms/${createdId}/shares`, headers: hdr(adminToken), body: { password: null, expiresAt: null } });
+  assert.equal(r.status, 200, r.raw);
+  const pub = r.body.data;
+  assert.equal(pub.hasPassword, false);
+  assert.ok(!('passwordHash' in pub) && !('password_hash' in pub), '创建响应不得含密码 hash');
+
+  // 公开分享免密 verify 直接发 token；/form 可读且脱敏
+  r = await req(server, { method: 'POST', path: `/api/public/forms/${pub.token}/verify`, body: {} });
+  assert.equal(r.status, 200, r.raw);
+  const at = r.body.data.accessToken;
+  r = await req(server, { path: `/api/public/forms/${pub.token}/form`, headers: hdr(at) });
+  assert.equal(r.status, 200, r.raw);
+  assert.ok(!('passwordHash' in r.body.data.share) && !('password_hash' in r.body.data.share));
+
+  // PATCH：布尔 isActive 切换 + password:null 清密
+  r = await req(server, { method: 'PATCH', path: `/api/forms/${createdId}/shares/${pub.id}`, headers: hdr(adminToken), body: { isActive: false } });
+  assert.equal(r.status, 200, r.raw);
+  assert.equal(r.body.data.isActive, 0);
+  r = await req(server, { method: 'PATCH', path: `/api/forms/${createdId}/shares/${pub.id}`, headers: hdr(adminToken), body: { password: null, isActive: true } });
+  assert.equal(r.status, 200, r.raw);
+  assert.equal(r.body.data.hasPassword, false);
+
+  // 管理列表整体脱敏
+  r = await req(server, { path: `/api/forms/${createdId}/shares`, headers: hdr(adminToken) });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.data.length >= 1);
+  for (const s of r.body.data) {
+    assert.ok(!('passwordHash' in s) && !('password_hash' in s), '列表不得泄漏密码 hash');
+    assert.equal(typeof s.hasPassword, 'boolean');
+  }
 });
 
 test('提交记录可编辑/删除（admin）；删除后行数回减', async () => {

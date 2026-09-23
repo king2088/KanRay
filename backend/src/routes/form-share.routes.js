@@ -23,7 +23,7 @@ router.post('/:formId/shares', requireUser, requirePermission('form', 'share'), 
   const formId = Number(req.params.formId);
   await access.assertResource('form', formId, req.user, rbac);
   const schema = z.object({
-    password: z.string().max(64).optional(),
+    password: z.string().max(64).optional().nullable(),
     expiresAt: z.string().optional().nullable(),
   }).strict();
   const parsed = schema.safeParse(req.body || {});
@@ -36,7 +36,7 @@ router.patch('/:formId/shares/:shareId', requireUser, requirePermission('form', 
   const formId = Number(req.params.formId);
   await access.assertResource('form', formId, req.user, rbac);
   const schema = z.object({
-    password: z.string().max(64).optional(),
+    password: z.string().max(64).optional().nullable(),
     expiresAt: z.string().optional().nullable(),
     isActive: z.boolean().optional(),
   }).strict();
