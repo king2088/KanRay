@@ -128,7 +128,6 @@ const NUMERIC_TYPES = ['integer', 'number']
 
 const datasetList = ref<{ id: number; name: string }[]>([])
 const fields = ref<{ name: string; label: string; type: string }[]>([])
-const loadedDatasetId = ref<number | null>(null)
 
 const plot = ref({
   datasetId: props.datasetId as number | null,
@@ -207,7 +206,6 @@ async function loadDatasets() {
 }
 
 async function onDatasetChange(id: number | null) {
-  loadedDatasetId.value = null
   fields.value = []
   dimensions.value = []
   metrics.value = []
@@ -215,7 +213,6 @@ async function onDatasetChange(id: number | null) {
   try {
     const ds = await datasetApi.get(id)
     fields.value = ds?.fields || []
-    loadedDatasetId.value = id
   } catch {
     fields.value = []
   }
@@ -234,9 +231,9 @@ function initFromConfig() {
 
 async function open() {
   plot.value.datasetId = props.datasetId ?? null
-  initFromConfig()
   await loadDatasets()
   if (plot.value.datasetId) await onDatasetChange(plot.value.datasetId)
+  initFromConfig()
 }
 
 function confirm() {
