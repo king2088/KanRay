@@ -7,7 +7,7 @@ import { useComponentsStore } from '../../stores/components'
 import { useHistoryStore } from '../../stores/history'
 import { bigScreenApi } from '@/api'
 import { datasetApi } from '@/api'
-import { rowsToChartData } from '../../utils/chartData'
+import { rowsToChartData, queryRowsToChartData, buildQueryPayload } from '../../utils/chartData'
 import html2canvas from 'html2canvas'
 
 const props = defineProps<{
@@ -48,10 +48,15 @@ const bakeDatasetData = async (components: any[]): Promise<any[]> => {
     const copy = JSON.parse(JSON.stringify(comp))
     if (copy.data && copy.data.type === 'dataset' && copy.data.datasetId) {
       try {
-        const page = await datasetApi.rows(copy.data.datasetId, 1, 1000)
-        const rows = page?.rows || []
-        if (rows.length) {
-          copy.data.value = rowsToChartData(rows, copy.data.categoryField, copy.data.valueFields)
+        if (copy.data.query && copy.data.query.metrics?.length) {
+          const res = await datasetApi.query(copy.data.datasetId, buildQueryPayload(copy.data.query))
+          copy.data.value = queryRowsToChartData(res)
+        } else {
+          const page = await datasetApi.rows(copy.data.datasetId, 1, 1000)
+          const rows = page?.rows || []
+          if (rows.length) {
+            copy.data.value = rowsToChartData(rows, copy.data.categoryField, copy.data.valueFields)
+          }
         }
       } catch (err) {
         console.error(`[TopToolbar] bake dataset ${comp.name}:`, err)
