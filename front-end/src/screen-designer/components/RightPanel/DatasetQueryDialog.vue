@@ -12,9 +12,11 @@
       <!-- ① 数据集选择 -->
       <el-form label-width="70px" size="default" style="margin-bottom: 4px">
         <el-form-item label="数据集">
-          <el-select v-model="plot.datasetId" class="dq-w100" @change="onDatasetChange">
-            <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
-          </el-select>
+          <el-select-v2 v-model="plot.datasetId" class="dq-w100" filterable :options="datasetOptions" @change="onDatasetChange">
+            <template #default="{ item }">
+              <DatasetOption :item="item" />
+            </template>
+          </el-select-v2>
         </el-form-item>
       </el-form>
 
@@ -117,6 +119,8 @@ import { ElMessage } from 'element-plus'
 import { Plus, Delete, DataLine } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
 import { AGG_OPTIONS } from '@/utils/chart-utils'
+import { toDatasetOptions } from '@/utils/dataset-type'
+import DatasetOption from '@/components/DatasetOption.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -131,6 +135,7 @@ const emit = defineEmits<{
 const NUMERIC_TYPES = ['integer', 'number']
 
 const datasetList = ref<{ id: number; name: string }[]>([])
+const datasetOptions = computed(() => toDatasetOptions(datasetList.value))
 const fields = ref<{ name: string; label: string; type: string }[]>([])
 
 const plot = ref({

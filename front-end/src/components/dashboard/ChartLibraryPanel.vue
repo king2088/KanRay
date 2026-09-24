@@ -2,9 +2,11 @@
   <aside class="chart-library-panel">
     <div class="clp-header">
       <div class="clp-title"><el-icon :size="15"><PieChart /></el-icon> 图表库</div>
-      <el-select v-model="dsFilter" clearable placeholder="按数据源筛选" class="clp-select" @change="onFilterChange">
-        <el-option v-for="d in datasetOptions" :key="d.id" :label="d.name" :value="d.id" />
-      </el-select>
+      <el-select-v2 v-model="dsFilter" clearable filterable placeholder="按数据源筛选" class="clp-select" :options="datasetOptions" @change="onFilterChange">
+        <template #default="{ item }">
+          <DatasetOption :item="item" />
+        </template>
+      </el-select-v2>
       <el-input v-model="keyword" clearable placeholder="搜索图表名称" :prefix-icon="Search" class="clp-search" @input="onKeywordInput" @clear="onKeywordClear" />
       <div class="clp-count">共 {{ total }} 个图表</div>
     </div>
@@ -56,6 +58,8 @@ import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { Search, PieChart } from '@element-plus/icons-vue'
 import { chartApi } from '@/api'
 import { flattenItems } from '@/utils/grid-layout'
+import { toDatasetOptions } from '@/utils/dataset-type'
+import DatasetOption from '@/components/DatasetOption.vue'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
 import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
@@ -81,7 +85,7 @@ const loadingMore = ref(false)
 let seq = 0
 let kwTimer = null
 
-const datasetOptions = computed(() => (props.datasets || []).map((d) => ({ id: d.id, name: d.name })))
+const datasetOptions = computed(() => toDatasetOptions(props.datasets))
 
 function usedChartIds() {
   return new Set(flattenItems(props.items).filter((i) => i.type === 'chart').map((i) => i.chartId))

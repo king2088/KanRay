@@ -4,6 +4,8 @@ import { useComponentsStore } from '../../stores/components'
 import { useCanvasStore } from '../../stores/canvas'
 import { useDataFetch } from '../../composables/useDataFetch'
 import { datasetApi } from '@/api'
+import { toDatasetOptions } from '@/utils/dataset-type'
+import DatasetOption from '@/components/DatasetOption.vue'
 import './configs/config-common.css'
 import CodeEditor from '../CodeEditor/CodeEditor.vue'
 import Globe3DConfig from './configs/Globe3DConfig.vue'
@@ -62,6 +64,7 @@ function onQueryConfirm(payload: { datasetId: number | null; query: any }) {
 
 // 数据集数据源
 const datasetList = ref<{ id: number; name: string }[]>([])
+const datasetOptions = computed(() => toDatasetOptions(datasetList.value))
 
 async function loadDatasetList() {
   if (datasetList.value.length) return
@@ -634,9 +637,11 @@ const presetResolutions = [
                 </el-button>
               </el-form-item>
               <el-form-item v-if="selectedComponent.data.type === 'dataset'" label="数据集">
-                <el-select v-model="selectedComponent.data.datasetId" class="rc-w100" @change="onDatasetSelect($event)">
-                  <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
-                </el-select>
+                <el-select-v2 v-model="selectedComponent.data.datasetId" class="rc-w100" filterable :options="datasetOptions" @change="onDatasetSelect($event)">
+                  <template #default="{ item }">
+                    <DatasetOption :item="item" />
+                  </template>
+                </el-select-v2>
               </el-form-item>
               <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="维度指标">
                 <div class="rc-row-mb">

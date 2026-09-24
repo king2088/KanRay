@@ -70,9 +70,11 @@
     <el-dialog v-model="filterDialogVisible" title="添加筛选组件" width="520px">
       <el-form label-width="80px">
         <el-form-item label="数据源">
-          <el-select v-model="filterCfg.datasetId" placeholder="选择数据源" style="width: 100%" @change="onFilterDatasetChange">
-            <el-option v-for="d in datasets" :key="d.id" :label="d.name" :value="d.id" />
-          </el-select>
+          <el-select-v2 v-model="filterCfg.datasetId" filterable placeholder="选择数据源" style="width: 100%" :options="datasetOptions" @change="onFilterDatasetChange">
+            <template #default="{ item }">
+              <DatasetOption :item="item" />
+            </template>
+          </el-select-v2>
         </el-form-item>
         <el-form-item label="筛选字段">
           <el-select v-model="filterCfg.field" placeholder="选择要筛选的字段" style="width: 100%">
@@ -92,12 +94,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, View, Check, Plus, ArrowDown, Setting } from '@element-plus/icons-vue'
 import { dashboardApi, datasetApi } from '@/api'
 import { alignTree, DEFAULT_CARD_STYLE, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
+import { toDatasetOptions } from '@/utils/dataset-type'
+import DatasetOption from '@/components/DatasetOption.vue'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 import ChartLibraryPanel from '@/components/dashboard/ChartLibraryPanel.vue'
 import DashboardStylePanel from '@/components/dashboard/DashboardStylePanel.vue'
@@ -111,6 +115,7 @@ const dashName = ref('')
 const items = ref([])
 const charts = ref([])
 const datasets = ref([])
+const datasetOptions = computed(() => toDatasetOptions(datasets.value))
 const saving = ref(false)
 const gap = ref({ x: 12, y: 12 })
 const cardStyle = ref({ ...DEFAULT_CARD_STYLE })
