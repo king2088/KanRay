@@ -34,15 +34,28 @@ const SELECT_SCREEN = `
   FROM big_screens
 `;
 
+/** 注入发布状态：存在启用中且未过期的分享即视为已发布 */
+async function attachPublished(items) {
+  const arr = Array.isArray(items) ? items : [items];
+  for (const s of arr) {
+    if (!s || !s.id) continue;
+    const rows = await db
+      .prepare('SELECT expires_at AS expiresAt FROM big_screen_shares WHERE big_screen_id = ? AND is_active = 1')
+      .all(s.id);
+    s.published = rows.some((r) => !r.expiresAt || new Date(r.expiresAt).getTime() > Date.now());
+  }
+  return items;
+}
+
 async function listBigScreens(where = '') {
-  return (await db
+  return attachPublished((await db
     .prepare(`${SELECT_SCREEN}${where ? ' WHERE ' + where : ''} ORDER BY updated_at DESC`)
     .all())
-    .map(renderScreen);
+    .map(renderScreen));
 }
 
 async function getBigScreen(id) {
-  return renderScreen(await db.prepare(`${SELECT_SCREEN} WHERE id = ?`).get(Number(id)));
+  return attachPublished(renderScreen(await db.prepare(`${SELECT_SCREEN} WHERE id = ?`).get(Number(id))));
 }
 
 async function getBigScreenOrThrow(id) {

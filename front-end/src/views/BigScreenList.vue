@@ -33,16 +33,21 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180">
-          <template #default="{ row }">{{ fmt(row.created_at) }}</template>
+        <el-table-column label="发布状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.published ? 'success' : 'info'" effect="plain">{{ row.published ? '已发布' : '未发布' }}</el-tag>
+          </template>
         </el-table-column>
-        <el-table-column prop="updated_at" label="更新时间" width="180">
-          <template #default="{ row }">{{ fmt(row.updated_at) }}</template>
+        <el-table-column prop="createdAt" label="创建时间" width="180">
+          <template #default="{ row }">{{ fmt(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="updatedAt" label="更新时间" width="180">
+          <template #default="{ row }">{{ fmt(row.updatedAt) }}</template>
         </el-table-column>
         <el-table-column fixed="right" label="操作" width="180" align="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="$router.push(`/big-screen/preview/${row.id}`)">预览</el-button>
-            <el-button link type="primary" @click="openShare(row)">分享</el-button>
+            <el-button link type="primary" @click="openShare(row)"><el-icon style="margin-right: 4px"><Share /></el-icon>分享</el-button>
             <el-popconfirm title="确定删除该大屏吗？" @confirm="remove(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
@@ -133,7 +138,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Monitor, Folder } from '@element-plus/icons-vue'
+import { Plus, Search, Monitor, Folder, Share } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import { bigScreenApi } from '@/api'
