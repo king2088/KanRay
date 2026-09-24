@@ -300,11 +300,11 @@ onUnmounted(() => {
 <template>
   <div class="preview">
     <div class="toolbar">
-      <el-button @click="toggleFullscreen" type="primary" size="small">
+      <el-button @click="toggleFullscreen" type="primary" size="default">
         <el-icon><FullScreen /></el-icon>
         {{ isFullscreen ? '退出全屏' : '全屏预览' }}
       </el-button>
-      <el-button-group size="small">
+      <el-button-group size="default">
         <el-button :type="previewMode === 'pc' ? 'primary' : ''" @click="previewMode = 'pc'">PC端</el-button>
         <el-button :type="previewMode === 'mobile' ? 'primary' : ''" @click="previewMode = 'mobile'">移动端</el-button>
       </el-button-group>

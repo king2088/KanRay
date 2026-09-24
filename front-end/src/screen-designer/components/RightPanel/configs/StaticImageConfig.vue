@@ -22,7 +22,7 @@ function handleImageUpload(e: Event) {
 <template>
   <div class="rc-section">
     <div class="rc-section-title">图片配置</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="图片">
         <div class="rc-image-upload-area" @click="triggerImageUpload">
           <img v-if="component.props.src" :src="component.props.src" class="rc-preview-img" />

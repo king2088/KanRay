@@ -17,7 +17,7 @@ watch(() => props.component?.id, () => {
 <template>
   <div class="rc-section">
     <div class="rc-section-title">iframe配置</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="网址URL">
         <el-input v-model="iframeSrc" @blur="emit('updateProps', 'src', iframeSrc)" placeholder="输入URL后按回车确认" />
       </el-form-item>

@@ -422,7 +422,7 @@ const presetResolutions = [
         </template>
         <div v-if="!isMobilePreview" class="section">
           <div class="section-title">画布尺寸</div>
-          <el-form label-width="70px" size="small">
+          <el-form label-width="70px" size="default">
             <el-form-item label="预设">
               <el-select v-model="canvasStore.config.width" class="rc-w100" @change="(val: any) => {
                 const preset = presetResolutions.find(p => p.width === val)
@@ -441,7 +441,7 @@ const presetResolutions = [
         </div>
         <div class="section">
           <div class="section-title">画布背景</div>
-          <el-form label-width="70px" size="small">
+          <el-form label-width="70px" size="default">
             <el-form-item label="类型">
               <el-radio-group v-model="backgroundType">
                 <el-radio value="solid">纯色</el-radio>
@@ -473,15 +473,15 @@ const presetResolutions = [
         </div>
         <div class="section">
           <div class="section-title">背景图</div>
-          <el-form label-width="70px" size="small">
+          <el-form label-width="70px" size="default">
             <el-form-item label="图片">
               <div class="bg-image-upload">
                 <input type="file" accept="image/*" ref="bgImageInput" class="rc-hidden-input" @change="handleBgImageUpload" />
-                <el-button v-if="!canvasStore.config.bgImage" size="small" @click="bgImageInput?.click()">上传图片</el-button>
+                <el-button v-if="!canvasStore.config.bgImage" size="default" @click="bgImageInput?.click()">上传图片</el-button>
                 <template v-else>
                   <div class="bg-image-preview">
                     <img :src="canvasStore.config.bgImage" alt="背景图" />
-                    <el-button size="small" type="danger" link @click="removeBgImage">移除</el-button>
+                    <el-button size="default" type="danger" link @click="removeBgImage">移除</el-button>
                   </div>
                 </template>
               </div>
@@ -518,7 +518,7 @@ const presetResolutions = [
                 </el-select>
               </el-form-item>
               <el-form-item label="透明度">
-                <el-slider v-model="canvasStore.config.bgImageOpacity" :min="0" :max="100" :step="1" show-input input-size="small" />
+                <el-slider v-model="canvasStore.config.bgImageOpacity" :min="0" :max="100" :step="1" show-input input-size="default" />
               </el-form-item>
             </template>
           </el-form>
@@ -535,7 +535,7 @@ const presetResolutions = [
             <el-alert type="info" :closable="false" class="rc-mb">
               切换到移动端预览查看效果。未配置的组件将按顺序垂直排列。
             </el-alert>
-            <el-form label-width="80px" size="small">
+            <el-form label-width="80px" size="default">
               <el-form-item label="隐藏">
                 <el-switch v-model="selectedComponent.mobile.hideOnMobile" />
               </el-form-item>
@@ -570,7 +570,7 @@ const presetResolutions = [
           <CustomChartDataHint v-if="selectedComponent.type === 'custom-chart'" />
           <div class="section">
             <div class="section-title">数据源</div>
-            <el-form label-width="70px" size="small">
+            <el-form label-width="70px" size="default">
               <el-form-item label="类型">
                 <el-select v-model="selectedComponent.data.type" class="rc-w100" @change="onDataTypeChange">
                   <el-option label="静态数据" value="static" />
@@ -580,8 +580,8 @@ const presetResolutions = [
               </el-form-item>
               <el-form-item v-if="selectedComponent.data.type === 'static'" label="数据">
                 <div class="rc-row-mb">
-                  <el-button size="small" @click="clearData">清空</el-button>
-                  <el-button size="small" type="primary" @click="showDataEditor = true">编辑数据</el-button>
+                  <el-button size="default" @click="clearData">清空</el-button>
+                  <el-button size="default" type="primary" @click="showDataEditor = true">编辑数据</el-button>
                 </div>
                 <div class="data-preview" @click="showDataEditor = true">
                   {{ selectedComponent.data.value ? '已配置数据，点击编辑...' : '暂无数据，请点击编辑' }}
@@ -629,7 +629,7 @@ const presetResolutions = [
                 <el-input-number v-model="selectedComponent.data.refreshInterval" :min="0" :step="1" controls-position="right" class="rc-w100" />
               </el-form-item>
               <el-form-item v-if="selectedComponent.data.type === 'api'">
-                <el-button type="primary" size="small" @click="refreshComponent(selectedComponent.id)">
+                <el-button type="primary" size="default" @click="refreshComponent(selectedComponent.id)">
                   手动刷新
                 </el-button>
               </el-form-item>
@@ -641,7 +641,7 @@ const presetResolutions = [
               <el-form-item v-if="selectedComponent.data.type === 'dataset' && selectedComponent.data.datasetId" label="维度指标">
                 <div class="rc-row-mb">
                   <span class="query-summary">{{ querySummary }}</span>
-                  <el-button size="small" type="primary" @click="showQueryDialog = true">配置维度/指标</el-button>
+                  <el-button size="default" type="primary" @click="showQueryDialog = true">配置维度/指标</el-button>
                 </div>
               </el-form-item>
             </el-form>
@@ -654,7 +654,7 @@ const presetResolutions = [
           </template>
           <div class="section">
             <div class="section-title">基本信息</div>
-            <el-form label-width="70px" size="small">
+            <el-form label-width="70px" size="default">
               <el-form-item label="名称">
                 <el-input v-model="selectedComponent.name" />
               </el-form-item>
@@ -673,10 +673,10 @@ const presetResolutions = [
                 </div>
               </el-form-item>
               <el-form-item label="旋转">
-                <el-slider v-model="selectedComponent.rotation" :min="0" :max="360" :step="1" show-input input-size="small" />
+                <el-slider v-model="selectedComponent.rotation" :min="0" :max="360" :step="1" show-input input-size="default" />
               </el-form-item>
               <el-form-item label="透明度">
-                <el-slider v-model="selectedComponent.opacity" :min="0" :max="100" :step="1" show-input input-size="small" />
+                <el-slider v-model="selectedComponent.opacity" :min="0" :max="100" :step="1" show-input input-size="default" />
               </el-form-item>
               <el-form-item label="层级">
                 <el-input-number v-model="selectedComponent.zIndex" :min="0" :step="1" controls-position="right" class="rc-w100" />
@@ -686,7 +686,7 @@ const presetResolutions = [
           <template v-if="isTextComponent">
             <div class="section">
               <div class="section-title">{{ selectedComponent.type === 'data-text' ? '数据文本' : '文本内容' }}</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <template v-if="selectedComponent.type === 'static-text'">
                   <el-form-item label="内容">
                     <el-input v-model="selectedComponent.data.value" type="textarea" :rows="3" placeholder="请输入文本内容" />
@@ -776,7 +776,7 @@ const presetResolutions = [
           <template v-if="isChartComponent">
             <div class="section">
               <div class="section-title">图表配置</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-form-item label="渲染器">
                   <el-select :model-value="selectedComponent.props.renderer || 'svg'" @update:model-value="updateProps('renderer', $event)" class="rc-w100">
                     <el-option label="Canvas" value="canvas" />
@@ -798,16 +798,16 @@ const presetResolutions = [
                 <el-form-item v-if="selectedComponent.props.theme === '自定义'" label="自定义色">
                   <div class="custom-colors">
                     <div v-for="(c, i) in (selectedComponent.props.colors || [])" :key="i" class="color-item">
-                      <el-color-picker :model-value="c" @update:model-value="updateColor(Number(i), $event)" size="small" />
+                      <el-color-picker :model-value="c" @update:model-value="updateColor(Number(i), $event)" size="default" />
                     </div>
-                    <el-button size="small" @click="addCustomColor">+</el-button>
+                    <el-button size="default" @click="addCustomColor">+</el-button>
                   </div>
                 </el-form-item>
               </el-form>
             </div>
             <div class="section">
               <div class="section-title">标题</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-form-item label="显示">
                   <el-switch :model-value="selectedComponent.props.titleShow !== false" @update:model-value="updateProps('titleShow', $event)" />
                 </el-form-item>
@@ -836,7 +836,7 @@ const presetResolutions = [
             </div>
             <div v-if="hasLegend" class="section">
               <div class="section-title">图例</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-form-item label="显示">
                   <el-switch :model-value="selectedComponent.props.legendShow !== false" @update:model-value="updateProps('legendShow', $event)" />
                 </el-form-item>
@@ -928,7 +928,7 @@ const presetResolutions = [
             </div>
             <div v-if="hasAxis" class="section">
               <div class="section-title">坐标轴</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-divider content-position="left">X轴</el-divider>
                 <el-form-item label="显示">
                   <el-switch :model-value="selectedComponent.props.xAxisShow !== false" @update:model-value="updateProps('xAxisShow', $event)" />
@@ -1066,7 +1066,7 @@ const presetResolutions = [
             </div>
             <div v-if="hasTooltip" class="section">
               <div class="section-title">提示框</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-form-item label="显示">
                   <el-switch :model-value="selectedComponent.props.tooltipShow !== false" @update:model-value="updateProps('tooltipShow', $event)" />
                 </el-form-item>
@@ -1088,7 +1088,7 @@ const presetResolutions = [
             </div>
             <div v-if="hasDataLabel" class="section">
               <div class="section-title">数据标签</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-form-item label="显示">
                   <el-switch :model-value="selectedComponent.props.labelShow === true" @update:model-value="updateProps('labelShow', $event)" />
                 </el-form-item>
@@ -1145,7 +1145,7 @@ const presetResolutions = [
             </div>
             <div v-if="hasSeriesStyle" class="section">
               <div class="section-title">图形显示</div>
-              <el-form label-width="70px" size="small">
+              <el-form label-width="70px" size="default">
                 <el-form-item v-if="selectedComponent.type.startsWith('line-') || selectedComponent.type === 'stacked-area' || selectedComponent.type === 'bar-line'" label="线条样式">
                   <el-select :model-value="selectedComponent.props.lineStyle || 'solid'" @update:model-value="updateProps('lineStyle', $event)" class="rc-w100">
                     <el-option label="实线" value="solid" />
@@ -1233,7 +1233,7 @@ const presetResolutions = [
           </template>
           <div class="section">
             <div class="section-title">背景</div>
-            <el-form label-width="70px" size="small">
+            <el-form label-width="70px" size="default">
               <el-form-item label="颜色">
                 <el-color-picker v-model="selectedComponent.style.backgroundColor" show-alpha />
               </el-form-item>
@@ -1241,7 +1241,7 @@ const presetResolutions = [
           </div>
           <div class="section">
             <div class="section-title">边框</div>
-            <el-form label-width="70px" size="small">
+            <el-form label-width="70px" size="default">
               <el-form-item label="宽度颜色">
                 <div class="rc-row">
                   <el-input-number v-model="selectedComponent.style.borderWidth" :min="0" :max="20" controls-position="right" class="rc-flex-1" />
@@ -1255,7 +1255,7 @@ const presetResolutions = [
           </div>
           <div class="section">
             <div class="section-title">阴影</div>
-            <el-form label-width="70px" size="small">
+            <el-form label-width="70px" size="default">
               <el-form-item label="偏移模糊">
                 <div class="rc-row">
                   <el-input-number v-model="selectedComponent.style.boxShadowX" controls-position="right" class="rc-flex-1" />

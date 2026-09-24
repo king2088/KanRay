@@ -30,7 +30,7 @@ function removeCarouselImage(idx: number) {
 <template>
   <div class="rc-section">
     <div class="rc-section-title">轮播图片</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="图片列表">
         <div class="rc-carousel-images">
           <div v-for="(img, idx) in (component.props.images || [])" :key="idx" class="rc-carousel-img-item">

@@ -8,7 +8,7 @@ const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>(
 <template>
   <div class="rc-section">
     <div class="rc-section-title">中心显示配置</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="圆心直径">
         <el-input-number :model-value="component.props.centerSize ?? 40" @update:model-value="emit('updateProps', 'centerSize', $event)" :min="10" :max="80" controls-position="right" class="rc-w100" />
       </el-form-item>

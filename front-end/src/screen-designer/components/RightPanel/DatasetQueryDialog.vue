@@ -10,7 +10,7 @@
   >
     <el-scrollbar max-height="60vh" class="dq-scroll">
       <!-- ① 数据集选择 -->
-      <el-form label-width="70px" size="small" style="margin-bottom: 4px">
+      <el-form label-width="70px" size="default" style="margin-bottom: 4px">
         <el-form-item label="数据集">
           <el-select v-model="plot.datasetId" class="dq-w100" @change="onDatasetChange">
             <el-option v-for="d in datasetList" :key="d.id" :label="d.name" :value="d.id" />
@@ -80,7 +80,7 @@
         </div>
 
         <!-- ⑤ 显示选项 -->
-        <el-form label-width="70px" size="small">
+        <el-form label-width="70px" size="default">
           <el-form-item label="显示条数">
             <el-input-number v-model="groupLimit" :min="1" :max="500" style="width: 120px" />
           </el-form-item>

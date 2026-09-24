@@ -527,7 +527,7 @@ onUnmounted(() => {
     <template #header>
       <div class="dialog-header">
         <span class="dialog-title">自定义组件代码编辑</span>
-        <el-select v-model="selectedTemplate" size="small" placeholder="选择模板" style="width: 160px" @change="loadTemplate">
+        <el-select v-model="selectedTemplate" size="default" placeholder="选择模板" style="width: 160px" @change="loadTemplate">
           <el-option v-for="(t, i) in templates" :key="i" :label="t.name" :value="i" />
         </el-select>
       </div>
@@ -553,10 +553,10 @@ onUnmounted(() => {
       <div class="preview-section" :style="{ height: previewHeight + 'px' }">
         <div class="preview-toolbar">
           <span class="preview-label">实时预览</span>
-          <el-button size="small" text @click="openPreviewWindow">
+          <el-button size="default" text @click="openPreviewWindow">
             <el-icon><View /></el-icon> 在新窗口中预览
           </el-button>
-          <el-button size="small" type="primary" @click="helpVisible = true">
+          <el-button size="default" type="primary" @click="helpVisible = true">
             <el-icon><QuestionFilled /></el-icon> 帮助文档
           </el-button>
         </div>

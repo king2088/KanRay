@@ -15,7 +15,7 @@ watch(() => props.component?.id, () => {
 <template>
   <div class="rc-section">
     <div class="rc-section-title">视频配置</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="视频地址">
         <el-input v-model="videoSrc" @blur="emit('updateProps', 'src', videoSrc)" placeholder="输入URL后按回车确认" />
       </el-form-item>

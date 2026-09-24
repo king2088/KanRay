@@ -39,7 +39,7 @@ const shortcuts = [
       <span>组件数: {{ componentCount }}</span>
     </div>
     <div class="right">
-      <el-button size="small" text @click="showShortcuts = true" style="font-size: 12px; height: 24px; padding: 0 8px;">快捷键</el-button>
+      <el-button size="default" text @click="showShortcuts = true" style="font-size: 12px; height: 24px; padding: 0 8px;">快捷键</el-button>
       <span>已选择: {{ componentsStore.selectedIds.length }} 个组件</span>
     </div>
   </div>

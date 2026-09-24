@@ -8,7 +8,7 @@ const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>(
 <template>
   <div class="rc-section">
     <div class="rc-section-title">漏斗图</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="排序">
         <el-select :model-value="component.props.sort || 'descending'" @update:model-value="emit('updateProps', 'sort', $event)" class="rc-w100">
           <el-option label="降序" value="descending" />

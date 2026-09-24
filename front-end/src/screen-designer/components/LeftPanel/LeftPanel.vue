@@ -389,7 +389,7 @@ defineExpose({ sortedComponents, componentIcons })
 
     <template v-if="activeTab === 'components'">
       <div class="search-box">
-        <el-input v-model="searchQuery" placeholder="搜索组件..." clearable size="small" prefix-icon="Search" />
+        <el-input v-model="searchQuery" placeholder="搜索组件..." clearable size="default" prefix-icon="Search" />
       </div>
       <div class="component-list">
         <div v-for="category in filteredCategories" :key="category.key" class="category">

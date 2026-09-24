@@ -8,7 +8,7 @@ const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>(
 <template>
   <div class="rc-section">
     <div class="rc-section-title">堆叠面积图</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="平滑">
         <el-switch :model-value="component.props.smooth === true" @update:model-value="emit('updateProps', 'smooth', $event)" />
       </el-form-item>

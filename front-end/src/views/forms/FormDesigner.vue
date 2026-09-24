@@ -87,9 +87,9 @@
               <el-tag v-if="field.required && field.type !== 'static'" size="small" type="danger" effect="plain">必填</el-tag>
               <span v-if="!field.validKey" class="fd-field__warn">key 非法</span>
               <div class="fd-field__ops">
-                <el-button link size="small" :disabled="index === 0" @click.stop="move(index, -1)"><el-icon><Top /></el-icon></el-button>
-                <el-button link size="small" :disabled="index === fields.length - 1" @click.stop="move(index, 1)"><el-icon><Bottom /></el-icon></el-button>
-                <el-button link size="small" type="danger" @click.stop="removeField(field)"><el-icon><Delete /></el-icon></el-button>
+                <el-button link size="default" :disabled="index === 0" @click.stop="move(index, -1)"><el-icon><Top /></el-icon></el-button>
+                <el-button link size="default" :disabled="index === fields.length - 1" @click.stop="move(index, 1)"><el-icon><Bottom /></el-icon></el-button>
+                <el-button link size="default" type="danger" @click.stop="removeField(field)"><el-icon><Delete /></el-icon></el-button>
               </div>
             </div>
             <div class="fd-field__preview">
@@ -132,7 +132,7 @@
         <el-tabs v-model="propTab">
           <el-tab-pane label="字段属性" name="field">
             <div v-if="!activeField" class="fd-props__empty">选中一个字段编辑属性</div>
-            <el-form v-else label-position="top" size="small">
+            <el-form v-else label-position="top" size="default">
               <el-form-item label="标签" required>
                 <el-input v-model="activeField.label" maxlength="100" placeholder="显示名称" />
               </el-form-item>
@@ -168,11 +168,11 @@
                 <el-form-item v-if="'select:radio:checkbox'.includes(activeField.type)" label="选项">
                   <div class="fd-options">
                     <div v-for="(opt, i) in activeField.options" :key="i" class="fd-options__row">
-                      <el-input v-model="opt.label" size="small" placeholder="显示" style="width: 45%" />
-                      <el-input v-model="opt.value" size="small" placeholder="值" style="width: 45%" />
-                      <el-button link size="small" type="danger" @click="activeField.options.splice(i, 1)"><el-icon><Delete /></el-icon></el-button>
+                      <el-input v-model="opt.label" size="default" placeholder="显示" style="width: 45%" />
+                      <el-input v-model="opt.value" size="default" placeholder="值" style="width: 45%" />
+                      <el-button link size="default" type="danger" @click="activeField.options.splice(i, 1)"><el-icon><Delete /></el-icon></el-button>
                     </div>
-                    <el-button size="small" plain @click="activeField.options.push({ label: '', value: '' })">
+                    <el-button size="default" plain @click="activeField.options.push({ label: '', value: '' })">
                       <el-icon style="margin-right: 2px"><Plus /></el-icon>添加选项
                     </el-button>
                   </div>
@@ -181,7 +181,7 @@
             </el-form>
           </el-tab-pane>
           <el-tab-pane label="表单设置" name="form">
-            <el-form label-position="top" size="small">
+            <el-form label-position="top" size="default">
               <el-form-item label="提交成功提示">
                 <el-input v-model="form.submitConfig.successText" maxlength="100" placeholder="提交成功" />
               </el-form-item>

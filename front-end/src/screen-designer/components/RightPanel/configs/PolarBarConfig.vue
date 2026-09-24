@@ -8,7 +8,7 @@ const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>(
 <template>
   <div class="rc-section">
     <div class="rc-section-title">极坐标柱状图</div>
-    <el-form label-width="70px" size="small">
+    <el-form label-width="70px" size="default">
       <el-form-item label="形状">
         <el-select :model-value="component.props.shape || 'circle'" @update:model-value="emit('updateProps', 'shape', $event)" class="rc-w100">
           <el-option label="圆形" value="circle" />
