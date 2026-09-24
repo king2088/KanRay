@@ -1,9 +1,15 @@
 <template>
   <div class="page-container form-fill">
+    <div class="page-header">
+      <div class="d-header">
+        <el-button circle class="back-btn" @click="$router.push('/forms')"><el-icon><ArrowLeft /></el-icon></el-button>
+        <h2 class="page-title">{{ form?.name || '' }}</h2>
+      </div>
+    </div>
+
     <div class="page-card">
       <div v-if="form" class="form-fill__card">
         <div class="form-fill__header">
-          <h2 class="page-title">{{ form.name }}</h2>
           <el-tag :type="statusType" effect="plain">{{ statusLabel }}</el-tag>
         </div>
 
@@ -31,7 +37,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Check } from '@element-plus/icons-vue'
+import { Check, ArrowLeft } from '@element-plus/icons-vue'
 import { formApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import FormRenderer from '@/components/form/FormRenderer.vue'
@@ -83,6 +89,14 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   margin-bottom: 6px;
+}
+.d-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.back-btn {
+  flex-shrink: 0;
 }
 .form-fill__actions {
   display: flex;

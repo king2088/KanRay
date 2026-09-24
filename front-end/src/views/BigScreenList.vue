@@ -46,7 +46,7 @@
         </el-table-column>
         <el-table-column fixed="right" label="操作" width="180" align="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="$router.push(`/big-screen/preview/${row.id}`)">预览</el-button>
+            <el-button link type="primary" @click="openPreview(row)">预览</el-button>
             <el-button link type="primary" @click="openShare(row)"><el-icon style="margin-right: 4px"><Share /></el-icon>分享</el-button>
             <el-popconfirm title="确定删除该大屏吗？" @confirm="remove(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
@@ -226,6 +226,10 @@ async function openShare(row) {
   share.value.screenId = row.id
   share.value.screenName = row.name
   share.value.show = true
+}
+
+function openPreview(row) {
+  window.open(router.resolve(`/big-screen/preview/${row.id}`).href, '_blank')
 }
 
 async function loadMyTemplates() {

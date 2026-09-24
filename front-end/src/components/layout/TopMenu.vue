@@ -7,6 +7,7 @@
         class="top-dropdown"
         trigger="hover"
         placement="bottom-start"
+        :show-arrow="false"
         @command="go"
       >
         <span class="top-nav-item" :class="{ 'is-active': isItemActive(item) }">
