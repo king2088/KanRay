@@ -2,7 +2,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-metrics-lib-edge-${process.pid}.db`;
 const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, adminId } = require('./helpers/db');
 const app = require('../src/app');
 const authService = require('../src/services/auth.service');
 const datasetService = require('../src/services/dataset.service');
@@ -116,28 +116,34 @@ test('路由：图表查询引用库内 base/expr/derived 混排', async () => {
   assert.equal(r2['metric:m1'].value, 20 / 60);
 });
 
-test('deleteMetric：$919 公式仅引用 919，不应因包含 $91 误伤 91', async () => {
+test('deleteMetric：公式按完整 uuid7 token 解析，前缀相似的指标不误伤', async () => {
+  // 等价旧「$919 仅引用 919，不应因包含 $91 误伤 91」：引用解析基于完整 uuid7 token，
+  // 两个指标共享 uuid 前缀也不会产生子串假命中。直接 INSERT 需显式 id（uuid7 文本）。
+  const prefix = '01890000-0000-7000-8000-';
+  const small = prefix + '000000000091'; // 小ID-91
+  const big = prefix + '000000009191'; // 大ID-919
+  const exprId = prefix + '000000099999';
   await db
     .prepare('INSERT INTO metrics (id, dataset_id, name, kind, definition, owner_id) VALUES (?, ?, ?, ?, ?, NULL)')
-    .run(9191, dsId, '小ID-91', 'base', JSON.stringify({ field: 'qty', agg: 'max' }));
+    .run(small, dsId, '小ID-91', 'base', JSON.stringify({ field: 'qty', agg: 'max' }));
   await db
     .prepare('INSERT INTO metrics (id, dataset_id, name, kind, definition, owner_id) VALUES (?, ?, ?, ?, ?, NULL)')
-    .run(91919, dsId, '大ID-919', 'base', JSON.stringify({ field: 'amount', agg: 'max' }));
+    .run(big, dsId, '大ID-919', 'base', JSON.stringify({ field: 'amount', agg: 'max' }));
   await db
     .prepare('INSERT INTO metrics (id, dataset_id, name, kind, definition, owner_id) VALUES (?, ?, ?, ?, ?, NULL)')
-    .run(919191, dsId, '公式引用919', 'expr', JSON.stringify({ expr: '$91919 / 2' }));
+    .run(exprId, dsId, '公式引用919', 'expr', JSON.stringify({ expr: `$${big} / 2` }));
 
-  // 91 未被引用（$919 子串恰好包含 $91），应可删除；旧版子串匹配会误拒
-  await assert.doesNotReject(lib.deleteMetric(dsId, 9191));
-  // 919 被公式引用，应拒绝删除
-  await assert.rejects(lib.deleteMetric(dsId, 91919), /被指标库其他指标/);
-  await lib.deleteMetric(dsId, 919191);
-  await lib.deleteMetric(dsId, 91919);
+  // 小ID 未被引用（公式引用的完整 token 是大ID），应可删除
+  await assert.doesNotReject(lib.deleteMetric(dsId, small));
+  // 大ID 被公式引用，应拒绝删除
+  await assert.rejects(lib.deleteMetric(dsId, big), /被指标库其他指标/);
+  await lib.deleteMetric(dsId, exprId);
+  await lib.deleteMetric(dsId, big);
 });
 
 test('deleteMetric：被图表 saved 引用时应拒绝删除（前端文案承诺）', async () => {
   const target = await lib.createMetric(dsId, { name: '图表引用我', kind: 'base', definition: { field: 'amount', agg: 'max' } });
-  await chartService.createChart({
+  const chart = await chartService.createChart({
     name: '引用指标库的图表',
     chartType: 'bar',
     datasetId: dsId,
@@ -145,10 +151,10 @@ test('deleteMetric：被图表 saved 引用时应拒绝删除（前端文案承�
       dimensions: [{ field: 'region' }],
       metrics: [{ type: 'saved', key: 'm1', metricId: target.id }],
     },
-  }, 1);
+  }, adminId());
   await assert.rejects(lib.deleteMetric(dsId, target.id), /被图表/);
   // 无引用后允许删除
-  await chartService.deleteChart(1);
+  await chartService.deleteChart(chart.id);
   const del = await lib.deleteMetric(dsId, target.id);
   assert.equal(del.deleted, true);
 });
@@ -217,7 +223,7 @@ test('updateMetric：改名与换定义重新校验（非法聚合 400）', asyn
 
 test('循环引用防护：图表同时引用自身（人为构造环）返回 400', async () => {
   // 直接篡改库内定义制造 expr→expr 环（绕过创建校验），防御 emitRef 死循环
-  const evil = await lib.createMetric(dsId, { name: 'evil', kind: 'expr', definition: { expr: `${mAmount.id} + 1` } });
+  const evil = await lib.createMetric(dsId, { name: 'evil', kind: 'expr', definition: { expr: `$${mAmount.id} + 1` } });
   await db
     .prepare("UPDATE metrics SET definition = ? WHERE id = ?")
     .run(JSON.stringify({ expr: `$${evil.id} + 1` }), evil.id);

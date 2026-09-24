@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const db = require('../db');
 const HttpError = require('../utils/http-error');
+const { uuidv7, isValidUuid7 } = require('../utils/uuidv7');
 
 // 开放 API 允许的 scope 白名单（与 /api/open 数据消费端点一一对应）
 const OPEN_SCOPES = ['chart:read', 'dataset:read', 'dashboard:read'];
@@ -71,22 +72,23 @@ function parseExpiresAt(value) {
 }
 
 async function create({ name, type = 'static', userId, scopes = [], expiresAt = null, createdBy = null }) {
-  if (!userId || !Number.isFinite(Number(userId))) throw new HttpError(400, '缺少映射用户');
+  if (!isValidUuid7(String(userId || ''))) throw new HttpError(400, '缺少映射用户');
   const plain = generatePlaintext(type);
   const cleanScopes = validateScopes(scopes, type);
+  const keyId = uuidv7();
   const inserted = await db.prepare(
-    'INSERT INTO api_keys (name, type, user_id, key_hash, key_prefix, scopes, status, expires_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO api_keys (id, name, type, user_id, key_hash, key_prefix, scopes, status, expires_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
-    validateName(name), type, Number(userId), hashKey(plain), plain.slice(0, 12),
+    keyId, validateName(name), type, String(userId), hashKey(plain), plain.slice(0, 12),
     JSON.stringify(cleanScopes), 'active', parseExpiresAt(expiresAt),
-    createdBy ? Number(createdBy) : null
+    createdBy ? String(createdBy) : null
   );
-  const row = await getOrThrow(inserted.lastInsertRowid);
+  const row = await getOrThrow(keyId);
   return { plaintext: plain, key: stripSecret(row) };
 }
 
 async function getOrThrow(id) {
-  const row = await db.prepare(`${SELECT} WHERE id = ?`).get(Number(id));
+  const row = await db.prepare(`${SELECT} WHERE id = ?`).get(String(id));
   if (!row) throw new HttpError(404, 'API Key 不存在');
   return row;
 }
@@ -99,17 +101,17 @@ async function list({ type, userId } = {}) {
   const conds = [];
   const params = [];
   if (type) { conds.push('type = ?'); params.push(type); }
-  if (userId) { conds.push('user_id = ?'); params.push(Number(userId)); }
+  if (userId) { conds.push('user_id = ?'); params.push(String(userId)); }
   const rows = await db.prepare(`${SELECT}${conds.length ? ' WHERE ' + conds.join(' AND ') : ''} ORDER BY id DESC`).all(...params);
   return rows.map(stripSecret);
 }
 
 async function rotate(id, { userId } = {}) {
   const row = await getOrThrow(id);
-  if (userId !== undefined && Number(row.user_id) !== Number(userId)) throw new HttpError(403, '只能操作自己的令牌');
+  if (userId !== undefined && String(row.user_id) !== String(userId)) throw new HttpError(403, '只能操作自己的令牌');
   const plain = generatePlaintext(row.type);
   await db.prepare('UPDATE api_keys SET key_hash = ?, key_prefix = ?, updated_at = ? WHERE id = ?')
-    .run(hashKey(plain), plain.slice(0, 12), new Date().toISOString(), Number(id));
+    .run(hashKey(plain), plain.slice(0, 12), new Date().toISOString(), String(id));
   const updated = await getOrThrow(id);
   return { plaintext: plain, key: stripSecret(updated) };
 }
@@ -117,7 +119,7 @@ async function rotate(id, { userId } = {}) {
 async function setStatus(id, status) {
   if (!['active', 'revoked'].includes(status)) throw new HttpError(400, '非法状态');
   const row = await getOrThrow(id);
-  await db.prepare('UPDATE api_keys SET status = ?, updated_at = ? WHERE id = ?').run(status, new Date().toISOString(), Number(id));
+  await db.prepare('UPDATE api_keys SET status = ?, updated_at = ? WHERE id = ?').run(status, new Date().toISOString(), String(id));
   return stripSecret(await getOrThrow(id));
 }
 
@@ -135,19 +137,19 @@ async function updateMeta(id, { name, scopes, expiresAt, isActive }) {
   }
   if (!sets.length) return stripSecret(await getOrThrow(id));
   sets.push('updated_at = ?');
-  params.push(new Date().toISOString(), Number(id));
+  params.push(new Date().toISOString(), String(id));
   await db.prepare(`UPDATE api_keys SET ${sets.join(', ')} WHERE id = ?`).run(...params);
   return stripSecret(await getOrThrow(id));
 }
 
 async function touchLastUsed(id) {
-  await db.prepare('UPDATE api_keys SET last_used_at = ? WHERE id = ?').run(new Date().toISOString(), Number(id));
+  await db.prepare('UPDATE api_keys SET last_used_at = ? WHERE id = ?').run(new Date().toISOString(), String(id));
 }
 
 async function hardDelete(id, { userId } = {}) {
   const row = await getOrThrow(id);
-  if (userId !== undefined && Number(row.user_id) !== Number(userId)) throw new HttpError(403, '只能操作自己的令牌');
-  await db.prepare('DELETE FROM api_keys WHERE id = ?').run(Number(id));
+  if (userId !== undefined && String(row.user_id) !== String(userId)) throw new HttpError(403, '只能操作自己的令牌');
+  await db.prepare('DELETE FROM api_keys WHERE id = ?').run(String(id));
   return true;
 }
 
@@ -165,7 +167,7 @@ async function userPermissions(userId) {
      JOIN user_roles ur ON ur.role_id = rp.role_id
      JOIN permissions p ON p.id = rp.permission_id
      WHERE ur.user_id = ?`
-  ).all(Number(userId));
+  ).all(String(userId));
   return rows.map((r) => r.code);
 }
 

@@ -39,7 +39,7 @@ import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
 
 const route = useRoute()
 const router = useRouter()
-const dashId = Number(route.params.id)
+const dashId = String(route.params.id)
 const dashName = ref('')
 const items = ref([])
 const charts = ref([])

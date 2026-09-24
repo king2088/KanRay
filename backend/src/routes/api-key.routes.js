@@ -6,6 +6,7 @@ const { requireUser } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permission');
 const apiKeyService = require('../services/api-key.service');
 const audit = require('../services/audit.service');
+const { isValidUuid7 } = require('../utils/uuidv7');
 
 // 两个子路由：/api/admin/api-keys（需 apikey:manage）与 /api/auth/tokens（本人 PAT）
 const adminRouter = express.Router();
@@ -15,14 +16,14 @@ adminRouter.use(requireUser, requirePermission('apikey', 'manage'));
 tokenRouter.use(requireUser);
 
 function zodErr() { return new HttpError(400, '参数不正确'); }
-const idNum = (raw) => { const n = Number(raw); return Number.isInteger(n) && n > 0 ? n : NaN; };
+const idUuid = (raw) => (isValidUuid7(String(raw)) ? String(raw) : null);
 
 // ---------------- 管理端：API Key ----------------
 
 // GET /api/admin/api-keys
 adminRouter.get('/', async (req, res) => {
   const type = ['static', 'pat'].includes(String(req.query.type)) ? String(req.query.type) : undefined;
-  const userId = Number(req.query.userId) > 0 ? Number(req.query.userId) : undefined;
+  const userId = isValidUuid7(String(req.query.userId || '')) ? String(req.query.userId) : undefined;
   const list = await apiKeyService.list({ type, userId });
   ok(res, { list, total: list.length });
 });
@@ -31,7 +32,7 @@ adminRouter.get('/', async (req, res) => {
 const createSchema = z.object({
   name: z.string().trim().min(1).max(100),
   type: z.enum(['static', 'pat']).optional().default('static'),
-  userId: z.number().int().positive(),
+  userId: z.string().refine((v) => isValidUuid7(v), '用户 id 须为 uuid7'),
   scopes: z.array(z.string()).optional().default([]),
   expiresAt: z.string().optional().nullable().default(null),
 }).strict();
@@ -49,7 +50,7 @@ adminRouter.post('/', async (req, res) => {
 
 // GET /api/admin/api-keys/:id
 adminRouter.get('/:id', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, 'API Key 不存在');
   ok(res, await apiKeyService.stripSecret(await apiKeyService.getOrThrow(id)));
 });
@@ -63,7 +64,7 @@ const updateSchema = z.object({
 }).strict();
 
 adminRouter.patch('/:id', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, 'API Key 不存在');
   const p = updateSchema.safeParse(req.body || {});
   if (!p.success) throw zodErr();
@@ -74,7 +75,7 @@ adminRouter.patch('/:id', async (req, res) => {
 
 // DELETE /api/admin/api-keys/:id
 adminRouter.delete('/:id', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, 'API Key 不存在');
   await apiKeyService.hardDelete(id);
   await audit.log({ userId: req.user.id, email: req.user.email, action: 'api_key:delete', resourceType: 'api_key', resourceId: id }, req);
@@ -83,7 +84,7 @@ adminRouter.delete('/:id', async (req, res) => {
 
 // POST /api/admin/api-keys/:id/rotate
 adminRouter.post('/:id/rotate', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, 'API Key 不存在');
   const r = await apiKeyService.rotate(id);
   await audit.log({ userId: req.user.id, email: req.user.email, action: 'api_key:rotate', resourceType: 'api_key', resourceId: id }, req);
@@ -94,7 +95,7 @@ adminRouter.post('/:id/rotate', async (req, res) => {
 
 async function loadOwnToken(id, userId) {
   const key = await apiKeyService.getOrThrow(id);
-  if (Number(key.user_id) !== Number(userId)) throw new HttpError(404, '令牌不存在');
+  if (String(key.user_id) !== String(userId)) throw new HttpError(404, '令牌不存在');
   if (key.type !== 'pat') throw new HttpError(404, '令牌不存在');
   return key;
 }
@@ -119,7 +120,7 @@ tokenRouter.post('/', async (req, res) => {
 
 // PATCH /api/auth/tokens/:id
 tokenRouter.patch('/:id', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, '令牌不存在');
   await loadOwnToken(id, req.user.id);
   const p = z.object({ name: z.string().trim().min(1).max(100).optional(), isActive: z.boolean().optional() }).strict().safeParse(req.body || {});
@@ -131,7 +132,7 @@ tokenRouter.patch('/:id', async (req, res) => {
 
 // DELETE /api/auth/tokens/:id
 tokenRouter.delete('/:id', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, '令牌不存在');
   await loadOwnToken(id, req.user.id);
   await apiKeyService.hardDelete(id);
@@ -141,7 +142,7 @@ tokenRouter.delete('/:id', async (req, res) => {
 
 // POST /api/auth/tokens/:id/rotate
 tokenRouter.post('/:id/rotate', async (req, res) => {
-  const id = idNum(req.params.id);
+  const id = idUuid(req.params.id);
   if (!id) throw new HttpError(404, '令牌不存在');
   await loadOwnToken(id, req.user.id);
   const r = await apiKeyService.rotate(id, { userId: req.user.id });

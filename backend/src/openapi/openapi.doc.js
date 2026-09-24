@@ -85,7 +85,7 @@
  *     description: 校验图表与其数据集双重归属；响应为 columns + rows（不含构建 SQL）。
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: integer } }
+ *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
  *       - { name: format, in: query, description: 'csv 时返回带 BOM 的 CSV', schema: { type: string, enum: [csv] } }
  *     responses:
  *       '200':
@@ -109,7 +109,7 @@
  *     description: metrics/dimensions/filters 字段必须为该数据集已注册字段；超出 OPEN_API_MAX_ROWS 会截断并返回 truncated。
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: integer } }
+ *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
  *     requestBody:
  *       required: true
  *       content:
@@ -138,7 +138,7 @@
  *     summary: 看板快照导出（元信息 + 全部图表数据）
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: integer } }
+ *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
  *       - { name: format, in: query, description: 'csv 时逐卡输出 CSV（以 # 图表名 分行）', schema: { type: string, enum: [csv] } }
  *     responses:
  *       '200':

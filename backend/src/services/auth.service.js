@@ -4,6 +4,7 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const jwtUtil = require('../utils/jwt');
 const { PERMISSIONS } = require('../seeds');
+const { uuidv7 } = require('../utils/uuidv7');
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -50,8 +51,8 @@ async function register({ email, password, name = '', roleCode }) {
   assertStrongPassword(password);
   if (await db.prepare('SELECT id FROM users WHERE email = ?').get(mail)) throw new HttpError(409, '该邮箱已存在');
   const hash = bcrypt.hashSync(password, 10);
-  const r = await db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)').run(mail, hash, String(name || '').slice(0, 50));
-  const uid = Number(r.lastInsertRowid);
+  const uid = uuidv7();
+  const r = await db.prepare('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)').run(uid, mail, hash, String(name || '').slice(0, 50));
   const target = roleCode || 'viewer';
   const role = await db.prepare('SELECT id FROM roles WHERE code = ?').get(target);
   if (role) await db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)').run(uid, role.id);
@@ -73,8 +74,8 @@ async function issueTokens(userId) {
   const payload = { sub: userId };
   const accessToken = jwtUtil.signAccess(payload);
   const r = jwtUtil.signRefresh({ ...payload, type: 'refresh' });
-  await db.prepare('INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)')
-    .run(userId, hashToken(r.token), new Date(r.expiresAt).toISOString());
+  await db.prepare('INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)')
+    .run(uuidv7(), userId, hashToken(r.token), new Date(r.expiresAt).toISOString());
   return { accessToken, refreshToken: r.token };
 }
 

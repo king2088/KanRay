@@ -1,5 +1,6 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
+const { uuidv7 } = require('../utils/uuidv7');
 
 /** 解析 JSON 字段（存储为字符串，读取还原对象/数组） */
 function safeParse(raw, fallback) {
@@ -40,7 +41,7 @@ async function listTemplates(where = '') {
 }
 
 async function getTemplate(id) {
-  return renderTemplate(await db.prepare(`${SELECT_TEMPLATE} WHERE id = ?`).get(Number(id)));
+  return renderTemplate(await db.prepare(`${SELECT_TEMPLATE} WHERE id = ?`).get(String(id)));
 }
 
 async function getTemplateOrThrow(id) {
@@ -58,15 +59,16 @@ async function createTemplate(body = {}, ownerId = null) {
     (typeof body.config === 'string' ? body.config : JSON.stringify(body.config));
   const components = body.components === undefined || body.components === null ? '[]' :
     (typeof body.components === 'string' ? body.components : JSON.stringify(body.components));
+  const id = uuidv7();
   const info = await db
-    .prepare('INSERT INTO big_screen_templates (name, description, thumbnail, config, components, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(name, description, thumbnail, config, components, ownerId == null ? null : Number(ownerId));
-  return getTemplate(Number(info.lastInsertRowid));
+    .prepare('INSERT INTO big_screen_templates (id, name, description, thumbnail, config, components, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(id, name, description, thumbnail, config, components, ownerId == null ? null : String(ownerId));
+  return getTemplate(id);
 }
 
 async function deleteTemplate(id) {
   await getTemplateOrThrow(id);
-  await db.prepare('DELETE FROM big_screen_templates WHERE id = ?').run(Number(id));
+  await db.prepare('DELETE FROM big_screen_templates WHERE id = ?').run(String(id));
   return true;
 }
 

@@ -58,7 +58,7 @@ test('2. 上传创建数据集并出现在列表', async () => {
   const create = await upload('/api/datasets', XLSX, { name: '销售数据' });
   assert.equal(create.status, 200, JSON.stringify(create.json));
   dsId = create.json.data.id;
-  assert.ok(dsId > 0);
+  assert.ok(dsId);
   assert.ok(create.json.data.table_name);
 
   const list = await api('GET', '/api/datasets');

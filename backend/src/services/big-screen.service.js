@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const HttpError = require('../utils/http-error');
+const { uuidv7 } = require('../utils/uuidv7');
 
 /** 解析 JSON 字段（存储为字符串，读取还原对象/数组） */
 function safeParse(raw, fallback) {
@@ -55,7 +56,7 @@ async function listBigScreens(where = '') {
 }
 
 async function getBigScreen(id) {
-  return attachPublished(renderScreen(await db.prepare(`${SELECT_SCREEN} WHERE id = ?`).get(Number(id))));
+  return attachPublished(renderScreen(await db.prepare(`${SELECT_SCREEN} WHERE id = ?`).get(String(id))));
 }
 
 async function getBigScreenOrThrow(id) {
@@ -73,10 +74,11 @@ async function createBigScreen(body = {}, ownerId = null) {
     (typeof body.config === 'string' ? body.config : JSON.stringify(body.config));
   const components = body.components === undefined || body.components === null ? '[]' :
     (typeof body.components === 'string' ? body.components : JSON.stringify(body.components));
+  const id = uuidv7();
   const info = await db
-    .prepare('INSERT INTO big_screens (name, description, thumbnail, config, components, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(name, description, thumbnail, config, components, ownerId == null ? null : Number(ownerId));
-  return getBigScreen(Number(info.lastInsertRowid));
+    .prepare('INSERT INTO big_screens (id, name, description, thumbnail, config, components, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(id, name, description, thumbnail, config, components, ownerId == null ? null : String(ownerId));
+  return getBigScreen(id);
 }
 
 async function updateBigScreen(id, body = {}) {
@@ -96,13 +98,13 @@ async function updateBigScreen(id, body = {}) {
     else components = body.components ?? [];
   }
   await db.prepare("UPDATE big_screens SET name = ?, description = ?, thumbnail = ?, config = ?, components = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(name, description, thumbnail, JSON.stringify(config), JSON.stringify(components), Number(id));
+    .run(name, description, thumbnail, JSON.stringify(config), JSON.stringify(components), String(id));
   return getBigScreen(id);
 }
 
 async function deleteBigScreen(id) {
   await getBigScreenOrThrow(id);
-  await db.prepare('DELETE FROM big_screens WHERE id = ?').run(Number(id));
+  await db.prepare('DELETE FROM big_screens WHERE id = ?').run(String(id));
   return true;
 }
 
@@ -149,7 +151,7 @@ function parseExpiresAt(value) {
 }
 
 async function getShare(id) {
-  return (await db.prepare(`${SELECT_SHARE} WHERE s.id = ?`).get(Number(id))) || null;
+  return (await db.prepare(`${SELECT_SHARE} WHERE s.id = ?`).get(String(id))) || null;
 }
 
 async function getShareOrThrow(id) {
@@ -163,16 +165,17 @@ async function getShareByToken(token) {
 }
 
 async function createShare({ bigScreenId, password, expiresAt, userId }) {
-  await getBigScreenOrThrow(Number(bigScreenId));
+  await getBigScreenOrThrow(String(bigScreenId));
   const hash = await hashPassword(password);
+  const shareId = uuidv7();
   const info = await db.prepare(
-    'INSERT INTO big_screen_shares (big_screen_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?)'
-  ).run(Number(bigScreenId), generateToken(), hash, parseExpiresAt(expiresAt), Number(userId));
-  return stripPassword(await getShare(Number(info.lastInsertRowid)));
+    'INSERT INTO big_screen_shares (id, big_screen_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(shareId, String(bigScreenId), generateToken(), hash, parseExpiresAt(expiresAt), userId == null ? null : String(userId));
+  return stripPassword(await getShare(shareId));
 }
 
 async function listShares(bigScreenId) {
-  return (await db.prepare(`${SELECT_SHARE} WHERE s.big_screen_id = ? ORDER BY s.id DESC`).all(Number(bigScreenId)))
+  return (await db.prepare(`${SELECT_SHARE} WHERE s.big_screen_id = ? ORDER BY s.id DESC`).all(String(bigScreenId)))
     .map(stripPassword);
 }
 
@@ -201,7 +204,7 @@ async function updateShare(id, body = {}) {
 
 async function deleteShare(id) {
   await getShareOrThrow(id);
-  await db.prepare('DELETE FROM big_screen_shares WHERE id = ?').run(Number(id));
+  await db.prepare('DELETE FROM big_screen_shares WHERE id = ?').run(String(id));
   return true;
 }
 

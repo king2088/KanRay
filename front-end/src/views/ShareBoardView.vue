@@ -80,7 +80,7 @@ const chartCache = ref({})
 
 provide('shareApiOverride', {
   chartApi: {
-    get: async (id) => chartCache.value[Number(id)]
+    get: async (id) => chartCache.value[id]
       || Promise.reject(new Error('图表不存在')),
     data: (id, filters) => shareApi.chartData(token, id, filters).then((r) => r),
   },

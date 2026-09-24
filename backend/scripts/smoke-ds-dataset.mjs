@@ -152,7 +152,7 @@ try {
   const logs = d.data || [];
   ok('P12 同步日志已写入', logs.length > 0 && logs[0].status === 'success', `logs=${logs.length} first=${logs[0]?.status}`);
 
-  const localTable = d.data?.localTable || `sync_${dsId}_sales2`;
+  const localTable = d.data?.localTable || `sync_${String(dsId).replace(/[^A-Za-z0-9_]/g, '')}_sales2`;
   r = await fetch(`${BASE}/api/datasources/${dsId}/sync-configs`, { headers: { Authorization: `Bearer ${token}` } });
   d = await j(r);
   const scRow = (d.data || []).find((c) => c.id === cid);

@@ -32,7 +32,7 @@ bigScreenTemplatesRouter.post('/', requireUser, requirePermission('big_screen', 
 
 // DELETE /api/big-screen-templates/:id
 bigScreenTemplatesRouter.delete('/:id', requireUser, requirePermission('big_screen', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('big_screen_template', id, req.user, rbac);
   await templateService.deleteTemplate(id);
   ok(res, true, '删除成功');

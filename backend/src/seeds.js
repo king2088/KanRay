@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const db = require('./db');
+const { uuidv7 } = require('./utils/uuidv7');
 
 const PERMISSIONS = [
   ['dataset:read', '查看数据集'], ['dataset:create', '创建数据集'], ['dataset:update', '编辑数据集'], ['dataset:delete', '删除数据集'],
@@ -27,16 +28,16 @@ const ROLES = [
 ];
 
 async function seedPermissions() {
-  const ins = await db.prepare('INSERT OR IGNORE INTO permissions (code, name) VALUES (?, ?)');
+  const ins = await db.prepare('INSERT OR IGNORE INTO permissions (id, code, name) VALUES (?, ?, ?)');
   const get = await db.prepare('SELECT id FROM permissions WHERE code = ?');
-  for (const [code, name] of PERMISSIONS) await ins.run(code, name);
+  for (const [code, name] of PERMISSIONS) await ins.run(uuidv7(), code, name);
   const map = {};
   for (const [code] of PERMISSIONS) map[code] = (await get.get(code)).id;
   return map;
 }
 
 async function seedRoles(permIds) {
-  const ins = await db.prepare('INSERT OR IGNORE INTO roles (code, name, description, is_builtin) VALUES (?, ?, ?, ?)');
+  const ins = await db.prepare('INSERT OR IGNORE INTO roles (id, code, name, description, is_builtin) VALUES (?, ?, ?, ?, ?)');
   const getId = await db.prepare('SELECT id FROM roles WHERE code = ?');
   const link = await db.prepare('INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
   const clearLinks = await db.prepare('DELETE FROM role_permissions WHERE role_id = ?');
@@ -45,7 +46,7 @@ async function seedRoles(permIds) {
     'SELECT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id WHERE rp.role_id = ? ORDER BY p.code'
   );
   for (const r of ROLES) {
-    await ins.run(r.code, r.name, r.description, r.isBuiltin);
+    await ins.run(uuidv7(), r.code, r.name, r.description, r.isBuiltin);
     const id = (await getId.get(r.code)).id;
     roles[r.code] = id;
     const current = (await currentQ.all(id)).map((x) => x.code);
@@ -67,8 +68,8 @@ async function seedAdmin() {
     uid = existing.id;
   } else {
     const hash = bcrypt.hashSync(password, 10);
-    const r = await db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)').run(email, hash, '管理员');
-    uid = r.lastInsertRowid;
+    uid = uuidv7();
+    await db.prepare('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)').run(uid, email, hash, '管理员');
   }
   const adminRole = (await db.prepare("SELECT id FROM roles WHERE code = 'admin'").get())?.id;
   if (adminRole) await db.prepare('INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)').run(uid, adminRole);

@@ -327,8 +327,8 @@ function calcMultiRing(m) {
 async function loadDatasets() {
   datasets.value = await datasetApi.list()
   const fromQuery = route.query.dataset
-  if (fromQuery && datasets.value.some((d) => d.id === Number(fromQuery))) {
-    datasetId.value = Number(fromQuery)
+  if (fromQuery && datasets.value.some((d) => d.id === fromQuery)) {
+    datasetId.value = fromQuery
     onDatasetChange(datasetId.value)
   }
 }
@@ -459,7 +459,7 @@ function back() {
 }
 
 async function loadEditing() {
-  const id = Number(route.params.id)
+  const id = String(route.params.id)
   if (!id) return
   const chart = await chartApi.get(id)
   editingId = id

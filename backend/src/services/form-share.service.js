@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getForm, fillSchema } = require('./form.service');
+const { uuidv7 } = require('../utils/uuidv7');
 
 const SELECT_SHARE = `
   SELECT s.id, s.form_id AS formId, s.form_id AS form_id, s.token,
@@ -45,7 +46,7 @@ function parseExpiresAt(value) {
 }
 
 async function getShare(id) {
-  return (await db.prepare(`${SELECT_SHARE} WHERE s.id = ?`).get(Number(id))) || null;
+  return (await db.prepare(`${SELECT_SHARE} WHERE s.id = ?`).get(String(id))) || null;
 }
 
 async function getShareOrThrow(id) {
@@ -59,17 +60,18 @@ async function getShareByToken(token) {
 }
 
 async function createShare({ formId, password, expiresAt, userId }) {
-  const form = await getForm(Number(formId));
+  const form = await getForm(String(formId));
   if (!form) throw new HttpError(404, '表单不存在');
   const hash = await hashPassword(password);
+  const shareId = uuidv7();
   const info = await db.prepare(
-    'INSERT INTO form_shares (form_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?)'
-  ).run(Number(formId), generateToken(), hash, parseExpiresAt(expiresAt), Number(userId));
-  return stripPassword(await getShare(Number(info.lastInsertRowid)));
+    'INSERT INTO form_shares (id, form_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(shareId, String(formId), generateToken(), hash, parseExpiresAt(expiresAt), userId == null ? null : String(userId));
+  return stripPassword(await getShare(shareId));
 }
 
 async function listShares(formId) {
-  return (await db.prepare(`${SELECT_SHARE} WHERE s.form_id = ? ORDER BY s.id DESC`).all(Number(formId)))
+  return (await db.prepare(`${SELECT_SHARE} WHERE s.form_id = ? ORDER BY s.id DESC`).all(String(formId)))
     .map(stripPassword);
 }
 
@@ -90,7 +92,7 @@ async function updateShare(id, body = {}) {
     params.push(body.isActive ? 1 : 0);
   }
   if (fields.length) {
-    params.push(Number(id));
+    params.push(String(id));
     await db.prepare(`UPDATE form_shares SET ${fields.join(', ')}, updated_at = datetime('now') WHERE id = ?`).run(...params);
   }
   return stripPassword(await getShare(id));
@@ -98,7 +100,7 @@ async function updateShare(id, body = {}) {
 
 async function deleteShare(id) {
   await getShareOrThrow(id);
-  await db.prepare('DELETE FROM form_shares WHERE id = ?').run(Number(id));
+  await db.prepare('DELETE FROM form_shares WHERE id = ?').run(String(id));
   return true;
 }
 
@@ -119,7 +121,7 @@ function assertShareUsable(share, now = Date.now()) {
 }
 
 async function getFillView(share) {
-  const form = await getForm(Number(share.formId));
+  const form = await getForm(String(share.formId));
   if (!form) throw new HttpError(404, '表单不存在或已被删除');
   if (form.status !== 'published') throw new HttpError(403, '表单当前不可填写', null, 40302);
   return { share: stripPassword(share), form: fillSchema(form) };

@@ -7,6 +7,7 @@ const { requirePermission } = require('../middleware/permission');
 const rbac = require('../services/rbac.service');
 const audit = require('../services/audit.service');
 const { parsePageQuery } = require('../utils/pagination');
+const { isValidUuid7 } = require('../utils/uuidv7');
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.post('/users', requirePermission('user', 'create'), async (req, res) => {
     email: z.string().trim().email(),
     password: z.string().min(8),
     name: z.string().trim().min(1).max(50),
-    roleIds: z.array(z.number().int().positive()).optional().default([]),
+    roleIds: z.array(z.string().refine((v) => isValidUuid7(v))).optional().default([]),
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
@@ -46,11 +47,11 @@ router.patch('/users/:id', requirePermission('user', 'update'), async (req, res)
     name: z.string().trim().min(1).max(50).optional(),
     is_active: z.boolean().optional(),
     password: z.string().min(8).optional(),
-    roleIds: z.array(z.number().int().positive()).optional(),
+    roleIds: z.array(z.string().refine((v) => isValidUuid7(v))).optional(),
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await rbac.rbacUser(id);
   if (parsed.data.name !== undefined) await rbac.updateUserProfile(id, { name: parsed.data.name });
   if (parsed.data.is_active !== undefined) await rbac.setUserActive(id, parsed.data.is_active);
@@ -64,7 +65,7 @@ router.patch('/users/:id', requirePermission('user', 'update'), async (req, res)
 });
 
 router.delete('/users/:id', requirePermission('user', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   if (id === req.user.id) throw new HttpError(400, '不能删除当前登录账号');
   await rbac.deleteUser(id);
   await audit.log(
@@ -104,7 +105,7 @@ router.patch('/roles/:id', requirePermission('role', 'update'), async (req, res)
   }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '参数不完整');
-  const role = await rbac.updateRole(Number(req.params.id), parsed.data);
+  const role = await rbac.updateRole(req.params.id, parsed.data);
   await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_role_update', resourceType: 'role', resourceId: role.id, detail: parsed.data },
     req
@@ -113,7 +114,7 @@ router.patch('/roles/:id', requirePermission('role', 'update'), async (req, res)
 });
 
 router.delete('/roles/:id', requirePermission('role', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await rbac.deleteRole(id);
   await audit.log(
     { userId: req.user.id, email: req.user.email, action: 'admin_role_delete', resourceType: 'role', resourceId: id },

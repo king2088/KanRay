@@ -8,6 +8,7 @@ const jwtUtil = require('../src/utils/jwt');
 
 let server; let base;
 let adminToken;
+let dsId; // 首个 POST 创建的数据源 uuid，供后续 GET/PATCH/DELETE 使用
 
 before(async () => {
   await resetDb();
@@ -52,10 +53,11 @@ test('POST /api/datasources creates a mysql datasource', async () => {
   assert.equal(body.data.name, 'Test MySQL');
   assert.equal(body.data.type, 'mysql');
   assert.equal(body.data.config.password, '********');
+  dsId = body.data.id;
 });
 
 test('GET /api/datasources/:id returns detail with masked password', async () => {
-  const res = await fetch(`${base}/api/datasources/1`, { headers: auth(adminToken) });
+  const res = await fetch(`${base}/api/datasources/${dsId}`, { headers: auth(adminToken) });
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.code, 0);
@@ -63,7 +65,7 @@ test('GET /api/datasources/:id returns detail with masked password', async () =>
 });
 
 test('PATCH /api/datasources/:id updates name (password unchanged)', async () => {
-  const res = await fetch(`${base}/api/datasources/1`, {
+  const res = await fetch(`${base}/api/datasources/${dsId}`, {
     method: 'PATCH',
     headers: auth(adminToken),
     body: JSON.stringify({ name: 'Renamed MySQL' }),
@@ -72,7 +74,7 @@ test('PATCH /api/datasources/:id updates name (password unchanged)', async () =>
   const body = await res.json();
   assert.equal(body.data.name, 'Renamed MySQL');
   // stored ciphertext changed? name-only update should NOT re-encrypt. Check ciphertext bytes remain same:
-  const row = db.prepare('SELECT config FROM data_sources WHERE id = 1').get();
+  const row = db.prepare('SELECT config FROM data_sources WHERE id = ?').get(dsId);
   const cfg = JSON.parse(row.config);
   // password should still be present and non-plaintext
   assert.notEqual(cfg.password, 'Kanban@123');
@@ -104,7 +106,7 @@ test('PATCH with partial config does not corrupt stored password', async () => {
 });
 
 test('DELETE /api/datasources/:id deletes', async () => {
-  const res = await fetch(`${base}/api/datasources/1`, { method: 'DELETE', headers: auth(adminToken) });
+  const res = await fetch(`${base}/api/datasources/${dsId}`, { method: 'DELETE', headers: auth(adminToken) });
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.code, 0);
@@ -115,11 +117,12 @@ test('owner isolation: analyst cannot see admin datasources', async () => {
   const userToken = jwtUtil.signAccess({ sub: u.id });
 
   // admin creates a datasource (id=2)
-  await fetch(`${base}/api/datasources`, {
+  const adminCreated = await (await fetch(`${base}/api/datasources`, {
     method: 'POST',
     headers: auth(adminToken),
     body: JSON.stringify({ name: 'Admin DS', type: 'mysql', config: { host: 'h', port: 3306, database: 'd', user: 'u', password: 'p' } }),
-  });
+  })).json();
+  const adminDsId = adminCreated.data.id;
 
   // analyst list -> empty (admin's DS hidden)
   const listRes = await fetch(`${base}/api/datasources`, { headers: auth(userToken) });
@@ -128,7 +131,7 @@ test('owner isolation: analyst cannot see admin datasources', async () => {
   assert.equal(listBody.data.length, 0);
 
   // analyst cannot read admin's datasource
-  const forbidden = await fetch(`${base}/api/datasources/2`, { headers: auth(userToken) });
+  const forbidden = await fetch(`${base}/api/datasources/${adminDsId}`, { headers: auth(userToken) });
   assert.equal(forbidden.status, 403);
 
   // analyst can create and access their own

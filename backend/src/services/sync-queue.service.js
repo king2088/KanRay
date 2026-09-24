@@ -4,6 +4,7 @@
 // lease_until（epoch 毫秒）用于 worker 崩溃后的任务回收。
 const db = require('../db');
 const config = require('../config');
+const { uuidv7 } = require('../utils/uuidv7');
 
 const ACTIVE = ['queued', 'running'];
 
@@ -44,9 +45,10 @@ async function enqueue(cid, trigger = 'schedule') {
     return { ...row, existing: true };
   }
   const ph = db.dialect.placeholder;
-  const sql = `INSERT INTO ${q('sync_jobs')} (${q('sync_config_id')}, ${q('trigger_type')}, ${q('status')}, ${q('attempts')}, ${q('created_at')}) VALUES (${ph(1)}, ${ph(2)}, ${ph(3)}, ${ph(4)}, datetime('now'))`;
-  const r = await db.prepare(sql).run(cid, String(trigger), 'queued', 0);
-  const job = await getJob(Number(r.lastInsertRowid));
+  const jobId = uuidv7();
+  const sql = `INSERT INTO ${q('sync_jobs')} (${q('id')}, ${q('sync_config_id')}, ${q('trigger_type')}, ${q('status')}, ${q('attempts')}, ${q('created_at')}) VALUES (${ph(1)}, ${ph(2)}, ${ph(3)}, ${ph(4)}, ${ph(5)}, datetime('now'))`;
+  const r = await db.prepare(sql).run(jobId, cid, String(trigger), 'queued', 0);
+  const job = await getJob(jobId);
   return { ...job, existing: false };
 }
 

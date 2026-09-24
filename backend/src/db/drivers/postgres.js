@@ -64,7 +64,7 @@ function createPostgresDriver(url) {
       // 否则每次查询会占用两条连接（仅在事务外用池，DB_POOL_MAX 小时可能耗尽）。
       run: async (...params) => {
         const r = await runQuery(t, params);
-        return { changes: r.rowCount, lastInsertRowid: r.rows[0] ? Number(r.rows[0].id) : 0 };
+        return { changes: r.rowCount, lastInsertRowid: r.rows[0] ? r.rows[0].id : 0 };
       },
       get: async (...params) => {
         const r = await runQuery(t, params);
@@ -84,7 +84,7 @@ function createPostgresDriver(url) {
     // 同 statement：runQuery 自管连接，避免每次查询占用两条连接
     async run(sql, params = []) {
       const r = await runQuery(withReturning(translate(sql, pgDialect, { quoteAliases: true })), params);
-      return { changes: r.rowCount, lastInsertRowid: r.rows[0] ? Number(r.rows[0].id) : 0 };
+      return { changes: r.rowCount, lastInsertRowid: r.rows[0] ? r.rows[0].id : 0 };
     },
     async get(sql, params = []) {
       const r = await runQuery(translate(sql, pgDialect, { quoteAliases: true }), params);

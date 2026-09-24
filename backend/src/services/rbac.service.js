@@ -3,6 +3,7 @@ const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { rolesOf, userWithRoles } = require('./auth.service');
 const { ROLES } = require('../seeds');
+const { uuidv7 } = require('../utils/uuidv7');
 
 const BUILTIN_CODES = ROLES.map((r) => r.code);
 
@@ -42,8 +43,8 @@ async function createRole(code, name, permissionCodes, description = '') {
   if (!/^[a-z0-9_-]{2,32}$/.test(c)) throw new HttpError(400, '角色标识不合法（小写字母/数字/下划线）');
   if (!String(name || '').trim()) throw new HttpError(400, '角色名称不能为空');
   if (await db.prepare('SELECT id FROM roles WHERE code = ?').get(c)) throw new HttpError(409, '角色标识已存在');
-  const r = await db.prepare('INSERT INTO roles (code, name, description, is_builtin) VALUES (?, ?, ?, 0)').run(c, String(name).slice(0, 50), String(description || '').slice(0, 200));
-  const id = Number(r.lastInsertRowid);
+  const id = uuidv7();
+  const r = await db.prepare('INSERT INTO roles (id, code, name, description, is_builtin) VALUES (?, ?, ?, ?, 0)').run(id, c, String(name).slice(0, 50), String(description || '').slice(0, 200));
   await setRolePermissions(id, permissionCodes);
   return (await listRoles()).find((x) => x.id === id);
 }
@@ -92,8 +93,8 @@ async function createUser(email, password, name, roleIds = []) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw new HttpError(400, '邮箱格式不正确');
   if (await db.prepare('SELECT id FROM users WHERE email = ?').get(mail)) throw new HttpError(409, '该邮箱已注册');
   const hash = bcrypt.hashSync(String(password || ''), 10);
-  const r = await db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)').run(mail, hash, String(name || '').slice(0, 50));
-  const uid = Number(r.lastInsertRowid);
+  const uid = uuidv7();
+  const r = await db.prepare('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)').run(uid, mail, hash, String(name || '').slice(0, 50));
   await assignRoles(uid, roleIds);
   return rbacUser(uid);
 }

@@ -12,6 +12,8 @@ const db = require('../src/db');
 const sync = require('../src/services/sync.service');
 const queue = require('../src/services/sync-queue.service');
 const providersApi = require('../src/datasources/providers');
+const { uuidv7 } = require('../src/utils/uuidv7');
+const { seed } = require('../src/seeds');
 
 const COLS = [
   { name: 'id', type: 'int' },
@@ -36,15 +38,20 @@ const FAKE = {
 
 const REAL_GET_PROVIDER = providersApi.getProvider;
 let dsId;
+let ADMIN;
 
 function insertDs() {
-  return Number(db.prepare("INSERT INTO data_sources (name, type, config, mode, is_active, owner_id) VALUES ('ds-worker', 'mysql', ?, 'sync', 1, 1)")
-    .run(JSON.stringify({ host: 'h', port: 3306, database: 'db', user: 'u', password: 'p', password_masked: true })).lastInsertRowid);
+  const id = uuidv7();
+  db.prepare("INSERT INTO data_sources (id, name, type, config, mode, is_active, owner_id) VALUES (?, 'ds-worker', 'mysql', ?, 'sync', 1, ?)")
+    .run(id, JSON.stringify({ host: 'h', port: 3306, database: 'db', user: 'u', password: 'p', password_masked: true }), ADMIN);
+  return id;
 }
 function q(t) { return db.dialect.quoteIdent(t); }
 
 test.before(async () => {
   db.initSchema();
+  await seed();
+  ADMIN = db.prepare("SELECT id FROM users WHERE email = 'admin@kanray.local'").get().id;
   dsId = insertDs();
   providersApi.getProvider = () => FAKE;
 });

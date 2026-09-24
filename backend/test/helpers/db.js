@@ -1,6 +1,9 @@
 process.env.DB_PATH = `/tmp/kanban-test-${process.pid}.db`;
 const db = require('../../src/db');
 const { seed } = require('../../src/seeds');
+const { uuidv7 } = require('../../src/utils/uuidv7');
+
+let seededAdminId = null;
 
 async function resetDb() {
   await db.exec(`
@@ -9,7 +12,14 @@ async function resetDb() {
     DELETE FROM datasets; DELETE FROM charts; DELETE FROM dashboards; DELETE FROM big_screens;
     DELETE FROM forms; DELETE FROM data_sources;
   `);
-  await seed();
+  const s = await seed();
+  seededAdminId = s.adminId;
 }
 
-module.exports = { db, seed, resetDb };
+/** 最近一次 resetDb 生成的内置管理员 id（uuid7 字符串） */
+function adminId() {
+  if (!seededAdminId) throw new Error('请先调用 resetDb()');
+  return seededAdminId;
+}
+
+module.exports = { db, seed, resetDb, adminId, uuidv7 };

@@ -44,7 +44,7 @@ import FormRenderer from '@/components/form/FormRenderer.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
-const id = Number(route.params.id)
+const id = String(route.params.id)
 const form = ref(null)
 const renderer = ref(null)
 const loading = ref(true)

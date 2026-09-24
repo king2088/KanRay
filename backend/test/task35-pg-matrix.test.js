@@ -14,6 +14,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client } = require('pg');
 
+const { uuidv7 } = require('../src/utils/uuidv7');
+
 const LIVE = process.env.RUN_LIVE === '1'
   && (!process.env.LIVE_CASES
     || process.env.LIVE_CASES.split(',').map((s) => s.trim()).includes('postgres'));
@@ -50,6 +52,8 @@ if (!LIVE) {
   const providersApi = require('../src/datasources/providers');
   const datasourceService = require('../src/services/datasource.service');
 
+  let ADMIN; // before() 内由 seed() 写入
+
   const SRCPORT = new URL(PG_BASE).port || '5432';
   const SRCHOST = new URL(PG_BASE).hostname;
   const SRCPASS = decodeURIComponent(new URL(PG_BASE).password);
@@ -69,10 +73,11 @@ if (!LIVE) {
       host: SRCHOST, port: Number(SRCPORT), database: DB_NAME,
       user: SRCUSER, password: SRCPASS, schema: 'public',
     };
-    const r = await db.prepare(
-      "INSERT INTO data_sources (name, type, config, mode, is_active, owner_id) VALUES (?, 'postgres', ?, ?, 1, 1)",
-    ).run(name, JSON.stringify(cfg), mode);
-    return Number(r.lastInsertRowid);
+    const id = uuidv7();
+    await db.prepare(
+      "INSERT INTO data_sources (id, name, type, config, mode, is_active, owner_id) VALUES (?, ?, 'postgres', ?, ?, 1, ?)",
+    ).run(id, name, JSON.stringify(cfg), mode, ADMIN);
+    return id;
   }
 
   test.before(async () => {
@@ -82,6 +87,9 @@ if (!LIVE) {
       await c.query(`CREATE DATABASE ${qi(DB_NAME)}`);
     });
     await db.initSchema();
+    const { seed } = require('../src/seeds');
+    const { adminId } = await seed();
+    ADMIN = adminId;
     await db.exec('CREATE TABLE pg_browse_demo (id BIGINT PRIMARY KEY, amt NUMERIC, note TEXT, updated_at TIMESTAMP)');
   });
 
@@ -119,7 +127,7 @@ if (!LIVE) {
       description: 'matrix',
       config: { width: 1920, height: 1080 },
       components: [{ id: 'w1', type: 'bar' }],
-    }, 1);
+    }, ADMIN);
     assert.ok(screen.id, 'createBigScreen 应返回 id（RETURNING * 回读）');
     assert.equal(screen.config.width, 1920, 'config JSON 列应解析回对象');
     assert.equal(screen.components.length, 1);
@@ -135,13 +143,13 @@ if (!LIVE) {
 
     const tpl = await templateService.createTemplate({
       name: 'PG 模板', description: 't', config: { width: 1920 }, components: [{ id: 'w1' }],
-    }, 1);
+    }, ADMIN);
     const tpls = await templateService.listTemplates();
     assert.ok(tpls.some((t) => t.id === tpl.id), '模板列表应含新建模板');
     await templateService.deleteTemplate(tpl.id);
     await assert.rejects(() => templateService.getTemplateOrThrow(tpl.id), Error, '删除后应 404');
 
-    const share = await bigScreenService.createShare({ bigScreenId: screen.id, password: 'pass1234', userId: 1 });
+    const share = await bigScreenService.createShare({ bigScreenId: screen.id, password: 'pass1234', userId: ADMIN });
     assert.ok(share.token, '分享应生成 token');
     assert.equal(share.hasPassword, true);
     assert.equal(bigScreenService.shareState(share), 'active');
@@ -159,9 +167,10 @@ if (!LIVE) {
 
   test('时间归一化：now() 写回为 UTC naive 秒，且与进程 UTC 时钟一致', async () => {
     const email = `pg-time-${Date.now()}@test.io`;
-    const ins = await db.prepare("INSERT INTO users (email, password_hash, name, is_active) VALUES (?, ?, ?, 1)")
-      .run(email, 'x', 'pg-time');
-    const row = await db.prepare('SELECT created_at FROM users WHERE id = ?').get(Number(ins.lastInsertRowid));
+    const uid = uuidv7();
+    await db.prepare("INSERT INTO users (id, email, password_hash, name, is_active) VALUES (?, ?, ?, ?, 1)")
+      .run(uid, email, 'x', 'pg-time');
+    const row = await db.prepare('SELECT created_at FROM users WHERE id = ?').get(uid);
     assert.match(String(row.created_at), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, '应为 YYYY-MM-DD HH:MM:SS');
     const diff = Math.abs(new Date(`${row.created_at.replace(' ', 'T')}Z`).getTime() - Date.now());
     assert.ok(diff < 180000, `created_at 与 UTC now 偏差 ${diff}ms（PG timezone 与进程不一致？）`);
@@ -435,7 +444,7 @@ if (!LIVE) {
   test('管理列表计数（PG）：listUsers/audit.list 返回数值 total（回归 await ...get().n 优先级）', async () => {
     const rbac = require('../src/services/rbac.service');
     const audit = require('../src/services/audit.service');
-    await db.prepare("INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)").run(`pg-total-${process.pid}@t`, 'x', 'pg-total');
+    await db.prepare("INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)").run(uuidv7(), `pg-total-${process.pid}@t`, 'x', 'pg-total');
     const u = await rbac.listUsers({ page: 1, pageSize: 5 });
     assert.equal(typeof u.total, 'number', `users total 应为 number，实际 ${typeof u.total}（${JSON.stringify(u.total)}）`);
     assert.ok(u.total >= 1, 'users total 应 >= 1');

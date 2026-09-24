@@ -34,7 +34,7 @@
         </div>
 
         <el-table :data="rows" stripe v-loading="loading">
-          <el-table-column prop="id" label="ID" width="60" />
+          <el-table-column type="index" label="序号" width="60" align="center" />
           <el-table-column prop="name" label="名称" min-width="140" />
           <el-table-column label="类型" width="120">
             <template #default="{ row }">

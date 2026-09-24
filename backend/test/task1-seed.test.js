@@ -2,7 +2,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-${process.pid}.db`;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, seed, resetDb } = require('./helpers/db');
+const { db, seed, resetDb, uuidv7 } = require('./helpers/db');
 
 test('seeds 内置权限点', async () => {
   await resetDb();
@@ -37,13 +37,19 @@ test('seeds 默认管理员：bcrypt 密码可校验', async () => {
 test('既有数据集/图表/看板回填 owner_id 为管理员', async () => {
   await resetDb();
   const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
-  db.exec("INSERT INTO datasets (name, original_file, row_count, column_count, table_name, owner_id) VALUES ('a','a.xlsx',1,1,'ds_x', NULL)");
-  db.exec("INSERT INTO charts (name, dataset_id, chart_type, config) VALUES ('c', 1, 'bar', '{}')");
-  db.exec("INSERT INTO dashboards (name, layout) VALUES ('d', '[]')");
+  const dsId = uuidv7();
+  db.prepare("INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, 1, 1, 'ds_x', NULL)")
+    .run(dsId, 'a', 'a.xlsx');
+  const chartId = uuidv7();
+  db.prepare("INSERT INTO charts (id, name, dataset_id, chart_type, config) VALUES (?, ?, ?, 'bar', '{}')")
+    .run(chartId, 'c', dsId);
+  const dashId = uuidv7();
+  db.prepare("INSERT INTO dashboards (id, name, layout) VALUES (?, ?, '[]')")
+    .run(dashId, 'd');
   await seed();
-  assert.equal(db.prepare('SELECT owner_id FROM datasets WHERE id = 1').get().owner_id, admin.id);
-  assert.equal(db.prepare('SELECT owner_id FROM charts WHERE id = 1').get().owner_id, admin.id);
-  assert.equal(db.prepare('SELECT owner_id FROM dashboards WHERE id = 1').get().owner_id, admin.id);
+  assert.equal(db.prepare('SELECT owner_id FROM datasets WHERE id = ?').get(dsId).owner_id, admin.id);
+  assert.equal(db.prepare('SELECT owner_id FROM charts WHERE id = ?').get(chartId).owner_id, admin.id);
+  assert.equal(db.prepare('SELECT owner_id FROM dashboards WHERE id = ?').get(dashId).owner_id, admin.id);
 });
 
 test('seeds 幂等：连续 seed() 不重复写入', async () => {

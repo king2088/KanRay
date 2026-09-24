@@ -115,7 +115,7 @@ router.get('/dashboards', requireScope('dashboard:read'), async (req, res) => {
 
 // GET /api/open/v1/charts/:id/data  按图表配置取数（双重归属断言）
 router.get('/charts/:id/data', requireScope('chart:read'), (req, res) => handleEither(req, res, async () => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await assertOpenResource('chart', id, req.principal.user);
   const chart = await chartService.getChartOrThrow(id);
   await assertOpenResource('dataset', chart.datasetId, req.principal.user);
@@ -131,7 +131,7 @@ const AGG_METRICS = z.union([
   z.object({ type: z.literal('base').optional(), key: z.string().max(64).optional(), field: z.string().min(1), agg: z.enum(['sum', 'avg', 'count', 'count_distinct', 'max', 'min']), label: z.string().max(64).optional() }),
   z.object({ type: z.literal('expr'), key: z.string().max(64).optional(), expr: z.string().min(1).max(512), label: z.string().max(64).optional() }),
   z.object({ type: z.literal('derived'), key: z.string().max(64).optional(), kind: z.enum(['share', 'mom', 'yoy', 'cumsum', 'rank']), ref: z.string().min(1).max(64), label: z.string().max(64).optional() }),
-  z.object({ type: z.literal('saved'), key: z.string().max(64).optional(), metricId: z.number().int().positive(), label: z.string().max(64).optional() }),
+  z.object({ type: z.literal('saved'), key: z.string().max(64).optional(), metricId: z.string().refine((v) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v)), label: z.string().max(64).optional() }),
 ]);
 const AGG_DIM = z.object({ field: z.string().min(1), label: z.string().max(64).optional(), granularity: z.string().max(16).optional() });
 const aggregateSchema = z.object({
@@ -155,7 +155,7 @@ async function assertFieldsRegistered(datasetId, body) {
 
 // POST /api/open/v1/datasets/:id/aggregate  自定义聚合（白名单字段）
 router.post('/datasets/:id/aggregate', requireScope('dataset:read'), (req, res) => handleEither(req, res, async () => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await assertOpenResource('dataset', id, req.principal.user);
   const parsed = aggregateSchema.safeParse(req.body || {});
   if (!parsed.success) {
@@ -173,13 +173,13 @@ router.post('/datasets/:id/aggregate', requireScope('dataset:read'), (req, res) 
 
 // GET /api/open/v1/dashboards/:id/export  看板元信息 + 全部图表数据
 router.get('/dashboards/:id/export', requireScope('dashboard:read'), (req, res) => handleEither(req, res, async () => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await assertOpenResource('dashboard', id, req.principal.user);
   const dash = await dashboardService.getDashboardOrThrow(id);
   const cards = [];
   for (const comp of dash.layout || []) {
     if (!comp || comp.type !== 'chart' || comp.chartId == null) continue;
-    const chart = await chartService.getChartOrThrow(Number(comp.chartId));
+    const chart = await chartService.getChartOrThrow(String(comp.chartId));
     await assertOpenResource('chart', chart.id, req.principal.user);
     await assertOpenResource('dataset', chart.datasetId, req.principal.user);
     const result = await queryEngine.aggregate({ datasetId: chart.datasetId, ...chart.config, filters: chart.config.filters || [] });

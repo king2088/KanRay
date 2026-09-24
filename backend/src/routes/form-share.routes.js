@@ -13,14 +13,14 @@ const router = express.Router();
 
 // GET /api/forms/:formId/shares
 router.get('/:formId/shares', requireUser, requirePermission('form', 'share'), async (req, res) => {
-  const formId = Number(req.params.formId);
+  const formId = req.params.formId;
   await access.assertResource('form', formId, req.user, rbac);
   ok(res, await formShareService.listShares(formId));
 });
 
 // POST /api/forms/:formId/shares  { password?, expiresAt? }
 router.post('/:formId/shares', requireUser, requirePermission('form', 'share'), async (req, res) => {
-  const formId = Number(req.params.formId);
+  const formId = req.params.formId;
   await access.assertResource('form', formId, req.user, rbac);
   const schema = z.object({
     password: z.string().max(64).optional().nullable(),
@@ -33,7 +33,7 @@ router.post('/:formId/shares', requireUser, requirePermission('form', 'share'), 
 
 // PATCH /api/forms/:formId/shares/:shareId  { password?, expiresAt?, isActive? }
 router.patch('/:formId/shares/:shareId', requireUser, requirePermission('form', 'share'), async (req, res) => {
-  const formId = Number(req.params.formId);
+  const formId = req.params.formId;
   await access.assertResource('form', formId, req.user, rbac);
   const schema = z.object({
     password: z.string().max(64).optional().nullable(),
@@ -42,14 +42,14 @@ router.patch('/:formId/shares/:shareId', requireUser, requirePermission('form', 
   }).strict();
   const parsed = schema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '分享参数不正确', parsed.error.flatten());
-  ok(res, await formShareService.updateShare(Number(req.params.shareId), parsed.data), '分享更新成功');
+  ok(res, await formShareService.updateShare(req.params.shareId, parsed.data), '分享更新成功');
 });
 
 // DELETE /api/forms/:formId/shares/:shareId
 router.delete('/:formId/shares/:shareId', requireUser, requirePermission('form', 'share'), async (req, res) => {
-  const formId = Number(req.params.formId);
+  const formId = req.params.formId;
   await access.assertResource('form', formId, req.user, rbac);
-  await formShareService.deleteShare(Number(req.params.shareId));
+  await formShareService.deleteShare(req.params.shareId);
   ok(res, true, '删除成功');
 });
 

@@ -7,6 +7,7 @@ const path = require('node:path');
 const { createStore } = require('../src/db/index');
 const { ensureSchema } = require('../src/db/schema');
 const { migrate, parseConn } = require('../src/migrate');
+const { uuidv7 } = require('../src/utils/uuidv7');
 
 test('parseConn 解析 TYPE@URL', () => {
   assert.deepEqual(parseConn('sqlite@data/kanban.db'), { type: 'sqlite', url: 'data/kanban.db' });
@@ -22,9 +23,11 @@ test('sqlite -> sqlite：元数据 + 数据表全量迁移，保留 ID', async (
 
   const src = createStore({ type: 'sqlite', sqlitePath: srcPath });
   ensureSchema(src);
-  src.run('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)', ['a@kb.local', '$hash', '甲']);
-  src.run('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)', ['b@kb.local', '$hash', '乙']);
-  src.run('INSERT INTO roles (code, name, is_builtin) VALUES (?, ?, ?)', ['ops', '运维', 0]);
+  const u1 = uuidv7();
+  const u2 = uuidv7();
+  src.run('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)', [u1, 'a@kb.local', '$hash', '甲']);
+  src.run('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)', [u2, 'b@kb.local', '$hash', '乙']);
+  src.run('INSERT INTO roles (id, code, name, is_builtin) VALUES (?, ?, ?, ?)', [uuidv7(), 'ops', '运维', 0]);
   src.run('CREATE TABLE ds_1 (id INTEGER PRIMARY KEY AUTOINCREMENT, v TEXT, cnt INTEGER)');
   src.run('INSERT INTO ds_1 (id, v, cnt) VALUES (?, ?, ?)', [1, 'hello', 10]);
   src.run('INSERT INTO ds_1 (id, v, cnt) VALUES (?, ?, ?)', [2, 'world', 20]);
@@ -39,9 +42,9 @@ test('sqlite -> sqlite：元数据 + 数据表全量迁移，保留 ID', async (
   const dst = createStore({ type: 'sqlite', sqlitePath: dstPath });
   const users = dst.all('SELECT id, email, name FROM users ORDER BY id');
   assert.equal(users.length, 2);
-  assert.equal(users[0].id, 1, 'ID 应保留');
+  assert.equal(users[0].id, u1, 'ID 应保留');
   assert.equal(users[0].name, '甲');
-  assert.equal(users[1].id, 2);
+  assert.equal(users[1].id, u2);
 
   const ds = dst.all('SELECT id, v, cnt FROM ds_1 ORDER BY id');
   assert.equal(ds.length, 2);
@@ -58,8 +61,8 @@ test('sqlite -> sqlite：--tables 只迁移指定表', async () => {
 
   const src = createStore({ type: 'sqlite', sqlitePath: srcPath });
   ensureSchema(src);
-  src.run('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)', ['a@kb.local', '$hash', '甲']);
-  src.run('INSERT INTO roles (code, name, is_builtin) VALUES (?, ?, ?)', ['ops', '运维', 0]);
+  src.run('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)', [uuidv7(), 'a@kb.local', '$hash', '甲']);
+  src.run('INSERT INTO roles (id, code, name, is_builtin) VALUES (?, ?, ?, ?)', [uuidv7(), 'ops', '运维', 0]);
   src.close();
 
   const res = await migrate(parseConn(`sqlite@${srcPath}`), parseConn(`sqlite@${dstPath}`), { tables: 'users' });
@@ -77,7 +80,7 @@ test('dry-run 只统计不写入', async () => {
 
   const src = createStore({ type: 'sqlite', sqlitePath: srcPath });
   ensureSchema(src);
-  src.run('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)', ['a@kb.local', '$hash', '甲']);
+  src.run('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)', [uuidv7(), 'a@kb.local', '$hash', '甲']);
   src.close();
 
   const res = await migrate(parseConn(`sqlite@${srcPath}`), parseConn(`sqlite@${dstPath}`), { dryRun: true });

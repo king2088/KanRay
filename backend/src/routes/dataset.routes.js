@@ -16,6 +16,7 @@ const access = require('../services/access.service');
 const rbac = require('../services/rbac.service');
 const queryEngine = require('../engines/query-engine');
 const { parsePageQuery, paginate } = require('../utils/pagination');
+const { isValidUuid7 } = require('../utils/uuidv7');
 
 const router = express.Router();
 
@@ -61,7 +62,7 @@ router.get('/', requireUser, requirePermission('dataset', 'read'), async (req, r
 
 // GET /api/datasets/:id  (含字段)
 router.get('/:id', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   ok(res, await datasetService.getDatasetOrThrow(id));
 });
@@ -108,7 +109,7 @@ router.post('/', requireUser, requirePermission('dataset', 'create'), upload.sin
 
 // DELETE /api/datasets/:id
 router.delete('/:id', requireUser, requirePermission('dataset', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   await datasetService.deleteDataset(id);
   ok(res, true, '删除成功');
@@ -116,7 +117,7 @@ router.delete('/:id', requireUser, requirePermission('dataset', 'delete'), async
 
 // PATCH /api/datasets/:id  (重命名)
 router.patch('/:id', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   const schema = z.object({ name: z.string().trim().min(1).max(100) });
   const parsed = schema.safeParse(req.body);
@@ -127,7 +128,7 @@ router.patch('/:id', requireUser, requirePermission('dataset', 'update'), async 
 
 // POST /api/datasets/row-counts  (批量懒计算并落库 SQL 数据集行数；仅 row_count=0 的才重算)
 router.post('/row-counts', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
-  const schema = z.object({ ids: z.array(z.number().int().positive()).max(100).default([]) }).strict();
+  const schema = z.object({ ids: z.array(z.string().refine((v) => isValidUuid7(v))).max(100).default([]) }).strict();
   const parsed = schema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '请求参数不正确', parsed.error.flatten());
   const scope = await access.scopedWhere('dataset', req.user, rbac);
@@ -137,7 +138,7 @@ router.post('/row-counts', requireUser, requirePermission('dataset', 'read'), as
 
 // GET /api/datasets/:id/rows  (分页预览数据)
 router.get('/:id/rows', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   const page = Math.max(1, parseInt(req.query.page || '1', 10));
   const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize || '50', 10)));
@@ -146,12 +147,12 @@ router.get('/:id/rows', requireUser, requirePermission('dataset', 'read'), async
 
 // PATCH /api/datasets/:id/fields/:fieldId  (更新字段别名)
 router.patch('/:id/fields/:fieldId', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   const schema = z.object({ label: z.string().trim().min(1).max(100) }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '字段别名不能为空且不超过 100 字符');
-  const field = await datasetService.updateFieldLabel(id, Number(req.params.fieldId), parsed.data.label);
+  const field = await datasetService.updateFieldLabel(id, req.params.fieldId, parsed.data.label);
   ok(res, field, '字段更新成功');
 });
 
@@ -186,7 +187,7 @@ const querySchema = z.object({
     z.object({
       type: z.literal('saved'),
       key: z.string().optional(),
-      metricId: z.number().int().positive(),
+      metricId: z.string().refine((v) => isValidUuid7(v)),
       label: z.string().optional(),
     }),
   ])).optional().default([]),
@@ -201,7 +202,7 @@ const querySchema = z.object({
 }).strict();
 
 router.get('/:id/metrics', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   ok(res, await metricsLibrary.listMetrics(id));
 });
@@ -213,7 +214,7 @@ const metricBodySchema = z.object({
 }).strict();
 
 router.post('/:id/metrics', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   const parsed = metricBodySchema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '指标参数不正确', parsed.error.flatten());
@@ -221,8 +222,8 @@ router.post('/:id/metrics', requireUser, requirePermission('dataset', 'update'),
 });
 
 router.put('/:id/metrics/:metricId', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
-  const metricId = Number(req.params.metricId);
+  const id = req.params.id;
+  const metricId = req.params.metricId;
   await access.assertResource('dataset', id, req.user, rbac);
   const parsed = z.object({
     name: z.string().optional(),
@@ -233,14 +234,14 @@ router.put('/:id/metrics/:metricId', requireUser, requirePermission('dataset', '
 });
 
 router.delete('/:id/metrics/:metricId', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
-  const metricId = Number(req.params.metricId);
+  const id = req.params.id;
+  const metricId = req.params.metricId;
   await access.assertResource('dataset', id, req.user, rbac);
   ok(res, await metricsLibrary.deleteMetric(id, metricId), '指标删除成功');
 });
 
 router.post('/:id/query', requireUser, requirePermission('dataset', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dataset', id, req.user, rbac);
   const parsed = querySchema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '查询参数不正确', parsed.error.flatten());

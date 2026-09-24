@@ -28,7 +28,7 @@ router.get('/:token/meta', async (req, res) => {
     return;
   }
   const st = formShareService.shareState(share);
-  const form = await formService.getForm(Number(share.formId));
+  const form = await formService.getForm(String(share.formId));
   ok(res, {
     found: true,
     formId: share.formId,
@@ -78,7 +78,7 @@ const submitSchema = z.object({ values: z.record(z.any()).optional().default({})
 router.post('/:token/submissions', requireFormShareJwt, async (req, res) => {
   const parsed = submitSchema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '提交参数不正确', parsed.error.flatten());
-  const form = await formService.getForm(Number(req.share.formId));
+  const form = await formService.getForm(String(req.share.formId));
   if (!form) throw new HttpError(404, '表单不存在或已被删除');
   const row = await submissionService.insert(form, parsed.data.values, null);
   ok(res, row, '提交成功');

@@ -1,10 +1,11 @@
 const db = require('../db');
+const { uuidv7 } = require('../utils/uuidv7');
 
 async function log(info, req) {
   const ip = req?.ip || req?.socket?.remoteAddress || '';
   await db.prepare(
-    'INSERT INTO audit_logs (user_id, email, action, resource_type, resource_id, detail, ip) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(info.userId ?? null, info.email ?? null, info.action, info.resourceType ?? null, String(info.resourceId ?? '') || null, info.detail ? JSON.stringify(info.detail) : null, ip);
+    'INSERT INTO audit_logs (id, user_id, email, action, resource_type, resource_id, detail, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(uuidv7(), info.userId ?? null, info.email ?? null, info.action, info.resourceType ?? null, String(info.resourceId ?? '') || null, info.detail ? JSON.stringify(info.detail) : null, ip);
 }
 
 async function list({ page = 1, pageSize = 20 } = {}) {

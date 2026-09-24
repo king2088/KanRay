@@ -5,6 +5,7 @@ const HttpError = require('../utils/http-error');
 const { getDashboardOrThrow } = require('./dashboard.service');
 const { getChartOrThrow, listCharts } = require('./chart.service');
 const queryEngine = require('../engines/query-engine');
+const { uuidv7 } = require('../utils/uuidv7');
 
 const SELECT_SHARE = `
   SELECT s.id, s.dashboard_id AS dashboardId, s.dashboard_id AS dashboard_id, s.token,
@@ -47,7 +48,7 @@ function parseExpiresAt(value) {
 }
 
 async function getShare(id) {
-  return (await db.prepare(`${SELECT_SHARE} WHERE s.id = ?`).get(Number(id))) || null;
+  return (await db.prepare(`${SELECT_SHARE} WHERE s.id = ?`).get(String(id))) || null;
 }
 
 async function getShareOrThrow(id) {
@@ -62,14 +63,15 @@ async function getShareByToken(token) {
 
 async function createShare({ dashboardId, password, expiresAt, userId }) {
   const hash = await hashPassword(password);
+  const shareId = uuidv7();
   const info = await db.prepare(
-    'INSERT INTO dashboard_shares (dashboard_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?)'
-  ).run(Number(dashboardId), generateToken(), hash, parseExpiresAt(expiresAt), Number(userId));
-  return stripPassword(await getShare(Number(info.lastInsertRowid)));
+    'INSERT INTO dashboard_shares (id, dashboard_id, token, password_hash, expires_at, created_by) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(shareId, String(dashboardId), generateToken(), hash, parseExpiresAt(expiresAt), userId == null ? null : String(userId));
+  return stripPassword(await getShare(shareId));
 }
 
 async function listShares(dashboardId) {
-  return (await db.prepare(`${SELECT_SHARE} WHERE s.dashboard_id = ? ORDER BY s.id DESC`).all(Number(dashboardId)))
+  return (await db.prepare(`${SELECT_SHARE} WHERE s.dashboard_id = ? ORDER BY s.id DESC`).all(String(dashboardId)))
     .map(stripPassword);
 }
 
@@ -98,7 +100,7 @@ async function updateShare(id, body = {}) {
 
 async function deleteShare(id) {
   await getShareOrThrow(id);
-  await db.prepare('DELETE FROM dashboard_shares WHERE id = ?').run(Number(id));
+  await db.prepare('DELETE FROM dashboard_shares WHERE id = ?').run(String(id));
   return true;
 }
 
@@ -119,7 +121,7 @@ function assertShareUsable(share, now = Date.now()) {
 }
 
 async function getDashboardName(id) {
-  return (await db.prepare('SELECT id, name FROM dashboards WHERE id = ?').get(Number(id))) || null;
+  return (await db.prepare('SELECT id, name FROM dashboards WHERE id = ?').get(String(id))) || null;
 }
 
 function collectChartIds(layout) {
@@ -127,7 +129,7 @@ function collectChartIds(layout) {
   const walk = (arr) => {
     (arr || []).forEach((it) => {
       if (!it || typeof it !== 'object') return;
-      if (it.type === 'chart' && it.chartId !== undefined && it.chartId !== null) out.push(Number(it.chartId));
+      if (it.type === 'chart' && it.chartId !== undefined && it.chartId !== null) out.push(String(it.chartId));
       if (Array.isArray(it.children)) walk(it.children);
     });
   };
@@ -150,14 +152,14 @@ async function getDashboardRenderView(dashboardId) {
 }
 
 async function getDashboardLayoutInShare(share) {
-  const dash = await getDashboardOrThrow(Number(share.dashboardId));
+  const dash = await getDashboardOrThrow(String(share.dashboardId));
   return dash.layout;
 }
 
 async function getChartData(share, chartId) {
   const ids = collectChartIds(await getDashboardLayoutInShare(share));
-  if (!ids.includes(Number(chartId))) throw new HttpError(404, '图表不存在');
-  const chart = await getChartOrThrow(Number(chartId));
+  if (!ids.includes(String(chartId))) throw new HttpError(404, '图表不存在');
+  const chart = await getChartOrThrow(String(chartId));
   return queryEngine.aggregate({
     datasetId: chart.datasetId,
     ...chart.config,

@@ -40,7 +40,7 @@ import EtlBuilderTab from '@/components/builder/EtlBuilderTab.vue'
 
 const route = useRoute()
 const router = useRouter()
-const dsId = Number(route.params.id)
+const dsId = String(route.params.id)
 const activeMode = ref('sql')
 const name = ref('')
 const loading = ref(false)
@@ -98,7 +98,7 @@ onMounted(async () => {
     catalog.value = await buildApi.sqlAssist(dsId)
     const editId = route.query.editDatasetId
     if (editId) {
-      editDatasetId.value = Number(editId)
+      editDatasetId.value = String(editId)
       const dataset = await datasetApi.get(editDatasetId.value)
       name.value = dataset.name
       if (dataset.build_definition) {

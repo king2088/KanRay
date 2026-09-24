@@ -40,7 +40,7 @@ bigScreensRouter.get('/', requireUser, requirePermission('big_screen', 'read'), 
 
 // GET /api/big-screens/:id
 bigScreensRouter.get('/:id', requireUser, requirePermission('big_screen', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('big_screen', id, req.user, rbac);
   ok(res, await bigScreenService.getBigScreenOrThrow(id));
 });
@@ -68,7 +68,7 @@ bigScreensRouter.post('/mock', requireUser, requirePermission('big_screen', 'cre
 
 // PATCH /api/big-screens/:id
 bigScreensRouter.patch('/:id', requireUser, requirePermission('big_screen', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('big_screen', id, req.user, rbac);
   const schema = z.object({
     name: z.string().trim().min(1).max(100).optional(),
@@ -84,7 +84,7 @@ bigScreensRouter.patch('/:id', requireUser, requirePermission('big_screen', 'upd
 
 // DELETE /api/big-screens/:id
 bigScreensRouter.delete('/:id', requireUser, requirePermission('big_screen', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('big_screen', id, req.user, rbac);
   await bigScreenService.deleteBigScreen(id);
   ok(res, true, '删除成功');
@@ -92,7 +92,7 @@ bigScreensRouter.delete('/:id', requireUser, requirePermission('big_screen', 'de
 
 // POST /api/big-screens/:id/shares
 bigScreensRouter.post('/:id/shares', requireUser, requirePermission('big_screen', 'share'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('big_screen', id, req.user, rbac);
   const p = createSchema.safeParse(req.body || {});
   if (!p.success) throw new HttpError(400, '分享参数不正确', p.error.flatten());
@@ -102,14 +102,14 @@ bigScreensRouter.post('/:id/shares', requireUser, requirePermission('big_screen'
 
 // GET /api/big-screens/:id/shares
 bigScreensRouter.get('/:id/shares', requireUser, requirePermission('big_screen', 'share'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('big_screen', id, req.user, rbac);
   ok(res, await bigScreenService.listShares(id));
 });
 
 // PATCH /api/big-screen-shares/:shareId
 sharesRouter.patch('/:shareId', requireUser, requirePermission('big_screen', 'share'), async (req, res) => {
-  const shareId = Number(req.params.shareId);
+  const shareId = req.params.shareId;
   const share = await bigScreenService.getShareOrThrow(shareId);
   await access.assertResource('big_screen', share.bigScreenId, req.user, rbac);
   const p = patchSchema.safeParse(req.body || {});
@@ -119,7 +119,7 @@ sharesRouter.patch('/:shareId', requireUser, requirePermission('big_screen', 'sh
 
 // DELETE /api/big-screen-shares/:shareId
 sharesRouter.delete('/:shareId', requireUser, requirePermission('big_screen', 'share'), async (req, res) => {
-  const shareId = Number(req.params.shareId);
+  const shareId = req.params.shareId;
   const share = await bigScreenService.getShareOrThrow(shareId);
   await access.assertResource('big_screen', share.bigScreenId, req.user, rbac);
   await bigScreenService.deleteShare(shareId);

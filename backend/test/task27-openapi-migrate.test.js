@@ -7,6 +7,7 @@ const path = require('node:path');
 
 const { createStore } = require('../src/db/index');
 const { ensureSchema } = require('../src/db/schema');
+const { uuidv7 } = require('../src/utils/uuidv7');
 
 function freshStore() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kbauthkey-'));
@@ -28,8 +29,10 @@ test('sqlite ensureSchema 创建 api_keys 表且含全部列', () => {
 test('api_keys key_hash 唯一约束', () => {
   const store = freshStore();
   ensureSchema(store);
-  store.run('INSERT INTO api_keys (name, type, user_id, key_hash, key_prefix, scopes) VALUES (?, ?, ?, ?, ?, ?)', ['a', 'static', 1, 'h1', 'kan_live_x', '[]']);
-  assert.throws(() => store.run('INSERT INTO api_keys (name, type, user_id, key_hash, key_prefix, scopes) VALUES (?, ?, ?, ?, ?, ?)', ['b', 'static', 1, 'h1', 'kan_live_x', '[]']), /UNIQUE/i);
+  const admin = uuidv7();
+  store.run('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)', [admin, 'admin@kanray.local', 'hash', '管理员']);
+  store.run('INSERT INTO api_keys (id, name, type, user_id, key_hash, key_prefix, scopes) VALUES (?, ?, ?, ?, ?, ?, ?)', [uuidv7(), 'a', 'static', admin, 'h1', 'kan_live_x', '[]']);
+  assert.throws(() => store.run('INSERT INTO api_keys (id, name, type, user_id, key_hash, key_prefix, scopes) VALUES (?, ?, ?, ?, ?, ?, ?)', [uuidv7(), 'b', 'static', admin, 'h1', 'kan_live_x', '[]']), /UNIQUE/i);
   store.close();
 });
 

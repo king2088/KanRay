@@ -2,7 +2,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-http5-${process.pid}.db`;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, uuidv7 } = require('./helpers/db');
 const authService = require('../src/services/auth.service');
 const rbac = require('../src/services/rbac.service');
 const { seed } = require('../src/seeds');
@@ -146,7 +146,7 @@ test('viewer 建数据集 → 403；analyst 上传创建成功且 owner_id 落�
   const created = await createDatasetViaApi('销量数据', eat);
   assert.equal(created.status, 200, JSON.stringify(created.json));
   datasetIdA = created.json.data.id;
-  assert.ok(datasetIdA > 0);
+  assert.ok(datasetIdA);
   const row = db.prepare('SELECT owner_id FROM datasets WHERE id = ?').get(datasetIdA);
   assert.equal(row.owner_id, ownerId);
 });
@@ -251,9 +251,9 @@ test('C1 回归：B 无法用 A 的数据集创建图表', async () => {
 
 test('C1 回归：遗留图表引用外部数据集时，B 读取与 /data 均被拒', async () => {
   const bUser = db.prepare("SELECT id FROM users WHERE email = 'b5@x.com'").get();
-  const info = db.prepare('INSERT INTO charts (name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
-    .run('遗留图表', datasetIdA, 'bar', JSON.stringify({ metrics: [{ field: 'amount', agg: 'sum' }], dimensions: [{ field: 'name' }], filters: [] }), bUser.id);
-  const leakId = Number(info.lastInsertRowid);
+  const leakId = uuidv7();
+  const info = db.prepare('INSERT INTO charts (id, name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(leakId, '遗留图表', datasetIdA, 'bar', JSON.stringify({ metrics: [{ field: 'amount', agg: 'sum' }], dimensions: [{ field: 'name' }], filters: [] }), bUser.id);
   const bat = await login('b5@x.com', 'Password123!');
 
   const g = await api(`/api/charts/${leakId}`, { method: 'GET', token: bat });

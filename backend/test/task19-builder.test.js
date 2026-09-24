@@ -1,9 +1,11 @@
 process.env.DB_PATH = `/tmp/kanban-test-${process.pid}.db`;
 const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, adminId } = require('./helpers/db');
+const { uuidv7 } = require('../src/utils/uuidv7');
 const buildSql = require('../src/datasources/build-sql');
 const datasetService = require('../src/services/dataset.service');
+const authService = require('../src/services/auth.service');
 
 const mysql = {
   quoteIdent: (n) => `\`${n}\``, limit: (s, n) => `${s} LIMIT ${n}`,
@@ -23,11 +25,12 @@ function catalog() {
   ];
 }
 
-/** 插入一个数据源并返回实际 id（resetDb 不清 sqlite_sequence，勿硬编码 id=1） */
+/** 插入一个数据源并返回实际 uuid（resetDb 不清 sqlite_sequence，勿硬编码 id=1） */
 function insertDatasource(name) {
-  const info = db.prepare('INSERT INTO data_sources (name, type, config, owner_id) VALUES (?, ?, ?, ?)')
-    .run(name || 'mysql-ds', 'mysql', '{}', 1);
-  return Number(info.lastInsertRowid);
+  const id = uuidv7();
+  db.prepare('INSERT INTO data_sources (id, name, type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
+    .run(id, name || 'mysql-ds', 'mysql', '{}', adminId());
+  return id;
 }
 
 before(async () => { await resetDb(); });
@@ -399,13 +402,13 @@ test('compileEtl diamond refs compile independently (no stale params)', () => {
 test('saveBuiltDataset creates then updates and rebuilds fields', async () => {
   const dsId = insertDatasource('mysql-ds');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [{ source: 't', field: 'amount', label: '金额', type: 'number' }], aggregation: null };
-  const created = await datasetService.saveBuiltDataset({ name: 'Wide', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Wide', definition: def, datasourceId: dsId, datasetId: null, ownerId: adminId() });
   assert.equal(created.source_type, 'sql');
   assert.equal(created.build_definition.includes('"type":"builder"'), true);
   assert.equal(created.fields.length, 1);
 
   const def2 = { ...def, fields: [{ source: 't', field: 'amount', label: '金额2', type: 'number' }, { source: 't', field: 'customer_id', label: '客户', type: 'number' }] };
-  const updated = await datasetService.saveBuiltDataset({ name: 'Wide2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: 1 });
+  const updated = await datasetService.saveBuiltDataset({ name: 'Wide2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: adminId() });
   assert.equal(updated.name, 'Wide2');
   assert.equal(updated.fields.length, 2);
   assert.equal((await datasetService.getFieldsOrThrow(created.id)).length, 2);
@@ -414,7 +417,7 @@ test('saveBuiltDataset creates then updates and rebuilds fields', async () => {
 test('saveBuiltDataset rebuilds dataset_fields with f_<i> names/order/labels', async () => {
   const dsId = insertDatasource('mysql-ds-rebuild');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [{ source: 't', field: 'amount', label: '金额', type: 'number' }], aggregation: null };
-  const created = await datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: adminId() });
 
   let fields = await datasetService.getFieldsOrThrow(created.id);
   assert.equal(fields.length, 1);
@@ -427,7 +430,7 @@ test('saveBuiltDataset rebuilds dataset_fields with f_<i> names/order/labels', a
     { source: 't', field: 'amount', label: '金额', type: 'number' },
     { source: 't', field: 'id', label: 'ID', type: 'number' },
   ] };
-  const updated = await datasetService.saveBuiltDataset({ name: 'Order Amount v2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: 1 });
+  const updated = await datasetService.saveBuiltDataset({ name: 'Order Amount v2', definition: def2, datasourceId: dsId, datasetId: created.id, ownerId: adminId() });
 
   fields = await datasetService.getFieldsOrThrow(created.id);
   assert.equal(fields.length, 3);
@@ -439,36 +442,38 @@ test('saveBuiltDataset rebuilds dataset_fields with f_<i> names/order/labels', a
 test('saveBuiltDataset enforces owner/datasource/existence guards', async () => {
   const dsId = insertDatasource('mysql-ds-guard');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [], aggregation: null };
-  const created = await datasetService.saveBuiltDataset({ name: 'X', definition: def, datasourceId: dsId, datasetId: null, ownerId: 2 });
+  // 数据集归属人：注册一个真实非 admin 用户
+  const other = (await authService.register({ email: 'builder-owner@x.com', password: 'Password123!', name: 'BuilderOwner' })).id;
+  const created = await datasetService.saveBuiltDataset({ name: 'X', definition: def, datasourceId: dsId, datasetId: null, ownerId: other });
 
-  // 他人（ownerId=3）更新 → 403 无权限
-  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3 }), /无权限/);
+  // 他人（admin，无 admin flag）更新 → 403 无权限
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: adminId() }), /无权限/);
   // datasource 错配（owner 正确但 datasourceId=999999）→ 400 不属于
-  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: 999999, datasetId: created.id, ownerId: 2 }), /不属于该数据源/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: 999999, datasetId: created.id, ownerId: other }), /不属于该数据源/);
   // datasetId 不存在 → 404
-  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: 999999, ownerId: 2 }), /不存在/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Y', definition: def, datasourceId: dsId, datasetId: 999999, ownerId: other }), /不存在/);
   // admin 可跨用户编辑
-  const admin = await datasetService.saveBuiltDataset({ name: 'Y-admin', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: 3, admin: true });
+  const admin = await datasetService.saveBuiltDataset({ name: 'Y-admin', definition: def, datasourceId: dsId, datasetId: created.id, ownerId: adminId(), admin: true });
   assert.equal(admin.name, 'Y-admin');
 });
 
 test('saveBuiltDataset validates definition type and size', async () => {
   const dsId = insertDatasource('mysql-ds-validate');
-  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Bad', definition: { type: 'olap', tables: [] }, datasourceId: dsId, datasetId: null, ownerId: 1 }), /不支持的构建形态/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Bad', definition: { type: 'olap', tables: [] }, datasourceId: dsId, datasetId: null, ownerId: adminId() }), /不支持的构建形态/);
 
   const big = { type: 'builder', tables: [{ alias: 't', schema: 's', table: 'orders' }], joins: [], fields: [], aggregation: null };
   big.padding = 'x'.repeat(1_000_001);
-  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Big', definition: big, datasourceId: dsId, datasetId: null, ownerId: 1 }), /构建定义过大/);
+  await assert.rejects(datasetService.saveBuiltDataset({ name: 'Big', definition: big, datasourceId: dsId, datasetId: null, ownerId: adminId() }), /构建定义过大/);
 });
 
 test('deleteDataset skips DROP TABLE for external sql datasets', async () => {
   const dsId = insertDatasource('mysql-ds-del');
   // table_name 含危险字符：若执行 DROP TABLE `buy-now` 会因语法错误抛异常 → 不抛即证明未 DROP
-  const info = db.prepare(
-    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, build_definition, owner_id)
-     VALUES (?, ?, 0, 0, ?, 'sql', ?, '{}', 1)`
-  ).run('danger', 'danger', 'buy-now', dsId);
-  const id = Number(info.lastInsertRowid);
+  const id = uuidv7();
+  db.prepare(
+    `INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, source_type, datasource_id, build_definition, owner_id)
+     VALUES (?, ?, ?, 0, 0, ?, 'sql', ?, '{}', ?)`
+  ).run(id, 'danger', 'danger', 'buy-now', dsId, adminId());
 
   assert.equal(await datasetService.deleteDataset(id), true);
   assert.equal(await datasetService.getDataset(id), null);
@@ -478,11 +483,11 @@ test('deleteDataset still deletes excel datasets (local table)', async () => {
   // 先真实建本地表，才能验证 deleteDataset 确实执行了 DROP
   db.exec('CREATE TABLE data_1 (id INTEGER)');
   db.exec("INSERT INTO data_1 (id) VALUES (1)");
-  const info = db.prepare(
-    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, owner_id)
-     VALUES (?, ?, 0, 0, 'data_1', 'excel', 1)`
-  ).run('excel-ds', 'excel-ds');
-  const id = Number(info.lastInsertRowid);
+  const id = uuidv7();
+  db.prepare(
+    `INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, source_type, owner_id)
+     VALUES (?, ?, ?, 0, 0, 'data_1', 'excel', ?)`
+  ).run(id, 'excel-ds', 'excel-ds', adminId());
 
   assert.equal(await datasetService.deleteDataset(id), true);
   assert.equal(await datasetService.getDataset(id), null);
@@ -496,7 +501,7 @@ test('registerSqlDataset writes equivalent builder definition', async () => {
   const d = await datasetService.registerSqlDataset('Quick', dsId, 'testdb', 'sales', [
     { name: 'id', label: 'ID', type: 'integer' },
     { name: 'amount', label: null, type: null },
-  ], 1);
+  ], adminId());
 
   const def = JSON.parse(d.build_definition);
   assert.equal(def.type, 'builder');
@@ -523,7 +528,7 @@ test('getDataset returns build_definition and ordered fields', async () => {
     { source: 't', field: 'amount', label: '金额', type: 'number' },
     { source: 't', field: 'customer_id', label: '客户', type: 'number' },
   ], aggregation: null };
-  const created = await datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Order Amount', definition: def, datasourceId: dsId, datasetId: null, ownerId: adminId() });
 
   const ds = await datasetService.getDataset(created.id);
   assert.ok(ds.build_definition.includes('"type":"builder"'));
@@ -534,7 +539,7 @@ test('getDataset returns build_definition and ordered fields', async () => {
 test('getFieldsOrThrow throws when dataset_fields empty', async () => {
   const dsId = insertDatasource('mysql-ds-empty');
   const def = { type: 'builder', tables: [{ alias: 't', schema: 'testdb', table: 'orders' }], joins: [], fields: [], aggregation: null };
-  const created = await datasetService.saveBuiltDataset({ name: 'Empty', definition: def, datasourceId: dsId, datasetId: null, ownerId: 1 });
+  const created = await datasetService.saveBuiltDataset({ name: 'Empty', definition: def, datasourceId: dsId, datasetId: null, ownerId: adminId() });
 
   await assert.rejects(datasetService.getFieldsOrThrow(created.id), /数据集字段为空/);
 });

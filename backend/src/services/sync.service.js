@@ -10,6 +10,7 @@ const { decryptConfig } = require('./datasource.service');
 const { buildUpsert, guessType } = require('../datasources/build-sql');
 const config = require('../config');
 const metrics = require('../middleware/metrics');
+const { uuidv7 } = require('../utils/uuidv7');
 
 const BATCH_SIZE = 5000;
 
@@ -20,8 +21,9 @@ function driversMeta(type) {
 }
 
 function nextLocalTable(dsId, table) {
+  const safeDs = String(dsId).replace(/[^A-Za-z0-9_]/g, '');
   const safe = String(table).replace(/[^A-Za-z0-9_]/g, '_');
-  return `sync_${dsId}_${safe}`;
+  return `sync_${safeDs}_${safe}`;
 }
 
 function parsePk(raw) {
@@ -175,8 +177,9 @@ async function ensureLocalTable(dsId, sourceTable, columns, pks) {
 }
 
 async function startLog(cid) {
-  const r = await db.prepare("INSERT INTO sync_logs (sync_config_id, started_at, status) VALUES (?, datetime('now'), 'running')").run(cid);
-  return Number(r.lastInsertRowid);
+  const logId = uuidv7();
+  const r = await db.prepare("INSERT INTO sync_logs (id, sync_config_id, started_at, status) VALUES (?, ?, datetime('now'), 'running')").run(logId, cid);
+  return logId;
 }
 
 async function finishLog(logId, status, rows, message) {
@@ -358,13 +361,13 @@ async function createConfig(dsId, body, req) {
   }
 const interval = parseInt(body.syncIntervalSeconds || body.interval || config.sync.defaultIntervalSeconds, 10);
   const reconcile = body.reconcileDelete === false ? 0 : 1;
-  const localTable = body.localTable ? String(body.localTable).replace(/[^A-Za-z0-9_]/g, '_') : nextLocalTable(dsId, sourceTable);
+  const localTable = body.localTable ? String(body.localTable).replace(/-/g, '').replace(/[^A-Za-z0-9_]/g, '_') : nextLocalTable(dsId, sourceTable);
   try {
-    const r = await db.prepare("INSERT INTO sync_configs (datasource_id, source_schema, source_table, local_table, target_type, strategy, watermark_field, watermark_kind, primary_key, reconcile_delete, sync_interval_seconds, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))")
-      .run(dsId, body.sourceSchema || null, sourceTable, localTable, body.targetType === 'file' ? 'file' : 'app', strategy, watermarkField, watermarkKind, pkRaw, reconcile, interval);
-    const id = Number(r.lastInsertRowid);
-    if (req) await require('./audit.service').log({ userId: ds.owner_id ?? null, email: req?.user?.email, action: 'datasource.sync.create', resourceType: 'sync_config', resourceId: id, detail: { datasource_id: dsId, source_table: sourceTable, strategy } }, req).catch(() => {});
-    return getConfig(id);
+    const scId = uuidv7();
+    const r = await db.prepare("INSERT INTO sync_configs (id, datasource_id, source_schema, source_table, local_table, target_type, strategy, watermark_field, watermark_kind, primary_key, reconcile_delete, sync_interval_seconds, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))")
+      .run(scId, dsId, body.sourceSchema || null, sourceTable, localTable, body.targetType === 'file' ? 'file' : 'app', strategy, watermarkField, watermarkKind, pkRaw, reconcile, interval);
+    if (req) await require('./audit.service').log({ userId: ds.owner_id ?? null, email: req?.user?.email, action: 'datasource.sync.create', resourceType: 'sync_config', resourceId: scId, detail: { datasource_id: dsId, source_table: sourceTable, strategy } }, req).catch(() => {});
+    return getConfig(scId);
   } catch (e) {
     if (/UNIQUE|duplicate/i.test(String(e.message))) throw new HttpError(409, '该数据源下同一张源表已存在同步配置');
     throw e;

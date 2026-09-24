@@ -15,6 +15,7 @@ const dialects = require('../datasources/dialects');
 const providers = require('../datasources/providers');
 const buildSql = require('../datasources/build-sql');
 const { decryptConfig, getDriverMeta } = datasourceService;
+const { isValidUuid7 } = require('../utils/uuidv7');
 
 const router = express.Router();
 
@@ -54,7 +55,7 @@ router.post('/', requireUser, requirePermission('datasource', 'create'), async (
 
 // GET /api/datasources/:id
 router.get('/:id', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const ds = await datasourceService.get(id);
   if (!ds) throw new HttpError(404, '数据源不存在');
@@ -63,7 +64,7 @@ router.get('/:id', requireUser, requirePermission('datasource', 'read'), async (
 
 // PATCH /api/datasources/:id —— 更新（含启停）
 router.patch('/:id', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const ds = await datasourceService.update(id, req.body || {}, req);
   ok(res, ds, '更新成功');
@@ -71,7 +72,7 @@ router.patch('/:id', requireUser, requirePermission('datasource', 'update'), asy
 
 // DELETE /api/datasources/:id
 router.delete('/:id', requireUser, requirePermission('datasource', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   await datasourceService.remove(id, req);
   ok(res, true, '删除成功');
@@ -79,7 +80,7 @@ router.delete('/:id', requireUser, requirePermission('datasource', 'delete'), as
 
 // POST /api/datasources/:id/test —— 测试已保存并回写结果
 router.post('/:id/test', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const result = await datasourceService.testSaved(id, req);
   ok(res, result);
@@ -87,28 +88,28 @@ router.post('/:id/test', requireUser, requirePermission('datasource', 'update'),
 
 // GET /api/datasources/:id/schemas
 router.get('/:id/schemas', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   ok(res, await datasourceService.listSchemas(id, req, { source: req.query.source === '1' }));
 });
 
 // GET /api/datasources/:id/schemas/:schema/tables
 router.get('/:id/schemas/:schema/tables', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   ok(res, await datasourceService.listTables(id, req.params.schema, req, { source: req.query.source === '1' }));
 });
 
 // GET /api/datasources/:id/schemas/:schema/tables/:table/columns
 router.get('/:id/schemas/:schema/tables/:table/columns', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   ok(res, await datasourceService.listColumns(id, req.params.schema, req.params.table, req, { source: req.query.source === '1' }));
 });
 
 // GET /api/datasources/:id/schemas/:schema/tables/:table/rows —— 数据表预览
 router.get('/:id/schemas/:schema/tables/:table/rows', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const page = Math.max(1, parseInt(req.query.page || '1', 10));
   const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize || '50', 10)));
@@ -117,7 +118,7 @@ router.get('/:id/schemas/:schema/tables/:table/rows', requireUser, requirePermis
 
 // POST /api/datasources/:id/register-table —— 注册外部表为 SQL 数据集
 router.post('/:id/register-table', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const { schema, table, name } = req.body || {};
   if (!table) throw new HttpError(400, '缺少表名');
@@ -133,14 +134,14 @@ router.post('/:id/register-table', requireUser, requirePermission('datasource', 
 // ─── 同步配置与手动触发 ─────────────────────────────────────────
 // GET /api/datasources/:id/sync-configs —— 某数据源的同步配置列表
 router.get('/:id/sync-configs', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   ok(res, await syncService.configsOf(id));
 });
 
 // POST /api/datasources/:id/sync-configs —— 创建同步配置并触发首同步
 router.post('/:id/sync-configs', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const cfg = await syncService.createConfig(id, req.body || {}, req);
   if (req.body?.runNow !== false) {
@@ -151,24 +152,24 @@ router.post('/:id/sync-configs', requireUser, requirePermission('datasource', 'u
 
 // PATCH /api/datasources/:id/sync-configs/:cid —— 修改同步配置
 router.patch('/:id/sync-configs/:cid', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  ok(res, await syncService.updateConfig(Number(req.params.cid), req.body || {}));
+  ok(res, await syncService.updateConfig(req.params.cid, req.body || {}));
 });
 
 // DELETE /api/datasources/:id/sync-configs/:cid —— 删除同步配置
 router.delete('/:id/sync-configs/:cid', requireUser, requirePermission('datasource', 'delete'), async (req, res) => {
-  await syncService.deleteConfig(Number(req.params.cid));
+  await syncService.deleteConfig(req.params.cid);
   ok(res, true, '同步配置已删除');
 });
 
 // POST /api/datasources/:id/sync-configs/:cid/run —— 手动立即同步
 router.post('/:id/sync-configs/:cid/run', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const result = await syncService.trigger(Number(req.params.cid), 'manual');
+  const result = await syncService.trigger(req.params.cid, 'manual');
   ok(res, result, result.queued ? '已加入同步队列' : '同步执行完成');
 });
 
 // GET /api/datasources/:id/sync-configs/:cid/logs —— 同步日志
 router.get('/:id/sync-configs/:cid/logs', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  ok(res, await syncService.logsOf(Number(req.params.cid)));
+  ok(res, await syncService.logsOf(req.params.cid));
 });
 
 // M3 构建：运行时加载（raw 行 + 明文配置 + 方言 + provider）
@@ -249,7 +250,7 @@ async function resolveBuildContext(id, req, tables) {
 
 // GET /api/datasources/:id/sql-assist —— 构建器元数据树
 router.get('/:id/sql-assist', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const schemas = await datasourceService.listSchemas(id, req);
   const trees = [];
@@ -268,7 +269,7 @@ router.get('/:id/sql-assist', requireUser, requirePermission('datasource', 'read
 
 // POST /api/datasources/:id/build/preview-detail —— 明细预览
 router.post('/:id/build/preview-detail', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const { definition, limit } = req.body || {};
   if (!definition) throw new HttpError(400, '缺少构建定义');
@@ -283,7 +284,7 @@ router.post('/:id/build/preview-detail', requireUser, requirePermission('datasou
 
 // POST /api/datasources/:id/build/preview-aggregate —— 聚合预览
 router.post('/:id/build/preview-aggregate', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const { definition, aggregation, limit } = req.body || {};
   if (!definition) throw new HttpError(400, '缺少构建定义');
@@ -299,7 +300,7 @@ router.post('/:id/build/preview-aggregate', requireUser, requirePermission('data
 
 // POST /api/datasources/:id/build/preview-node —— ETL 节点预览
 router.post('/:id/build/preview-node', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const { definition, nodeId, limit } = req.body || {};
   if (!definition || !nodeId) throw new HttpError(400, '缺少定义或节点');
@@ -322,7 +323,7 @@ router.post('/:id/build/preview-node', requireUser, requirePermission('datasourc
 
 // POST /api/datasources/:id/build/save —— 保存构建定义（缺失字段时 server 端回填）
 router.post('/:id/build/save', requireUser, requirePermission('datasource', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const { name, definition, datasetId } = req.body || {};
   if (!definition) throw new HttpError(400, '缺少构建定义');
@@ -349,7 +350,7 @@ router.post('/:id/build/save', requireUser, requirePermission('datasource', 'upd
     name,
     definition: def,
     datasourceId: id,
-    datasetId: datasetId ? Number(datasetId) : null,
+    datasetId: datasetId && isValidUuid7(String(datasetId)) ? String(datasetId) : null,
     ownerId: req.user.id,
     admin: await access.isAdmin(req.user, rbac),
   });
@@ -358,7 +359,7 @@ router.post('/:id/build/save', requireUser, requirePermission('datasource', 'upd
 
 // POST /api/datasources/:id/build/validate —— 语义校验
 router.post('/:id/build/validate', requireUser, requirePermission('datasource', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const { definition } = req.body || {};
   if (!definition) throw new HttpError(400, '缺少构建定义');

@@ -24,7 +24,7 @@ const patchSchema = z.object({
 
 // POST /api/dashboards/:id/shares
 dashSharesRouter.post('/:id/shares', requireUser, requirePermission('dashboard', 'share'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dashboard', id, req.user, rbac);
   const p = createSchema.safeParse(req.body || {});
   if (!p.success) throw new HttpError(400, '分享参数不正确', p.error.flatten());
@@ -34,14 +34,14 @@ dashSharesRouter.post('/:id/shares', requireUser, requirePermission('dashboard',
 
 // GET /api/dashboards/:id/shares
 dashSharesRouter.get('/:id/shares', requireUser, requirePermission('dashboard', 'share'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dashboard', id, req.user, rbac);
   ok(res, await shareService.listShares(id));
 });
 
 // PATCH /api/shares/:shareId
 sharesRouter.patch('/:shareId', requireUser, requirePermission('dashboard', 'share'), async (req, res) => {
-  const shareId = Number(req.params.shareId);
+  const shareId = req.params.shareId;
   const share = await shareService.getShareOrThrow(shareId);
   await access.assertResource('dashboard', share.dashboardId, req.user, rbac);
   const p = patchSchema.safeParse(req.body || {});
@@ -51,7 +51,7 @@ sharesRouter.patch('/:shareId', requireUser, requirePermission('dashboard', 'sha
 
 // DELETE /api/shares/:shareId
 sharesRouter.delete('/:shareId', requireUser, requirePermission('dashboard', 'share'), async (req, res) => {
-  const shareId = Number(req.params.shareId);
+  const shareId = req.params.shareId;
   const share = await shareService.getShareOrThrow(shareId);
   await access.assertResource('dashboard', share.dashboardId, req.user, rbac);
   await shareService.deleteShare(shareId);

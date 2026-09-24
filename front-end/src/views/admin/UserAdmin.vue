@@ -20,7 +20,7 @@
         </div>
 
       <el-table :data="rows" stripe v-loading="loading">
-      <el-table-column prop="id" label="ID" width="70" />
+      <el-table-column type="index" label="序号" width="70" align="center" />
       <el-table-column prop="email" label="邮箱" min-width="180" />
       <el-table-column prop="name" label="昵称" min-width="120" />
       <el-table-column label="角色" min-width="160">

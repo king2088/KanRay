@@ -2,7 +2,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-metrics-lib-${process.pid}.db`;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { resetDb } = require('./helpers/db');
+const { resetDb, uuidv7 } = require('./helpers/db');
 const queryEngine = require('../src/engines/query-engine');
 const datasetService = require('../src/services/dataset.service');
 const lib = require('../src/services/metrics-library.service');
@@ -37,7 +37,7 @@ test('setup：建数据集与指标库样本', async () => {
   e1 = await lib.createMetric(dsId, { name: '客单价', kind: 'expr', definition: { expr: `$${b1.id} / $${b2.id}` } });
   d1 = await lib.createMetric(dsId, { name: '客单价占比', kind: 'derived', definition: { derivative: 'share', refId: e1.id } });
   d2 = await lib.createMetric(dsId, { name: '销售额排名', kind: 'derived', definition: { derivative: 'rank', refId: b1.id } });
-  assert.ok(b1.id > 0);
+  assert.ok(b1.id);
   assert.equal(e1.kind, 'expr');
   assert.equal(d1.kind, 'derived');
 });
@@ -62,7 +62,7 @@ test('createMetric：公式指标校验（非法语法/悬空引用/嵌套引用
     /复合指标公式仅支持引用指标库原子指标/
   );
   await assert.rejects(
-    lib.createMetric(dsId, { name: 'x', kind: 'expr', definition: { expr: '$9999 + 1' } }),
+    lib.createMetric(dsId, { name: 'x', kind: 'expr', definition: { expr: `$${uuidv7()} + 1` } }),
     /指标不存在/
   );
   // 公式不能引用衍生指标
@@ -147,7 +147,7 @@ test('expandSavedMetrics：内联派生指标引用缩重排后 key 正确重写
 });
 
 test('expandSavedMetrics：未知 metricId 404', async () => {
-  await assert.rejects(lib.expandSavedMetrics(dsId, [{ type: 'saved', metricId: 99999 }]), /指标不存在/);
+  await assert.rejects(lib.expandSavedMetrics(dsId, [{ type: 'saved', metricId: uuidv7() }]), /指标不存在/);
   await assert.rejects(lib.expandSavedMetrics(dsId, [{ type: 'saved' }]), /缺少有效 metricId/);
 });
 

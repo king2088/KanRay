@@ -215,7 +215,7 @@ import FormShareDialog from '@/components/form/FormShareDialog.vue'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const id = Number(route.params.id)
+const id = String(route.params.id)
 const canShare = computed(() => auth.hasPermission('form', 'share'))
 
 const palette = [

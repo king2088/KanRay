@@ -1,6 +1,7 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow } = require('../services/dataset.service');
+const { uuidv7, isValidUuid7 } = require('../utils/uuidv7');
 
 const CHART_TYPES = [
   // 柱形图
@@ -44,17 +45,17 @@ function buildWhere(opts = {}) {
     where.push(`(c.name LIKE ? ESCAPE '\\' OR d.name LIKE ? ESCAPE '\\')`)
     params.push(like, like)
   }
-  const dsId = Number(opts.datasetId)
-  if (Number.isFinite(dsId) && dsId > 0) {
+  const dsId = opts.datasetId != null ? String(opts.datasetId) : ''
+  if (isValidUuid7(dsId)) {
     where.push('c.dataset_id = ?')
     params.push(dsId)
   }
-  const idList = (opts.ids || []).map(Number).filter(Number.isFinite)
+  const idList = (opts.ids || []).map((v) => String(v)).filter(isValidUuid7)
   if (idList.length) {
     where.push(`c.id IN (${idList.map(() => '?').join(',')})`)
     params.push(...idList)
   }
-  const excludeList = (opts.excludeIds || []).map(Number).filter(Number.isFinite)
+  const excludeList = (opts.excludeIds || []).map((v) => String(v)).filter(isValidUuid7)
   if (excludeList.length) {
     where.push(`c.id NOT IN (${excludeList.map(() => '?').join(',')})`)
     params.push(...excludeList)
@@ -114,8 +115,8 @@ async function validateChartPayload(body) {
   const chartType = body.chartType;
   if (!CHART_TYPES.includes(chartType)) throw new HttpError(400, `不支持的图表类型: ${chartType}`);
   if (!body.name || !String(body.name).trim()) throw new HttpError(400, '图表名称不能为空');
-  const datasetId = Number(body.datasetId);
-  if (!Number.isInteger(datasetId)) throw new HttpError(400, '数据集 ID 无效');
+  const datasetId = body.datasetId == null ? '' : String(body.datasetId);
+  if (!isValidUuid7(datasetId)) throw new HttpError(400, '数据集 ID 无效');
   await getDatasetOrThrow(datasetId); // 校验存在
 
   const config = body.config || {};
@@ -132,10 +133,11 @@ async function validateChartPayload(body) {
 
 async function createChart(body, ownerId = null) {
   const c = await validateChartPayload(body);
+  const id = uuidv7();
   const info = await db
-    .prepare('INSERT INTO charts (name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
-    .run(c.name, c.datasetId, c.chartType, JSON.stringify(c.config), ownerId == null ? null : Number(ownerId));
-  return getChart(Number(info.lastInsertRowid));
+    .prepare('INSERT INTO charts (id, name, dataset_id, chart_type, config, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(id, c.name, c.datasetId, c.chartType, JSON.stringify(c.config), ownerId == null ? null : String(ownerId));
+  return getChart(id);
 }
 
 async function updateChart(id, body) {

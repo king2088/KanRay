@@ -89,7 +89,7 @@ import FormRenderer from '@/components/form/FormRenderer.vue'
 const route = useRoute()
 const auth = useAuthStore()
 const appStore = useAppStore()
-const id = Number(route.params.id)
+const id = String(route.params.id)
 
 const form = ref(null)
 const formName = ref('')

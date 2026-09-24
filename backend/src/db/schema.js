@@ -117,9 +117,9 @@ function runDdl(store) {
 // 旧库列补齐（预埋列已含于基表 DDL，此处仅兜底既有库）；写法用方言无关的 ADD + 由 translate 处理标识符
 function ensureSchema(store) {
   const needCols = {
-    datasets: [['source_type', "TEXT NOT NULL DEFAULT 'excel'"], ['datasource_id', 'INTEGER'], ['schema_name', 'TEXT'], ['table_name_ext', 'TEXT'], ['build_definition', 'TEXT'], ['owner_id', 'INTEGER']],
-    dashboards: [['gap_x', 'INTEGER NOT NULL DEFAULT 12'], ['gap_y', 'INTEGER NOT NULL DEFAULT 12'], ['card_style', "TEXT NOT NULL DEFAULT '{}'"], ['owner_id', 'INTEGER']],
-    charts: [['owner_id', 'INTEGER']],
+    datasets: [['source_type', "TEXT NOT NULL DEFAULT 'excel'"], ['datasource_id', 'TEXT'], ['schema_name', 'TEXT'], ['table_name_ext', 'TEXT'], ['build_definition', 'TEXT'], ['owner_id', 'TEXT']],
+    dashboards: [['gap_x', 'INTEGER NOT NULL DEFAULT 12'], ['gap_y', 'INTEGER NOT NULL DEFAULT 12'], ['card_style', "TEXT NOT NULL DEFAULT '{}'"], ['owner_id', 'TEXT']],
+    charts: [['owner_id', 'TEXT']],
     sync_configs: [['reconcile_delete', 'INTEGER NOT NULL DEFAULT 1']],
     forms: [['submission_seq', 'INTEGER NOT NULL DEFAULT 0']],
   };

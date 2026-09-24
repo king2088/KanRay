@@ -15,7 +15,7 @@ const router = express.Router();
 async function assertLayoutOwnership(layout, user) {
   for (const comp of layout || []) {
     if (comp && typeof comp === 'object' && comp.type === 'chart' && comp.chartId !== undefined && comp.chartId !== null) {
-      await access.assertResource('chart', Number(comp.chartId), user, rbac);
+      await access.assertResource('chart', String(comp.chartId), user, rbac);
     }
   }
 }
@@ -30,7 +30,7 @@ router.get('/', requireUser, requirePermission('dashboard', 'read'), async (req,
 
 // GET /api/dashboards/:id
 router.get('/:id', requireUser, requirePermission('dashboard', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dashboard', id, req.user, rbac);
   ok(res, await dashboardService.getDashboardOrThrow(id));
 });
@@ -45,7 +45,7 @@ router.post('/', requireUser, requirePermission('dashboard', 'create'), async (r
 
 // PATCH /api/dashboards/:id  { name?, layout?, gap?, cardStyle? }
 router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dashboard', id, req.user, rbac);
   const schema = z.object({
     name: z.string().trim().min(1).max(100).optional(),
@@ -75,7 +75,7 @@ router.patch('/:id', requireUser, requirePermission('dashboard', 'update'), asyn
 
 // DELETE /api/dashboards/:id
 router.delete('/:id', requireUser, requirePermission('dashboard', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('dashboard', id, req.user, rbac);
   await dashboardService.deleteDashboard(id);
   ok(res, true, '删除成功');

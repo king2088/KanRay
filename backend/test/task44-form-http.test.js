@@ -108,7 +108,7 @@ test('发布：建表并注册数据集', async () => {
   const r = await req(server, { method: 'POST', path: `/api/forms/${createdId}/publish`, headers: hdr(adminToken) });
   assert.equal(r.status, 200, r.raw);
   assert.match(r.body.data.tableName, /^ds_/);
-  assert.ok(r.body.data.datasetId > 0);
+  assert.ok(r.body.data.datasetId);
   assert.equal(r.body.data.status, 'published');
 });
 

@@ -2,7 +2,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-${process.pid}.db`;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, uuidv7 } = require('./helpers/db');
 const rbac = require('../src/services/rbac.service');
 const access = require('../src/services/access.service');
 const authService = require('../src/services/auth.service');
@@ -37,10 +37,11 @@ test('access.assertResource：管理员可访问他人资源，非管理员只�
   const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@kanray.local');
   const u1 = await authService.register({ email: 'u1@x.com', password: 'Password123!', name: 'U1' });
   const u2 = await authService.register({ email: 'u2@x.com', password: 'Password123!', name: 'U2' });
-  db.exec(`INSERT INTO dashboards (name, layout, owner_id) VALUES ('d1','[]',${u1.id})`);
-  await access.assertResource('dashboard', 1, { id: admin.id, roles: [] }, rbac);
-  await access.assertResource('dashboard', 1, { id: u1.id, roles: [] }, rbac);
-  await assert.rejects(access.assertResource('dashboard', 1, { id: u2.id, roles: [] }, rbac), /无权访问/);
+  const dashId = uuidv7();
+  db.prepare('INSERT INTO dashboards (id, name, layout, owner_id) VALUES (?, ?, ?, ?)').run(dashId, 'd1', '[]', u1.id);
+  await access.assertResource('dashboard', dashId, { id: admin.id, roles: [] }, rbac);
+  await access.assertResource('dashboard', dashId, { id: u1.id, roles: [] }, rbac);
+  await assert.rejects(access.assertResource('dashboard', dashId, { id: u2.id, roles: [] }, rbac), /无权访问/);
 });
 
 test('scopedWhere：admin 无过滤，其余加 owner_id', async () => {
@@ -49,7 +50,7 @@ test('scopedWhere：admin 无过滤，其余加 owner_id', async () => {
   assert.equal(await access.scopedWhere('dashboards', { id: admin.id }, rbac), '');
   const u = await authService.register({ email: 's@x.com', password: 'Password123!', name: 'S' });
   const w = await access.scopedWhere('dashboards', { id: u.id }, rbac);
-  assert.match(w, /owner_id\s*=\s*\d+/);
+  assert.match(w, /^owner_id\s*=\s*'[0-9a-f-]+'$/);
 });
 
 test('rbac.createRole / updateRole / deleteRole 基本流程', async () => {

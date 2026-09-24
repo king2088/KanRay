@@ -1,7 +1,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-shares-${process.pid}.db`;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, adminId, uuidv7 } = require('./helpers/db');
 const authService = require('../src/services/auth.service');
 const chartService = require('../src/services/chart.service');
 const dashboardService = require('../src/services/dashboard.service');
@@ -15,16 +15,16 @@ test('启动临时服务并准备数据', async () => {
 
   await db.prepare('CREATE TABLE di_share_route (category TEXT, sales REAL)').run();
   await db.prepare('INSERT INTO di_share_route (category, sales) VALUES (?, ?)').run('A', 10);
-  const ds = await db.prepare('INSERT INTO datasets (name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?)').run('路由测试', 'x', 1, 2, 'di_share_route', 1);
-  const dsId = Number(ds.lastInsertRowid);
-  await db.prepare('INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)').run(dsId, 'category', '类别', 'string', 0);
-  await db.prepare('INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)').run(dsId, 'sales', '销售额', 'number', 1);
+  const dsId = uuidv7();
+  await db.prepare('INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)').run(dsId, '路由测试', 'x', 1, 2, 'di_share_route', adminId());
+  await db.prepare('INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)').run(uuidv7(), dsId, 'category', '类别', 'string', 0);
+  await db.prepare('INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)').run(uuidv7(), dsId, 'sales', '销售额', 'number', 1);
   const chart = await chartService.createChart({
     name: '柱状图', chartType: 'bar', datasetId: dsId,
     config: { dimensions: [{ field: 'category', label: '类别' }], metrics: [{ field: 'sales', agg: 'sum', label: '销售额' }], options: {} },
-  }, 1);
+  }, adminId());
   const layout = [{ id: 'c1', type: 'chart', chartId: chart.id, w: 6, h: 2, hPx: 300, col: 1, top: 0 }];
-  const dash = await dashboardService.createDashboard('分享看板', 1);
+  const dash = await dashboardService.createDashboard('分享看板', adminId());
   await dashboardService.updateDashboard(dash.id, { layout });
   global.__dashId = dash.id;
 });

@@ -28,7 +28,7 @@ async function openAuth(req, res, next) {
   if (key.status !== 'active') throw new HttpError(401, 'API Key 已被吊销');
   const exp = key.expiresAt || key.expires_at;
   if (exp && new Date(exp).getTime() <= Date.now()) throw new HttpError(401, 'API Key 已过期');
-  const userRow = await db.prepare('SELECT id, email, name, is_active FROM users WHERE id = ?').get(Number(key.user_id || key.userId));
+  const userRow = await db.prepare('SELECT id, email, name, is_active FROM users WHERE id = ?').get(String(key.user_id || key.userId));
   if (!userRow) throw new HttpError(401, '账号不存在');
   if (!Number(userRow.is_active)) throw new HttpError(403, '账号已被禁用');
 

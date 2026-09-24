@@ -6,6 +6,7 @@ const providers = require('../datasources/providers');
 const dialects = require('../datasources/dialects');
 const buildSql = require('../datasources/build-sql');
 const audit = require('./audit.service');
+const { uuidv7 } = require('../utils/uuidv7');
 
 // 文件型数据源（Excel/CSV 上传）不属于 drivers 列表，单独定义驱动元数据
 const FILE_META = {
@@ -105,10 +106,10 @@ async function create({ name, type, config, mode }, ownerId, req) {
   const cfg = safeConfig(config || {}, driverMeta);
   const m = mode === 'sync' ? 'sync' : 'direct';
   if (m === 'sync' && driverMeta.family === 'file') throw new HttpError(400, '文件型数据源不支持同步模式');
+  const id = uuidv7();
   const r = await db.prepare(
-    'INSERT INTO data_sources (name, type, config, owner_id, mode) VALUES (?, ?, ?, ?, ?)'
-  ).run(String(name || '').trim().slice(0, 100), type, JSON.stringify(cfg), ownerId == null ? null : Number(ownerId), m);
-  const id = Number(r.lastInsertRowid);
+    'INSERT INTO data_sources (id, name, type, config, owner_id, mode) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, String(name || '').trim().slice(0, 100), type, JSON.stringify(cfg), ownerId == null ? null : String(ownerId), m);
   await audit.log({ userId: ownerId, email: req?.user?.email, action: 'datasource.create', resourceType: 'datasource', resourceId: id, detail: { name: String(name || '').trim(), type, mode: m } }, req);
   return get(id);
 }
@@ -128,9 +129,9 @@ async function createExcelDatasource({ name, file, rowCount, columnCount, tableN
     cfg.columns = columns.map((c) => ({ name: String(c.name), label: c.label != null ? String(c.label) : String(c.name), type: String(c.type || 'string') }));
   }
   const len = String(name || (file ? String(file).replace(/\.(xlsx|xls|csv)$/i, '') : '') || '未命名文件').trim().slice(0, 100);
-  const r = await db.prepare('INSERT INTO data_sources (name, type, config, owner_id) VALUES (?, ?, ?, ?)')
-    .run(len, 'excel', JSON.stringify(cfg), ownerId == null ? null : Number(ownerId));
-  const id = Number(r.lastInsertRowid);
+  const id = uuidv7();
+  const r = await db.prepare('INSERT INTO data_sources (id, name, type, config, owner_id) VALUES (?, ?, ?, ?, ?)')
+    .run(id, len, 'excel', JSON.stringify(cfg), ownerId == null ? null : String(ownerId));
   await audit.log({ userId: ownerId, email: req?.user?.email, action: 'datasource.create', resourceType: 'datasource', resourceId: id, detail: { name: len, type: 'excel' } }, req);
   return get(id);
 }
@@ -214,8 +215,13 @@ function isSyncDs(row) {
   return row.mode === 'sync';
 }
 
+// 本地落库表前缀与 nextLocalTable 保持一致：ds id 清洗为安全字符（uuid 去连字符）
+function syncTablePrefix(id) {
+  return `sync_${String(id).replace(/[^A-Za-z0-9_]/g, '')}_`;
+}
+
 async function localTablesOf(id) {
-  const prefix = `sync_${id}_`;
+  const prefix = syncTablePrefix(id);
   const all = await db.listTables();
   return all
     .map((t) => String(t))
@@ -277,7 +283,7 @@ async function paginateRows(id, schema, table, opts = {}, page = 1, pageSize = 5
 
 async function paginateLocalRows(id, table, page, pageSize, offset) {
   const t = String(table).replace(/[^A-Za-z0-9_]/g, '');
-  const expect = `sync_${id}_`;
+  const expect = syncTablePrefix(id);
   if (!t.toLowerCase().startsWith(expect.toLowerCase())) throw new HttpError(400, `本地表名必须以 ${expect} 开头`);
   const all = (await db.listTables()).map((n) => String(n).toLowerCase());
   if (!all.includes(t.toLowerCase())) throw new HttpError(404, `本地表 ${t} 不存在`);

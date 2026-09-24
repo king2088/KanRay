@@ -6,9 +6,9 @@ const db = require('../src/db');
 const formSvc = require('../src/services/form.service');
 const submissionSvc = require('../src/services/form-submission.service');
 const datasetSvc = require('../src/services/dataset.service');
-const { resetDb } = require('./helpers/db');
+const { resetDb, adminId } = require('./helpers/db');
 
-const OWNER = 9;
+let OWNER;
 
 function baseSchema(extraFields = []) {
   return {
@@ -32,6 +32,7 @@ async function makePublished(schema = baseSchema(), opts = {}) {
 
 beforeEach(async () => {
   await resetDb();
+  OWNER = adminId();
 });
 
 describe('form.service 生命周期', () => {
@@ -72,7 +73,7 @@ describe('form.service 发布', () => {
   test('首次发布建物理表并注册 source_type=form 数据集', async () => {
     const f = await makePublished();
     assert.match(f.tableName, /^ds_/);
-    assert.ok(f.datasetId > 0);
+    assert.ok(f.datasetId);
     const cols = (await db.listColumns(f.tableName)).map((c) => c.name);
     assert.ok(cols.includes('id') && cols.includes('submitted_by') && cols.includes('submitted_at'));
     for (const n of ['name', 'age', 'city', 'tags']) assert.ok(cols.includes(n), `缺列 ${n}`);
@@ -104,7 +105,7 @@ describe('form.service 发布', () => {
 describe('form.service 更新约束（有提交后）', () => {
   test('允许新增字段：ALTER ADD + 同步 dataset_fields', async () => {
     const f = await makePublished();
-    await submissionSvc.insert(f, { name: '张三', city: 'bj' }, 1);
+    await submissionSvc.insert(f, { name: '张三', city: 'bj' }, OWNER);
     const next = { ...baseSchema(), fields: [...baseSchema().fields, { key: 'email', label: '邮箱', type: 'text', span: 1 }] };
     const updated = await formSvc.updateForm(f.id, { schemaJson: next });
     assert.ok((await db.listColumns(updated.tableName)).map((c) => c.name).includes('email'));
@@ -117,14 +118,14 @@ describe('form.service 更新约束（有提交后）', () => {
 
   test('禁止删除字段', async () => {
     const f = await makePublished();
-    await submissionSvc.insert(f, { name: 'x', city: 'bj' }, 1);
+    await submissionSvc.insert(f, { name: 'x', city: 'bj' }, OWNER);
     const next = { ...baseSchema(), fields: baseSchema().fields.filter((x) => x.key !== 'age') };
     await assert.rejects(() => formSvc.updateForm(f.id, { schemaJson: next }), (e) => e.status === 400 && /禁止删除字段/.test(e.message));
   });
 
   test('禁止修改字段类型', async () => {
     const f = await makePublished();
-    await submissionSvc.insert(f, { name: 'x', city: 'bj' }, 1);
+    await submissionSvc.insert(f, { name: 'x', city: 'bj' }, OWNER);
     const next = { ...baseSchema(), fields: baseSchema().fields.map((x) => (x.key === 'age' ? { ...x, type: 'text' } : x)) };
     await assert.rejects(() => formSvc.updateForm(f.id, { schemaJson: next }), (e) => e.status === 400 && /禁止修改字段类型/.test(e.message));
   });
@@ -141,7 +142,7 @@ describe('form.service 更新约束（有提交后）', () => {
 describe('form.service 删除', () => {
   test('删除级联：物理表、数据集、分享、表单本体', async () => {
     const f = await makePublished();
-    await submissionSvc.insert(f, { name: 'x', city: 'bj' }, 1);
+    await submissionSvc.insert(f, { name: 'x', city: 'bj' }, OWNER);
     await db.prepare('INSERT INTO form_shares (form_id, token, password_hash, created_by) VALUES (?, ?, ?, ?)').run(f.id, 'tok123', 'x', OWNER);
     await formSvc.deleteForm(f.id, OWNER, { user: {} });
     assert.equal(await formSvc.getForm(f.id), null);
@@ -156,35 +157,35 @@ describe('form.service 删除', () => {
 describe('form-submission.service 提交', () => {
   test('合法提交入库，static/未知 key 被丢弃，checkbox 以逗号连接', async () => {
     const f = await makePublished();
-    const { id } = await submissionSvc.insert(f, { name: '张三', age: 30, city: 'bj', tags: ['a', 'b'], note: 'x', injected: 'evil' }, 1);
+    const { id } = await submissionSvc.insert(f, { name: '张三', age: 30, city: 'bj', tags: ['a', 'b'], note: 'x', injected: 'evil' }, OWNER);
     const real = (await db.prepare(`SELECT * FROM ${f.tableName} WHERE id = ?`).get(id));
     assert.equal(real.name, '张三');
     assert.equal(real.age, 30);
     assert.equal(real.city, 'bj');
     assert.equal(real.tags, 'a,b');
-    assert.equal(real.submitted_by, 1);
+    assert.equal(real.submitted_by, OWNER);
     assert.ok(real.submitted_at);
   });
 
   test('必填校验与选项白名单', async () => {
     const f = await makePublished();
-    await assert.rejects(() => submissionSvc.insert(f, { city: 'bj' }, 1), (e) => e.status === 400 && /必填/.test(e.message));
-    await assert.rejects(() => submissionSvc.insert(f, { name: 'x', city: 'tokyo' }, 1), (e) => e.status === 400 && /选项不合法/.test(e.message));
-    await assert.rejects(() => submissionSvc.insert(f, { name: 'x', tags: ['z'] }, 1), (e) => e.status === 400 && /选项不合法/.test(e.message));
+    await assert.rejects(() => submissionSvc.insert(f, { city: 'bj' }, OWNER), (e) => e.status === 400 && /必填/.test(e.message));
+    await assert.rejects(() => submissionSvc.insert(f, { name: 'x', city: 'tokyo' }, OWNER), (e) => e.status === 400 && /选项不合法/.test(e.message));
+    await assert.rejects(() => submissionSvc.insert(f, { name: 'x', tags: ['z'] }, OWNER), (e) => e.status === 400 && /选项不合法/.test(e.message));
   });
 
   test('日期与数字格式校验', async () => {
     const f = await makePublished(baseSchema([{ key: 'birth', label: '生日', type: 'date', span: 1 }]));
-    await assert.rejects(() => submissionSvc.insert(f, { name: 'x', birth: '2024-13-99' }, 1), (e) => e.status === 400);
-    const { id } = await submissionSvc.insert(f, { name: 'x', birth: '2024-01-02' }, 1);
+    await assert.rejects(() => submissionSvc.insert(f, { name: 'x', birth: '2024-13-99' }, OWNER), (e) => e.status === 400);
+    const { id } = await submissionSvc.insert(f, { name: 'x', birth: '2024-01-02' }, OWNER);
     const row = await db.prepare(`SELECT birth FROM ${f.tableName} WHERE id = ?`).get(id);
     assert.equal(row.birth, '2024-01-02');
   });
 
   test('allowRepeat=false 仅对登录用户限一次，匿名不限', async () => {
     const f = await makePublished(baseSchema(), { submitConfig: { allowRepeat: false } });
-    await submissionSvc.insert(f, { name: 'a', city: 'bj' }, 1);
-    await assert.rejects(() => submissionSvc.insert(f, { name: 'b', city: 'sh' }, 1), (e) => e.status === 400 && /仅可提交一次/.test(e.message));
+    await submissionSvc.insert(f, { name: 'a', city: 'bj' }, OWNER);
+    await assert.rejects(() => submissionSvc.insert(f, { name: 'b', city: 'sh' }, OWNER), (e) => e.status === 400 && /仅可提交一次/.test(e.message));
     await submissionSvc.insert(f, { name: 'c', city: 'sh' }, null); // 匿名不受限
     await submissionSvc.insert(f, { name: 'd', city: 'bj' }, null);
     const c = await db.prepare(`SELECT COUNT(*) AS c FROM ${f.tableName} WHERE submitted_by IS NULL`).get();
@@ -193,19 +194,19 @@ describe('form-submission.service 提交', () => {
 
   test('allowRepeat=true 登录用户可重复提交', async () => {
     const f = await makePublished(); // 默认 allowRepeat true
-    await submissionSvc.insert(f, { name: 'a', city: 'bj' }, 1);
-    await submissionSvc.insert(f, { name: 'b', city: 'sh' }, 1);
-    const c = await db.prepare(`SELECT COUNT(*) AS c FROM ${f.tableName} WHERE submitted_by = 1`).get();
+    await submissionSvc.insert(f, { name: 'a', city: 'bj' }, OWNER);
+    await submissionSvc.insert(f, { name: 'b', city: 'sh' }, OWNER);
+    const c = await db.prepare(`SELECT COUNT(*) AS c FROM ${f.tableName} WHERE submitted_by = ?`).get(OWNER);
     assert.equal(c.c, 2);
   });
 
   test('draft / closed 表单拒绝提交', async () => {
     const form = await formSvc.createForm({ name: '未发布', ownerId: OWNER });
-    await assert.rejects(() => submissionSvc.insert(form, { name: 'x' }, 1), (e) => e.status === 400);
+    await assert.rejects(() => submissionSvc.insert(form, { name: 'x' }, OWNER), (e) => e.status === 400);
     const f = await makePublished();
     await formSvc.close(f.id, OWNER, { user: {} });
     const closed = await formSvc.getForm(f.id);
-    await assert.rejects(() => submissionSvc.insert(closed, { name: 'x', city: 'bj' }, 1), (e) => e.status === 400 && /已关闭/.test(e.message));
+    await assert.rejects(() => submissionSvc.insert(closed, { name: 'x', city: 'bj' }, OWNER), (e) => e.status === 400 && /已关闭/.test(e.message));
   });
 
   test('插入后 rows 递增、生成连续整数 id', async () => {
@@ -240,7 +241,7 @@ describe('form-submission.service 提交', () => {
 
   test('update 更新单条提交；remove 删除并回减行数', async () => {
     const f = await makePublished();
-    const { id } = await submissionSvc.insert(f, { name: '张', city: 'bj', age: 1 }, 1);
+    const { id } = await submissionSvc.insert(f, { name: '张', city: 'bj', age: 1 }, OWNER);
     await submissionSvc.update(f, id, { name: '李四', age: 12 });
     const row = await db.prepare(`SELECT name, age FROM ${f.tableName} WHERE id = ?`).get(id);
     assert.equal(row.name, '李四');
@@ -255,12 +256,12 @@ describe('form-submission.service 提交', () => {
 
   test('listSubmissions 带邮箱联表；listMySubmissions 仅本人', async () => {
     const f = await makePublished();
-    await submissionSvc.insert(f, { name: '张三', city: 'bj' }, 1);
+    await submissionSvc.insert(f, { name: '张三', city: 'bj' }, OWNER);
     await submissionSvc.insert(f, { name: '匿名', city: 'sh' }, null);
     const all = await formSvc.listSubmissions(f);
     assert.equal(all.length, 2);
     assert.equal(all[0].submitted_by, null); // 最新在前
-    const mine = await formSvc.listMySubmissions(f, 1);
+    const mine = await formSvc.listMySubmissions(f, OWNER);
     assert.equal(mine.length, 1);
     assert.equal(mine[0].name, '张三');
   });

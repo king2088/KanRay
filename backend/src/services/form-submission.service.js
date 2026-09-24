@@ -102,7 +102,7 @@ async function insert(form, values, userId) {
   const cleaned = validateValues(form, values || {});
 
   if (userId) {
-    const own = await db.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE submitted_by = ?`).get(Number(userId));
+    const own = await db.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE submitted_by = ?`).get(String(userId));
     if (!form.submitConfig.allowRepeat && Number((own && own.c) || 0) > 0) {
       throw new HttpError(400, '该表单每人仅可提交一次');
     }
@@ -124,7 +124,7 @@ async function insert(form, values, userId) {
     if (Number(info.changes || 0) === 0) throw new HttpError(409, '提交冲突，请重试');
     await db.prepare('UPDATE forms SET submission_seq = ? WHERE id = ?').run(seq, payload.formId);
     return { id: seq, submittedAt: payload.ts };
-  })({ formId: form.id, keys, cleaned, userId: userId == null ? null : Number(userId), ts, insSql });
+  })({ formId: form.id, keys, cleaned, userId: userId == null ? null : String(userId), ts, insSql });
 
   if (form.datasetId != null) {
     await db.prepare('UPDATE datasets SET row_count = row_count + 1 WHERE id = ?').run(form.datasetId);

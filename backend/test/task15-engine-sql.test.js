@@ -1,7 +1,8 @@
 process.env.DB_PATH = `/tmp/kanban-test-${process.pid}.db`;
 const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, adminId } = require('./helpers/db');
+const { uuidv7 } = require('../src/utils/uuidv7');
 const datasetService = require('../src/services/dataset.service');
 const sqlDataProvider = require('../src/datasources/sql-data-provider');
 
@@ -11,16 +12,17 @@ before(async () => {
 
 test('registerSqlDataset creates dataset with source_type=sql', async () => {
   // Insert a mock data_sources row
-  db.prepare("INSERT INTO data_sources (name, type, config, owner_id) VALUES (?, ?, ?, ?)")
-    .run('Test MySQL', 'mysql', '{"host":"127.0.0.1","port":13306}', 1);
+  const dsId = uuidv7();
+  db.prepare("INSERT INTO data_sources (id, name, type, config, owner_id) VALUES (?, ?, ?, ?, ?)")
+    .run(dsId, 'Test MySQL', 'mysql', '{"host":"127.0.0.1","port":13306}', adminId());
 
   const ds = await datasetService.registerSqlDataset(
-    'Sales Table', 1, 'testdb', 'sales',
+    'Sales Table', dsId, 'testdb', 'sales',
     [{ name: 'id', label: 'ID', type: 'integer' }, { name: 'amount', label: 'Amount', type: 'number' }],
-    1
+    adminId()
   );
   assert.equal(ds.source_type, 'sql');
-  assert.equal(ds.datasource_id, 1);
+  assert.equal(ds.datasource_id, dsId);
   assert.equal(ds.schema_name, 'testdb');
   assert.equal(ds.table_name_ext, 'sales');
   assert.equal(ds.fields.length, 2);
@@ -31,7 +33,7 @@ test('existing aggregate still works for excel datasets', async () => {
   const ds = await datasetService.createDataset('Test Excel', [
     { key: 'name', label: 'Name', type: 'string' },
     { key: 'val', label: 'Value', type: 'number' },
-  ], [{ name: 'A', val: 10 }, { name: 'B', val: 20 }], 1);
+  ], [{ name: 'A', val: 10 }, { name: 'B', val: 20 }], adminId());
 
   const queryEngine = require('../src/engines/query-engine');
   const result = await queryEngine.aggregate({

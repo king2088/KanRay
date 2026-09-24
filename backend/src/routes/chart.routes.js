@@ -9,6 +9,7 @@ const access = require('../services/access.service');
 const rbac = require('../services/rbac.service');
 const queryEngine = require('../engines/query-engine');
 const { parsePageQuery } = require('../utils/pagination');
+const { isValidUuid7 } = require('../utils/uuidv7');
 
 const router = express.Router();
 
@@ -19,12 +20,12 @@ const router = express.Router();
 router.get('/', requireUser, requirePermission('chart', 'read'), async (req, res) => {
   const parseIds = (raw) =>
     String(raw || '').split(',')
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n) && n > 0);
+      .map((s) => s.trim())
+      .filter((s) => isValidUuid7(s));
   const scope = await access.scopedWhere('chart', req.user, rbac);
   const filter = {
     keyword: String(req.query.keyword || ''),
-    datasetId: Number(req.query.datasetId) > 0 ? Number(req.query.datasetId) : undefined,
+    datasetId: isValidUuid7(String(req.query.datasetId || '')) ? String(req.query.datasetId) : undefined,
     ids: parseIds(req.query.ids),
     excludeIds: parseIds(req.query.excludeIds),
     scope: scope ? `c.${scope}` : '',
@@ -41,7 +42,7 @@ router.get('/', requireUser, requirePermission('chart', 'read'), async (req, res
 
 // GET /api/charts/:id
 router.get('/:id', requireUser, requirePermission('chart', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('chart', id, req.user, rbac);
   const chart = await chartService.getChartOrThrow(id);
   // 图表引用的数据集必须同样可访问，防止越权读取外部数据集
@@ -59,7 +60,7 @@ router.post('/', requireUser, requirePermission('chart', 'create'), async (req, 
 
 // PATCH /api/charts/:id
 router.patch('/:id', requireUser, requirePermission('chart', 'update'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('chart', id, req.user, rbac);
   const c = await chartService.validateChartPayload(req.body);
   await access.assertResource('dataset', c.datasetId, req.user, rbac);
@@ -69,7 +70,7 @@ router.patch('/:id', requireUser, requirePermission('chart', 'update'), async (r
 
 // DELETE /api/charts/:id
 router.delete('/:id', requireUser, requirePermission('chart', 'delete'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('chart', id, req.user, rbac);
   await chartService.deleteChart(id);
   ok(res, true, '删除成功');
@@ -81,7 +82,7 @@ const dataSchema = z.object({
 }).strict();
 
 router.post('/:id/data', requireUser, requirePermission('chart', 'read'), async (req, res) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   await access.assertResource('chart', id, req.user, rbac);
   const chart = await chartService.getChartOrThrow(id);
   // 数据出口：图表引用的数据集必须可访问，防止经 /data 越权读取外部数据集

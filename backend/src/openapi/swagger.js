@@ -56,7 +56,7 @@ const options = {
         ChartSummary: {
           type: 'object',
           properties: {
-            id: { type: 'integer' },
+            id: { type: 'string', format: 'uuid' },
             name: { type: 'string' },
             chartType: { type: 'string', example: 'bar' },
             datasetName: { type: 'string' },
@@ -67,7 +67,7 @@ const options = {
         DatasetSummary: {
           type: 'object',
           properties: {
-            id: { type: 'integer' },
+            id: { type: 'string', format: 'uuid' },
             name: { type: 'string' },
             sourceType: { type: 'string', example: 'excel' },
             rowCount: { type: 'integer' },
@@ -78,7 +78,7 @@ const options = {
         DashboardSummary: {
           type: 'object',
           properties: {
-            id: { type: 'integer' },
+            id: { type: 'string', format: 'uuid' },
             name: { type: 'string' },
             createdAt: { type: 'string' },
             updatedAt: { type: 'string' },
@@ -98,7 +98,7 @@ const options = {
             chart: {
               type: 'object',
               properties: {
-                id: { type: 'integer' },
+                id: { type: 'string', format: 'uuid' },
                 name: { type: 'string' },
                 chartType: { type: 'string' },
               },
@@ -166,7 +166,7 @@ const options = {
             dashboard: {
               type: 'object',
               properties: {
-                id: { type: 'integer' },
+                id: { type: 'string', format: 'uuid' },
                 name: { type: 'string' },
                 createdAt: { type: 'string' },
                 updatedAt: { type: 'string' },

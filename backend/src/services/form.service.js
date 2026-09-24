@@ -3,6 +3,7 @@ const { translate } = require('../db/translate');
 const HttpError = require('../utils/http-error');
 const { formSchema, dbFieldsOf } = require('./form-schema');
 const audit = require('./audit.service');
+const { uuidv7 } = require('../utils/uuidv7');
 
 const SUBMIT_DEFAULTS = { successText: '提交成功', allowRepeat: true };
 
@@ -40,8 +41,8 @@ async function getForm(id) {
     schema: parseJson(row.schema_json, { version: 1, fields: [] }),
     submitConfig: { ...SUBMIT_DEFAULTS, ...parseJson(row.submit_config, {}) },
     tableName: row.table_name || null,
-    datasetId: row.dataset_id == null ? null : Number(row.dataset_id),
-    ownerId: Number(row.owner_id),
+    datasetId: row.dataset_id == null ? null : String(row.dataset_id),
+    ownerId: String(row.owner_id),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -56,11 +57,11 @@ async function getFormOrThrow(id) {
 async function createForm({ name, description = '', ownerId }) {
   const safeName = String(name || '').trim().slice(0, 100);
   if (!safeName) throw new HttpError(400, '表单名称不能为空');
+  const formId = uuidv7();
   const info = await db.prepare(
-    'INSERT INTO forms (name, description, schema_json, submit_config, owner_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(safeName, String(description || '').slice(0, 1000), '{"version":1,"fields":[]}', JSON.stringify(SUBMIT_DEFAULTS), Number(ownerId));
-  const id = Number(info.lastInsertRowid);
-  return getForm(id);
+    'INSERT INTO forms (id, name, description, schema_json, submit_config, owner_id) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(formId, safeName, String(description || '').slice(0, 1000), '{"version":1,"fields":[]}', JSON.stringify(SUBMIT_DEFAULTS), ownerId == null ? null : String(ownerId));
+  return getForm(formId);
 }
 
 async function listForms(where = '', params = []) {
@@ -74,8 +75,8 @@ async function listForms(where = '', params = []) {
     description: r.description,
     status: r.status,
     tableName: r.table_name,
-    datasetId: r.dataset_id == null ? null : Number(r.dataset_id),
-    ownerId: Number(r.owner_id),
+    datasetId: r.dataset_id == null ? null : String(r.dataset_id),
+    ownerId: String(r.owner_id),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   }));
@@ -141,7 +142,7 @@ async function updateForm(id, { name, description, schemaJson, submitConfig }) {
     String(description ?? form.description).slice(0, 1000),
     JSON.stringify(next),
     JSON.stringify(submitCfg),
-    Number(id)
+    String(id)
   );
 
   let updated = await getForm(id);
@@ -160,11 +161,11 @@ async function updateForm(id, { name, description, schemaJson, submitConfig }) {
       // 重写字段元数据保持 schema 顺序
       await db.prepare('DELETE FROM dataset_fields WHERE dataset_id = ?').run(form.datasetId);
       const insField = await db.prepare(
-        'INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)'
       );
       await db.transaction(async (fs) => {
         for (const [i, f] of fs.entries()) {
-          await insField.run(form.datasetId, f.name, f.label, f.type, i);
+          await insField.run(uuidv7(), form.datasetId, f.name, f.label, f.type, i);
         }
       })(fields);
       await db.prepare('UPDATE datasets SET column_count = ? WHERE id = ?').run(fields.length, form.datasetId);
@@ -185,7 +186,7 @@ async function publish(id, userId, req) {
   if (form.tableName && form.datasetId) {
     // 幂等：已发布仅改状态
     await db.prepare("UPDATE forms SET status = 'published', updated_at = datetime('now') WHERE id = ?")
-      .run(Number(id));
+      .run(String(id));
     await audit.log({ userId, email: req?.user?.email, action: 'form.publish', resourceType: 'form', resourceId: id }, req);
     return getForm(id);
   }
@@ -193,37 +194,37 @@ async function publish(id, userId, req) {
   const tableName = nextTableName();
   const cols = [
     { name: 'id', type: 'integer', label: 'ID' },
-    { name: 'submitted_by', type: 'integer', label: '提交人' },
+    { name: 'submitted_by', type: 'string', label: '提交人' },
     { name: 'submitted_at', type: 'string', label: '提交时间' },
     ...fields,
   ];
   await db.ensureDatasetTable(tableName, cols, ['id']);
 
-  const datasetId = await db.transaction(async (payload) => {
+  const dsId = uuidv7();
+  await db.transaction(async (payload) => {
     const ins = await db.prepare(
-      'INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, owner_id) VALUES (?, ?, 0, ?, ?, ?, ?)'
-    ).run(payload.name, tableName, payload.fields.length, tableName, 'form', payload.ownerId);
-    const dsId = Number(ins.lastInsertRowid);
+      'INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, source_type, owner_id) VALUES (?, ?, ?, 0, ?, ?, ?, ?)'
+    ).run(payload.dsId, payload.name, tableName, payload.fields.length, tableName, 'form', payload.ownerId);
     const insField = await db.prepare(
-      'INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)'
     );
     for (const [i, f] of payload.fields.entries()) {
-      await insField.run(dsId, f.name, f.label, f.type, i);
+      await insField.run(uuidv7(), payload.dsId, f.name, f.label, f.type, i);
     }
     await db.prepare(
       "UPDATE forms SET status = ?, table_name = ?, dataset_id = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run('published', payload.tableName, dsId, payload.formId);
-    return dsId;
-  })({ name: form.name, fields, tableName, ownerId: form.ownerId, formId: Number(id) });
+    ).run('published', payload.tableName, payload.dsId, payload.formId);
+    return payload.dsId;
+  })({ dsId, name: form.name, fields, tableName, ownerId: form.ownerId, formId: String(id) });
 
-  await audit.log({ userId, email: req?.user?.email, action: 'form.publish', resourceType: 'form', resourceId: id, detail: { tableName, datasetId } }, req);
+  await audit.log({ userId, email: req?.user?.email, action: 'form.publish', resourceType: 'form', resourceId: id, detail: { tableName, datasetId: dsId } }, req);
   return getForm(id);
 }
 
 async function close(id, userId, req) {
   const form = await getFormOrThrow(id);
   await db.prepare("UPDATE forms SET status = 'closed', updated_at = datetime('now') WHERE id = ?")
-    .run(Number(id));
+    .run(String(id));
   await audit.log({ userId, email: req?.user?.email, action: 'form.close', resourceType: 'form', resourceId: id }, req);
   return { ...form, status: 'closed' };
 }
@@ -245,9 +246,9 @@ async function deleteForm(id, userId, req) {
       }
     }
   }
-  if (form.datasetId != null) await db.prepare('DELETE FROM datasets WHERE id = ?').run(form.datasetId);
-  await db.prepare('DELETE FROM form_shares WHERE form_id = ?').run(Number(id));
-  await db.prepare('DELETE FROM forms WHERE id = ?').run(Number(id));
+  if (form.datasetId != null) await db.prepare('DELETE FROM datasets WHERE id = ?').run(String(form.datasetId));
+  await db.prepare('DELETE FROM form_shares WHERE form_id = ?').run(String(id));
+  await db.prepare('DELETE FROM forms WHERE id = ?').run(String(id));
   await audit.log({ userId, email: req?.user?.email, action: 'form.delete', resourceType: 'form', resourceId: id }, req);
   return { deleted: true };
 }
@@ -288,7 +289,7 @@ async function listMySubmissions(form, userId) {
   const q = db.dialect.quoteIdent(form.tableName);
   return db.prepare(
     `SELECT t.* FROM ${q} t WHERE t.submitted_by = ? ORDER BY t.submitted_at DESC, t.id DESC`
-  ).all(Number(userId));
+  ).all(String(userId));
 }
 
 module.exports = {

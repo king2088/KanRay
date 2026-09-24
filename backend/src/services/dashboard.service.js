@@ -1,6 +1,7 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { listCharts, getChartOrThrow } = require('../services/chart.service');
+const { uuidv7 } = require('../utils/uuidv7');
 
 /** 规范化卡片全局样式（越界值舍弃为默认，布尔缺省为打开） */
 function normCardStyle(cs) {
@@ -73,7 +74,7 @@ async function validateLayout(layout) {
     if (!comp || typeof comp !== 'object') throw new HttpError(400, '看板组件格式不正确');
     if (comp.type === 'chart') {
       if (comp.chartId === undefined || comp.chartId === null) throw new HttpError(400, '图表组件缺少 chartId');
-      await getChartOrThrow(Number(comp.chartId));
+      await getChartOrThrow(String(comp.chartId));
     }
   }
   return layout;
@@ -82,10 +83,11 @@ async function validateLayout(layout) {
 async function createDashboard(name, ownerId = null) {
   const n = String(name || '').trim().slice(0, 100);
   if (!n) throw new HttpError(400, '看板名称不能为空');
+  const id = uuidv7();
   const info = await db
-    .prepare("INSERT INTO dashboards (name, layout, card_style, owner_id) VALUES (?, ?, '{}', ?)")
-    .run(n, '[]', ownerId == null ? null : Number(ownerId));
-  return getDashboard(Number(info.lastInsertRowid));
+    .prepare("INSERT INTO dashboards (id, name, layout, card_style, owner_id) VALUES (?, ?, ?, '{}', ?)")
+    .run(id, n, '[]', ownerId == null ? null : String(ownerId));
+  return getDashboard(id);
 }
 
 /** 规范化卡片间距（默认左右/上下各 12px，越界时舍弃） */

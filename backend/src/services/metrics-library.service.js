@@ -1,10 +1,11 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
 const { AGG_FUNCS, DERIVED_KINDS } = require('../engines/metrics');
+const { uuidv7, isValidUuid7 } = require('../utils/uuidv7');
 
-// 指标库公式引用写法：$<数字指标ID>（区别于图表内联公式的 $m<key>）
+// 指标库公式引用写法：$<指标ID(uuid7)>（区别于图表内联公式的 $m<key>）
 const FORMULA_REMAINDER = /^[0-9+\-*/().%\s]*$/;
-const LIB_EXPR_TOKEN = /\$([0-9]+)/g;
+const LIB_EXPR_TOKEN = /\$([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/g;
 
 function parseRow(row) {
   let definition = {};
@@ -78,7 +79,7 @@ async function assertMetricDefinition(datasetId, kind, definition) {
     assertFormulaSyntax(d.expr);
     const refs = new Set();
     String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, id) => {
-      refs.add(Number(id));
+      refs.add(String(id));
       return all;
     });
     for (const id of refs) {
@@ -93,8 +94,8 @@ async function assertMetricDefinition(datasetId, kind, definition) {
     if (!DERIVED_KINDS.includes(d.derivative)) {
       throw new HttpError(400, `不支持的衍生类型: ${d.derivative}（支持 ${DERIVED_KINDS.join('/')}）`);
     }
-    const refId = Number(d.refId);
-    if (!Number.isInteger(refId)) throw new HttpError(400, '衍生指标缺少 refId');
+    const refId = String(d.refId || '');
+    if (!isValidUuid7(refId)) throw new HttpError(400, '衍生指标缺少 refId');
     const rec = await getMetricRecord(datasetId, refId);
     if (rec.kind === 'derived') {
       throw new HttpError(400, `衍生指标不能引用另一个衍生指标（id=${refId}）`);
@@ -112,10 +113,11 @@ async function createMetric(datasetId, { name, kind, definition }, ownerId) {
   }
   await assertMetricDefinition(datasetId, kind, definition);
   const defJson = JSON.stringify(definition || {});
+  const metricId = uuidv7();
   const result = await db
-    .prepare('INSERT INTO metrics (dataset_id, name, kind, definition, owner_id) VALUES (?, ?, ?, ?, ?)')
-    .run(datasetId, n, kind, defJson, ownerId || null);
-  return getMetricRecord(datasetId, result.lastInsertRowid);
+    .prepare('INSERT INTO metrics (id, dataset_id, name, kind, definition, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(metricId, datasetId, n, kind, defJson, ownerId || null);
+  return getMetricRecord(datasetId, metricId);
 }
 
 async function updateMetric(datasetId, id, { name, definition } = {}) {
@@ -145,15 +147,15 @@ function referencesIn(definitionRaw) {
   }
   if (!d || typeof d !== 'object' || Array.isArray(d)) return refs;
   if (typeof d.refId !== 'undefined' && d.refId !== null) {
-    refs.add(Number(d.refId));
+    refs.add(String(d.refId));
   }
   if (typeof d.expr === 'string') {
     String(d.expr).replace(LIB_EXPR_TOKEN, (all, id) => {
-      refs.add(Number(id));
+      refs.add(String(id));
       return all;
     });
   }
-  refs.delete(NaN);
+  refs.delete('NaN');
   return refs;
 }
 
@@ -172,7 +174,7 @@ async function assertNoReferences(datasetId, rec) {
   for (const ch of charts) {
     let cfg;
     try { cfg = JSON.parse(ch.config || '{}'); } catch (e) { continue; }
-    const refs = (cfg.metrics || []).filter((m) => m && m.type === 'saved' && Number(m.metricId) === rec.id);
+    const refs = (cfg.metrics || []).filter((m) => m && m.type === 'saved' && String(m.metricId) === String(rec.id));
     if (refs.length) {
       throw new HttpError(400, `无法删除："${rec.name}" 被图表 "${ch.name}" 引用`);
     }
@@ -187,13 +189,13 @@ async function deleteMetric(datasetId, id) {
 }
 
 async function emitRef(out, resolved, visiting, datasetId, id) {
-  const numeric = Number(id);
-  if (resolved.has(numeric)) return resolved.get(numeric);
-  if (visiting.has(numeric)) {
-    throw new HttpError(400, `指标库存在循环引用（id=${numeric}）`);
+  const rid = String(id);
+  if (resolved.has(rid)) return resolved.get(rid);
+  if (visiting.has(rid)) {
+    throw new HttpError(400, `指标库存在循环引用（id=${rid}）`);
   }
-  visiting.add(numeric);
-  const rec = await getMetricRecord(datasetId, numeric);
+  visiting.add(rid);
+  const rec = await getMetricRecord(datasetId, rid);
   const d = rec.definition || {};
   let def;
   if (rec.kind === 'base') {
@@ -201,14 +203,14 @@ async function emitRef(out, resolved, visiting, datasetId, id) {
   } else if (rec.kind === 'expr') {
     const tokens = [];
     String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, t) => {
-      tokens.push(Number(t));
+      tokens.push(String(t));
       return all;
     });
     const keyByRef = new Map();
     for (const t of tokens) {
       if (!keyByRef.has(t)) keyByRef.set(t, await emitRef(out, resolved, visiting, datasetId, t));
     }
-    def = { type: 'expr', expr: String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, t) => `$${keyByRef.get(Number(t))}`), label: rec.name };
+    def = { type: 'expr', expr: String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, t) => `$${keyByRef.get(String(t))}`), label: rec.name };
   } else if (rec.kind === 'derived') {
     const refKey = await emitRef(out, resolved, visiting, datasetId, d.refId);
     def = { type: 'derived', kind: d.derivative, ref: refKey, label: rec.name };
@@ -217,8 +219,8 @@ async function emitRef(out, resolved, visiting, datasetId, id) {
   }
   def.key = `m${out.length}`;
   out.push(def);
-  resolved.set(numeric, def.key);
-  visiting.delete(numeric);
+  resolved.set(rid, def.key);
+  visiting.delete(rid);
   return def.key;
 }
 
@@ -244,8 +246,8 @@ async function expandSavedMetrics(datasetId, metrics) {
 
   for (const m of metrics) {
     if (m && m.type === 'saved') {
-      const id = Number(m.metricId);
-      if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, '已存指标缺少有效 metricId');
+      const id = String(m.metricId || '');
+      if (!isValidUuid7(id)) throw new HttpError(400, '已存指标缺少有效 metricId');
       const rootKey = await emitRef(out, resolved, visiting, datasetId, id);
       savedKeys[id] = rootKey;
       if (m.key) finalKeyByFrontKey.set(m.key, rootKey);

@@ -18,7 +18,7 @@
       </div>
 
       <el-table :data="rows" stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="name" label="名称" min-width="160" />
         <el-table-column label="前缀" width="150">
           <template #default="{ row }"><code class="mono">{{ row.keyPrefix }}...</code></template>

@@ -3,16 +3,15 @@ process.env.DB_PATH = `/tmp/kanban-test-keys-${process.pid}.db`;
 const test = require('node:test');
 const assert = require('node:assert');
 const store = require('../src/db');
-const { seed: runSeed } = require('../src/seeds');
+const { resetDb, adminId } = require('./helpers/db');
+const authService = require('../src/services/auth.service');
 const apiKeyService = require('../src/services/api-key.service');
 
+let user2; // 普通用户 2 的 uuid
+
 async function reset() {
-  await store.exec(`
-    DELETE FROM api_keys; DELETE FROM dashboard_shares; DELETE FROM user_roles; DELETE FROM role_permissions;
-    DELETE FROM refresh_tokens; DELETE FROM audit_logs; DELETE FROM users; DELETE FROM roles; DELETE FROM permissions;
-    DELETE FROM datasets; DELETE FROM charts; DELETE FROM dashboards; DELETE FROM data_sources;
-  `);
-  await runSeed();
+  await resetDb();
+  user2 = (await authService.register({ email: 'k-u2@x.com', password: 'Password123!', name: 'K-U2' })).id;
   return store;
 }
 
@@ -36,10 +35,11 @@ test('哈希：sha256 hex 且可复现', () => {
 
 test('create：库内仅存 hash，返回明文一次 + 门面字段', async () => {
   await reset();
-  const r = await apiKeyService.create({ name: '客户A大屏', type: 'static', userId: 1, scopes: ['chart:read', 'dataset:read'], createdBy: 1 });
+  const uid = adminId();
+  const r = await apiKeyService.create({ name: '客户A大屏', type: 'static', userId: uid, scopes: ['chart:read', 'dataset:read'], createdBy: uid });
   assert.match(r.plaintext, /^kan_live_/);
   assert.equal(r.key.name, '客户A大屏');
-  assert.equal(r.key.userId, 1);
+  assert.equal(r.key.userId, uid);
   assert.deepEqual(r.key.scopes, ['chart:read', 'dataset:read']);
   assert.equal(r.key.status, 'active');
   assert.equal(r.key.keyHash, undefined, '不应回传 hash');
@@ -51,7 +51,7 @@ test('create：库内仅存 hash，返回明文一次 + 门面字段', async () 
 
 test('getByHash 精确命中', async () => {
   await reset();
-  const r = await apiKeyService.create({ name: 'x', type: 'pat', userId: 2, createdBy: 2 });
+  const r = await apiKeyService.create({ name: 'x', type: 'pat', userId: user2, createdBy: user2 });
   const hit = await apiKeyService.getByHash(apiKeyService.hashKey(r.plaintext));
   assert.ok(hit && hit.id === r.key.id);
   assert.equal(await apiKeyService.getByHash(apiKeyService.hashKey('nope')), null);
@@ -59,8 +59,8 @@ test('getByHash 精确命中', async () => {
 
 test('rotate：新明文可用、旧 hash 失效、返回值剥离 hash', async () => {
   await reset();
-  const r = await apiKeyService.create({ name: 'x', type: 'pat', userId: 2, createdBy: 2 });
-  const rotated = await apiKeyService.rotate(r.key.id, { userId: 2 });
+  const r = await apiKeyService.create({ name: 'x', type: 'pat', userId: user2, createdBy: user2 });
+  const rotated = await apiKeyService.rotate(r.key.id, { userId: user2 });
   assert.match(rotated.plaintext, /^kan_pat_/);
   assert.notEqual(rotated.plaintext, r.plaintext);
   assert.equal(await apiKeyService.getByHash(apiKeyService.hashKey(r.plaintext)), null, '旧明文应失效');
@@ -69,7 +69,8 @@ test('rotate：新明文可用、旧 hash 失效、返回值剥离 hash', async 
 
 test('setStatus / updateMeta 启停与 scope 校验', async () => {
   await reset();
-  const r = await apiKeyService.create({ name: 'x', type: 'static', userId: 1, scopes: ['chart:read'], createdBy: 1 });
+  const uid = adminId();
+  const r = await apiKeyService.create({ name: 'x', type: 'static', userId: uid, scopes: ['chart:read'], createdBy: uid });
   await apiKeyService.setStatus(r.key.id, 'revoked');
   assert.equal((await apiKeyService.getOrThrow(r.key.id)).status, 'revoked');
   const upd = await apiKeyService.updateMeta(r.key.id, { isActive: true, scopes: ['dashboard:read'] });
@@ -80,7 +81,7 @@ test('setStatus / updateMeta 启停与 scope 校验', async () => {
 
 test('PAT 不接受自定义 scopes（强制继承）', async () => {
   await reset();
-  const r = await apiKeyService.create({ name: 'p', type: 'pat', userId: 2, scopes: ['dataset:read'], createdBy: 2 });
+  const r = await apiKeyService.create({ name: 'p', type: 'pat', userId: user2, scopes: ['dataset:read'], createdBy: user2 });
   assert.deepEqual(r.key.scopes, [], 'PAT scopes 应为空=继承本人');
 });
 

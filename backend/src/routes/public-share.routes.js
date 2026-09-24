@@ -68,7 +68,7 @@ const dataSchema = z.object({ filters: z.array(z.any()).optional().default([]) }
 router.post('/:token/charts/:chartId/data', requireShareJwt, async (req, res) => {
   const parsed = dataSchema.safeParse(req.body || {});
   if (!parsed.success) throw new HttpError(400, '参数不正确');
-  const data = await shareService.getChartData(req.share, Number(req.params.chartId));
+  const data = await shareService.getChartData(req.share, req.params.chartId);
   ok(res, { data });
 });
 

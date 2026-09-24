@@ -1,7 +1,7 @@
 process.env.DB_PATH = `/tmp/kanban-test-pub-${process.pid}.db`;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, resetDb } = require('./helpers/db');
+const { db, resetDb, adminId, uuidv7 } = require('./helpers/db');
 const chartService = require('../src/services/chart.service');
 const dashboardService = require('../src/services/dashboard.service');
 const shareService = require('../src/services/share.service');
@@ -15,21 +15,21 @@ test('启动临时服务并准备一个带分享的看板', async () => {
 
   await db.prepare('CREATE TABLE di_share_pub (category TEXT, sales REAL)').run();
   await db.prepare('INSERT INTO di_share_pub (category, sales) VALUES (?, ?), (?, ?)').run('A', 10, 'B', 20);
-  const ds = await db.prepare('INSERT INTO datasets (name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?)').run('公开展示', 'x', 2, 2, 'di_share_pub', 1);
-  const dsId = Number(ds.lastInsertRowid);
-  await db.prepare('INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)').run(dsId, 'category', '类别', 'string', 0);
-  await db.prepare('INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)').run(dsId, 'sales', '销售额', 'number', 1);
+  const dsId = uuidv7();
+  await db.prepare('INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)').run(dsId, '公开展示', 'x', 2, 2, 'di_share_pub', adminId());
+  await db.prepare('INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)').run(uuidv7(), dsId, 'category', '类别', 'string', 0);
+  await db.prepare('INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)').run(uuidv7(), dsId, 'sales', '销售额', 'number', 1);
   const chart = await chartService.createChart({
     name: '柱状图', chartType: 'bar', datasetId: dsId,
     config: { dimensions: [{ field: 'category', label: '类别' }], metrics: [{ field: 'sales', agg: 'sum', label: '销售额' }], options: {} },
-  }, 1);
+  }, adminId());
   chartId = chart.id;
-  const dash = await dashboardService.createDashboard('公开看板', 1);
+  const dash = await dashboardService.createDashboard('公开看板', adminId());
   dashId = dash.id;
   await dashboardService.updateDashboard(dash.id, {
     layout: [{ id: 'c1', type: 'chart', chartId: chart.id, w: 6, h: 2, hPx: 300, col: 1, top: 0 }],
   });
-  const s = await shareService.createShare({ dashboardId: dash.id, password: 'pass1234', expiresAt: null, userId: 1 });
+  const s = await shareService.createShare({ dashboardId: dash.id, password: 'pass1234', expiresAt: null, userId: adminId() });
   token = s.token;
 });
 
@@ -88,14 +88,14 @@ test('chart data 正常返回且越权 404', async () => {
 });
 
 test('share JWT 与 token 不匹配被拒', async () => {
-  const other = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: 1 });
+  const other = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: adminId() });
   const r1 = await api(`/api/public/shares/${other.token}/dashboard`, { method: 'GET', auth: global.__shareJwt });
   assert.equal(r1.status, 401);
   await shareService.deleteShare(other.id);
 });
 
 test('过期分享 verify 失败 40301', async () => {
-  const s = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: 1 });
+  const s = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: adminId() });
   await db.prepare("UPDATE dashboard_shares SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?").run(s.id);
   const r = await api(`/api/public/shares/${s.token}/verify`, { body: { password: 'pass1234' } });
   assert.equal(r.status, 403);
@@ -104,7 +104,7 @@ test('过期分享 verify 失败 40301', async () => {
 });
 
 test('停用分享 verify 失败 40302', async () => {
-  const s = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: 1 });
+  const s = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: adminId() });
   await db.prepare('UPDATE dashboard_shares SET is_active = 0 WHERE id = ?').run(s.id);
   const r = await api(`/api/public/shares/${s.token}/verify`, { body: { password: 'pass1234' } });
   assert.equal(r.status, 403);
@@ -113,7 +113,7 @@ test('停用分享 verify 失败 40302', async () => {
 });
 
 test('verify 频繁尝试被限流 429', async () => {
-  const s = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: 1 });
+  const s = await shareService.createShare({ dashboardId: dashId, password: 'pass1234', expiresAt: null, userId: adminId() });
   let last = 0;
   for (let i = 0; i < 12; i += 1) {
     const r = await api(`/api/public/shares/${s.token}/verify`, { body: { password: 'nope' } });
@@ -124,7 +124,7 @@ test('verify 频繁尝试被限流 429', async () => {
 });
 
 test('无密码分享：meta 标记免密，verify 无需密码直接签发', async () => {
-  const s = await shareService.createShare({ dashboardId: dashId, password: null, expiresAt: null, userId: 1 });
+  const s = await shareService.createShare({ dashboardId: dashId, password: null, expiresAt: null, userId: adminId() });
   const m = await api(`/api/public/shares/${s.token}/meta`, { method: 'GET' });
   assert.equal(m.status, 200);
   assert.equal(m.json.data.found, true);

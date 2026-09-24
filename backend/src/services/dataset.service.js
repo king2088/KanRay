@@ -3,6 +3,7 @@ const schema = require('../db/schema');
 const config = require('../config');
 const HttpError = require('../utils/http-error');
 const { parseExcelFile } = require('../services/excel.service');
+const { uuidv7, isValidUuid7 } = require('../utils/uuidv7');
 
 /** 把值转换为可安全入库的 SQLite 值 */
 function convertValue(value, type) {
@@ -88,17 +89,17 @@ async function createDataset(name, header, rows, ownerId = null) {
   })(rows);
 
   // 记录数据集
+  const datasetId = uuidv7();
   const info = await db
-    .prepare('INSERT INTO datasets (name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(name, name, rows.length, fields.length, tableName, ownerId == null ? null : Number(ownerId));
-  const datasetId = info.lastInsertRowid;
+    .prepare('INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(datasetId, name, name, rows.length, fields.length, tableName, ownerId == null ? null : String(ownerId));
 
   // 字段元数据
   const insField = await db.prepare(
-    'INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)'
   );
   await db.transaction(async (fs) => {
-    for (const f of fs) await insField.run(datasetId, f.key, f.label, f.type, f.position);
+    for (const f of fs) await insField.run(uuidv7(), datasetId, f.key, f.label, f.type, f.position);
   })(fields);
 
   return getDataset(datasetId);
@@ -232,11 +233,11 @@ function deriveRegistryFields(definition) {
  */
 async function insertDatasetFields(datasetId, fields) {
   const insField = await db.prepare(
-    'INSERT INTO dataset_fields (dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO dataset_fields (id, dataset_id, name, label, type, position) VALUES (?, ?, ?, ?, ?, ?)'
   );
   await db.transaction(async (fs) => {
     for (const [i, f] of fs.entries()) {
-      await insField.run(datasetId, f.name, f.label || f.name, f.type || 'string', i);
+      await insField.run(uuidv7(), datasetId, f.name, f.label || f.name, f.type || 'string', i);
     }
   })(Array.isArray(fields) ? fields : []);
 }
@@ -251,12 +252,12 @@ async function registerSqlDataset(name, datasourceId, schemaName, tableName, fie
     aggregation: null,
   };
   const ins = await db.prepare(
-    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, build_definition, owner_id)
-     VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?, ?)`
+    `INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, build_definition, owner_id)
+     VALUES (?, ?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?, ?)`
   );
+  const datasetId = uuidv7();
   const defJson = JSON.stringify(def);
-  const info = await ins.run(safeName, safeName, fields.length, tableName, datasourceId, schemaName, tableName, defJson, ownerId == null ? null : Number(ownerId));
-  const datasetId = Number(info.lastInsertRowid);
+  const info = await ins.run(datasetId, safeName, safeName, fields.length, tableName, datasourceId, schemaName, tableName, defJson, ownerId == null ? null : String(ownerId));
 
   await insertDatasetFields(datasetId, fields);
 
@@ -275,7 +276,7 @@ async function saveBuiltDataset({ name, definition, datasourceId, datasetId, own
     if (!exist) throw new HttpError(404, `数据集不存在: id=${datasetId}`);
     if (exist.source_type !== 'sql') throw new HttpError(400, '仅 SQL 数据集可编辑');
     if (exist.datasource_id !== datasourceId) throw new HttpError(400, '数据集不属于该数据源');
-    if (!admin && ownerId && Number(exist.owner_id) !== Number(ownerId)) throw new HttpError(403, '无权限修改该数据集');
+    if (!admin && ownerId && String(exist.owner_id) !== String(ownerId)) throw new HttpError(403, '无权限修改该数据集');
     const defJson = JSON.stringify(definition);
     if (defJson.length > 1_000_000) throw new HttpError(400, '构建定义过大');
     const safeName = String(name || exist.name || '未命名数据集').trim().slice(0, 100);
@@ -303,12 +304,14 @@ async function saveBuiltDataset({ name, definition, datasourceId, datasetId, own
   const defJson = JSON.stringify(definition);
   if (defJson.length > 1_000_000) throw new HttpError(400, '构建定义过大');
   const firstTable = (definition.tables && definition.tables[0]) || null;
+  const datasetId2 = uuidv7();
   const ins = await db.prepare(
-    `INSERT INTO datasets (name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, build_definition, owner_id)
-     VALUES (?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?, ?)`
+    `INSERT INTO datasets (id, name, original_file, row_count, column_count, table_name, source_type, datasource_id, schema_name, table_name_ext, build_definition, owner_id)
+     VALUES (?, ?, ?, 0, ?, ?, 'sql', ?, ?, ?, ?, ?)`
   );
-  const datasetId2 = await db.transaction(async () => {
+  const newId = await db.transaction(async () => {
     const info = await ins.run(
+      datasetId2,
       safeName, safeName,
       (definition.fields || []).length,
       (firstTable ? firstTable.table : safeName),
@@ -316,13 +319,12 @@ async function saveBuiltDataset({ name, definition, datasourceId, datasetId, own
       (firstTable ? firstTable.schema : null),
       (firstTable ? firstTable.table : null),
       defJson,
-      ownerId == null ? null : Number(ownerId)
+      ownerId == null ? null : String(ownerId)
     );
-    const id = Number(info.lastInsertRowid);
-    await insertDatasetFields(id, deriveRegistryFields(definition));
-    return id;
+    await insertDatasetFields(datasetId2, deriveRegistryFields(definition));
+    return datasetId2;
   })();
-  return getDataset(datasetId2);
+  return getDataset(newId);
 }
 
 /**
@@ -334,7 +336,7 @@ async function saveBuiltDataset({ name, definition, datasourceId, datasetId, own
  */
 async function refreshRowCounts(ids, scope = '') {
   const out = {};
-  const unique = [...new Set((ids || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  const unique = [...new Set((ids || []).map((v) => String(v)).filter((v) => isValidUuid7(v)))];
   if (!unique.length) return out;
   const placeholders = unique.map(() => '?').join(',');
   const upd = db.prepare('UPDATE datasets SET row_count = ? WHERE id = ?');

@@ -108,7 +108,7 @@ import DashboardStylePanel from '@/components/dashboard/DashboardStylePanel.vue'
 
 const route = useRoute()
 const router = useRouter()
-const dashId = Number(route.params.id)
+const dashId = String(route.params.id)
 const canvasRef = ref(null)
 
 const dashName = ref('')
