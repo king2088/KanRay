@@ -2,12 +2,14 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { pinia } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
+import { topLoading } from '@/utils/top-loading'
 
 const http = axios.create({ baseURL: '/api', timeout: 60000 })
 
 http.interceptors.request.use((config) => {
   const store = useAuthStore(pinia)
   if (store.accessToken) config.headers.Authorization = `Bearer ${store.accessToken}`
+  topLoading.start()
   return config
 })
 
@@ -35,6 +37,7 @@ function forceLogout() {
 
 http.interceptors.response.use(
   (res) => {
+    topLoading.done()
     const body = res.data
     if (body && body.code === 0) return body.data
     const msg = body?.message || '请求失败'
@@ -42,6 +45,7 @@ http.interceptors.response.use(
     return Promise.reject(new Error(msg))
   },
   async (err) => {
+    topLoading.done()
     const { response, config } = err
     if (!response) {
       if (!config?.silent) ElMessage.error(err?.message || '网络错误')
