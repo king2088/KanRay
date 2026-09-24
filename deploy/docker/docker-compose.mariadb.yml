@@ -1,3 +1,4 @@
+name: kanray
 # MariaDB 11 生产栈（docker-compose.mariadb.yml）
 # 默认使用 PG（docker-compose.yml）；本文件供选择 MariaDB 作为元数据库时使用。
 # 含 Redis（共享缓存/锁）与独立 worker（SYNC_MODE=worker）。

@@ -1,5 +1,5 @@
 // 水电站行业看板 demo（单一 MySQL 数据源）——幂等重灌，非破坏性
-// 用法: node backend/scripts/seed-hydro-demo.mjs [--base http://127.0.0.1:3001]
+// 用法: node backend/scripts/seed-hydro-demo.mjs [--base http://127.0.0.1:3001] [--ds-host host.docker.internal]（等号或空格形式均可）
 // 1. mysql2 直连 13306/testdb: DROP+CREATE demo_hydro，灌 12 电站 x 365 天 = 4380 行确定性数据（14 字段）
 // 2. HTTP 清理「水电站」域（仅水电站数据/图表/看板，不影响电商/异构看板）
 // 3. 重建: 复用/新建 Live MySQL 数据源 -> 14 字段 builder 数据集 -> 16 图表 -> 1 看板
@@ -7,9 +7,18 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
-const BASE = process.argv.find((a) => a.startsWith('--base='))?.split('=')[1] || 'http://127.0.0.1:3001';
+function argVal(flag) {
+  const eq = process.argv.find((a) => a.startsWith(`${flag}=`));
+  if (eq !== undefined) return eq.split('=').slice(1).join('=');
+  const i = process.argv.indexOf(flag);
+  return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : undefined;
+}
+const BASE = argVal('--base') || 'http://127.0.0.1:3001';
+// Docker compose 部署时后端容器访问宿主 MySQL 需用 host.docker.internal（本地直接运行保留 127.0.0.1）
+const DS_HOST = argVal('--ds-host') || process.env.DS_HOST || '127.0.0.1';
 const ADMIN = { email: 'admin@kanray.local', password: 'admin123' };
 const MYSQL = { host: '127.0.0.1', port: 13306, user: 'root', password: 'Kanban@123', database: 'testdb' };
+const MYSQL_APP = { host: DS_HOST, port: 13306, database: 'testdb', user: 'root', password: 'Kanban@123' };
 const HYDRO_KEYWORDS = ['水电站', '流域发电', '省份装机']; // 用于识别水电站域资源名
 
 const mulberry32 = (seed) => () => {
@@ -218,8 +227,7 @@ async function main() {
   if (!ds) {
     ds = (await api('/api/datasources', {
       method: 'POST', token,
-      body: { name: 'Live MySQL', type: 'mysql', mode: 'direct',
-        config: { host: '127.0.0.1', port: 13306, database: 'testdb', user: 'root', password: 'Kanban@123' } },
+      body: { name: 'Live MySQL', type: 'mysql', mode: 'direct', config: MYSQL_APP },
     })).data;
   }
   ok('数据源 Live MySQL(81)', !!ds?.id, JSON.stringify(ds));

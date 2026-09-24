@@ -1,3 +1,4 @@
+name: kanray
 # SQLite 演示 / 轻量单机栈（docker-compose.sqlite.yml）
 # 特点：无需外部数据库、无 Redis、同步在 API 进程内执行（SYNC_MODE=inline）；
 # 适用于本地演示、验收、单机小规模试用，不适合多副本（SQLite 单文件单写者）。

@@ -1,10 +1,16 @@
 // 表单演示数据 seed —— 幂等重灌，非破坏性
-// 用法: node backend/scripts/seed-form-demo.mjs [--base http://127.0.0.1:3001]
+// 用法: node backend/scripts/seed-form-demo.mjs [--base http://127.0.0.1:3001]  （等号或空格形式均可）
 // 1. 清掉旧「员工满意度调查」表单（级联删 ds_* 数据表 + dataset）
 // 2. 建表单 -> 4 字段(name/dept/score/suggestion) -> 发布(建表+注册数据集)
 // 3. 确定性灌 36 条提交（内部分发，提交人在 admin）
 // 4. 刷新数据集行数 -> 打印数据集列表校验 row_count/count 支持图表聚合
-const BASE = process.argv.find((a) => a.startsWith('--base='))?.split('=')[1] || 'http://127.0.0.1:3001';
+function argVal(flag) {
+  const eq = process.argv.find((a) => a.startsWith(`${flag}=`));
+  if (eq !== undefined) return eq.split('=').slice(1).join('=');
+  const i = process.argv.indexOf(flag);
+  return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : undefined;
+}
+const BASE = argVal('--base') || 'http://127.0.0.1:3001';
 const ADMIN = { email: 'admin@kanray.local', password: 'admin123' };
 const FORM_NAME = '员工满意度调查';
 
