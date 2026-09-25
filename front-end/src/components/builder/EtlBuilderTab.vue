@@ -296,7 +296,7 @@
 
         <div class="drawer-section-title" style="margin-top:12px">节点预览</div>
         <div v-if="nodePreview.length" ref="previewWrapRef" class="drawer-preview-table">
-          <TableV2 :columns="previewCols" :data="nodePreview" :width="previewWidth" :height="320" :row-height="36" />
+          <TableV2 :columns="previewCols" :data="nodePreview" :width="previewWidth" :height="320" :row-height="36" :row-class="previewRowClass" />
         </div>
         <el-empty v-else :description="activeNode ? '点击「预览此节点」查看真实数据' : ''" :image-size="60" />
       </template>
@@ -348,6 +348,9 @@ const drawerVisible = ref(false)
 const previewWrapRef = ref(null)
 const previewWidth = ref(460)
 const previewCols = computed(() => nodePreviewCols.value.map((c) => ({ key: c, title: c, dataKey: c, width: 150 })))
+function previewRowClass({ rowIndex }) {
+  return rowIndex % 2 === 1 ? 'drawer-preview-zebra' : ''
+}
 watch(nodePreview, async () => { await nextTick(); measurePreviewWidth() })
 function measurePreviewWidth() {
   if (previewWrapRef.value) {
@@ -994,6 +997,9 @@ onUnmounted(() => {
 .drawer-table :deep(.el-input__wrapper), .drawer-table :deep(.el-select) { width: 100%; }
 .drawer-join-op { color: var(--app-text-secondary); }
 .drawer-metric-seq { color: var(--app-text-secondary); font-family: Consolas, 'Courier New', monospace; }
-.drawer-preview-table { width: 100%; }
+.drawer-preview-table { width: 100%; border: 1px solid var(--el-border-color); border-radius: 6px; overflow: hidden; background: var(--el-bg-color); }
+.drawer-preview-table :deep(.el-table-v2) { --el-table-header-bg-color: var(--el-fill-color-light); }
 .drawer-preview-table :deep(.el-table-v2__header-row-cell), .drawer-preview-table :deep(.el-table-v2__row-cell) { padding: 0 8px; }
+.drawer-preview-table :deep(.el-table-v2__row.drawer-preview-zebra) { background-color: var(--el-fill-color-light); }
+.drawer-preview-table :deep(.el-table-v2__row:hover) { background-color: var(--el-fill-color); }
 </style>
