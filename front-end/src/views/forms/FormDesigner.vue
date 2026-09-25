@@ -249,10 +249,7 @@ const saveable = computed(() => !publishing.value)
 function fieldKeyLocked(field) {
   return form.tableName && field.__uid.startsWith('s')
 }
-function activeField() {
-  return fields.value.find((f) => f.__uid === selected.value)
-}
-const activeFieldProxy = computed(() => fields.value.find((f) => f.__uid === selected.value))
+const activeField = computed(() => fields.value.find((f) => f.__uid === selected.value))
 
 let newFieldKeys = new Set()
 function keyFor(label, field) {
@@ -337,7 +334,7 @@ async function removeField(field) {
 }
 
 function onTypeChange(type) {
-  const f = activeFieldProxy.value
+  const f = activeField.value
   if (!f) return
   const needsOptions = 'select:radio:checkbox'.includes(type)
   const hasOptions = Array.isArray(f.options) && f.options.length
