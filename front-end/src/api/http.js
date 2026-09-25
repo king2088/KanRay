@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { pinia } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import { topLoading } from '@/utils/top-loading'
+import { attachMethods } from './reqMethods'
 
 const http = axios.create({ baseURL: '/api', timeout: 60000 })
 
@@ -123,8 +124,6 @@ async function request(config) {
 const proxied = (config) => request(config)
 proxied.defaults = http.defaults
 proxied.interceptors = http.interceptors
-for (const m of ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']) {
-  proxied[m] = (url, config) => request({ ...config, url, method: m })
-}
+attachMethods(proxied, (config) => request(config))
 
 export default proxied
