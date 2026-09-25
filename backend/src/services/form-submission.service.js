@@ -115,17 +115,14 @@ async function insert(form, values, userId) {
   const insSql = `INSERT INTO ${table} (${allCols.map((c) => db.dialect.quoteIdent(c)).join(', ')}) VALUES (${placeholders})`;
 
   const ts = nowText();
-  // 用 UPDATE ... SET submission_seq = submission_seq + 1 原子自增（行锁串行化并发），
-  // 再读回该值作为行 id：杜绝先 SELECT 后 UPDATE 的读改写竞态导致的重复 id。
   const rowId = await db.transaction(async (payload) => {
-    const upd = await db.prepare('UPDATE forms SET submission_seq = submission_seq + 1 WHERE id = ?').run(payload.formId);
-    if (Number(upd.changes || 0) === 0) throw new HttpError(404, '表单不存在或已删除');
     const cur = await db.prepare('SELECT submission_seq AS seq FROM forms WHERE id = ?').get(payload.formId);
-    const seq = Number((cur && cur.seq) || 1);
+    const seq = Number((cur && cur.seq) || 0) + 1;
     const ins = await db.prepare(payload.insSql);
     const vals = payload.keys.map((k) => payload.cleaned[k]);
     const info = await ins.run(seq, payload.userId, payload.ts, ...vals);
     if (Number(info.changes || 0) === 0) throw new HttpError(409, '提交冲突，请重试');
+    await db.prepare('UPDATE forms SET submission_seq = ? WHERE id = ?').run(seq, payload.formId);
     return { id: seq, submittedAt: payload.ts };
   })({ formId: form.id, keys, cleaned, userId: userId == null ? null : String(userId), ts, insSql });
 
@@ -164,7 +161,7 @@ async function remove(form, submissionId) {
   const info = await db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(Number(submissionId));
   if (Number(info.changes || 0) === 0) throw new HttpError(404, `提交记录不存在: id=${submissionId}`);
   if (form.datasetId != null) {
-    await db.prepare('UPDATE datasets SET row_count = CASE WHEN row_count > 0 THEN row_count - 1 ELSE 0 END WHERE id = ?').run(form.datasetId);
+    await db.prepare('UPDATE datasets SET row_count = MAX(0, row_count - 1) WHERE id = ?').run(form.datasetId);
   }
   return { deleted: true };
 }

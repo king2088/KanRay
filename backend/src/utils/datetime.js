@@ -40,16 +40,4 @@ function normalizeRowsDates(rows) {
   return rows.map(normalizeRowDates);
 }
 
-
-// 解析应用统一时间 'YYYY-MM-DD HH:MM:SS'（无时区标记）为 UTC Date。
-// 驱动均以字符串返回该格式（translate 前），此处补上时区标记转成可比较的时间戳。
-function parseNaiveUtc(ts) {
-  if (!ts) return null;
-  const s = String(ts).trim();
-  if (!s) return null;
-  const m = s.match(DATETIME_RE);
-  if (!m) return null;
-  return new Date(`${m[1]}T${m[2]}Z`);
-}
-
-module.exports = { toNaiveDateTime, normalizeRowDates, normalizeRowsDates, parseNaiveUtc };
+module.exports = { toNaiveDateTime, normalizeRowDates, normalizeRowsDates };

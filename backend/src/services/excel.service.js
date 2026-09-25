@@ -127,13 +127,7 @@ function matrixToResult(matrix) {
   const used = new Set();
   for (let c = 0; c < colCount; c += 1) {
     const rawLabel = headerRow[c] == null ? '' : String(headerRow[c]).trim();
-    // 列名白名单：仅保留字母（含中文/非 ASCII）、数字、下划线，其余非法字符替换为 _，
-    // 避免生成不可引用的 SQL 标识符（列名会进入本地表列名与聚合别名）。
-    let key = rawLabel.replace(/\s+/g, '_')
-      .replace(/[^\p{L}\p{N}_]/gu, '_')
-      .replace(/_+/g, '_');
-    // 不以数字开头，空则回退占位列名
-    if (!key || /^\d/.test(key)) key = `column_${c + 1}`;
+    let key = rawLabel.replace(/\s+/g, '_') || `column_${c + 1}`;
     let finalKey = key;
     let n = 2;
     while (used.has(finalKey)) {
