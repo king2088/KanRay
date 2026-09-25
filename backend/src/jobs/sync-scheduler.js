@@ -19,12 +19,17 @@ function parseUtc(ts) {
   return new Date(/Z$|[+-]\d{2}:\d{2}$/.test(s) ? s : `${s}Z`);
 }
 
-// 计算当前到期的同步配置（last_sync_at 为空或已过同步间隔），已 running 的排除
+// 计算当前到期的同步配置（last_sync_at 为空或已过同步间隔）。
+// running 但 updated_at 已超过锁租约（进程中断遗留）视为可重跑，纳入到期集合。
 async function dueConfigs() {
-  const rows = await db.all("SELECT * FROM sync_configs WHERE last_sync_status IS NULL OR last_sync_status != 'running'");
+  const rows = await db.all("SELECT * FROM sync_configs");
   const now = Date.now();
   return rows
     .filter((sc) => {
+      if (sc.last_sync_status === 'running') {
+        const startedAt = parseUtc(sc.updated_at);
+        if (startedAt != null && now - startedAt.getTime() <= config.sync.lockTtlMs) return false;
+      }
       const last = parseUtc(sc.last_sync_at);
       if (last == null) return true;
       const interval = Number(sc.sync_interval_seconds || config.sync.defaultIntervalSeconds) * 1000;

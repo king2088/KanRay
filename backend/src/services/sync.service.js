@@ -11,6 +11,7 @@ const { buildUpsert, guessType } = require('../datasources/build-sql');
 const config = require('../config');
 const metrics = require('../middleware/metrics');
 const { uuidv7 } = require('../utils/uuidv7');
+const { parseNaiveUtc } = require('../utils/datetime');
 
 const BATCH_SIZE = 5000;
 
@@ -290,7 +291,13 @@ async function full(cid, provider, cfg, ds, sc, cols, columns, logId) {
 async function runSync(cid) {
   const sc = await db.prepare('SELECT * FROM sync_configs WHERE id = ?').get(cid);
   if (!sc) throw new HttpError(404, '同步配置不存在');
-  if (sc.last_sync_status === 'running') return { skipped: true };
+  if (sc.last_sync_status === 'running') {
+    // running 标记超过锁租约即视为进程中断遗留（租约语义与 sync_locks/sync_jobs 一致），允许重跑
+    const startedAt = parseNaiveUtc(sc.updated_at);
+    const stale = startedAt == null || (Date.now() - startedAt.getTime() > config.sync.lockTtlMs);
+    if (!stale) return { skipped: true };
+    console.warn(`[sync] cfg %s last_sync_status='running' 已超过锁租约(%sms)，视为中断遗留，允许重跑`, cid, config.sync.lockTtlMs);
+  }
   const ds = await db.prepare('SELECT * FROM data_sources WHERE id = ?').get(sc.datasource_id);
   if (!ds) throw new HttpError(404, '数据源不存在');
   const meta = driversMeta(ds.type);

@@ -11,11 +11,26 @@ function makeConfig(cfg) {
   };
 }
 
+// 注意：mssql 包的 sql.connect() 是模块级共享池，并发连接不同服务器会互相覆盖，
+// 且任一调用方 pool.close() 会关闭共享池影响他人。这里每个调用都创建独立的
+// sql.ConnectionPool 实例，用完即关（与 app-store 驱动一致）。
+
+// 打开一次性池并执行 fn；无论成败都关闭池。连接失败时 pool 可能不存在，需判空。
+async function withPool(cfg, fn) {
+  const pool = new sql.ConnectionPool(makeConfig(cfg));
+  try {
+    await pool.connect();
+    return await fn(pool);
+  } finally {
+    if (pool.connected) await pool.close().catch(() => {});
+  }
+}
+
 async function testConnection(cfg) {
   try {
-    const pool = await sql.connect(makeConfig(cfg));
-    await pool.request().query('SELECT 1');
-    await pool.close();
+    await withPool(cfg, async (pool) => {
+      await pool.request().query('SELECT 1');
+    });
     return { ok: true, message: '连接成功' };
   } catch (e) {
     return { ok: false, message: e.message };
@@ -27,22 +42,18 @@ async function listSchemas() {
 }
 
 async function listTables(cfg, type, schema) {
-  const pool = await sql.connect(makeConfig(cfg));
-  try {
+  return withPool(cfg, async (pool) => {
     const result = await pool.request()
       .input('schema', sql.NVarChar, String(schema || cfg.schema || 'dbo'))
       .query(
         "SELECT t.name AS name, t.type_desc AS type FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id WHERE s.name = @schema ORDER BY t.name"
       );
     return result.recordset.map((r) => ({ name: r.name, type: r.type.includes('VIEW') ? 'view' : 'table' }));
-  } finally {
-    await pool.close();
-  }
+  });
 }
 
 async function listColumns(cfg, type, schema, table) {
-  const pool = await sql.connect(makeConfig(cfg));
-  try {
+  return withPool(cfg, async (pool) => {
     const result = await pool.request()
       .input('schema', sql.NVarChar, String(schema || cfg.schema || 'dbo'))
       .input('table', sql.NVarChar, String(table))
@@ -60,21 +71,16 @@ async function listColumns(cfg, type, schema, table) {
       type: r.type,
       role: /int|float|decimal|numeric|money|real/.test(r.type) ? 'metric' : 'dimension',
     }));
-  } finally {
-    await pool.close();
-  }
+  });
 }
 
 async function runQuery(cfg, sqlQuery, params = []) {
-  const pool = await sql.connect(makeConfig(cfg));
-  try {
+  return withPool(cfg, async (pool) => {
     const request = pool.request();
     params.forEach((p, i) => request.input(`p${i}`, p));
     const result = await request.query(toDialect(sqlQuery, mssqlDialect));
     return result.recordset;
-  } finally {
-    await pool.close();
-  }
+  });
 }
 
 module.exports = { testConnection, listSchemas, listTables, listColumns, runQuery };

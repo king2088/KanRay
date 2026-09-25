@@ -138,8 +138,9 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
     } else {
       expr = d.quoteIdent(dim.field);
     }
-    dimSelects.push(`${expr} AS __dim_${dim.field}__`);
-    dimGroups.push(`__dim_${dim.field}__`);
+    dimSelects.push(`${expr} AS ${d.quoteIdent(`__dim_${dim.field}__`)}`);
+    // GROUP BY 用分组表达式（而非别名）：MSSQL/Oracle 不允许按 select 别名分组
+    dimGroups.push(expr);
   }
 
   // 指标表达式（普通 + 复合统一由归一化提供完整 SQL 片段；衍生指标无 SQL，予以后处理）
@@ -153,7 +154,7 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
 
   const { where, params } = buildWhere(query.filters, fieldsByName);
 
-  let sql = `SELECT ${dimSelects.concat(metricSelects).join(', ')} FROM ${ds.table_name} ${where}`;
+  let sql = `SELECT ${dimSelects.concat(metricSelects).join(', ')} FROM ${d.quoteIdent(ds.table_name)} ${where}`;
 
   // 分组：只有存在维度时才 GROUP BY
   if (dimGroups.length > 0) {
@@ -167,7 +168,7 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
       if (Number.isInteger(entry) && entry >= 0 && entry < metricAliases.length) return metricAliases[entry];
       if (typeof entry === 'string' && entry === 'dim') {
         if (dimensions.length === 0) return null;
-        return `__dim_${String(dimensions[0].field).replace(/"/g, '""')}__`;
+        return d.quoteIdent(`__dim_${String(dimensions[0].field)}__`);
       }
       throw new HttpError(400, `不支持的排序字段: ${entry}`);
     };
