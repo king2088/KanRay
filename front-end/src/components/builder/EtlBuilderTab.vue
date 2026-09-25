@@ -59,7 +59,7 @@
     <el-drawer
       v-model="drawerVisible"
       direction="rtl"
-      size="500px"
+      size="650px"
       :show-close="true"
       :with-header="true"
       :z-index="2000"
@@ -352,6 +352,12 @@ function previewRowClass({ rowIndex }) {
   return rowIndex % 2 === 1 ? 'drawer-preview-zebra' : ''
 }
 watch(nodePreview, async () => { await nextTick(); measurePreviewWidth() })
+watch([drawerVisible, selectedNodeId], () => {
+  if (drawerVisible.value) {
+    nodePreview.value = []
+    nodePreviewCols.value = []
+  }
+})
 function measurePreviewWidth() {
   if (previewWrapRef.value) {
     const w = Math.floor(previewWrapRef.value.clientWidth)

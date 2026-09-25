@@ -29,9 +29,11 @@
                   </button>
                   <span class="field-card__table">{{ t.schema }}.{{ t.table }}</span>
                   <el-input v-model="t.alias"  style="width: 110px" placeholder="别名" @focus="rememberAlias(t)" @change="onAliasChange(t)" />
-                  <el-button link  type="primary" @click="selectAll(t, true)">全选</el-button>
-                  <el-button link  @click="selectAll(t, false)">清空</el-button>
-                  <el-button link  type="danger" @click="removeTable(t)">移除</el-button>
+                  <span class="field-card__actions">
+                    <el-button link  type="primary" @click="selectAll(t, true)">全选</el-button>
+                    <el-button link  @click="selectAll(t, false)">清空</el-button>
+                    <el-button link  type="danger" @click="removeTable(t)">移除</el-button>
+                  </span>
                 </div>
                 <el-collapse-transition>
                   <div v-show="!t.collapsed" :ref="(el) => bindSortable(el, tableKey(t))" class="field-card__rows">
@@ -381,6 +383,7 @@ defineExpose({ getDefinition: () => definition.value })
 .drag-builder__tabs :deep(.el-tabs__content) { flex: 1; min-height: 0; overflow: hidden; }
 .drag-builder__tabs :deep(.el-tab-pane) { height: 100%; }
 .drag-builder__scroll { height: 100%; }
+.drag-builder__scroll :deep(.el-scrollbar__view) { padding-top: 10px; }
 .drag-builder__mid--over { border: 1px dashed var(--el-color-primary); border-radius: 8px; }
 .drag-builder__mid--overlay { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--el-color-primary); background: var(--el-color-primary-light-9); border-radius: 8px; pointer-events: none; }
 .drag-builder__preview { flex: 0 0 40%; min-width: 360px; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
@@ -389,7 +392,8 @@ defineExpose({ getDefinition: () => definition.value })
 .drag-builder__error { font-size: 12px; color: var(--el-color-danger); }
 .field-card { border: 1px solid var(--el-border-color-light); border-radius: 6px; padding: 8px; margin-bottom: 10px; }
 .field-card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.field-card__table { font-size: 14px; font-weight: 600; }
+.field-card__table { font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.field-card__actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
 .field-card__toggle { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: none; background: transparent; cursor: pointer; border-radius: 4px; color: var(--app-text-secondary); padding: 0; flex: 0 0 auto; }
 .field-card__toggle:hover { background: var(--app-hover); }
 .field-card__toggle .el-icon { transition: transform 0.2s; }
