@@ -7,7 +7,7 @@ function listPaged(url, page, pageSize) {
 export const datasetApi = {
   list: () => http.get('/datasets'),
   listPaged: (page, pageSize) => listPaged('/datasets', page, pageSize),
-  get: (id) => http.get(`/datasets/${id}`),
+  get: (id, config) => http.get(`/datasets/${id}`, config),
   preview: (file, sheet) => {
     const fd = new FormData()
     fd.append('file', file)
@@ -39,7 +39,7 @@ export const metricApi = {
 export const chartApi = {
   list: (params) => http.get('/charts', { params }),
   listPaged: (page, pageSize) => listPaged('/charts', page, pageSize),
-  get: (id) => http.get(`/charts/${id}`),
+  get: (id, config) => http.get(`/charts/${id}`, config),
   create: (payload) => http.post('/charts', payload),
   update: (id, payload) => http.patch(`/charts/${id}`, payload),
   remove: (id) => http.delete(`/charts/${id}`),
@@ -85,7 +85,7 @@ export const formApi = {
   close: (id) => http.post(`/forms/${id}/close`),
   remove: (id) => http.delete(`/forms/${id}`),
   submit: (id, values) => http.post(`/forms/${id}/submissions`, { values }),
-  submissions: (id, mine) => http.get(`/forms/${id}/submissions`, { params: { mine: mine ? 1 : 0 } }),
+  submissions: (id, mine, params) => http.get(`/forms/${id}/submissions`, { params: { mine: mine ? 1 : 0, ...params } }),
   updateSubmission: (id, subId, values) => http.patch(`/forms/${id}/submissions/${subId}`, { values }),
   removeSubmission: (id, subId) => http.delete(`/forms/${id}/submissions/${subId}`),
   shares: (id) => http.get(`/forms/${id}/shares`),

@@ -490,10 +490,6 @@ const debounce = (fn, ms) => {
 }
 // 数据变更防抖（维度/指标/图表类型/显示数量/排序）
 const debouncedPreview = debounce(loadPreview, 500)
-// 配置变更防抖（仅触发图表重渲染，不重载数据）
-const debouncedConfigChange = debounce(() => {
-  // 触发 finalOptions 更新，EChartRenderer 会自动重渲染
-}, 200)
 
 // 仅数据相关变更触发 loadPreview
 watch([dims, metrics, chartType, showOptions, sortConfig], debouncedPreview, { deep: true })
@@ -527,11 +523,7 @@ onMounted(async () => {
   await loadDatasets()
   await loadEditing()
   if (!editingId) displayConfig.value = getDefaultConfig(chartType.value)
-  if (datasetId.value && metrics.value.length) {
-    const ds = await datasetApi.get(datasetId.value)
-    datasetName.value = ds.name
-    loadPreview()
-  }
+  if (datasetId.value && metrics.value.length) loadPreview()
 })
 </script>
 

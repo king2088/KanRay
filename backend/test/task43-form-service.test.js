@@ -259,11 +259,13 @@ describe('form-submission.service 提交', () => {
     await submissionSvc.insert(f, { name: '张三', city: 'bj' }, OWNER);
     await submissionSvc.insert(f, { name: '匿名', city: 'sh' }, null);
     const all = await formSvc.listSubmissions(f);
-    assert.equal(all.length, 2);
-    assert.equal(all[0].submitted_by, null); // 最新在前
+    assert.equal(all.total, 2);
+    assert.equal(all.rows.length, 2);
+    assert.equal(all.rows[0].submitted_by, null); // 最新在前
     const mine = await formSvc.listMySubmissions(f, OWNER);
-    assert.equal(mine.length, 1);
-    assert.equal(mine[0].name, '张三');
+    assert.equal(mine.total, 1);
+    assert.equal(mine.rows.length, 1);
+    assert.equal(mine.rows[0].name, '张三');
   });
 });
 

@@ -23,6 +23,11 @@ services:
       retries: 20
       start_period: 30s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
 
   redis:
     image: redis:7-alpine
@@ -35,6 +40,11 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
 
   backend:
     build:
@@ -60,6 +70,11 @@ services:
     expose:
       - "3001"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
 
   worker:
     build:
@@ -84,16 +99,26 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1.5g
 
   frontend:
     build:
       context: ../..
       dockerfile: deploy/docker/frontend/Dockerfile
     ports:
-      - "${KANRAY_PORT:-8080}:80"
+      - "${KANRAY_PORT:-8080}:8080"
     depends_on:
       - backend
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
 
 volumes:
   mariadbdata:

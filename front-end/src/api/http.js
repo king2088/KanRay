@@ -80,4 +80,51 @@ http.interceptors.response.use(
   }
 )
 
-export default http
+const TTL_DEFAULT = 5000
+const inflight = new Map()
+const cache = new Map()
+
+function cacheKey(config) {
+  let params = ''
+  let body = ''
+  try { params = JSON.stringify(config.params || {}) } catch { /* ignore */ }
+  if (config.data !== undefined) {
+    try { body = JSON.stringify(config.data) } catch { /* ignore */ }
+  }
+  return `${(config.method || 'get').toUpperCase()}|${config.url}|${params}|${body}`
+}
+
+async function request(config) {
+  const key = cacheKey(config)
+  const isGet = (config.method || 'get').toUpperCase() === 'GET'
+  const cacheMs = isGet && config.cache ? (config.cache === true ? TTL_DEFAULT : config.cache) : 0
+
+  if (cacheMs) {
+    const hit = cache.get(key)
+    if (hit && Date.now() - hit.at >= cacheMs) cache.delete(key)
+    if (hit && Date.now() - hit.at < cacheMs) return hit.data
+  }
+
+  const pending = inflight.get(key)
+  if (pending) {
+    topLoading.start()
+    return pending.finally(() => topLoading.done())
+  }
+
+  const p = http.request(config).then((data) => {
+    if (cacheMs) cache.set(key, { at: Date.now(), data })
+    return data
+  })
+  const tracked = p.finally(() => inflight.delete(key))
+  inflight.set(key, tracked)
+  return tracked
+}
+
+const proxied = (config) => request(config)
+proxied.defaults = http.defaults
+proxied.interceptors = http.interceptors
+for (const m of ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']) {
+  proxied[m] = (url, config) => request({ ...config, url, method: m })
+}
+
+export default proxied

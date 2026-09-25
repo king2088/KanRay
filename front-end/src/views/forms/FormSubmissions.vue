@@ -126,15 +126,18 @@ function sortTime(a, b) {
 
 async function load() {
   loading.value = true
-  page.value = 1
   try {
     const payload = await formApi.get(id)
     form.value = payload
     formName.value = payload.name
     columns.value = (payload.schema?.fields || []).filter((f) => f.type !== 'static')
-    const res = await formApi.submissions(id, mine.value)
-    rows.value = res
-    total.value = res.length
+    const res = await formApi.submissions(id, mine.value, { page: page.value, pageSize: pageSize.value })
+    rows.value = res.rows
+    total.value = res.total
+    if (!rows.value.length && page.value > 1) {
+      page.value -= 1
+      return load()
+    }
   } finally {
     loading.value = false
   }
@@ -142,6 +145,7 @@ async function load() {
 
 function onPageChange(v) {
   page.value = v
+  load()
 }
 
 function edit(row) {
@@ -188,7 +192,7 @@ async function remove(row) {
 }
 
 onMounted(load)
-watch(mine, load)
+watch(mine, () => { page.value = 1; load() })
 </script>
 
 <style scoped>

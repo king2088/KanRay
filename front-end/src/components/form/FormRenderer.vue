@@ -106,22 +106,23 @@ seedModel()
 
 const visibleFields = computed(() => props.fields.filter((f) => f.type !== 'static' || f.content || f.label))
 
+// 规则按字段对象记忆化，避免每次渲染重建 validator 闭包（required 判定在 validator 内统一处理，触发类型 blur/change 覆盖）
+const rulesCache = new WeakMap()
 function rulesFor(field) {
-  const rules = []
-  if (field.required) {
-    rules.push({
-      required: true,
-      message: `请填写${field.label}`,
-      trigger: 'blur',
-    })
+  let rules = rulesCache.get(field)
+  if (!rules) {
+    rules = [{
+      validator: (rule, value, cb) => {
+        if (field.required && (value == null || value === '' || (Array.isArray(value) && !value.length))) {
+          cb(new Error(`请填写${field.label}`))
+        } else {
+          cb()
+        }
+      },
+      trigger: 'change',
+    }]
+    rulesCache.set(field, rules)
   }
-  rules.push({ validator: (rule, value, cb) => {
-      if (field.required && (value == null || value === '' || (Array.isArray(value) && !value.length))) {
-        cb(new Error(`请填写${field.label}`))
-      } else {
-        cb()
-      }
-    }, trigger: 'change' })
   return rules
 }
 

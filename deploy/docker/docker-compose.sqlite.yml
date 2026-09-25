@@ -27,16 +27,26 @@ services:
       - "3001"
     # SQLite 单写者：不要对 backend 做 --scale 多副本
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
 
   frontend:
     build:
       context: ../..
       dockerfile: deploy/docker/frontend/Dockerfile
     ports:
-      - "${KANRAY_PORT:-8080}:80"
+      - "${KANRAY_PORT:-8080}:8080"
     depends_on:
       - backend
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
 
 volumes:
   kanray_data:

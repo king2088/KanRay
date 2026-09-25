@@ -79,16 +79,18 @@ router.post('/:id/submissions', requireUser, requirePermission('form', 'submit')
   ok(res, row, '提交成功');
 });
 
-// GET /api/forms/:id/submissions?mine=1    管理员/owner 看全部；mine=1 只看本人
+// GET /api/forms/:id/submissions?mine=1&page=1&pageSize=10    服务端分页
 router.get('/:id/submissions', requireUser, requirePermission('form', 'submission:read'), async (req, res) => {
   const id = req.params.id;
   const mine = req.query.mine === '1' || req.query.mine === 'true';
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
   const form = await formService.getFormOrThrow(id);
   if (mine) {
-    ok(res, await formService.listMySubmissions(form, req.user.id));
+    ok(res, await formService.listMySubmissions(form, req.user.id, { page, pageSize }));
   } else {
     await access.assertResource('form', id, req.user, rbac);
-    ok(res, await formService.listSubmissions(form));
+    ok(res, await formService.listSubmissions(form, { page, pageSize }));
   }
 });
 

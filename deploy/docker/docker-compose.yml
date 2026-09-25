@@ -15,19 +15,30 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
 
   # 共享缓存 / 分布式锁；生产建议设密码（redis-server --requirepass）并同步覆盖 REDIS_URL
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    env_file: .env
+    command: ["sh", "-c", "exec redis-server --appendonly yes $${REDIS_PASSWORD:+--requirepass \"$$REDIS_PASSWORD\"}"]
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli ${REDIS_PASSWORD:+ -a }$$REDIS_PASSWORD ping | grep -q PONG"]
       interval: 3s
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
 
   backend:
     build:
@@ -42,7 +53,7 @@ services:
       PORT: "3001"
       # API 进程只入队，不执行同步（同步交给 worker 服务）
       SYNC_MODE: worker
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379/0}
     volumes:
       - kanray_data:/data
       - kanray_uploads:/uploads
@@ -56,6 +67,11 @@ services:
     restart: unless-stopped
     # 水平扩容：docker compose up -d --scale backend=3
     # 注意：连接总数为 副本数 × DB_POOL_MAX，需与 postgres max_connections 匹配。
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
 
   # 独立同步 worker：调度（入队）+ 消费 sync_jobs 执行同步；可独立水平扩容。
   worker:
@@ -71,7 +87,7 @@ services:
       UPLOAD_DIR: /uploads
       SYNC_MODE: worker
       SYNC_MAX_CONCURRENT: "4"
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379/0}
     volumes:
       - kanray_data:/data
       - kanray_uploads:/uploads
@@ -82,16 +98,26 @@ services:
         condition: service_healthy
     # 水平扩容：docker compose up -d --scale worker=2（任务领取由 sync_jobs 行锁互斥）
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1.5g
 
   frontend:
     build:
       context: ../..
       dockerfile: deploy/docker/frontend/Dockerfile
     ports:
-      - "${KANRAY_PORT:-8080}:80"
+      - "${KANRAY_PORT:-8080}:8080"
     depends_on:
       - backend
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
 
 volumes:
   pgdata:

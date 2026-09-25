@@ -12,6 +12,7 @@
 
 <script setup>
 import { ref, shallowRef, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { loadMonaco } from '@/utils/monacoCore'
 import { buildCatalogIndex, registerSqlCatalog, unregisterSqlCatalog, setSqlCatalog } from '@/utils/monacoSqlCompletion'
 
 const props = defineProps({
@@ -29,6 +30,7 @@ const containerRef = ref(null)
 const placeholderRef = ref(null)
 const editor = shallowRef(null)
 let themeObserver = null
+let appliedTheme = isDark() ? 'vs-dark' : 'vs'
 let preventLoop = false
 let disposed = false
 let isMounted = false
@@ -64,7 +66,7 @@ onMounted(async () => {
   if (!containerRef.value) return
   disposed = false
   isMounted = true
-  const monaco = await import('monaco-editor')
+  const monaco = await loadMonaco(['sql', 'json'])
   if (disposed || !containerRef.value) return
 
   if (typeof monaco.editor.setLocale === 'function') {
@@ -75,7 +77,7 @@ onMounted(async () => {
   editor.value = monaco.editor.create(containerRef.value, {
     value: props.modelValue || '',
     language: props.language,
-    theme: isDark() ? 'vs-dark' : 'vs',
+    theme: appliedTheme,
     readOnly: props.readonly,
     minimap: { enabled: false },
     fontSize: 13,
@@ -100,7 +102,8 @@ onMounted(async () => {
   themeObserver = new MutationObserver(() => {
     if (!editor.value) return
     const theme = isDark() ? 'vs-dark' : 'vs'
-    if (editor.value.getOption(monaco.editor.EditorOption.theme) !== theme) {
+    if (appliedTheme !== theme) {
+      appliedTheme = theme
       monaco.editor.setTheme(theme)
     }
   })

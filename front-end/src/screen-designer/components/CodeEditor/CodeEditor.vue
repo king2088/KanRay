@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, onUnmounted, watch } from 'vue'
+import { loadMonaco } from '@/utils/monacoCore'
 
 const props = defineProps<{
   modelValue: string
@@ -17,7 +18,7 @@ let preventLoop = false
 
 onMounted(async () => {
   if (!containerRef.value) return
-  const monaco = await import('monaco-editor')
+  const monaco = await loadMonaco(['html', 'css', 'javascript'])
 
   editor.value = monaco.editor.create(containerRef.value, {
     value: props.modelValue || '',

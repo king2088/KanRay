@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { chartApi as defaultChartApi, datasetApi as defaultDatasetApi } from '@/api'
 import { getChartType } from '@/config/chart-types'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
@@ -158,9 +158,9 @@ function usableFilters() {
 
 async function load() {
   try {
-    rawChart.value = await chartApi.get(chartId.value)
+    rawChart.value = await chartApi.get(chartId.value, { cache: true })
     // 加载数据集字段，用于筛选白名单
-    const ds = await datasetApi.get(rawChart.value.datasetId)
+    const ds = await datasetApi.get(rawChart.value.datasetId, { cache: true })
     datasetFields.value = ds.fields || []
     loaded.value = true
     await run()
@@ -185,9 +185,17 @@ async function run() {
   }
 }
 
-watch(() => props.externalFilters, run, { deep: true })
+// 外部筛选高频变更时防抖合并请求（tiles 共享同一筛选对象，deep watch 会连发）
+let filterTimer = 0
+function debouncedFilterRun() {
+  clearTimeout(filterTimer)
+  filterTimer = setTimeout(run, 250)
+}
+
+watch(() => props.externalFilters, debouncedFilterRun, { deep: true })
 
 onMounted(load)
+onUnmounted(() => clearTimeout(filterTimer))
 </script>
 
 <style scoped>

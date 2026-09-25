@@ -132,12 +132,13 @@ test('viewer 不能查看他人全部提交，只能看自己的；admin 看全�
   assert.equal(r.status, 403);
   r = await req(server, { path: `/api/forms/${createdId}/submissions?mine=1`, headers: hdr(viewerToken) });
   assert.equal(r.status, 200);
-  assert.equal(r.body.data.length, 1);
-  assert.equal(r.body.data[0].name, '小王');
+  assert.equal(r.body.data.rows.length, 1);
+  assert.equal(r.body.data.total, 1);
+  assert.equal(r.body.data.rows[0].name, '小王');
   r = await req(server, { path: `/api/forms/${createdId}/submissions`, headers: hdr(adminToken) });
   assert.equal(r.status, 200);
-  assert.equal(r.body.data.length, 1);
-  assert.equal(r.body.data[0].submitterEmail, 'vw@x.com');
+  assert.equal(r.body.data.rows.length, 1);
+  assert.equal(r.body.data.rows[0].submitterEmail, 'vw@x.com');
 });
 
 test('分享：创建(带密码) -> 密码错误 401 -> verify 拿 accessToken -> 公开布局 + 匿名提交', async () => {
@@ -218,12 +219,12 @@ test('提交记录可编辑/删除（admin）；删除后行数回减', async ()
   let r = await req(server, { method: 'PATCH', path: `/api/forms/${createdId}/submissions/1`, headers: hdr(adminToken), body: { values: { score: 99 } } });
   assert.equal(r.status, 200, r.raw);
   r = await req(server, { path: `/api/forms/${createdId}/submissions`, headers: hdr(adminToken) });
-  const one = r.body.data.find((x) => x.id === 1);
+  const one = r.body.data.rows.find((x) => x.id === 1);
   assert.equal(one.score, 99);
   r = await req(server, { method: 'DELETE', path: `/api/forms/${createdId}/submissions/1`, headers: hdr(adminToken) });
   assert.equal(r.status, 200);
   r = await req(server, { path: `/api/forms/${createdId}/submissions`, headers: hdr(adminToken) });
-  assert.equal(r.body.data.length, 2);
+  assert.equal(r.body.data.rows.length, 2);
 });
 
 test('关闭后拒绝提交；删除表单级联清理', async () => {

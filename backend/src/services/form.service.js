@@ -273,23 +273,31 @@ function fillSchema(form) {
   };
 }
 
-/** 按表单查全部提交（含提交人邮箱） */
-async function listSubmissions(form) {
+/** 按表单分页查提交（含提交人邮箱） */
+async function listSubmissions(form, { page = 1, pageSize = 20 } = {}) {
   if (!form.tableName) throw new HttpError(400, '表单未发布，暂无提交记录');
   const q = db.dialect.quoteIdent(form.tableName);
-  return db.prepare(
-    `SELECT t.*, u.email AS submitterEmail FROM ${q} t LEFT JOIN users u ON u.id = t.submitted_by ORDER BY t.submitted_at DESC, t.id DESC`
-  ).all();
+  const total = Number((await db.prepare(`SELECT COUNT(*) AS c FROM ${q}`).get()).c) || 0;
+  const offset = (Math.max(1, Number(page) || 1) - 1) * pageSize;
+  const limit = Math.min(Math.max(1, Number(pageSize) || 20), 100);
+  const rows = await db.prepare(
+    `SELECT t.*, u.email AS submitterEmail FROM ${q} t LEFT JOIN users u ON u.id = t.submitted_by ORDER BY t.submitted_at DESC, t.id DESC LIMIT ? OFFSET ?`
+  ).all(limit, offset);
+  return { rows, total };
 }
 
-/** 当前用户自己的提交 */
-async function listMySubmissions(form, userId) {
+/** 当前用户自己的提交（服务端分页） */
+async function listMySubmissions(form, userId, { page = 1, pageSize = 20 } = {}) {
   if (!form.tableName) throw new HttpError(400, '表单未发布');
   if (!userId) throw new HttpError(401, '用户信息无效');
   const q = db.dialect.quoteIdent(form.tableName);
-  return db.prepare(
-    `SELECT t.* FROM ${q} t WHERE t.submitted_by = ? ORDER BY t.submitted_at DESC, t.id DESC`
-  ).all(String(userId));
+  const total = Number((await db.prepare(`SELECT COUNT(*) AS c FROM ${q} t WHERE t.submitted_by = ?`).get(String(userId))).c) || 0;
+  const offset = (Math.max(1, Number(page) || 1) - 1) * pageSize;
+  const limit = Math.min(Math.max(1, Number(pageSize) || 20), 100);
+  const rows = await db.prepare(
+    `SELECT t.* FROM ${q} t WHERE t.submitted_by = ? ORDER BY t.submitted_at DESC, t.id DESC LIMIT ? OFFSET ?`
+  ).all(String(userId), limit, offset);
+  return { rows, total };
 }
 
 module.exports = {

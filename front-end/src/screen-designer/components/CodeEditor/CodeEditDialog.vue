@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
 import CodeEditor from './CodeEditor.vue'
+import * as echarts from 'echarts'
+import { loadMonaco } from '@/utils/monacoCore'
+
+// 用户自定义脚本通过 window.echarts 使用图表库（原挂在 main.js 入口，现按需注入）
+window.echarts = echarts
 
 const vHighlight = {
   async mounted(el: HTMLElement) {
     const lang = (el.getAttribute('data-lang') || 'javascript') as string
     const code = el.textContent || ''
     try {
-      const monaco = await import('monaco-editor')
+      const monaco = await loadMonaco(['html', 'css', 'javascript'])
       monaco.editor.setTheme('vs-dark')
       el.innerHTML = await monaco.editor.colorize(code, lang, { tabSize: 2 })
     } catch {
