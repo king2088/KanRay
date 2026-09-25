@@ -1,5 +1,7 @@
 const http = require('http');
 const https = require('https');
+const config = require('../../config');
+const { blockReason, createLookup } = require('../ssrf-guard');
 
 function parseHeaders(headers) {
   if (!headers) return {};
@@ -14,6 +16,9 @@ function requestJson(cfg) {
   return new Promise((resolve, reject) => {
     try {
       const u = new URL(url);
+      // 字面 IP 会绕过 http.request 的 lookup 钩子，必须在请求前同步校验（防 SSRF）
+      const reason = blockReason(u.hostname, !!config.datasource.httpBlockPrivate);
+      if (reason) return reject(new Error(`禁止访问数据源目标：${reason} 地址 ${u.hostname}`));
       const mod = u.protocol === 'https:' ? https : http;
       const options = {
         hostname: u.hostname,
@@ -22,6 +27,7 @@ function requestJson(cfg) {
         method: cfg.method || 'GET',
         headers: parseHeaders(cfg.headers),
         timeout: 10000,
+        lookup: createLookup(!!config.datasource.httpBlockPrivate),
       };
       const req = mod.request(options, (res) => {
         const expected = Number(cfg.expectedStatus) || 200;

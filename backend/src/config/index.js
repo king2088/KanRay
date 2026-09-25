@@ -14,6 +14,7 @@ const STORE_TYPES = ['sqlite', 'mysql', 'mariadb', 'postgres', 'sqlserver', 'ora
 // Read config.json — 优先 DATA_DIR（测试隔离），再 fallback root
 let fileDb = { type: 'sqlite', url: '', sqlitePath: 'data/kanban.db' };
 let fileCache = { url: '' };
+let fileDatasource = {};
 try {
   const candidates = [path.join(dataDir, 'config.json'), path.join(root, 'config.json')];
   for (const filePath of candidates) {
@@ -21,6 +22,7 @@ try {
       const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       if (parsed && parsed.db) fileDb = { ...fileDb, ...parsed.db };
       if (parsed && parsed.cache) fileCache = { ...fileCache, ...parsed.cache };
+      if (parsed && parsed.datasource) fileDatasource = { ...fileDatasource, ...parsed.datasource };
       break;
     }
   }
@@ -90,6 +92,11 @@ module.exports = {
   query: {
     // 聚合查询在未显式指定 groupLimit 时的分组数上限，防止超大分组结果全量物化
     maxGroups: Math.max(1, parseInt(process.env.QUERY_MAX_GROUPS || '10000', 10)),
+  },
+  datasource: {
+    // http 数据源是否拦截回环/私网段（防 SSRF）。默认关：本地 dev 可指向 localhost/局域网服务；
+    // 生产多用户部署建议开启。云元数据端点(169.254/16、100.64/10)任何环境都硬拦。
+    httpBlockPrivate: String(process.env.HTTP_DATASOURCE_BLOCK_PRIVATE ?? fileDatasource.httpBlockPrivate ?? 'false').toLowerCase() === 'true',
   },
   timezone: String(process.env.TIMEZONE || 'Asia/Shanghai'),
   openApi: {
