@@ -369,7 +369,7 @@ curl -X POST -H "Authorization: Bearer kan_live_xxx" -H "Content-Type: applicati
 | 依赖远端在线 | 是（每个查询） | 否（离线可读最近一次快照） |
 | 适用 | 单次/小数据量实时分析 | 大表预聚合前的减负、跨网段定时取数 |
 | 一致性 | 实时 | 落后一个同步周期 |
-| 已落地数据源 | 支持全 22 种中 dataset 类型 | 仅 mysql / pg / mssql / oracle 协议族 |
+| 已落地数据源 | 支持全 22 种中 dataset 类型 | 全部 dataset 类型（实测 16 种，含 DB2/达梦/Hive/Impala/MaxCompute） |
 
 **同步任务（sync_configs）配置字段**：
 
@@ -430,7 +430,7 @@ docker compose -f backend/scripts/datasource-live/docker-compose.yml down -v # �
 - **字段注册**：保存时由编译器输出字段清单，后端回填 `dataset_fields` 表；字段类型自动推断（数值/字符串/时间）。
 - **单表快捷**：`/api/datasources/:id/register-table` 保留，一键注册单表数据集，与构建器共存。
 - **安全边界**：表名、字段名全部取自 `listSchemas` / `listTables` / `listColumns` 元数据结果，不允许用户自由输入任意标识符；SQL 全部参数化执行。
-- **驱动能力门槛**：仅 `capabilities.dataset === true` 的数据源可使用构建器（MySQL / PostgreSQL / SQL Server / ClickHouse，含同族兼容驱动）。
+- **驱动能力门槛**：仅 `capabilities.dataset === true` 的数据源可使用构建器；编译方言覆盖 MySQL / PostgreSQL / SQL Server / ClickHouse / Oracle / Presto / DB2 / 达梦 / Hive / Impala / MaxCompute（含各协议族兼容驱动）。
 
 ### 生产注意事项
 
