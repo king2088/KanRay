@@ -754,6 +754,19 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.builder-right :deep(.el-input__wrapper),
+.builder-right :deep(.el-textarea__inner),
+.builder-right :deep(.el-select__wrapper),
+.builder-right :deep(.el-checkbox__inner) {
+  background-color: var(--app-card-solid);
+}
+
+.builder-right :deep(.el-input.is-focus .el-input__wrapper),
+.builder-right :deep(.el-select .el-select__wrapper.is-focused) {
+  background-color: var(--app-card-solid);
+  box-shadow: 0 0 0 1px var(--app-primary) inset !important;
+}
+
 .right-section-title {
   font-size: 14px;
   font-weight: 600;

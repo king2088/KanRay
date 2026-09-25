@@ -1266,12 +1266,11 @@ function ctxAction(action: string) {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: rgba(60, 60, 67, 0.85);
+  background: #3c3c43;
   border: 1px solid #555;
   border-radius: 6px;
   padding: 4px 6px;
   z-index: 50;
-  backdrop-filter: blur(4px);
 }
 
 .zoom-btn {

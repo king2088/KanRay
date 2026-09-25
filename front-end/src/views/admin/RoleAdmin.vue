@@ -24,7 +24,16 @@
       <el-table-column prop="code" label="标识" width="150" />
       <el-table-column label="权限点" min-width="220">
         <template #default="{ row }">
-          <el-tag v-for="p in row.permissions" :key="p"  style="margin: 2px">{{ permNameOf(p) }}</el-tag>
+          <el-popover placement="top-start" :width="360" trigger="hover">
+            <template #reference>
+              <div class="perm-tags" :class="{ 'is-overflow': overflowMap[row.id] }" :data-row-id="row.id">
+                <el-tag v-for="p in row.permissions" :key="p" class="perm-tag">{{ permNameOf(p) }}</el-tag>
+              </div>
+            </template>
+            <div class="perm-pop">
+              <el-tag v-for="p in row.permissions" :key="p" class="perm-tag">{{ permNameOf(p) }}</el-tag>
+            </div>
+          </el-popover>
         </template>
       </el-table-column>
       <el-table-column label="类型" width="90">
@@ -84,7 +93,7 @@
   </div>
 </template>
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
@@ -103,8 +112,20 @@ const form = ref({ code: '', name: '', description: '', permissions: [] })
 
 const page = ref(1)
 const pageSize = ref(10)
+const overflowMap = ref({})
 const pagedTotal = computed(() => rows.value.length)
 const pagedRows = computed(() => rows.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
+
+function refreshOverflow() {
+  nextTick(() => {
+    document.querySelectorAll('.perm-tags').forEach((el) => {
+      const id = el.dataset.rowId
+      if (id !== undefined) overflowMap.value[id] = el.scrollWidth > el.clientWidth
+    })
+  })
+}
+
+watch([page, pageSize], refreshOverflow)
 
 function onPageChange(p) {
   page.value = p
@@ -199,6 +220,7 @@ async function remove(row) {
 onMounted(async () => {
   await load()
   permissions.value = await adminApi.permissions()
+  refreshOverflow()
 })
 </script>
 
@@ -214,5 +236,38 @@ onMounted(async () => {
 
 .perm-collapse-wrap :deep(.el-collapse) {
   width: 100%;
+}
+
+.perm-tags {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  line-height: 24px;
+}
+
+.perm-tag {
+  margin: 0;
+}
+
+.perm-tags.is-overflow::after {
+  content: '…';
+  position: absolute;
+  right: 2px;
+  top: 0;
+  line-height: 24px;
+  padding: 0 3px;
+  border-radius: 4px;
+  color: var(--app-text-secondary);
+  font-weight: 700;
+  background: var(--el-fill-color);
+}
+
+.perm-pop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 </style>

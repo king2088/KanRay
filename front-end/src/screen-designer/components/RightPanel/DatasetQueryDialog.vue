@@ -2,104 +2,113 @@
   <el-dialog
     :model-value="modelValue"
     title="配置维度/指标"
-    width="640px"
+    width="920px"
     top="8vh"
     :close-on-click-modal="false"
     destroy-on-close
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <el-scrollbar max-height="60vh" class="dq-scroll">
-      <!-- ① 数据集选择 -->
-      <el-form label-width="70px" size="default" style="margin-bottom: 4px">
-        <el-form-item label="数据集">
-          <el-select-v2 v-model="plot.datasetId" class="dq-w100" filterable :options="datasetOptions" @change="onDatasetChange">
-            <template #default="{ item }">
-              <DatasetOption :item="item" />
-            </template>
-          </el-select-v2>
-        </el-form-item>
-      </el-form>
+      <div class="dq-cols">
+        <!-- 左列：数据集 + 可用字段 -->
+        <div class="dq-left">
+          <el-form label-width="60px" size="default">
+            <el-form-item label="数据集">
+              <el-select-v2 v-model="plot.datasetId" class="dq-w100" filterable :options="datasetOptions" @change="onDatasetChange">
+                <template #default="{ item }">
+                  <DatasetOption :item="item" />
+                </template>
+              </el-select-v2>
+            </el-form-item>
+          </el-form>
 
-      <template v-if="plot.datasetId">
-        <!-- ② 可用字段托盘 -->
-        <div class="dq-palette">
-          <div class="dq-palette-title">可用字段（拖拽或点击添加）</div>
-          <div
-            v-for="f in fields"
-            :key="f.name"
-            class="dq-chip"
-            draggable="true"
-            @dragstart="onFieldDragStart($event, f)"
-            @click="quickAdd(f)"
-          >
-            <el-icon :size="14"><DataLine /></el-icon>
-            <span>{{ f.label || f.name }}</span>
-            <el-tag size="small" effect="light" :style="typeTagStyle(f.type)" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
-          </div>
+          <template v-if="plot.datasetId">
+            <!-- 可用字段托盘 -->
+            <div class="dq-palette">
+              <div class="dq-palette-title">可用字段（拖拽或点击添加）</div>
+              <div
+                v-for="f in fields"
+                :key="f.name"
+                class="dq-chip"
+                draggable="true"
+                @dragstart="onFieldDragStart($event, f)"
+                @click="quickAdd(f)"
+              >
+                <el-icon :size="14"><DataLine /></el-icon>
+                <span class="dq-chip-name">{{ f.label || f.name }}</span>
+                <el-tag size="small" effect="light" :style="typeTagStyle(f.type)" class="dq-chip-type">{{ typeLabel(f.type) }}</el-tag>
+              </div>
+            </div>
+          </template>
         </div>
 
-        <!-- ③ 维度区 -->
-        <div class="dq-drop" @dragover.prevent @drop="onDrop($event, 'dimensions')">
-          <div class="dq-drop-title">
-            维度（分类 / X 轴）
-            <el-icon class="dq-add" @click="addBlank('dimensions')"><Plus /></el-icon>
-          </div>
-          <div v-if="!dimensions.length" class="dq-hint">拖入字段作为维度</div>
-          <div v-for="(d, di) in dimensions" :key="di" class="dq-row">
-            <el-select v-model="d.field" placeholder="选择字段" style="flex: 1">
-              <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-            </el-select>
-            <el-select
-              v-if="isDateField(d.field)"
-              v-model="d.granularity"
-              style="width: 80px"
-              placeholder="粒度"
-            >
-              <el-option label="日" value="day" />
-              <el-option label="月" value="month" />
-              <el-option label="年" value="year" />
-            </el-select>
-            <el-icon class="dq-remove" @click="removeItem(dimensions, di)"><Delete /></el-icon>
-          </div>
-        </div>
+        <!-- 右列：维度 / 指标 / 显示选项 -->
+        <div class="dq-right">
+          <template v-if="plot.datasetId">
+            <!-- 维度区 -->
+            <div class="dq-drop" @dragover.prevent @drop="onDrop($event, 'dimensions')">
+              <div class="dq-drop-title">
+                维度（分类 / X 轴）
+                <el-icon class="dq-add" @click="addBlank('dimensions')"><Plus /></el-icon>
+              </div>
+              <div v-if="!dimensions.length" class="dq-hint">拖入字段作为维度</div>
+              <div v-for="(d, di) in dimensions" :key="di" class="dq-row">
+                <el-select v-model="d.field" placeholder="选择字段" style="flex: 1">
+                  <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
+                </el-select>
+                <el-select
+                  v-if="isDateField(d.field)"
+                  v-model="d.granularity"
+                  style="width: 80px"
+                  placeholder="粒度"
+                >
+                  <el-option label="日" value="day" />
+                  <el-option label="月" value="month" />
+                  <el-option label="年" value="year" />
+                </el-select>
+                <el-icon class="dq-remove" @click="removeItem(dimensions, di)"><Delete /></el-icon>
+              </div>
+            </div>
 
-        <!-- ④ 指标区 -->
-        <div class="dq-drop" @dragover.prevent @drop="onDrop($event, 'metrics')">
-          <div class="dq-drop-title">
-            指标（数值 / Y 轴）
-            <el-icon class="dq-add" @click="addBlank('metrics')"><Plus /></el-icon>
-          </div>
-          <div v-if="!metrics.length" class="dq-hint">拖入字段作为指标</div>
-          <div v-for="(m, mi) in metrics" :key="mi" class="dq-row">
-            <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
-              <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
-            </el-select>
-            <el-select v-model="m.agg" style="width: 100px">
-              <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
-            </el-select>
-            <el-icon class="dq-remove" @click="removeItem(metrics, mi)"><Delete /></el-icon>
-          </div>
-        </div>
+            <!-- 指标区 -->
+            <div class="dq-drop" @dragover.prevent @drop="onDrop($event, 'metrics')">
+              <div class="dq-drop-title">
+                指标（数值 / Y 轴）
+                <el-icon class="dq-add" @click="addBlank('metrics')"><Plus /></el-icon>
+              </div>
+              <div v-if="!metrics.length" class="dq-hint">拖入字段作为指标</div>
+              <div v-for="(m, mi) in metrics" :key="mi" class="dq-row">
+                <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
+                  <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
+                </el-select>
+                <el-select v-model="m.agg" style="width: 100px">
+                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+                </el-select>
+                <el-icon class="dq-remove" @click="removeItem(metrics, mi)"><Delete /></el-icon>
+              </div>
+            </div>
 
-        <!-- ⑤ 显示选项 -->
-        <el-form label-width="70px" size="default">
-          <el-form-item label="显示条数">
-            <el-input-number v-model="groupLimit" :min="1" :max="500" style="width: 120px" />
-          </el-form-item>
-          <el-form-item label="排序">
-            <el-select v-model="sortOption" style="width: 45%">
-              <el-option label="不排序" value="" />
-              <el-option label="按指标" value="metric" />
-              <el-option label="按维度" value="dim" />
-            </el-select>
-            <el-select v-model="sortOrder" style="width: 45%; margin-left: 8px">
-              <el-option label="升序" value="asc" />
-              <el-option label="降序" value="desc" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </template>
-      <div v-else class="dq-hint dq-empty">请先在上方选择数据集</div>
+            <!-- 显示选项 -->
+            <el-form label-width="70px" size="default">
+              <el-form-item label="显示条数">
+                <el-input-number v-model="groupLimit" :min="1" :max="500" style="width: 120px" />
+              </el-form-item>
+              <el-form-item label="排序">
+                <el-select v-model="sortOption" style="width: 45%">
+                  <el-option label="不排序" value="" />
+                  <el-option label="按指标" value="metric" />
+                  <el-option label="按维度" value="dim" />
+                </el-select>
+                <el-select v-model="sortOrder" style="width: 45%; margin-left: 8px">
+                  <el-option label="升序" value="asc" />
+                  <el-option label="降序" value="desc" />
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </template>
+          <div v-else class="dq-hint dq-empty">请先在左侧选择数据集</div>
+        </div>
+      </div>
     </el-scrollbar>
 
     <template #footer>
@@ -280,11 +289,31 @@ watch(() => props.modelValue, (v) => { if (v) open() })
 <style scoped>
 .dq-scroll { margin-right: -8px; }
 .dq-w100 { width: 100%; }
+.dq-cols {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.dq-left {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--app-border);
+  padding-right: 14px;
+}
 .dq-palette {
   background: var(--app-hover);
   border-radius: var(--app-radius);
   padding: 10px;
   margin-bottom: 12px;
+  max-height: calc(60vh - 56px);
+  overflow-y: auto;
+}
+.dq-right {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 .dq-palette-title {
   font-size: 12px;
@@ -306,6 +335,14 @@ watch(() => props.modelValue, (v) => { if (v) open() })
   color: var(--app-text-primary);
 }
 .dq-chip:hover { border-color: var(--app-primary); color: var(--app-primary); }
+.dq-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.dq-chip-type { flex-shrink: 0; }
 .dq-drop {
   border: 1px dashed var(--app-border);
   border-radius: var(--app-radius);

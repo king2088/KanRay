@@ -294,11 +294,6 @@ body {
 .page-card,
 .el-card,
 .stat-strip,
-.el-dialog,
-.el-message-box,
-.el-message,
-.el-drawer,
-.el-popper,
 .el-collapse,
 .share-bar {
   -webkit-backdrop-filter: blur(16px) saturate(150%);
@@ -319,15 +314,25 @@ body {
   box-shadow: var(--app-glass-edge);
 }
 
-/* 浮层（弹窗 / 抽屉 / 消息）稍增不透明度与模糊，保证层级清晰 */
+/* 弹窗 / 抽屉 / 消息：一律实底不透明（避免背后内容透出），阴影保留层级 */
 .el-dialog,
 .el-message-box,
 .el-message,
-.el-drawer,
-.el-popper {
-  background: var(--app-glass-strong);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  backdrop-filter: blur(20px) saturate(150%);
+.el-drawer {
+  background: var(--app-card-solid);
+}
+
+/* 所有 .el-popper 浮层（Popover/下拉/Select/Tooltip 等）：
+   覆盖 Element Plus 的半透明底色变量为实底，且不高优先级改写 tooltip 深色底 */
+.el-popper[class] {
+  --el-popover-bg-color: var(--app-card-solid);
+  --el-popper-bg-color: var(--app-card-solid);
+  --el-bg-color-overlay: var(--app-card-solid);
+}
+
+.el-popper.el-popover {
+  background: var(--app-card-solid);
+  background-color: var(--app-card-solid);
 }
 
 /* ============================================================
