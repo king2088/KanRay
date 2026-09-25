@@ -32,7 +32,9 @@ curl -H "X-API-Key: kan_live_xxxx" \
 
 ## 二、接口总览
 
-Swagger UI：`/api/open/docs`（浏览器打开）；OpenAPI 规范：`GET /api/open/v1/openapi.json`。
+Swagger UI：`/api/open/docs`（浏览器打开）；OpenAPI 规范：`GET /api/open/v1/openapi.json`。浏览器打开后为可视化接口文档，可直接对照联调：
+
+![Swagger UI 接口文档](images/39-swagger.png)
 
 ### 发现（列表）
 
