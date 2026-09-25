@@ -182,3 +182,17 @@ DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmo
 - 多实例部署前提：共享元数据库（非 sqlite）+ 一致的 `JWT_SECRET` / `DATASOURCE_SECRET` + 共享上传存储，建议配 `REDIS_URL`
 - 存量数据不做**自动迁移**：切换存储后端前请确认部署形态，或用 `backend/scripts/migrate-data.mjs` 迁移
 - Excel 文件数据源不支持同步存储方式
+
+## 支持与捐赠
+
+KanRay 由个人创作者独立开发维护，从架构设计、功能实现再到文档编写，都倾注了大量业余时间与心血。**个人开源实属不易**，你的每一份支持都是坚持下去的动力。
+
+如果你觉得 KanRay 对你有帮助，欢迎请我喝杯咖啡：
+
+<img src="docs/images/wechat.jpg" width="400" alt="微信赞赏">
+
+<img src="docs/images/alipay.jpg" width="400" alt="支付宝赞赏">
+
+> 你的捐赠将用于持续开发。同时欢迎通过 [提交 Issue / PR](https://github.com/) 的方式支持项目——代码贡献同样是开源最好的鼓励。
+
+感谢每一位使用与支持 KanRay 的朋友！
