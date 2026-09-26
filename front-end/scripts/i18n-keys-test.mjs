@@ -123,6 +123,71 @@ t('源码中引用的字面量翻译键都存在', () => {
   assert.deepEqual([...new Set(missing)].sort(), [], `存在未定义的翻译键:\n${[...new Set(missing)].join('\n')}`)
 })
 
+// 动态拼接前缀：这些键在源码里是 `'dataset.metric.kind.' + key` 形式，
+// 字面量扫描看不到引用，必须显式声明，否则会被误判为死键。
+// 声明的是**前缀**而非全键，避免逐条枚举随节点类型增长。
+const DYNAMIC_KEY_PREFIXES = [
+  { prefix: 'dataset.metric.kind.', why: "DatasetDetail.vue: t('dataset.metric.kind.' + key)" },
+  { prefix: 'dataset.etl.node.', why: 'utils/etl-nodes.js: etlNodeLabel/etlNodeShort 拼 etl.node.<type>.<field>' },
+]
+
+// 死键守卫目前只覆盖 dataset 域（计划 4 负责的范围）。
+// 其余域存在历史动态拼接键，尚未逐域审计，扩域前需先确认无遗漏。
+const DEAD_KEY_SCOPE = 'dataset.'
+
+t('dataset 域词典键都被引用（无死键）', () => {
+  const root = fileURLToPath(new URL('../src', import.meta.url))
+  const files = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'locales') continue
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (['.vue', '.js'].includes(extname(p))) files.push(p)
+    }
+  }
+  walk(root)
+
+  // 三种写法都要覆盖：t('k')、tr('k')，以及 t(cond ? 'k1' : 'k2') 的三元形式
+  const patterns = [
+    /\b(?:t|tr)\(\s*'([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)'/g,
+    /\blabelKey:\s*'([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)'/g,
+    /\?\s*'([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)'\s*:\s*'([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)'/g,
+  ]
+  const used = new Set()
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8')
+    for (const re of patterns) {
+      for (const m of src.matchAll(re)) {
+        used.add(m[1])
+        if (m[2]) used.add(m[2])
+      }
+    }
+  }
+
+  const dead = Object.keys(zhFlat).filter(
+    (key) =>
+      key.startsWith(DEAD_KEY_SCOPE) &&
+      !used.has(key) &&
+      !DYNAMIC_KEY_PREFIXES.some((d) => key.startsWith(d.prefix)),
+  )
+  assert.deepEqual(dead.sort(), [], `存在未被引用的词典键:\n${dead.join('\n')}`)
+})
+
+t('动态键前缀声明都仍然有效', () => {
+  for (const d of DYNAMIC_KEY_PREFIXES) {
+    assert.ok(
+      Object.keys(zhFlat).some((k) => k.startsWith(d.prefix)),
+      `动态键前缀已无对应词典键，请删除声明: ${d.prefix}`,
+    )
+    // 前缀写错（如少写一段）会让死键从缝隙里漏出去
+    assert.ok(
+      DYNAMIC_KEY_PREFIXES.every((o) => o.prefix === d.prefix || !d.prefix.startsWith(o.prefix)),
+      `动态键前缀互相重叠，请合并: ${d.prefix}`,
+    )
+  }
+})
+
 t('词典源码无重复键（后者会静默覆盖前者）', () => {
   // 解析成 JS 对象后重复键已丢失，只能按源码行检测：每行一个键、缩进表示层级。
   // 同一对象内出现同名键即为覆盖，例如 detail: '详情' 后面又来 detail: { ... }。
