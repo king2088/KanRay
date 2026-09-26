@@ -51,7 +51,7 @@
             <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('form.list.actions')" width="300" fixed="right" align="center">
+        <el-table-column :label="t('form.list.actions')" width="350" fixed="right" align="center">
           <template #default="{ row }">
             <el-button v-if="canShare" link type="primary" @click="openShare(row)">
               <el-icon style="margin-right: 2px"><Share /></el-icon>{{ t('form.list.share') }}

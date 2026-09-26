@@ -44,7 +44,7 @@
         <el-table-column prop="updatedAt" :label="t('bigscreen.list.colUpdatedAt')" width="180">
           <template #default="{ row }">{{ fmt(row.updatedAt) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" :label="t('bigscreen.list.colActions')" width="180" align="right">
+        <el-table-column fixed="right" :label="t('bigscreen.list.colActions')" width="250" align="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openPreview(row)">{{ t('bigscreen.list.preview') }}</el-button>
             <el-button link type="primary" @click="openShare(row)"><el-icon style="margin-right: 4px"><Share /></el-icon>{{ t('bigscreen.list.share') }}</el-button>
