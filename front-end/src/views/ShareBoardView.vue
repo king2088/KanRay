@@ -3,27 +3,27 @@
     <div v-loading="loading" class="share-center" v-if="loading" style="min-height: 60vh"></div>
 
     <div v-else-if="!meta || !meta.found" class="share-center">
-      <el-result icon="error" title="分享不存在" sub-title="该分享链接不存在或已被删除" />
+      <el-result icon="error" :title="t('dashboard.shareView.notFoundTitle')" :sub-title="t('dashboard.shareView.notFoundSubtitle')" />
     </div>
 
     <div v-else-if="meta.expired || meta.inactive" class="share-center">
-      <el-result icon="warning" :title="meta.expired ? '分享已过期' : '分享已关闭'"
-        sub-title="请联系看板创建者处理" />
+      <el-result icon="warning" :title="meta.expired ? t('dashboard.shareView.expiredTitle') : t('dashboard.shareView.closedTitle')"
+        :sub-title="t('dashboard.shareView.contactOwner')" />
     </div>
 
     <div v-else-if="!boardReady" class="share-center">
       <div class="share-gate-card">
         <h3 class="share-gate-card__title">{{ meta.dashboardName }}</h3>
         <p class="share-gate-card__desc">
-          {{ meta.requiresPassword ? '该看板已通过分享链接公开，请输入访问密码进行只读查看' : '该看板已通过分享链接公开，点击下方按钮进行只读查看' }}
+          {{ meta.requiresPassword ? t('dashboard.shareView.passwordRequiredHint') : t('dashboard.shareView.openHint') }}
         </p>
         <el-input v-if="meta.requiresPassword" v-model="password" type="password" show-password
-          placeholder="访问密码" @keyup.enter="verify" />
+          :placeholder="t('dashboard.shareView.passwordPlaceholder')" @keyup.enter="verify" />
         <div class="share-gate-card__actions">
           <el-button type="primary" :loading="verifying" @click="verify">
-            {{ meta.requiresPassword ? '查看看板' : '进入查看' }}
+            {{ meta.requiresPassword ? t('dashboard.shareView.ctaWithPassword') : t('dashboard.shareView.ctaDirect') }}
           </el-button>
-          <el-button v-if="auth.isLoggedIn" link @click="$router.push('/')">返回系统</el-button>
+          <el-button v-if="auth.isLoggedIn" link @click="$router.push('/')">{{ t('dashboard.shareView.backToSystem') }}</el-button>
         </div>
       </div>
     </div>
@@ -32,11 +32,11 @@
       <div class="share-bar">
         <div class="share-bar__title">
           {{ dashName }}
-          <el-tag size="small" type="info" effect="plain">只读分享</el-tag>
+          <el-tag size="small" type="info" effect="plain">{{ t('dashboard.shareView.readOnlyBadge') }}</el-tag>
         </div>
         <div class="share-bar__actions">
-          <el-button size="small" @click="refresh">刷新数据</el-button>
-          <el-button v-if="auth.isLoggedIn" size="small" link @click="$router.push('/')">返回系统</el-button>
+          <el-button size="small" @click="refresh">{{ t('dashboard.shareView.refresh') }}</el-button>
+          <el-button v-if="auth.isLoggedIn" size="small" link @click="$router.push('/')">{{ t('dashboard.shareView.backToSystem') }}</el-button>
         </div>
       </div>
       <div class="share-board__body">
@@ -56,6 +56,7 @@
 import { onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { t } from '@/i18n'
 import { shareApi, SHARE_TOKEN_KEY } from '@/api/share'
 import { useAuthStore } from '@/stores/auth'
 import { alignTree, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
@@ -81,7 +82,7 @@ const chartCache = ref({})
 provide('shareApiOverride', {
   chartApi: {
     get: async (id) => chartCache.value[id]
-      || Promise.reject(new Error('图表不存在')),
+      || Promise.reject(new Error(t('dashboard.shareView.errChartMissing'))),
     data: (id, filters) => shareApi.chartData(token, id, filters).then((r) => r),
   },
   datasetApi: {
@@ -103,7 +104,7 @@ async function loadMeta() {
 }
 
 async function verify() {
-  if (meta.value?.requiresPassword && !password.value) return ElMessage.warning('请输入访问密码')
+  if (meta.value?.requiresPassword && !password.value) return ElMessage.warning(t('dashboard.shareView.errPasswordRequired'))
   await enter()
 }
 
@@ -115,7 +116,7 @@ async function enter() {
     await buildBoard()
     boardReady.value = true
   } catch (e) {
-    ElMessage.error(e.message || '验证失败')
+    ElMessage.error(e.message || t('dashboard.shareView.verifyFailed'))
   } finally {
     verifying.value = false
   }
@@ -136,7 +137,7 @@ async function buildBoard() {
 
 function refresh() {
   refreshKey.value += 1
-  ElMessage.success('已刷新')
+  ElMessage.success(t('dashboard.shareView.refreshed'))
 }
 
 onMounted(loadMeta)
