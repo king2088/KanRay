@@ -91,6 +91,1006 @@ export default {
   stringOps: {
     contains: '包含',
   },
+  axis: {
+    yAxisName: '{name} 单位： {unit}',
+    unitOnly: '单位： {unit}',
+  },
+  series: {
+    thresholdValue: '阈值 {value}',
+    cumulativeShare: '累积占比%',
+  },
+  empty: {
+    configureDimsMetrics: '请配置维度与指标后展示',
+    configureData: '请配置数据',
+    configureDimsMetricsShort: '请配置维度与指标',
+    configureMetric: '请配置指标',
+    configureXyDimsMetrics: '请配置 X/Y 维度与指标',
+    configureSankey: '请配置 来源节点/目标节点/数值',
+    candlestickNeeds: 'K线图需要 日期维度 + 开/高/低/收 4个指标',
+    metricFallback: '指标',
+    none: '无',
+  },
+  position: {
+    topLeft: '左上',
+    topCenter: '上中',
+    topRight: '右上',
+    midLeft: '左中',
+    midCenter: '居中',
+    midRight: '右中',
+    botLeft: '左下',
+    botCenter: '下中',
+    botRight: '右下',
+  },
+  common: {
+    pleaseSelect: '请选择',
+    configMissing: '配置缺失',
+    unsupportedFieldType: '不支持的字段类型',
+  },
+  group: {
+    theme: '主题',
+    exclusiveConfig: '专属配置',
+    exclusiveConfigWithType: '{type} 专属配置',
+    lineStyles: '线条样式 · 按系列',
+  },
+  schema: {
+    style: {
+      color: {
+        label: '颜色',
+      },
+      fontSize: {
+        label: '字号',
+      },
+      fontWeight: {
+        label: '加粗',
+      },
+      fontStyle: {
+        label: '斜体',
+      },
+      textDecoration: {
+        label: '下划线',
+      },
+    },
+    styleTitle: {
+      fontSize: {
+        label: '字号',
+      },
+    },
+    opt: {
+      orient: {
+        horizontal: {
+          label: '横排',
+          title: '横排',
+        },
+        vertical: {
+          label: '竖排',
+          title: '竖排',
+        },
+      },
+      labelPos: {
+        top: {
+          label: '上',
+          title: '上',
+        },
+        bottom: {
+          label: '下',
+          title: '下',
+        },
+        left: {
+          label: '左',
+          title: '左',
+        },
+        right: {
+          label: '右',
+          title: '右',
+        },
+        inside: {
+          label: '内',
+          title: '内',
+        },
+      },
+      pieLabelPos: {
+        outside: {
+          label: '外',
+          title: '外',
+        },
+        inside: {
+          label: '内',
+          title: '内',
+        },
+        center: {
+          label: '居中',
+          title: '居中',
+        },
+      },
+    },
+    cfg: {
+      title: {
+        label: '标题',
+        show: {
+          label: '显示',
+        },
+        text: {
+          label: '标题文字',
+          placeholder: '输入图表标题',
+        },
+        subtext: {
+          label: '副标题',
+          placeholder: '副标题(可选)',
+        },
+        position: {
+          label: '位置',
+        },
+        textStyle: {
+          label: '文字样式',
+        },
+      },
+      legend: {
+        label: '图例',
+        show: {
+          label: '显示',
+        },
+        orient: {
+          label: '方向',
+        },
+        position: {
+          label: '位置',
+        },
+        align: {
+          label: '对齐',
+          options: {
+            auto: {
+              label: '自动',
+              title: '自动对齐',
+            },
+            left: {
+              label: '左',
+              title: '左对齐',
+            },
+            center: {
+              label: '中',
+              title: '居中对齐',
+            },
+            right: {
+              label: '右',
+              title: '右对齐',
+            },
+          },
+        },
+        icon: {
+          label: '形状',
+          options: {
+            0: {
+              label: '自动',
+            },
+            circle: {
+              label: '圆形',
+            },
+            rect: {
+              label: '方形',
+            },
+            roundRect: {
+              label: '圆角矩形',
+            },
+            diamond: {
+              label: '菱形',
+            },
+            triangle: {
+              label: '三角',
+            },
+            pin: {
+              label: '引脚',
+            },
+          },
+        },
+        itemWidth: {
+          label: '形状宽',
+        },
+        itemHeight: {
+          label: '形状高',
+        },
+        textStyle: {
+          label: '文字样式',
+        },
+      },
+      tooltip: {
+        label: '提示框',
+        show: {
+          label: '显示',
+        },
+        trigger: {
+          label: '触发方式',
+          options: {
+            axis: {
+              label: '坐标轴',
+            },
+            item: {
+              label: '数据项',
+            },
+            none: {
+              label: '不触发',
+            },
+          },
+        },
+        axisPointer: {
+          label: '指示器类型',
+          type: {
+            options: {
+              line: {
+                label: '直线',
+              },
+              shadow: {
+                label: '阴影',
+              },
+              none: {
+                label: '无',
+              },
+              cross: {
+                label: '十字准星',
+              },
+            },
+          },
+        },
+        formatter: {
+          label: '内容格式',
+          placeholder: "如 {'{'}a{'}'}{'{'}b{'}'}: {'{'}c{'}'}，留空自动",
+        },
+        backgroundColor: {
+          label: '背景色',
+        },
+        borderColor: {
+          label: '边框色',
+        },
+        textStyle: {
+          label: '文字样式',
+        },
+      },
+      label: {
+        label: '数据标签',
+        show: {
+          label: '显示',
+        },
+        content: {
+          label: '显示内容',
+          options: {
+            a: {
+              label: '系列名称',
+            },
+            b: {
+              label: '类别名称',
+            },
+            c: {
+              label: '数值',
+            },
+          },
+        },
+        separator: {
+          label: '分隔符',
+          options: {
+            space: {
+              label: '空格',
+            },
+            _2c_20: {
+              label: '逗号',
+            },
+            newline: {
+              label: '换行',
+            },
+            _20_7c_20: {
+              label: '竖线',
+            },
+          },
+        },
+        position: {
+          label: '位置',
+        },
+        textStyle: {
+          label: '文字样式',
+          color: {
+            label: '颜色',
+          },
+        },
+        showBorder: {
+          label: '显示描边',
+        },
+        borderColor: {
+          label: '描边颜色',
+        },
+        allowOverlap: {
+          label: '允许重叠',
+        },
+      },
+      markLine: {
+        label: '标记线',
+        color: {
+          label: '线条颜色',
+        },
+        width: {
+          label: '线宽',
+        },
+        show: {
+          label: '显示',
+        },
+        type: {
+          label: '类型',
+          options: {
+            average: {
+              label: '平均值',
+            },
+            max: {
+              label: '最大值',
+            },
+            min: {
+              label: '最小值',
+            },
+            median: {
+              label: '中位数',
+            },
+            custom: {
+              label: '自定义',
+            },
+          },
+        },
+        customValue: {
+          label: '自定义值',
+        },
+        lineType: {
+          label: '线型',
+          options: {
+            solid: {
+              label: '实线',
+            },
+            dashed: {
+              label: '虚线',
+            },
+            dotted: {
+              label: '点线',
+            },
+          },
+        },
+        showLabel: {
+          label: '显示标签',
+        },
+      },
+      grid: {
+        label: '绘图区域',
+        left: {
+          label: '左边距',
+        },
+        right: {
+          label: '右边距',
+        },
+        top: {
+          label: '上边距',
+        },
+        bottom: {
+          label: '下边距',
+        },
+      },
+      dataZoom: {
+        label: '缩略轴',
+        show: {
+          label: '启用',
+        },
+        type: {
+          label: '类型',
+          options: {
+            slider: {
+              label: '滑块',
+            },
+            inside: {
+              label: '内置',
+            },
+          },
+        },
+        startPercent: {
+          label: '起始比例%',
+        },
+        endPercent: {
+          label: '结束比例%',
+        },
+      },
+      xAxis: {
+        label: 'X轴',
+        show: {
+          label: '显示',
+        },
+        name: {
+          label: '轴名称',
+        },
+        nameTextStyle: {
+          label: '文字样式',
+        },
+        labelColor: {
+          label: '标签颜色',
+        },
+        nameRotate: {
+          label: '名称旋转',
+        },
+        labelRotate: {
+          label: '标签旋转',
+        },
+      },
+      yAxis: {
+        label: 'Y轴',
+        show: {
+          label: '显示',
+        },
+        name: {
+          label: '轴名称',
+        },
+        nameTextStyle: {
+          label: '文字样式',
+        },
+        unit: {
+          label: '单位',
+          placeholder: '如 元、%',
+        },
+        labelColor: {
+          label: '标签颜色',
+        },
+        splitLine: {
+          label: '网格线',
+        },
+        min: {
+          label: '最小值',
+          placeholder: '自动或数值',
+        },
+        max: {
+          label: '最大值',
+          placeholder: '自动或数值',
+        },
+        interval: {
+          label: '数据步长',
+          placeholder: '自动或数值',
+        },
+      },
+    },
+    type: {
+      bar: {
+        barWidth: {
+          label: '柱宽',
+          placeholder: '自动',
+        },
+        barGap: {
+          label: '柱间距%',
+        },
+        rounded: {
+          label: '圆角柱',
+        },
+      },
+      barClustered: {
+        barWidth: {
+          label: '柱宽',
+          placeholder: '自动',
+        },
+        barGap: {
+          label: '柱间距%',
+        },
+        rounded: {
+          label: '圆角柱',
+        },
+      },
+      barStacked: {
+        barWidth: {
+          label: '柱宽',
+          placeholder: '自动',
+        },
+        rounded: {
+          label: '圆角柱',
+        },
+      },
+      barLine: {
+        lineSeries: {
+          label: '折线指定系列',
+        },
+        smooth: {
+          label: '平滑折线',
+        },
+      },
+      barPictorial: {
+        symbolType: {
+          label: '符号类型',
+          options: {
+            circle: {
+              label: '圆',
+            },
+            rect: {
+              label: '矩形',
+            },
+            triangle: {
+              label: '三角',
+            },
+            diamond: {
+              label: '菱形',
+            },
+          },
+        },
+      },
+      barPercentStacked: {
+        barWidth: {
+          label: '柱宽',
+          placeholder: '自动',
+        },
+        showPercentLabel: {
+          label: '显示百分比标签',
+        },
+      },
+      barGroupStacked: {
+        barWidth: {
+          label: '柱宽',
+          placeholder: '自动',
+        },
+      },
+      barStackedLine: {
+        smooth: {
+          label: '平滑折线',
+        },
+      },
+      barStackedPictorial: {
+        symbolType: {
+          label: '符号类型',
+          options: {
+            circle: {
+              label: '圆',
+            },
+            rect: {
+              label: '矩形',
+            },
+          },
+        },
+      },
+      bullet: {
+        barWidth: {
+          label: '柱宽',
+        },
+        targetValue: {
+          label: '目标值',
+        },
+      },
+      waterfall: {
+        increaseColor: {
+          label: '增加颜色',
+        },
+        decreaseColor: {
+          label: '减少颜色',
+        },
+      },
+      pareto: {
+        showLine: {
+          label: '显示累积线',
+        },
+      },
+      horizontalBar: {
+        barWidth: {
+          label: '条宽',
+          placeholder: '自动',
+        },
+      },
+      horizontalBarClustered: {
+        barWidth: {
+          label: '条宽',
+          placeholder: '自动',
+        },
+        barGap: {
+          label: '条间距%',
+        },
+      },
+      horizontalBarStacked: {
+        barWidth: {
+          label: '条宽',
+          placeholder: '自动',
+        },
+      },
+      horizontalBarPercentStacked: {
+        barWidth: {
+          label: '条宽',
+          placeholder: '自动',
+        },
+        showPercentLabel: {
+          label: '显示百分比标签',
+        },
+      },
+      horizontalBarGroupStacked: {
+        barWidth: {
+          label: '条宽',
+          placeholder: '自动',
+        },
+      },
+      horizontalBullet: {
+        barWidth: {
+          label: '条宽',
+        },
+        targetValue: {
+          label: '目标值',
+        },
+      },
+      butterfly: {
+        barWidth: {
+          label: '条宽',
+          placeholder: '自动',
+        },
+      },
+      line: {
+        smooth: {
+          label: '平滑',
+        },
+        areaStyle: {
+          label: '面积填充',
+        },
+        step: {
+          label: '步进',
+          options: {
+            0: {
+              label: '无',
+            },
+            start: {
+              label: '起始',
+            },
+            middle: {
+              label: '中间',
+            },
+            end: {
+              label: '结束',
+            },
+          },
+        },
+      },
+      lineMulti: {
+        smooth: {
+          label: '平滑',
+        },
+      },
+      areaStacked: {
+        smooth: {
+          label: '平滑',
+        },
+        opacity: {
+          label: '透明度',
+        },
+      },
+      areaPercentStacked: {
+        smooth: {
+          label: '平滑',
+        },
+        opacity: {
+          label: '透明度',
+        },
+      },
+      pie: {
+        radius: {
+          label: '半径%',
+        },
+        startAngle: {
+          label: '起始角度',
+        },
+        labelPosition: {
+          label: '标签位置',
+        },
+        roseType: {
+          label: '玫瑰模式',
+        },
+      },
+      doughnut: {
+        radiusInner: {
+          label: '内径%',
+        },
+        radiusOuter: {
+          label: '外径%',
+        },
+        startAngle: {
+          label: '起始角度',
+        },
+        labelPosition: {
+          label: '标签位置',
+        },
+        showCenter: {
+          label: '中心文本',
+        },
+        centerText: {
+          label: '中心标题',
+          placeholder: '留空显示数值',
+        },
+        centerSubtext: {
+          label: '中心副标题',
+          placeholder: '可选',
+        },
+        centerColor: {
+          label: '标题颜色',
+        },
+        centerSubColor: {
+          label: '副标题颜色',
+        },
+        centerFontSize: {
+          label: '标题字号',
+        },
+        centerSubFontSize: {
+          label: '副标题字号',
+        },
+      },
+      sunburst: {
+        radius: {
+          label: '半径%',
+        },
+        startAngle: {
+          label: '起始角度',
+        },
+      },
+      nightingale: {
+        radius: {
+          label: '半径%',
+        },
+        roseType: {
+          label: '模式',
+          options: {
+            radius: {
+              label: '半径',
+            },
+            area: {
+              label: '面积',
+            },
+          },
+        },
+      },
+      funnel: {
+        sort: {
+          label: '排序',
+          options: {
+            descending: {
+              label: '降序',
+            },
+            ascending: {
+              label: '升序',
+            },
+            none: {
+              label: '无',
+            },
+          },
+        },
+        gap: {
+          label: '间距',
+        },
+      },
+      funnelHorizontal: {
+        sort: {
+          label: '排序',
+          options: {
+            descending: {
+              label: '降序',
+            },
+            ascending: {
+              label: '升序',
+            },
+            none: {
+              label: '无',
+            },
+          },
+        },
+        gap: {
+          label: '间距',
+        },
+      },
+      scatter: {
+        symbolSize: {
+          label: '符号大小',
+        },
+      },
+      bubble: {
+        symbolSize: {
+          label: '最大气泡大小',
+        },
+      },
+      progressBar: {
+        max: {
+          label: '最大值',
+        },
+        showTarget: {
+          label: '显示目标',
+        },
+      },
+      circularProgress: {
+        max: {
+          label: '最大值',
+        },
+        lineWidth: {
+          label: '线宽',
+        },
+      },
+      multiRingProgress: {
+        max: {
+          label: '最大值',
+        },
+        lineWidth: {
+          label: '线宽',
+        },
+      },
+      fluidProgress: {
+        max: {
+          label: '最大值',
+        },
+      },
+      gauge: {
+        min: {
+          label: '最小值',
+        },
+        max: {
+          label: '最大值',
+        },
+        splitNumber: {
+          label: '分割段数',
+        },
+        progressWidth: {
+          label: '进度宽度',
+        },
+      },
+      statTrend: {
+        showSparkline: {
+          label: '显示趋势线',
+        },
+        sparklineColor: {
+          label: '趋势线颜色',
+        },
+      },
+      radar: {
+        shape: {
+          label: '形状',
+          options: {
+            polygon: {
+              label: '多边形',
+            },
+            circle: {
+              label: '圆形',
+            },
+          },
+        },
+        splitNumber: {
+          label: '分割段数',
+        },
+        areaOpacity: {
+          label: '区域透明度',
+        },
+      },
+      mapChina: {
+        zoom: {
+          label: '缩放',
+        },
+        showLabels: {
+          label: '显示地区名',
+        },
+      },
+      mapChinaBubble: {
+        zoom: {
+          label: '缩放',
+        },
+        symbolSize: {
+          label: '气泡大小',
+        },
+        showLabels: {
+          label: '显示地区名',
+        },
+      },
+      mapChinaSymbol: {
+        zoom: {
+          label: '缩放',
+        },
+        symbolSize: {
+          label: '符号大小',
+        },
+      },
+      mapWorld: {
+        zoom: {
+          label: '缩放',
+        },
+      },
+      heatmap: {
+        showValues: {
+          label: '显示数值',
+        },
+      },
+      polarBar: {
+        barWidth: {
+          label: '柱宽',
+          placeholder: '自动',
+        },
+      },
+      barBreakAxis: {
+        breakStart: {
+          label: '断点起始',
+        },
+        breakEnd: {
+          label: '断点结束',
+        },
+      },
+      calendar: {
+        cellSize: {
+          label: '单元格大小',
+        },
+      },
+      candlestick: {
+        upColor: {
+          label: '阳线颜色',
+        },
+        downColor: {
+          label: '阴线颜色',
+        },
+      },
+      treemap: {
+        orient: {
+          label: '方向',
+        },
+      },
+      sankey: {
+        nodeWidth: {
+          label: '节点宽度',
+        },
+        nodeGap: {
+          label: '节点间距',
+        },
+        layoutIterations: {
+          label: '布局迭代',
+        },
+      },
+      chord: {
+        nodeWidth: {
+          label: '节点宽度',
+        },
+        nodeGap: {
+          label: '节点间距',
+        },
+      },
+    },
+    series: {
+      lineType: {
+        label: '线型',
+        options: {
+          solid: {
+            label: '实线',
+          },
+          dashed: {
+            label: '虚线',
+          },
+          dotted: {
+            label: '点线',
+          },
+        },
+      },
+      lineColor: {
+        label: '线条颜色',
+        placeholder: '留空随调色板',
+      },
+      lineWidth: {
+        label: '线宽',
+      },
+      symbol: {
+        label: '数据点',
+        options: {
+          circle: {
+            label: '实心圆',
+          },
+          emptyCircle: {
+            label: '空心圆',
+          },
+          rect: {
+            label: '矩形',
+          },
+          roundRect: {
+            label: '圆角矩形',
+          },
+          diamond: {
+            label: '菱形',
+          },
+          triangle: {
+            label: '三角',
+          },
+          none: {
+            label: '无',
+          },
+        },
+      },
+      symbolSize: {
+        label: '点大小',
+      },
+    },
+  },
   palettes: {
     classicBlue: '经典蓝',
     soft: '柔和',

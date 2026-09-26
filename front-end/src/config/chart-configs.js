@@ -1,5 +1,6 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
 import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter, alignAuto, alignLeft, alignCenter, alignRight } from '../components/charts/control-icons'
+import { tr } from '@/i18n/translate'
 
 // ---- 主题默认值（明亮/背景/文字颜色由 ThemeConfigPanel 配置） ----
 export const DEFAULT_THEME = { mode: 'light', background: '', textColor: '' }
@@ -8,188 +9,188 @@ export const DEFAULT_THEME = { mode: 'light', background: '', textColor: '' }
 
 // 通用文字样式（标题/图例/提示框等文本的样式工具条）
 const STYLE_TEXT = {
-  color: { type: 'color', label: '颜色', default: '#333333' },
-  fontSize: { type: 'number', label: '字号', default: 12, min: 8, max: 40 },
-  fontWeight: { type: 'toggle', label: '加粗', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
-  fontStyle: { type: 'toggle', label: '斜体', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
-  textDecoration: { type: 'toggle', label: '下划线', default: 'none', activeValue: 'underline', inactiveValue: 'none', icon: 'U' },
+  color: { type: 'color', labelKey: 'chart.schema.style.color.label', default: '#333333' },
+  fontSize: { type: 'number', labelKey: 'chart.schema.style.fontSize.label', default: 12, min: 8, max: 40 },
+  fontWeight: { type: 'toggle', labelKey: 'chart.schema.style.fontWeight.label', default: 'normal', activeValue: 'bold', inactiveValue: 'normal', icon: 'B' },
+  fontStyle: { type: 'toggle', labelKey: 'chart.schema.style.fontStyle.label', default: 'normal', activeValue: 'italic', inactiveValue: 'normal', icon: 'I' },
+  textDecoration: { type: 'toggle', labelKey: 'chart.schema.style.textDecoration.label', default: 'none', activeValue: 'underline', inactiveValue: 'none', icon: 'U' },
 }
 
 // 标题专用文字样式：默认字号 16，其余与通用样式一致
 const STYLE_TITLE = {
   ...STYLE_TEXT,
-  fontSize: { type: 'number', label: '字号', default: 16, min: 8, max: 40 },
+  fontSize: { type: 'number', labelKey: 'chart.schema.styleTitle.fontSize.label', default: 16, min: 8, max: 40 },
 }
 
 // ---- 图标按钮组共享选项（方向/标签） ----
 const ORIENT_OPTIONS = [
-  { label: '横排', title: '横排', value: 'horizontal', icon: dirH },
-  { label: '竖排', title: '竖排', value: 'vertical', icon: dirV },
+  { labelKey: 'chart.schema.opt.orient.horizontal.label', titleKey: 'chart.schema.opt.orient.horizontal.title', value: 'horizontal', icon: dirH },
+  { labelKey: 'chart.schema.opt.orient.vertical.label', titleKey: 'chart.schema.opt.orient.vertical.title', value: 'vertical', icon: dirV },
 ]
 const LABEL_POS_OPTIONS = [
-  { label: '上', title: '上', value: 'top', icon: lblTop },
-  { label: '下', title: '下', value: 'bottom', icon: lblBot },
-  { label: '左', title: '左', value: 'left', icon: lblLeft },
-  { label: '右', title: '右', value: 'right', icon: lblRight },
-  { label: '内', title: '内', value: 'inside', icon: lblIn },
+  { labelKey: 'chart.schema.opt.labelPos.top.label', titleKey: 'chart.schema.opt.labelPos.top.title', value: 'top', icon: lblTop },
+  { labelKey: 'chart.schema.opt.labelPos.bottom.label', titleKey: 'chart.schema.opt.labelPos.bottom.title', value: 'bottom', icon: lblBot },
+  { labelKey: 'chart.schema.opt.labelPos.left.label', titleKey: 'chart.schema.opt.labelPos.left.title', value: 'left', icon: lblLeft },
+  { labelKey: 'chart.schema.opt.labelPos.right.label', titleKey: 'chart.schema.opt.labelPos.right.title', value: 'right', icon: lblRight },
+  { labelKey: 'chart.schema.opt.labelPos.inside.label', titleKey: 'chart.schema.opt.labelPos.inside.title', value: 'inside', icon: lblIn },
 ]
 const PIE_LABEL_POS_OPTIONS = [
-  { label: '外', title: '外', value: 'outside', icon: pieOut },
-  { label: '内', title: '内', value: 'inside', icon: pieIn },
-  { label: '居中', title: '居中', value: 'center', icon: pieCenter },
+  { labelKey: 'chart.schema.opt.pieLabelPos.outside.label', titleKey: 'chart.schema.opt.pieLabelPos.outside.title', value: 'outside', icon: pieOut },
+  { labelKey: 'chart.schema.opt.pieLabelPos.inside.label', titleKey: 'chart.schema.opt.pieLabelPos.inside.title', value: 'inside', icon: pieIn },
+  { labelKey: 'chart.schema.opt.pieLabelPos.center.label', titleKey: 'chart.schema.opt.pieLabelPos.center.title', value: 'center', icon: pieCenter },
 ]
 
 export const COMMON_CONFIG_SCHEMA = {
   title: {
-    type: 'group', label: '标题', children: {
-      show: { type: 'switch', label: '显示', default: true },
-      text: { type: 'input', label: '标题文字', default: '', placeholder: '输入图表标题' },
-      subtext: { type: 'input', label: '副标题', default: '', placeholder: '副标题(可选)' },
-      position: { type: 'positionGrid', label: '位置', default: { left: 'center', top: 'top' }, keys: ['left', 'top'] },
-      textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TITLE },
+    type: 'group', labelKey: 'chart.schema.cfg.title.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.title.show.label', default: true },
+      text: { type: 'input', labelKey: 'chart.schema.cfg.title.text.label', default: '', placeholderKey: 'chart.schema.cfg.title.text.placeholder' },
+      subtext: { type: 'input', labelKey: 'chart.schema.cfg.title.subtext.label', default: '', placeholderKey: 'chart.schema.cfg.title.subtext.placeholder' },
+      position: { type: 'positionGrid', labelKey: 'chart.schema.cfg.title.position.label', default: { left: 'center', top: 'top' }, keys: ['left', 'top'] },
+      textStyle: { type: 'group', labelKey: 'chart.schema.cfg.title.textStyle.label', inline: true, children: STYLE_TITLE },
     },
   },
   legend: {
-    type: 'group', label: '图例', children: {
-      show: { type: 'switch', label: '显示', default: true },
-      orient: { type: 'buttonGroup', label: '方向', default: 'horizontal', options: ORIENT_OPTIONS },
-      position: { type: 'positionGrid', label: '位置', default: { left: 'center', top: 'bottom' }, keys: ['left', 'top'] },
+    type: 'group', labelKey: 'chart.schema.cfg.legend.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.legend.show.label', default: true },
+      orient: { type: 'buttonGroup', labelKey: 'chart.schema.cfg.legend.orient.label', default: 'horizontal', options: ORIENT_OPTIONS },
+      position: { type: 'positionGrid', labelKey: 'chart.schema.cfg.legend.position.label', default: { left: 'center', top: 'bottom' }, keys: ['left', 'top'] },
       align: {
-        type: 'buttonGroup', label: '对齐', default: 'auto',
+        type: 'buttonGroup', labelKey: 'chart.schema.cfg.legend.align.label', default: 'auto',
         options: [
-          { label: '自动', title: '自动对齐', value: 'auto', icon: alignAuto },
-          { label: '左', title: '左对齐', value: 'left', icon: alignLeft },
-          { label: '中', title: '居中对齐', value: 'center', icon: alignCenter },
-          { label: '右', title: '右对齐', value: 'right', icon: alignRight },
+          { labelKey: 'chart.schema.cfg.legend.align.options.auto.label', titleKey: 'chart.schema.cfg.legend.align.options.auto.title', value: 'auto', icon: alignAuto },
+          { labelKey: 'chart.schema.cfg.legend.align.options.left.label', titleKey: 'chart.schema.cfg.legend.align.options.left.title', value: 'left', icon: alignLeft },
+          { labelKey: 'chart.schema.cfg.legend.align.options.center.label', titleKey: 'chart.schema.cfg.legend.align.options.center.title', value: 'center', icon: alignCenter },
+          { labelKey: 'chart.schema.cfg.legend.align.options.right.label', titleKey: 'chart.schema.cfg.legend.align.options.right.title', value: 'right', icon: alignRight },
         ],
       },
       icon: {
-        type: 'select', label: '形状', default: '', options: [
-          { label: '自动', value: '' },
-          { label: '圆形', value: 'circle' },
-          { label: '方形', value: 'rect' },
-          { label: '圆角矩形', value: 'roundRect' },
-          { label: '菱形', value: 'diamond' },
-          { label: '三角', value: 'triangle' },
-          { label: '引脚', value: 'pin' },
+        type: 'select', labelKey: 'chart.schema.cfg.legend.icon.label', default: '', options: [
+          { labelKey: 'chart.schema.cfg.legend.icon.options.0.label', value: '' },
+          { labelKey: 'chart.schema.cfg.legend.icon.options.circle.label', value: 'circle' },
+          { labelKey: 'chart.schema.cfg.legend.icon.options.rect.label', value: 'rect' },
+          { labelKey: 'chart.schema.cfg.legend.icon.options.roundRect.label', value: 'roundRect' },
+          { labelKey: 'chart.schema.cfg.legend.icon.options.diamond.label', value: 'diamond' },
+          { labelKey: 'chart.schema.cfg.legend.icon.options.triangle.label', value: 'triangle' },
+          { labelKey: 'chart.schema.cfg.legend.icon.options.pin.label', value: 'pin' },
         ],
       },
-      itemWidth: { type: 'number', label: '形状宽', default: 25, min: 8, max: 100 },
-      itemHeight: { type: 'number', label: '形状高', default: 14, min: 8, max: 100 },
-      textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
+      itemWidth: { type: 'number', labelKey: 'chart.schema.cfg.legend.itemWidth.label', default: 25, min: 8, max: 100 },
+      itemHeight: { type: 'number', labelKey: 'chart.schema.cfg.legend.itemHeight.label', default: 14, min: 8, max: 100 },
+      textStyle: { type: 'group', labelKey: 'chart.schema.cfg.legend.textStyle.label', inline: true, children: STYLE_TEXT },
     },
   },
   tooltip: {
-    type: 'group', label: '提示框', children: {
-      show: { type: 'switch', label: '显示', default: true },
+    type: 'group', labelKey: 'chart.schema.cfg.tooltip.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.tooltip.show.label', default: true },
       trigger: {
-        type: 'select', label: '触发方式', default: 'axis', options: [
-          { label: '坐标轴', value: 'axis' }, { label: '数据项', value: 'item' }, { label: '不触发', value: 'none' },
+        type: 'select', labelKey: 'chart.schema.cfg.tooltip.trigger.label', default: 'axis', options: [
+          { labelKey: 'chart.schema.cfg.tooltip.trigger.options.axis.label', value: 'axis' }, { labelKey: 'chart.schema.cfg.tooltip.trigger.options.item.label', value: 'item' }, { labelKey: 'chart.schema.cfg.tooltip.trigger.options.none.label', value: 'none' },
         ],
       },
       axisPointer: {
-        type: 'group', label: '指示器类型', flat: true, children: {
+        type: 'group', labelKey: 'chart.schema.cfg.tooltip.axisPointer.label', flat: true, children: {
           type: {
             type: 'select', label: '', default: 'line', options: [
-              { label: '直线', value: 'line' }, { label: '阴影', value: 'shadow' },
-              { label: '无', value: 'none' }, { label: '十字准星', value: 'cross' },
+              { labelKey: 'chart.schema.cfg.tooltip.axisPointer.type.options.line.label', value: 'line' }, { labelKey: 'chart.schema.cfg.tooltip.axisPointer.type.options.shadow.label', value: 'shadow' },
+              { labelKey: 'chart.schema.cfg.tooltip.axisPointer.type.options.none.label', value: 'none' }, { labelKey: 'chart.schema.cfg.tooltip.axisPointer.type.options.cross.label', value: 'cross' },
             ],
           },
         },
       },
-      formatter: { type: 'input', label: '内容格式', default: '', placeholder: '如 {a}{b}: {c}，留空自动' },
-      backgroundColor: { type: 'color', label: '背景色', default: 'rgba(255,255,255,0.96)' },
-      borderColor: { type: 'color', label: '边框色', default: '#DCDFE6' },
-      textStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
+      formatter: { type: 'input', labelKey: 'chart.schema.cfg.tooltip.formatter.label', default: '', placeholderKey: 'chart.schema.cfg.tooltip.formatter.placeholder' },
+      backgroundColor: { type: 'color', labelKey: 'chart.schema.cfg.tooltip.backgroundColor.label', default: 'rgba(255,255,255,0.96)' },
+      borderColor: { type: 'color', labelKey: 'chart.schema.cfg.tooltip.borderColor.label', default: '#DCDFE6' },
+      textStyle: { type: 'group', labelKey: 'chart.schema.cfg.tooltip.textStyle.label', inline: true, children: STYLE_TEXT },
     },
   },
   label: {
-    type: 'group', label: '数据标签', children: {
-      show: { type: 'switch', label: '显示', default: false },
+    type: 'group', labelKey: 'chart.schema.cfg.label.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.label.show.label', default: false },
       content: {
-        type: 'select', multiple: true, label: '显示内容', default: ['{c}'], options: [
-          { label: '系列名称', value: '{a}' }, { label: '类别名称', value: '{b}' }, { label: '数值', value: '{c}' },
+        type: 'select', multiple: true, labelKey: 'chart.schema.cfg.label.content.label', default: ['{c}'], options: [
+          { labelKey: 'chart.schema.cfg.label.content.options.a.label', value: '{a}' }, { labelKey: 'chart.schema.cfg.label.content.options.b.label', value: '{b}' }, { labelKey: 'chart.schema.cfg.label.content.options.c.label', value: '{c}' },
         ],
       },
       separator: {
-        type: 'select', label: '分隔符', default: ' ', options: [
-          { label: '空格', value: ' ' }, { label: '逗号', value: ', ' },
-          { label: '换行', value: '\n' }, { label: '竖线', value: ' | ' },
+        type: 'select', labelKey: 'chart.schema.cfg.label.separator.label', default: ' ', options: [
+          { labelKey: 'chart.schema.cfg.label.separator.options.space.label', value: ' ' }, { labelKey: 'chart.schema.cfg.label.separator.options._2c_20.label', value: ', ' },
+          { labelKey: 'chart.schema.cfg.label.separator.options.newline.label', value: '\n' }, { labelKey: 'chart.schema.cfg.label.separator.options._20_7c_20.label', value: ' | ' },
         ],
       },
-      position: { type: 'buttonGroup', label: '位置', default: 'top', options: LABEL_POS_OPTIONS },
+      position: { type: 'buttonGroup', labelKey: 'chart.schema.cfg.label.position.label', default: 'top', options: LABEL_POS_OPTIONS },
       textStyle: {
-        type: 'group', label: '文字样式', inline: true, children: {
+        type: 'group', labelKey: 'chart.schema.cfg.label.textStyle.label', inline: true, children: {
           ...STYLE_TEXT,
-          color: { type: 'color', label: '颜色', default: 'inherit' },
+          color: { type: 'color', labelKey: 'chart.schema.cfg.label.textStyle.color.label', default: 'inherit' },
         },
       },
-      showBorder: { type: 'switch', label: '显示描边', default: false },
-      borderColor: { type: 'color', label: '描边颜色', default: '#FFFFFF' },
-      allowOverlap: { type: 'switch', label: '允许重叠', default: false },
+      showBorder: { type: 'switch', labelKey: 'chart.schema.cfg.label.showBorder.label', default: false },
+      borderColor: { type: 'color', labelKey: 'chart.schema.cfg.label.borderColor.label', default: '#FFFFFF' },
+      allowOverlap: { type: 'switch', labelKey: 'chart.schema.cfg.label.allowOverlap.label', default: false },
     },
   },
   markLine: {
-    type: 'group', label: '标记线', children: {
-      color: { type: 'color', label: '线条颜色', default: '#E63946' },
-      width: { type: 'number', label: '线宽', default: 1.5, min: 0.5, max: 10, step: 0.5 },
-      show: { type: 'switch', label: '显示', default: false },
+    type: 'group', labelKey: 'chart.schema.cfg.markLine.label', children: {
+      color: { type: 'color', labelKey: 'chart.schema.cfg.markLine.color.label', default: '#E63946' },
+      width: { type: 'number', labelKey: 'chart.schema.cfg.markLine.width.label', default: 1.5, min: 0.5, max: 10, step: 0.5 },
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.markLine.show.label', default: false },
       type: {
-        type: 'select', label: '类型', default: 'average', options: [
-          { label: '平均值', value: 'average' }, { label: '最大值', value: 'max' },
-          { label: '最小值', value: 'min' }, { label: '中位数', value: 'median' }, { label: '自定义', value: 'custom' },
+        type: 'select', labelKey: 'chart.schema.cfg.markLine.type.label', default: 'average', options: [
+          { labelKey: 'chart.schema.cfg.markLine.type.options.average.label', value: 'average' }, { labelKey: 'chart.schema.cfg.markLine.type.options.max.label', value: 'max' },
+          { labelKey: 'chart.schema.cfg.markLine.type.options.min.label', value: 'min' }, { labelKey: 'chart.schema.cfg.markLine.type.options.median.label', value: 'median' }, { labelKey: 'chart.schema.cfg.markLine.type.options.custom.label', value: 'custom' },
         ],
       },
-      customValue: { type: 'number', label: '自定义值', default: 0 },
+      customValue: { type: 'number', labelKey: 'chart.schema.cfg.markLine.customValue.label', default: 0 },
       lineType: {
-        type: 'select', label: '线型', default: 'dashed', options: [
-          { label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' },
+        type: 'select', labelKey: 'chart.schema.cfg.markLine.lineType.label', default: 'dashed', options: [
+          { labelKey: 'chart.schema.cfg.markLine.lineType.options.solid.label', value: 'solid' }, { labelKey: 'chart.schema.cfg.markLine.lineType.options.dashed.label', value: 'dashed' }, { labelKey: 'chart.schema.cfg.markLine.lineType.options.dotted.label', value: 'dotted' },
         ],
       },
-      showLabel: { type: 'switch', label: '显示标签', default: true },
+      showLabel: { type: 'switch', labelKey: 'chart.schema.cfg.markLine.showLabel.label', default: true },
     },
   },
   grid: {
-    type: 'group', label: '绘图区域', children: {
-      left: { type: 'number', label: '左边距', default: 60, min: 0, max: 200 },
-      right: { type: 'number', label: '右边距', default: 60, min: 0, max: 200 },
-      top: { type: 'number', label: '上边距', default: 60, min: 0, max: 200 },
-      bottom: { type: 'number', label: '下边距', default: 60, min: 0, max: 200 },
+    type: 'group', labelKey: 'chart.schema.cfg.grid.label', children: {
+      left: { type: 'number', labelKey: 'chart.schema.cfg.grid.left.label', default: 60, min: 0, max: 200 },
+      right: { type: 'number', labelKey: 'chart.schema.cfg.grid.right.label', default: 60, min: 0, max: 200 },
+      top: { type: 'number', labelKey: 'chart.schema.cfg.grid.top.label', default: 60, min: 0, max: 200 },
+      bottom: { type: 'number', labelKey: 'chart.schema.cfg.grid.bottom.label', default: 60, min: 0, max: 200 },
     },
   },
   dataZoom: {
-    type: 'group', label: '缩略轴', children: {
-      show: { type: 'switch', label: '启用', default: false },
+    type: 'group', labelKey: 'chart.schema.cfg.dataZoom.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.dataZoom.show.label', default: false },
       type: {
-        type: 'select', label: '类型', default: 'slider', options: [
-          { label: '滑块', value: 'slider' }, { label: '内置', value: 'inside' },
+        type: 'select', labelKey: 'chart.schema.cfg.dataZoom.type.label', default: 'slider', options: [
+          { labelKey: 'chart.schema.cfg.dataZoom.type.options.slider.label', value: 'slider' }, { labelKey: 'chart.schema.cfg.dataZoom.type.options.inside.label', value: 'inside' },
         ],
       },
-      startPercent: { type: 'number', label: '起始比例%', default: 0, min: 0, max: 100 },
-      endPercent: { type: 'number', label: '结束比例%', default: 100, min: 0, max: 100 },
+      startPercent: { type: 'number', labelKey: 'chart.schema.cfg.dataZoom.startPercent.label', default: 0, min: 0, max: 100 },
+      endPercent: { type: 'number', labelKey: 'chart.schema.cfg.dataZoom.endPercent.label', default: 100, min: 0, max: 100 },
     },
   },
   xAxis: {
-    type: 'group', label: 'X轴', children: {
-      show: { type: 'switch', label: '显示', default: true },
-      name: { type: 'input', label: '轴名称', default: '' },
-      nameTextStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
-      labelColor: { type: 'color', label: '标签颜色', default: '' },
-      nameRotate: { type: 'number', label: '名称旋转', default: 0, min: -90, max: 90 },
-      labelRotate: { type: 'number', label: '标签旋转', default: 0, min: -90, max: 90 },
+    type: 'group', labelKey: 'chart.schema.cfg.xAxis.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.xAxis.show.label', default: true },
+      name: { type: 'input', labelKey: 'chart.schema.cfg.xAxis.name.label', default: '' },
+      nameTextStyle: { type: 'group', labelKey: 'chart.schema.cfg.xAxis.nameTextStyle.label', inline: true, children: STYLE_TEXT },
+      labelColor: { type: 'color', labelKey: 'chart.schema.cfg.xAxis.labelColor.label', default: '' },
+      nameRotate: { type: 'number', labelKey: 'chart.schema.cfg.xAxis.nameRotate.label', default: 0, min: -90, max: 90 },
+      labelRotate: { type: 'number', labelKey: 'chart.schema.cfg.xAxis.labelRotate.label', default: 0, min: -90, max: 90 },
     },
   },
   yAxis: {
-    type: 'group', label: 'Y轴', children: {
-      show: { type: 'switch', label: '显示', default: true },
-      name: { type: 'input', label: '轴名称', default: '' },
-      nameTextStyle: { type: 'group', label: '文字样式', inline: true, children: STYLE_TEXT },
-      unit: { type: 'input', label: '单位', default: '', placeholder: '如 元、%' },
-      labelColor: { type: 'color', label: '标签颜色', default: '' },
-      splitLine: { type: 'switch', label: '网格线', default: true },
-      min: { type: 'input', label: '最小值', default: '', placeholder: '自动或数值' },
-      max: { type: 'input', label: '最大值', default: '', placeholder: '自动或数值' },
-      interval: { type: 'input', label: '数据步长', default: '', placeholder: '自动或数值' },
+    type: 'group', labelKey: 'chart.schema.cfg.yAxis.label', children: {
+      show: { type: 'switch', labelKey: 'chart.schema.cfg.yAxis.show.label', default: true },
+      name: { type: 'input', labelKey: 'chart.schema.cfg.yAxis.name.label', default: '' },
+      nameTextStyle: { type: 'group', labelKey: 'chart.schema.cfg.yAxis.nameTextStyle.label', inline: true, children: STYLE_TEXT },
+      unit: { type: 'input', labelKey: 'chart.schema.cfg.yAxis.unit.label', default: '', placeholderKey: 'chart.schema.cfg.yAxis.unit.placeholder' },
+      labelColor: { type: 'color', labelKey: 'chart.schema.cfg.yAxis.labelColor.label', default: '' },
+      splitLine: { type: 'switch', labelKey: 'chart.schema.cfg.yAxis.splitLine.label', default: true },
+      min: { type: 'input', labelKey: 'chart.schema.cfg.yAxis.min.label', default: '', placeholderKey: 'chart.schema.cfg.yAxis.min.placeholder' },
+      max: { type: 'input', labelKey: 'chart.schema.cfg.yAxis.max.label', default: '', placeholderKey: 'chart.schema.cfg.yAxis.max.placeholder' },
+      interval: { type: 'input', labelKey: 'chart.schema.cfg.yAxis.interval.label', default: '', placeholderKey: 'chart.schema.cfg.yAxis.interval.placeholder' },
     },
   },
 }
@@ -198,269 +199,269 @@ export const COMMON_CONFIG_SCHEMA = {
 export const TYPE_CONFIG_SCHEMAS = {
   // 柱形图
   bar: {
-    barWidth: { type: 'number', label: '柱宽', default: 0, min: 0, max: 100, placeholder: '自动' },
-    barGap: { type: 'number', label: '柱间距%', default: 20, min: 0, max: 100 },
-    rounded: { type: 'switch', label: '圆角柱', default: false },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.bar.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.bar.barWidth.placeholder' },
+    barGap: { type: 'number', labelKey: 'chart.schema.type.bar.barGap.label', default: 20, min: 0, max: 100 },
+    rounded: { type: 'switch', labelKey: 'chart.schema.type.bar.rounded.label', default: false },
   },
   barClustered: {
-    barWidth: { type: 'number', label: '柱宽', default: 0, min: 0, max: 100, placeholder: '自动' },
-    barGap: { type: 'number', label: '柱间距%', default: 30, min: 0, max: 100 },
-    rounded: { type: 'switch', label: '圆角柱', default: false },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.barClustered.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.barClustered.barWidth.placeholder' },
+    barGap: { type: 'number', labelKey: 'chart.schema.type.barClustered.barGap.label', default: 30, min: 0, max: 100 },
+    rounded: { type: 'switch', labelKey: 'chart.schema.type.barClustered.rounded.label', default: false },
   },
   barStacked: {
-    barWidth: { type: 'number', label: '柱宽', default: 0, min: 0, max: 100, placeholder: '自动' },
-    rounded: { type: 'switch', label: '圆角柱', default: false },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.barStacked.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.barStacked.barWidth.placeholder' },
+    rounded: { type: 'switch', labelKey: 'chart.schema.type.barStacked.rounded.label', default: false },
   },
   barLine: {
-    lineSeries: { type: 'number', label: '折线指定系列', default: 0, min: 0, max: 10 },
-    smooth: { type: 'switch', label: '平滑折线', default: false },
+    lineSeries: { type: 'number', labelKey: 'chart.schema.type.barLine.lineSeries.label', default: 0, min: 0, max: 10 },
+    smooth: { type: 'switch', labelKey: 'chart.schema.type.barLine.smooth.label', default: false },
   },
   barPictorial: {
     symbolType: {
-      type: 'select', label: '符号类型', default: 'rect', options: [
-        { label: '圆', value: 'circle' }, { label: '矩形', value: 'rect' },
-        { label: '三角', value: 'triangle' }, { label: '菱形', value: 'diamond' },
+      type: 'select', labelKey: 'chart.schema.type.barPictorial.symbolType.label', default: 'rect', options: [
+        { labelKey: 'chart.schema.type.barPictorial.symbolType.options.circle.label', value: 'circle' }, { labelKey: 'chart.schema.type.barPictorial.symbolType.options.rect.label', value: 'rect' },
+        { labelKey: 'chart.schema.type.barPictorial.symbolType.options.triangle.label', value: 'triangle' }, { labelKey: 'chart.schema.type.barPictorial.symbolType.options.diamond.label', value: 'diamond' },
       ],
     },
   },
   barPercentStacked: {
-    barWidth: { type: 'number', label: '柱宽', default: 0, min: 0, max: 100, placeholder: '自动' },
-    showPercentLabel: { type: 'switch', label: '显示百分比标签', default: true },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.barPercentStacked.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.barPercentStacked.barWidth.placeholder' },
+    showPercentLabel: { type: 'switch', labelKey: 'chart.schema.type.barPercentStacked.showPercentLabel.label', default: true },
   },
   barGroupStacked: {
-    barWidth: { type: 'number', label: '柱宽', default: 0, min: 0, max: 100, placeholder: '自动' },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.barGroupStacked.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.barGroupStacked.barWidth.placeholder' },
   },
   barStackedLine: {
-    smooth: { type: 'switch', label: '平滑折线', default: false },
+    smooth: { type: 'switch', labelKey: 'chart.schema.type.barStackedLine.smooth.label', default: false },
   },
   barStackedPictorial: {
     symbolType: {
-      type: 'select', label: '符号类型', default: 'rect', options: [
-        { label: '圆', value: 'circle' }, { label: '矩形', value: 'rect' },
+      type: 'select', labelKey: 'chart.schema.type.barStackedPictorial.symbolType.label', default: 'rect', options: [
+        { labelKey: 'chart.schema.type.barStackedPictorial.symbolType.options.circle.label', value: 'circle' }, { labelKey: 'chart.schema.type.barStackedPictorial.symbolType.options.rect.label', value: 'rect' },
       ],
     },
   },
   bullet: {
-    barWidth: { type: 'number', label: '柱宽', default: 30, min: 10, max: 80 },
-    targetValue: { type: 'number', label: '目标值', default: undefined },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.bullet.barWidth.label', default: 30, min: 10, max: 80 },
+    targetValue: { type: 'number', labelKey: 'chart.schema.type.bullet.targetValue.label', default: undefined },
   },
   waterfall: {
-    increaseColor: { type: 'color', label: '增加颜色', default: '#67C23A' },
-    decreaseColor: { type: 'color', label: '减少颜色', default: '#F56C6C' },
+    increaseColor: { type: 'color', labelKey: 'chart.schema.type.waterfall.increaseColor.label', default: '#67C23A' },
+    decreaseColor: { type: 'color', labelKey: 'chart.schema.type.waterfall.decreaseColor.label', default: '#F56C6C' },
   },
   pareto: {
-    showLine: { type: 'switch', label: '显示累积线', default: true },
+    showLine: { type: 'switch', labelKey: 'chart.schema.type.pareto.showLine.label', default: true },
   },
 
   // 条形图
   horizontalBar: {
-    barWidth: { type: 'number', label: '条宽', default: 0, min: 0, max: 100, placeholder: '自动' },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.horizontalBar.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.horizontalBar.barWidth.placeholder' },
   },
   horizontalBarClustered: {
-    barWidth: { type: 'number', label: '条宽', default: 0, min: 0, max: 100, placeholder: '自动' },
-    barGap: { type: 'number', label: '条间距%', default: 30, min: 0, max: 100 },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.horizontalBarClustered.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.horizontalBarClustered.barWidth.placeholder' },
+    barGap: { type: 'number', labelKey: 'chart.schema.type.horizontalBarClustered.barGap.label', default: 30, min: 0, max: 100 },
   },
   horizontalBarStacked: {
-    barWidth: { type: 'number', label: '条宽', default: 0, min: 0, max: 100, placeholder: '自动' },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.horizontalBarStacked.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.horizontalBarStacked.barWidth.placeholder' },
   },
   horizontalBarPercentStacked: {
-    barWidth: { type: 'number', label: '条宽', default: 0, min: 0, max: 100, placeholder: '自动' },
-    showPercentLabel: { type: 'switch', label: '显示百分比标签', default: true },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.horizontalBarPercentStacked.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.horizontalBarPercentStacked.barWidth.placeholder' },
+    showPercentLabel: { type: 'switch', labelKey: 'chart.schema.type.horizontalBarPercentStacked.showPercentLabel.label', default: true },
   },
   horizontalBarGroupStacked: {
-    barWidth: { type: 'number', label: '条宽', default: 0, min: 0, max: 100, placeholder: '自动' },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.horizontalBarGroupStacked.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.horizontalBarGroupStacked.barWidth.placeholder' },
   },
   horizontalBullet: {
-    barWidth: { type: 'number', label: '条宽', default: 30, min: 10, max: 80 },
-    targetValue: { type: 'number', label: '目标值', default: undefined },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.horizontalBullet.barWidth.label', default: 30, min: 10, max: 80 },
+    targetValue: { type: 'number', labelKey: 'chart.schema.type.horizontalBullet.targetValue.label', default: undefined },
   },
   butterfly: {
-    barWidth: { type: 'number', label: '条宽', default: 0, min: 0, max: 100, placeholder: '自动' },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.butterfly.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.butterfly.barWidth.placeholder' },
   },
 
   // 折线图与面积图
   line: {
-    smooth: { type: 'switch', label: '平滑', default: false },
-    areaStyle: { type: 'switch', label: '面积填充', default: false },
+    smooth: { type: 'switch', labelKey: 'chart.schema.type.line.smooth.label', default: false },
+    areaStyle: { type: 'switch', labelKey: 'chart.schema.type.line.areaStyle.label', default: false },
     step: {
-      type: 'select', label: '步进', default: '', options: [
-        { label: '无', value: '' }, { label: '起始', value: 'start' },
-        { label: '中间', value: 'middle' }, { label: '结束', value: 'end' },
+      type: 'select', labelKey: 'chart.schema.type.line.step.label', default: '', options: [
+        { labelKey: 'chart.schema.type.line.step.options.0.label', value: '' }, { labelKey: 'chart.schema.type.line.step.options.start.label', value: 'start' },
+        { labelKey: 'chart.schema.type.line.step.options.middle.label', value: 'middle' }, { labelKey: 'chart.schema.type.line.step.options.end.label', value: 'end' },
       ],
     },
   },
   lineMulti: {
-    smooth: { type: 'switch', label: '平滑', default: false },
+    smooth: { type: 'switch', labelKey: 'chart.schema.type.lineMulti.smooth.label', default: false },
   },
   areaStacked: {
-    smooth: { type: 'switch', label: '平滑', default: false },
-    opacity: { type: 'slider', label: '透明度', default: 0.6, min: 0, max: 1, step: 0.1 },
+    smooth: { type: 'switch', labelKey: 'chart.schema.type.areaStacked.smooth.label', default: false },
+    opacity: { type: 'slider', labelKey: 'chart.schema.type.areaStacked.opacity.label', default: 0.6, min: 0, max: 1, step: 0.1 },
   },
   areaPercentStacked: {
-    smooth: { type: 'switch', label: '平滑', default: false },
-    opacity: { type: 'slider', label: '透明度', default: 0.6, min: 0, max: 1, step: 0.1 },
+    smooth: { type: 'switch', labelKey: 'chart.schema.type.areaPercentStacked.smooth.label', default: false },
+    opacity: { type: 'slider', labelKey: 'chart.schema.type.areaPercentStacked.opacity.label', default: 0.6, min: 0, max: 1, step: 0.1 },
   },
 
   // 饼图与漏斗图
   pie: {
-    radius: { type: 'slider', label: '半径%', default: 65, min: 20, max: 90 },
-    startAngle: { type: 'number', label: '起始角度', default: 90, min: 0, max: 360 },
-    labelPosition: { type: 'buttonGroup', label: '标签位置', default: 'outside', options: PIE_LABEL_POS_OPTIONS },
-    roseType: { type: 'switch', label: '玫瑰模式', default: false },
+    radius: { type: 'slider', labelKey: 'chart.schema.type.pie.radius.label', default: 65, min: 20, max: 90 },
+    startAngle: { type: 'number', labelKey: 'chart.schema.type.pie.startAngle.label', default: 90, min: 0, max: 360 },
+    labelPosition: { type: 'buttonGroup', labelKey: 'chart.schema.type.pie.labelPosition.label', default: 'outside', options: PIE_LABEL_POS_OPTIONS },
+    roseType: { type: 'switch', labelKey: 'chart.schema.type.pie.roseType.label', default: false },
   },
   doughnut: {
-    radiusInner: { type: 'slider', label: '内径%', default: 40, min: 10, max: 60 },
-    radiusOuter: { type: 'slider', label: '外径%', default: 68, min: 30, max: 90 },
-    startAngle: { type: 'number', label: '起始角度', default: 90, min: 0, max: 360 },
-    labelPosition: { type: 'buttonGroup', label: '标签位置', default: 'outside', options: PIE_LABEL_POS_OPTIONS },
-    showCenter: { type: 'switch', label: '中心文本', default: false },
-    centerText: { type: 'input', label: '中心标题', default: '', placeholder: '留空显示数值' },
-    centerSubtext: { type: 'input', label: '中心副标题', default: '', placeholder: '可选' },
-    centerColor: { type: 'color', label: '标题颜色', default: '#303133' },
-    centerSubColor: { type: 'color', label: '副标题颜色', default: '#909399' },
-    centerFontSize: { type: 'number', label: '标题字号', default: 22, min: 10, max: 60 },
-    centerSubFontSize: { type: 'number', label: '副标题字号', default: 12, min: 8, max: 40 },
+    radiusInner: { type: 'slider', labelKey: 'chart.schema.type.doughnut.radiusInner.label', default: 40, min: 10, max: 60 },
+    radiusOuter: { type: 'slider', labelKey: 'chart.schema.type.doughnut.radiusOuter.label', default: 68, min: 30, max: 90 },
+    startAngle: { type: 'number', labelKey: 'chart.schema.type.doughnut.startAngle.label', default: 90, min: 0, max: 360 },
+    labelPosition: { type: 'buttonGroup', labelKey: 'chart.schema.type.doughnut.labelPosition.label', default: 'outside', options: PIE_LABEL_POS_OPTIONS },
+    showCenter: { type: 'switch', labelKey: 'chart.schema.type.doughnut.showCenter.label', default: false },
+    centerText: { type: 'input', labelKey: 'chart.schema.type.doughnut.centerText.label', default: '', placeholderKey: 'chart.schema.type.doughnut.centerText.placeholder' },
+    centerSubtext: { type: 'input', labelKey: 'chart.schema.type.doughnut.centerSubtext.label', default: '', placeholderKey: 'chart.schema.type.doughnut.centerSubtext.placeholder' },
+    centerColor: { type: 'color', labelKey: 'chart.schema.type.doughnut.centerColor.label', default: '#303133' },
+    centerSubColor: { type: 'color', labelKey: 'chart.schema.type.doughnut.centerSubColor.label', default: '#909399' },
+    centerFontSize: { type: 'number', labelKey: 'chart.schema.type.doughnut.centerFontSize.label', default: 22, min: 10, max: 60 },
+    centerSubFontSize: { type: 'number', labelKey: 'chart.schema.type.doughnut.centerSubFontSize.label', default: 12, min: 8, max: 40 },
   },
   sunburst: {
-    radius: { type: 'slider', label: '半径%', default: 80, min: 30, max: 90 },
-    startAngle: { type: 'number', label: '起始角度', default: 90, min: 0, max: 360 },
+    radius: { type: 'slider', labelKey: 'chart.schema.type.sunburst.radius.label', default: 80, min: 30, max: 90 },
+    startAngle: { type: 'number', labelKey: 'chart.schema.type.sunburst.startAngle.label', default: 90, min: 0, max: 360 },
   },
   nightingale: {
-    radius: { type: 'slider', label: '半径%', default: 80, min: 30, max: 90 },
+    radius: { type: 'slider', labelKey: 'chart.schema.type.nightingale.radius.label', default: 80, min: 30, max: 90 },
     roseType: {
-      type: 'select', label: '模式', default: 'radius', options: [
-        { label: '半径', value: 'radius' }, { label: '面积', value: 'area' },
+      type: 'select', labelKey: 'chart.schema.type.nightingale.roseType.label', default: 'radius', options: [
+        { labelKey: 'chart.schema.type.nightingale.roseType.options.radius.label', value: 'radius' }, { labelKey: 'chart.schema.type.nightingale.roseType.options.area.label', value: 'area' },
       ],
     },
   },
   funnel: {
     sort: {
-      type: 'select', label: '排序', default: 'descending', options: [
-        { label: '降序', value: 'descending' }, { label: '升序', value: 'ascending' }, { label: '无', value: 'none' },
+      type: 'select', labelKey: 'chart.schema.type.funnel.sort.label', default: 'descending', options: [
+        { labelKey: 'chart.schema.type.funnel.sort.options.descending.label', value: 'descending' }, { labelKey: 'chart.schema.type.funnel.sort.options.ascending.label', value: 'ascending' }, { labelKey: 'chart.schema.type.funnel.sort.options.none.label', value: 'none' },
       ],
     },
-    gap: { type: 'number', label: '间距', default: 2, min: 0, max: 20 },
+    gap: { type: 'number', labelKey: 'chart.schema.type.funnel.gap.label', default: 2, min: 0, max: 20 },
   },
   funnelHorizontal: {
     sort: {
-      type: 'select', label: '排序', default: 'descending', options: [
-        { label: '降序', value: 'descending' }, { label: '升序', value: 'ascending' }, { label: '无', value: 'none' },
+      type: 'select', labelKey: 'chart.schema.type.funnelHorizontal.sort.label', default: 'descending', options: [
+        { labelKey: 'chart.schema.type.funnelHorizontal.sort.options.descending.label', value: 'descending' }, { labelKey: 'chart.schema.type.funnelHorizontal.sort.options.ascending.label', value: 'ascending' }, { labelKey: 'chart.schema.type.funnelHorizontal.sort.options.none.label', value: 'none' },
       ],
     },
-    gap: { type: 'number', label: '间距', default: 2, min: 0, max: 20 },
+    gap: { type: 'number', labelKey: 'chart.schema.type.funnelHorizontal.gap.label', default: 2, min: 0, max: 20 },
   },
 
   // 散点图与气泡图
   scatter: {
-    symbolSize: { type: 'number', label: '符号大小', default: 10, min: 2, max: 50 },
+    symbolSize: { type: 'number', labelKey: 'chart.schema.type.scatter.symbolSize.label', default: 10, min: 2, max: 50 },
   },
   bubble: {
-    symbolSize: { type: 'number', label: '最大气泡大小', default: 50, min: 10, max: 100 },
+    symbolSize: { type: 'number', labelKey: 'chart.schema.type.bubble.symbolSize.label', default: 50, min: 10, max: 100 },
   },
 
   // 指标与进度
   progressBar: {
-    max: { type: 'number', label: '最大值', default: 100, min: 1 },
-    showTarget: { type: 'switch', label: '显示目标', default: true },
+    max: { type: 'number', labelKey: 'chart.schema.type.progressBar.max.label', default: 100, min: 1 },
+    showTarget: { type: 'switch', labelKey: 'chart.schema.type.progressBar.showTarget.label', default: true },
   },
   circularProgress: {
-    max: { type: 'number', label: '最大值', default: 100, min: 1 },
-    lineWidth: { type: 'number', label: '线宽', default: 10, min: 2, max: 30 },
+    max: { type: 'number', labelKey: 'chart.schema.type.circularProgress.max.label', default: 100, min: 1 },
+    lineWidth: { type: 'number', labelKey: 'chart.schema.type.circularProgress.lineWidth.label', default: 10, min: 2, max: 30 },
   },
   multiRingProgress: {
-    max: { type: 'number', label: '最大值', default: 100, min: 1 },
-    lineWidth: { type: 'number', label: '线宽', default: 10, min: 2, max: 30 },
+    max: { type: 'number', labelKey: 'chart.schema.type.multiRingProgress.max.label', default: 100, min: 1 },
+    lineWidth: { type: 'number', labelKey: 'chart.schema.type.multiRingProgress.lineWidth.label', default: 10, min: 2, max: 30 },
   },
   fluidProgress: {
-    max: { type: 'number', label: '最大值', default: 100, min: 1 },
+    max: { type: 'number', labelKey: 'chart.schema.type.fluidProgress.max.label', default: 100, min: 1 },
   },
   gauge: {
-    min: { type: 'number', label: '最小值', default: 0 },
-    max: { type: 'number', label: '最大值', default: 100 },
-    splitNumber: { type: 'number', label: '分割段数', default: 10, min: 1, max: 20 },
-    progressWidth: { type: 'number', label: '进度宽度', default: 10, min: 2, max: 30 },
+    min: { type: 'number', labelKey: 'chart.schema.type.gauge.min.label', default: 0 },
+    max: { type: 'number', labelKey: 'chart.schema.type.gauge.max.label', default: 100 },
+    splitNumber: { type: 'number', labelKey: 'chart.schema.type.gauge.splitNumber.label', default: 10, min: 1, max: 20 },
+    progressWidth: { type: 'number', labelKey: 'chart.schema.type.gauge.progressWidth.label', default: 10, min: 2, max: 30 },
   },
   statTrend: {
-    showSparkline: { type: 'switch', label: '显示趋势线', default: true },
-    sparklineColor: { type: 'color', label: '趋势线颜色', default: '#409EFF' },
+    showSparkline: { type: 'switch', labelKey: 'chart.schema.type.statTrend.showSparkline.label', default: true },
+    sparklineColor: { type: 'color', labelKey: 'chart.schema.type.statTrend.sparklineColor.label', default: '#409EFF' },
   },
   radar: {
     shape: {
-      type: 'select', label: '形状', default: 'polygon', options: [
-        { label: '多边形', value: 'polygon' }, { label: '圆形', value: 'circle' },
+      type: 'select', labelKey: 'chart.schema.type.radar.shape.label', default: 'polygon', options: [
+        { labelKey: 'chart.schema.type.radar.shape.options.polygon.label', value: 'polygon' }, { labelKey: 'chart.schema.type.radar.shape.options.circle.label', value: 'circle' },
       ],
     },
-    splitNumber: { type: 'number', label: '分割段数', default: 5, min: 3, max: 12 },
-    areaOpacity: { type: 'slider', label: '区域透明度', default: 15, min: 0, max: 100, step: 5 },
+    splitNumber: { type: 'number', labelKey: 'chart.schema.type.radar.splitNumber.label', default: 5, min: 3, max: 12 },
+    areaOpacity: { type: 'slider', labelKey: 'chart.schema.type.radar.areaOpacity.label', default: 15, min: 0, max: 100, step: 5 },
   },
 
   // 地图
   mapChina: {
-    zoom: { type: 'slider', label: '缩放', default: 1, min: 0.5, max: 5, step: 0.1 },
-    showLabels: { type: 'switch', label: '显示地区名', default: true },
+    zoom: { type: 'slider', labelKey: 'chart.schema.type.mapChina.zoom.label', default: 1, min: 0.5, max: 5, step: 0.1 },
+    showLabels: { type: 'switch', labelKey: 'chart.schema.type.mapChina.showLabels.label', default: true },
   },
   mapChinaBubble: {
-    zoom: { type: 'slider', label: '缩放', default: 1, min: 0.5, max: 5, step: 0.1 },
-    symbolSize: { type: 'number', label: '气泡大小', default: 12, min: 5, max: 50 },
-    showLabels: { type: 'switch', label: '显示地区名', default: false },
+    zoom: { type: 'slider', labelKey: 'chart.schema.type.mapChinaBubble.zoom.label', default: 1, min: 0.5, max: 5, step: 0.1 },
+    symbolSize: { type: 'number', labelKey: 'chart.schema.type.mapChinaBubble.symbolSize.label', default: 12, min: 5, max: 50 },
+    showLabels: { type: 'switch', labelKey: 'chart.schema.type.mapChinaBubble.showLabels.label', default: false },
   },
   mapChinaSymbol: {
-    zoom: { type: 'slider', label: '缩放', default: 1, min: 0.5, max: 5, step: 0.1 },
-    symbolSize: { type: 'number', label: '符号大小', default: 14, min: 5, max: 50 },
+    zoom: { type: 'slider', labelKey: 'chart.schema.type.mapChinaSymbol.zoom.label', default: 1, min: 0.5, max: 5, step: 0.1 },
+    symbolSize: { type: 'number', labelKey: 'chart.schema.type.mapChinaSymbol.symbolSize.label', default: 14, min: 5, max: 50 },
   },
   mapWorld: {
-    zoom: { type: 'slider', label: '缩放', default: 1, min: 0.5, max: 5, step: 0.1 },
+    zoom: { type: 'slider', labelKey: 'chart.schema.type.mapWorld.zoom.label', default: 1, min: 0.5, max: 5, step: 0.1 },
   },
 
   // 其他
   heatmap: {
-    showValues: { type: 'switch', label: '显示数值', default: true },
+    showValues: { type: 'switch', labelKey: 'chart.schema.type.heatmap.showValues.label', default: true },
   },
   polarBar: {
-    barWidth: { type: 'number', label: '柱宽', default: 0, min: 0, max: 100, placeholder: '自动' },
+    barWidth: { type: 'number', labelKey: 'chart.schema.type.polarBar.barWidth.label', default: 0, min: 0, max: 100, placeholderKey: 'chart.schema.type.polarBar.barWidth.placeholder' },
   },
   barBreakAxis: {
-    breakStart: { type: 'number', label: '断点起始', default: 80 },
-    breakEnd: { type: 'number', label: '断点结束', default: 200 },
+    breakStart: { type: 'number', labelKey: 'chart.schema.type.barBreakAxis.breakStart.label', default: 80 },
+    breakEnd: { type: 'number', labelKey: 'chart.schema.type.barBreakAxis.breakEnd.label', default: 200 },
   },
   calendar: {
-    cellSize: { type: 'number', label: '单元格大小', default: 20, min: 10, max: 50 },
+    cellSize: { type: 'number', labelKey: 'chart.schema.type.calendar.cellSize.label', default: 20, min: 10, max: 50 },
   },
   candlestick: {
-    upColor: { type: 'color', label: '阳线颜色', default: '#F56C6C' },
-    downColor: { type: 'color', label: '阴线颜色', default: '#67C23A' },
+    upColor: { type: 'color', labelKey: 'chart.schema.type.candlestick.upColor.label', default: '#F56C6C' },
+    downColor: { type: 'color', labelKey: 'chart.schema.type.candlestick.downColor.label', default: '#67C23A' },
   },
   treemap: {
-    orient: { type: 'buttonGroup', label: '方向', default: 'horizontal', options: ORIENT_OPTIONS },
+    orient: { type: 'buttonGroup', labelKey: 'chart.schema.type.treemap.orient.label', default: 'horizontal', options: ORIENT_OPTIONS },
   },
   sankey: {
-    nodeWidth: { type: 'number', label: '节点宽度', default: 20, min: 5, max: 50 },
-    nodeGap: { type: 'number', label: '节点间距', default: 8, min: 2, max: 30 },
-    layoutIterations: { type: 'number', label: '布局迭代', default: 32, min: 0, max: 100 },
+    nodeWidth: { type: 'number', labelKey: 'chart.schema.type.sankey.nodeWidth.label', default: 20, min: 5, max: 50 },
+    nodeGap: { type: 'number', labelKey: 'chart.schema.type.sankey.nodeGap.label', default: 8, min: 2, max: 30 },
+    layoutIterations: { type: 'number', labelKey: 'chart.schema.type.sankey.layoutIterations.label', default: 32, min: 0, max: 100 },
   },
   chord: {
-    nodeWidth: { type: 'number', label: '节点宽度', default: 20, min: 5, max: 50 },
-    nodeGap: { type: 'number', label: '节点间距', default: 8, min: 2, max: 30 },
+    nodeWidth: { type: 'number', labelKey: 'chart.schema.type.chord.nodeWidth.label', default: 20, min: 5, max: 50 },
+    nodeGap: { type: 'number', labelKey: 'chart.schema.type.chord.nodeGap.label', default: 8, min: 2, max: 30 },
   },
 }
 
 // 折线系列的单系列线条样式（按系列名配置）
 export const SERIES_STYLE_SCHEMA = {
   lineType: {
-    type: 'select', label: '线型', default: 'solid', options: [
-      { label: '实线', value: 'solid' }, { label: '虚线', value: 'dashed' }, { label: '点线', value: 'dotted' },
+    type: 'select', labelKey: 'chart.schema.series.lineType.label', default: 'solid', options: [
+      { labelKey: 'chart.schema.series.lineType.options.solid.label', value: 'solid' }, { labelKey: 'chart.schema.series.lineType.options.dashed.label', value: 'dashed' }, { labelKey: 'chart.schema.series.lineType.options.dotted.label', value: 'dotted' },
     ],
   },
-  lineColor: { type: 'color', label: '线条颜色', default: '', placeholder: '留空随调色板' },
-  lineWidth: { type: 'number', label: '线宽', default: 2, min: 0.5, max: 10, step: 0.5 },
+  lineColor: { type: 'color', labelKey: 'chart.schema.series.lineColor.label', default: '', placeholderKey: 'chart.schema.series.lineColor.placeholder' },
+  lineWidth: { type: 'number', labelKey: 'chart.schema.series.lineWidth.label', default: 2, min: 0.5, max: 10, step: 0.5 },
   symbol: {
-    type: 'select', label: '数据点', default: 'circle', options: [
-      { label: '实心圆', value: 'circle' }, { label: '空心圆', value: 'emptyCircle' },
-      { label: '矩形', value: 'rect' }, { label: '圆角矩形', value: 'roundRect' },
-      { label: '菱形', value: 'diamond' }, { label: '三角', value: 'triangle' }, { label: '无', value: 'none' },
+    type: 'select', labelKey: 'chart.schema.series.symbol.label', default: 'circle', options: [
+      { labelKey: 'chart.schema.series.symbol.options.circle.label', value: 'circle' }, { labelKey: 'chart.schema.series.symbol.options.emptyCircle.label', value: 'emptyCircle' },
+      { labelKey: 'chart.schema.series.symbol.options.rect.label', value: 'rect' }, { labelKey: 'chart.schema.series.symbol.options.roundRect.label', value: 'roundRect' },
+      { labelKey: 'chart.schema.series.symbol.options.diamond.label', value: 'diamond' }, { labelKey: 'chart.schema.series.symbol.options.triangle.label', value: 'triangle' }, { labelKey: 'chart.schema.series.symbol.options.none.label', value: 'none' },
     ],
   },
-  symbolSize: { type: 'number', label: '点大小', default: 6, min: 2, max: 25 },
+  symbolSize: { type: 'number', labelKey: 'chart.schema.series.symbolSize.label', default: 6, min: 2, max: 25 },
 }
 
 // 支持按系列配置线条样式的图表类型
@@ -745,7 +746,7 @@ function buildCommonOption(config, palette, enableZoom = false) {
       show: ya.show !== false,
       type: ya.type || 'value',
       position: ya.position || 'left',
-      name: ya.unit ? (ya.name && ya.name.trim() ? `${ya.name} 单位： ${ya.unit}` : `单位： ${ya.unit}`) : (ya.name || ''),
+      name: ya.unit ? (ya.name && ya.name.trim() ? tr('chart.axis.yAxisName', { name: ya.name, unit: ya.unit }) : tr('chart.axis.unitOnly', { unit: ya.unit })) : (ya.name || ''),
       nameLocation: ya.unit ? 'end' : (ya.nameLocation || 'middle'),
       nameGap: ya.nameGap || 15,
       nameRotate: ya.nameRotate || 0,
@@ -826,7 +827,7 @@ function addMarkLine(series, config) {
     const data = []
     const mlType = config.markLine.type || 'average'
     if (mlType === 'custom') {
-      data.push({ yAxis: config.markLine.customValue ?? 0, name: `阈值 ${config.markLine.customValue ?? 0}` })
+      data.push({ yAxis: config.markLine.customValue ?? 0, name: tr('chart.series.thresholdValue', { value: config.markLine.customValue ?? 0 }) })
     } else {
       data.push({ type: mlType, name: mlType })
     }
@@ -859,7 +860,7 @@ function getGroups(rows, groupDim) {
   const groups = {}
   rows.forEach((r) => {
     const v = r[`dim:${groupDim.field}`]?.value ?? r[groupDim.field]
-    const g = String(v === undefined || v === null ? '无' : v)
+    const g = String(v === undefined || v === null ? tr('chart.empty.none') : v)
     if (!groups[g]) groups[g] = []
     groups[g].push(r)
   })
@@ -875,7 +876,7 @@ function assertChartData(data) {
   const dim = dimensions?.[0]
   const metric = metrics?.[0]
   if (!dim || !metric || !rows?.length) {
-    return { ok: false, msg: '请配置维度与指标后展示' }
+    return { ok: false, msg: tr('chart.empty.configureDimsMetrics') }
   }
   return { ok: true, dim, metric }
 }
@@ -1225,10 +1226,10 @@ function buildScatter(data, config, palette, isBubble = false) {
 // ---- 雷达图 ----
 function buildRadar(data, config, palette) {
   const { dimensions, metrics, rows } = data || {}
-  if (!dimensions?.length || !metrics?.length || !rows?.length) return emptyOption('请配置维度与指标')
+  if (!dimensions?.length || !metrics?.length || !rows?.length) return emptyOption(tr('chart.empty.configureDimsMetricsShort'))
   const dim = dimensions[0]
   const cats = getCats(dim, rows)
-  if (cats.length === 0) return emptyOption('请配置维度与指标')
+  if (cats.length === 0) return emptyOption(tr('chart.empty.configureDimsMetricsShort'))
   const maxes = metrics.map((m) => {
     const mx = Math.max(...rows.map((r) => Number(r[m.field]) || 0))
     return mx > 0 ? mx : 1
@@ -1268,7 +1269,7 @@ function buildRadar(data, config, palette) {
 function buildGauge(data, config, palette) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
-  if (!metric || !rows?.length) return emptyOption('请配置指标')
+  if (!metric || !rows?.length) return emptyOption(tr('chart.empty.configureMetric'))
   const opt = buildCommonOption(config, palette)
   opt.series = [{
     type: 'gauge',
@@ -1293,7 +1294,7 @@ function buildHeatmap(data, config, palette) {
   const dimX = dimensions?.[0]
   const dimY = dimensions?.[1]
   const metric = metrics?.[0]
-  if (!dimX || !dimY || !metric || !rows?.length) return emptyOption('请配置 X/Y 维度与指标')
+  if (!dimX || !dimY || !metric || !rows?.length) return emptyOption(tr('chart.empty.configureXyDimsMetrics'))
   const opt = buildCommonOption(config, palette, true)
   const xCats = getCats(dimX, rows)
   const yCats = getCats(dimY, rows)
@@ -1355,7 +1356,7 @@ function buildBoxplot(data, config, palette) {
   const metric = check.metric
   const groups = {}
   rows.forEach((r) => {
-    const g = String(r[`dim:${dim.field}`]?.value ?? '无')
+    const g = String(r[`dim:${dim.field}`]?.value ?? tr('chart.empty.none'))
     if (!groups[g]) groups[g] = []
     groups[g].push(r[metric.field])
   })
@@ -1395,13 +1396,13 @@ function buildTreemap(data, config, palette) {
 function buildSankey(data, config, palette) {
   const { dimensions, metrics, rows } = data || {}
   const metric = metrics?.[0]
-  if (!rows?.length || dimensions.length < 2 || !metric) return emptyOption('请配置 来源节点/目标节点/数值')
+  if (!rows?.length || dimensions.length < 2 || !metric) return emptyOption(tr('chart.empty.configureSankey'))
   const sourceDim = dimensions[0]
   const targetDim = dimensions[1]
   const nodeSet = new Set()
   const links = rows.map((r) => {
-    const s = String(r[`dim:${sourceDim.field}`]?.value ?? '无')
-    const t = String(r[`dim:${targetDim.field}`]?.value ?? '无')
+    const s = String(r[`dim:${sourceDim.field}`]?.value ?? tr('chart.empty.none'))
+    const t = String(r[`dim:${targetDim.field}`]?.value ?? tr('chart.empty.none'))
     nodeSet.add(s)
     nodeSet.add(t)
     return { source: s, target: t, value: r[metric.field] }
@@ -1461,7 +1462,7 @@ function buildPolarBar(data, config, palette) {
 // ---- K线图 ----
 function buildCandlestick(data, config, palette) {
   const { dimensions, metrics, rows } = data || {}
-  if (!rows?.length || metrics.length < 4) return emptyOption('K线图需要 日期维度 + 开/高/低/收 4个指标')
+  if (!rows?.length || metrics.length < 4) return emptyOption(tr('chart.empty.candlestickNeeds'))
   const dim = dimensions?.[0]
   const opt = buildCommonOption(config, palette, true)
   const cats = rows.map((r) => String(r[`dim:${dim.field}`]?.value ?? ''))
@@ -1491,7 +1492,7 @@ function buildProgress(data, config, type) {
 function buildStat(data, config) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
-  return { _stat: { value: rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || '指标', config } }
+  return { _stat: { value: rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), config } }
 }
 
 // ---- 指标趋势图 ----
@@ -1500,7 +1501,7 @@ function buildStatTrend(data, config) {
   const metric = metrics?.[0]
   const dim = data?.dimensions?.[0]
   const trend = rows?.map((r) => ({ label: String(r[`dim:${dim?.field}`]?.value ?? ''), value: r[metric?.field] })) || []
-  return { _statTrend: { value: trend[trend.length - 1]?.value ?? rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || '指标', trend, config } }
+  return { _statTrend: { value: trend[trend.length - 1]?.value ?? rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), trend, config } }
 }
 
 // ---- 地图返回占位 ----
@@ -1509,7 +1510,7 @@ function buildMap(data, config, type, mode) {
 }
 
 function emptyOption(msg) {
-  return { title: { text: msg || '请配置数据', left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } } }
+  return { title: { text: msg || tr('chart.empty.configureData'), left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } } }
 }
 
 // ---- 主导出：chartType → option生成器 ----
@@ -1576,7 +1577,7 @@ export const OPTION_BUILDERS = {
       const total = s0.data.reduce((a, b) => a + b, 0)
       let cum = 0
       opt.series.push({
-        name: '累积占比%', type: 'line', yAxisIndex: 0,
+        name: tr('chart.series.cumulativeShare'), type: 'line', yAxisIndex: 0,
         data: s0.data.map((v) => { cum += v; return Math.round((cum / total) * 100) }),
         lineStyle: { width: 2 }, symbol: 'circle', symbolSize: 5,
       })

@@ -91,6 +91,1006 @@ export default {
   stringOps: {
     contains: 'Contains',
   },
+  axis: {
+    yAxisName: '{name} ({unit})',
+    unitOnly: 'Unit: {unit}',
+  },
+  series: {
+    thresholdValue: 'Threshold {value}',
+    cumulativeShare: 'Cumulative %',
+  },
+  empty: {
+    configureDimsMetrics: 'Configure a dimension and a metric to preview',
+    configureData: 'Configure data',
+    configureDimsMetricsShort: 'Configure dimensions and metrics',
+    configureMetric: 'Configure a metric',
+    configureXyDimsMetrics: 'Configure X/Y dimensions and metrics',
+    configureSankey: 'Configure source / target / value',
+    candlestickNeeds: 'Candlestick needs a date dimension plus 4 metrics: open / high / low / close',
+    metricFallback: 'Metric',
+    none: 'None',
+  },
+  position: {
+    topLeft: 'Top left',
+    topCenter: 'Top center',
+    topRight: 'Top right',
+    midLeft: 'Middle left',
+    midCenter: 'Center',
+    midRight: 'Middle right',
+    botLeft: 'Bottom left',
+    botCenter: 'Bottom center',
+    botRight: 'Bottom right',
+  },
+  common: {
+    pleaseSelect: 'Select',
+    configMissing: 'Configuration missing',
+    unsupportedFieldType: 'Unsupported field type',
+  },
+  group: {
+    theme: 'Theme',
+    exclusiveConfig: 'Settings',
+    exclusiveConfigWithType: '{type} settings',
+    lineStyles: 'Line styles · per series',
+  },
+  schema: {
+    style: {
+      color: {
+        label: 'Color',
+      },
+      fontSize: {
+        label: 'Font size',
+      },
+      fontWeight: {
+        label: 'Bold',
+      },
+      fontStyle: {
+        label: 'Italic',
+      },
+      textDecoration: {
+        label: 'Underline',
+      },
+    },
+    styleTitle: {
+      fontSize: {
+        label: 'Font size',
+      },
+    },
+    opt: {
+      orient: {
+        horizontal: {
+          label: 'Horizontal',
+          title: 'Horizontal',
+        },
+        vertical: {
+          label: 'Vertical',
+          title: 'Vertical',
+        },
+      },
+      labelPos: {
+        top: {
+          label: 'Top',
+          title: 'Top',
+        },
+        bottom: {
+          label: 'Bottom',
+          title: 'Bottom',
+        },
+        left: {
+          label: 'Left',
+          title: 'Left',
+        },
+        right: {
+          label: 'Right',
+          title: 'Right',
+        },
+        inside: {
+          label: 'Inside',
+          title: 'Inside',
+        },
+      },
+      pieLabelPos: {
+        outside: {
+          label: 'Outside',
+          title: 'Outside',
+        },
+        inside: {
+          label: 'Inside',
+          title: 'Inside',
+        },
+        center: {
+          label: 'Center',
+          title: 'Center',
+        },
+      },
+    },
+    cfg: {
+      title: {
+        label: 'Title',
+        show: {
+          label: 'Show',
+        },
+        text: {
+          label: 'Title text',
+          placeholder: 'Enter chart title',
+        },
+        subtext: {
+          label: 'Subtitle',
+          placeholder: 'Subtitle (optional)',
+        },
+        position: {
+          label: 'Position',
+        },
+        textStyle: {
+          label: 'Text style',
+        },
+      },
+      legend: {
+        label: 'Legend',
+        show: {
+          label: 'Show',
+        },
+        orient: {
+          label: 'Orientation',
+        },
+        position: {
+          label: 'Position',
+        },
+        align: {
+          label: 'Alignment',
+          options: {
+            auto: {
+              label: 'Auto',
+              title: 'Auto align',
+            },
+            left: {
+              label: 'Left',
+              title: 'Align left',
+            },
+            center: {
+              label: 'Center',
+              title: 'Align center',
+            },
+            right: {
+              label: 'Right',
+              title: 'Align right',
+            },
+          },
+        },
+        icon: {
+          label: 'Shape',
+          options: {
+            0: {
+              label: 'Auto',
+            },
+            circle: {
+              label: 'Circle',
+            },
+            rect: {
+              label: 'Square',
+            },
+            roundRect: {
+              label: 'Rounded rect',
+            },
+            diamond: {
+              label: 'Diamond',
+            },
+            triangle: {
+              label: 'Triangle',
+            },
+            pin: {
+              label: 'Pin',
+            },
+          },
+        },
+        itemWidth: {
+          label: 'Item width',
+        },
+        itemHeight: {
+          label: 'Item height',
+        },
+        textStyle: {
+          label: 'Text style',
+        },
+      },
+      tooltip: {
+        label: 'Tooltip',
+        show: {
+          label: 'Show',
+        },
+        trigger: {
+          label: 'Trigger',
+          options: {
+            axis: {
+              label: 'Axis',
+            },
+            item: {
+              label: 'Item',
+            },
+            none: {
+              label: 'None',
+            },
+          },
+        },
+        axisPointer: {
+          label: 'Axis pointer type',
+          type: {
+            options: {
+              line: {
+                label: 'Line',
+              },
+              shadow: {
+                label: 'Shadow',
+              },
+              none: {
+                label: 'None',
+              },
+              cross: {
+                label: 'Cross',
+              },
+            },
+          },
+        },
+        formatter: {
+          label: 'Content format',
+          placeholder: "e.g. {'{'}a{'}'}{'{'}b{'}'}: {'{'}c{'}'}, leave blank for auto",
+        },
+        backgroundColor: {
+          label: 'Background color',
+        },
+        borderColor: {
+          label: 'Border color',
+        },
+        textStyle: {
+          label: 'Text style',
+        },
+      },
+      label: {
+        label: 'Data label',
+        show: {
+          label: 'Show',
+        },
+        content: {
+          label: 'Content',
+          options: {
+            a: {
+              label: 'Series name',
+            },
+            b: {
+              label: 'Category name',
+            },
+            c: {
+              label: 'Value',
+            },
+          },
+        },
+        separator: {
+          label: 'Separator',
+          options: {
+            space: {
+              label: 'Space',
+            },
+            _2c_20: {
+              label: 'Comma',
+            },
+            newline: {
+              label: 'Newline',
+            },
+            _20_7c_20: {
+              label: 'Pipe',
+            },
+          },
+        },
+        position: {
+          label: 'Position',
+        },
+        textStyle: {
+          label: 'Text style',
+          color: {
+            label: 'Color',
+          },
+        },
+        showBorder: {
+          label: 'Show border',
+        },
+        borderColor: {
+          label: 'Border color',
+        },
+        allowOverlap: {
+          label: 'Allow overlap',
+        },
+      },
+      markLine: {
+        label: 'Mark line',
+        color: {
+          label: 'Line color',
+        },
+        width: {
+          label: 'Line width',
+        },
+        show: {
+          label: 'Show',
+        },
+        type: {
+          label: 'Type',
+          options: {
+            average: {
+              label: 'Average',
+            },
+            max: {
+              label: 'Max',
+            },
+            min: {
+              label: 'Min',
+            },
+            median: {
+              label: 'Median',
+            },
+            custom: {
+              label: 'Custom',
+            },
+          },
+        },
+        customValue: {
+          label: 'Custom value',
+        },
+        lineType: {
+          label: 'Line style',
+          options: {
+            solid: {
+              label: 'Solid',
+            },
+            dashed: {
+              label: 'Dashed',
+            },
+            dotted: {
+              label: 'Dotted',
+            },
+          },
+        },
+        showLabel: {
+          label: 'Show label',
+        },
+      },
+      grid: {
+        label: 'Plot area',
+        left: {
+          label: 'Left margin',
+        },
+        right: {
+          label: 'Right margin',
+        },
+        top: {
+          label: 'Top margin',
+        },
+        bottom: {
+          label: 'Bottom margin',
+        },
+      },
+      dataZoom: {
+        label: 'Data zoom',
+        show: {
+          label: 'Enable',
+        },
+        type: {
+          label: 'Type',
+          options: {
+            slider: {
+              label: 'Slider',
+            },
+            inside: {
+              label: 'Inside',
+            },
+          },
+        },
+        startPercent: {
+          label: 'Start %',
+        },
+        endPercent: {
+          label: 'End %',
+        },
+      },
+      xAxis: {
+        label: 'X axis',
+        show: {
+          label: 'Show',
+        },
+        name: {
+          label: 'Axis name',
+        },
+        nameTextStyle: {
+          label: 'Text style',
+        },
+        labelColor: {
+          label: 'Label color',
+        },
+        nameRotate: {
+          label: 'Name rotation',
+        },
+        labelRotate: {
+          label: 'Label rotation',
+        },
+      },
+      yAxis: {
+        label: 'Y axis',
+        show: {
+          label: 'Show',
+        },
+        name: {
+          label: 'Axis name',
+        },
+        nameTextStyle: {
+          label: 'Text style',
+        },
+        unit: {
+          label: 'Unit',
+          placeholder: 'e.g. USD, %',
+        },
+        labelColor: {
+          label: 'Label color',
+        },
+        splitLine: {
+          label: 'Grid lines',
+        },
+        min: {
+          label: 'Min',
+          placeholder: 'Auto or number',
+        },
+        max: {
+          label: 'Max',
+          placeholder: 'Auto or number',
+        },
+        interval: {
+          label: 'Interval',
+          placeholder: 'Auto or number',
+        },
+      },
+    },
+    type: {
+      bar: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+        barGap: {
+          label: 'Bar gap %',
+        },
+        rounded: {
+          label: 'Rounded bars',
+        },
+      },
+      barClustered: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+        barGap: {
+          label: 'Bar gap %',
+        },
+        rounded: {
+          label: 'Rounded bars',
+        },
+      },
+      barStacked: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+        rounded: {
+          label: 'Rounded bars',
+        },
+      },
+      barLine: {
+        lineSeries: {
+          label: 'Line series',
+        },
+        smooth: {
+          label: 'Smooth line',
+        },
+      },
+      barPictorial: {
+        symbolType: {
+          label: 'Symbol type',
+          options: {
+            circle: {
+              label: 'Circle',
+            },
+            rect: {
+              label: 'Rect',
+            },
+            triangle: {
+              label: 'Triangle',
+            },
+            diamond: {
+              label: 'Diamond',
+            },
+          },
+        },
+      },
+      barPercentStacked: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+        showPercentLabel: {
+          label: 'Show percent labels',
+        },
+      },
+      barGroupStacked: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+      },
+      barStackedLine: {
+        smooth: {
+          label: 'Smooth line',
+        },
+      },
+      barStackedPictorial: {
+        symbolType: {
+          label: 'Symbol type',
+          options: {
+            circle: {
+              label: 'Circle',
+            },
+            rect: {
+              label: 'Rect',
+            },
+          },
+        },
+      },
+      bullet: {
+        barWidth: {
+          label: 'Bar width',
+        },
+        targetValue: {
+          label: 'Target value',
+        },
+      },
+      waterfall: {
+        increaseColor: {
+          label: 'Increase color',
+        },
+        decreaseColor: {
+          label: 'Decrease color',
+        },
+      },
+      pareto: {
+        showLine: {
+          label: 'Show cumulative line',
+        },
+      },
+      horizontalBar: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+      },
+      horizontalBarClustered: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+        barGap: {
+          label: 'Bar gap %',
+        },
+      },
+      horizontalBarStacked: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+      },
+      horizontalBarPercentStacked: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+        showPercentLabel: {
+          label: 'Show percent labels',
+        },
+      },
+      horizontalBarGroupStacked: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+      },
+      horizontalBullet: {
+        barWidth: {
+          label: 'Bar width',
+        },
+        targetValue: {
+          label: 'Target value',
+        },
+      },
+      butterfly: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+      },
+      line: {
+        smooth: {
+          label: 'Smooth',
+        },
+        areaStyle: {
+          label: 'Area fill',
+        },
+        step: {
+          label: 'Step',
+          options: {
+            0: {
+              label: 'None',
+            },
+            start: {
+              label: 'Start',
+            },
+            middle: {
+              label: 'Middle',
+            },
+            end: {
+              label: 'End',
+            },
+          },
+        },
+      },
+      lineMulti: {
+        smooth: {
+          label: 'Smooth',
+        },
+      },
+      areaStacked: {
+        smooth: {
+          label: 'Smooth',
+        },
+        opacity: {
+          label: 'Opacity',
+        },
+      },
+      areaPercentStacked: {
+        smooth: {
+          label: 'Smooth',
+        },
+        opacity: {
+          label: 'Opacity',
+        },
+      },
+      pie: {
+        radius: {
+          label: 'Radius %',
+        },
+        startAngle: {
+          label: 'Start angle',
+        },
+        labelPosition: {
+          label: 'Label position',
+        },
+        roseType: {
+          label: 'Rose mode',
+        },
+      },
+      doughnut: {
+        radiusInner: {
+          label: 'Inner radius %',
+        },
+        radiusOuter: {
+          label: 'Outer radius %',
+        },
+        startAngle: {
+          label: 'Start angle',
+        },
+        labelPosition: {
+          label: 'Label position',
+        },
+        showCenter: {
+          label: 'Center text',
+        },
+        centerText: {
+          label: 'Center title',
+          placeholder: 'Leave blank to show the value',
+        },
+        centerSubtext: {
+          label: 'Center subtitle',
+          placeholder: 'Optional',
+        },
+        centerColor: {
+          label: 'Title color',
+        },
+        centerSubColor: {
+          label: 'Subtitle color',
+        },
+        centerFontSize: {
+          label: 'Title font size',
+        },
+        centerSubFontSize: {
+          label: 'Subtitle font size',
+        },
+      },
+      sunburst: {
+        radius: {
+          label: 'Radius %',
+        },
+        startAngle: {
+          label: 'Start angle',
+        },
+      },
+      nightingale: {
+        radius: {
+          label: 'Radius %',
+        },
+        roseType: {
+          label: 'Mode',
+          options: {
+            radius: {
+              label: 'Radius',
+            },
+            area: {
+              label: 'Area',
+            },
+          },
+        },
+      },
+      funnel: {
+        sort: {
+          label: 'Sort',
+          options: {
+            descending: {
+              label: 'Descending',
+            },
+            ascending: {
+              label: 'Ascending',
+            },
+            none: {
+              label: 'None',
+            },
+          },
+        },
+        gap: {
+          label: 'Gap',
+        },
+      },
+      funnelHorizontal: {
+        sort: {
+          label: 'Sort',
+          options: {
+            descending: {
+              label: 'Descending',
+            },
+            ascending: {
+              label: 'Ascending',
+            },
+            none: {
+              label: 'None',
+            },
+          },
+        },
+        gap: {
+          label: 'Gap',
+        },
+      },
+      scatter: {
+        symbolSize: {
+          label: 'Symbol size',
+        },
+      },
+      bubble: {
+        symbolSize: {
+          label: 'Max bubble size',
+        },
+      },
+      progressBar: {
+        max: {
+          label: 'Max',
+        },
+        showTarget: {
+          label: 'Show target',
+        },
+      },
+      circularProgress: {
+        max: {
+          label: 'Max',
+        },
+        lineWidth: {
+          label: 'Line width',
+        },
+      },
+      multiRingProgress: {
+        max: {
+          label: 'Max',
+        },
+        lineWidth: {
+          label: 'Line width',
+        },
+      },
+      fluidProgress: {
+        max: {
+          label: 'Max',
+        },
+      },
+      gauge: {
+        min: {
+          label: 'Min',
+        },
+        max: {
+          label: 'Max',
+        },
+        splitNumber: {
+          label: 'Split number',
+        },
+        progressWidth: {
+          label: 'Progress width',
+        },
+      },
+      statTrend: {
+        showSparkline: {
+          label: 'Show trend line',
+        },
+        sparklineColor: {
+          label: 'Trend line color',
+        },
+      },
+      radar: {
+        shape: {
+          label: 'Shape',
+          options: {
+            polygon: {
+              label: 'Polygon',
+            },
+            circle: {
+              label: 'Circle',
+            },
+          },
+        },
+        splitNumber: {
+          label: 'Split number',
+        },
+        areaOpacity: {
+          label: 'Area opacity',
+        },
+      },
+      mapChina: {
+        zoom: {
+          label: 'Zoom',
+        },
+        showLabels: {
+          label: 'Show region names',
+        },
+      },
+      mapChinaBubble: {
+        zoom: {
+          label: 'Zoom',
+        },
+        symbolSize: {
+          label: 'Bubble size',
+        },
+        showLabels: {
+          label: 'Show region names',
+        },
+      },
+      mapChinaSymbol: {
+        zoom: {
+          label: 'Zoom',
+        },
+        symbolSize: {
+          label: 'Symbol size',
+        },
+      },
+      mapWorld: {
+        zoom: {
+          label: 'Zoom',
+        },
+      },
+      heatmap: {
+        showValues: {
+          label: 'Show values',
+        },
+      },
+      polarBar: {
+        barWidth: {
+          label: 'Bar width',
+          placeholder: 'Auto',
+        },
+      },
+      barBreakAxis: {
+        breakStart: {
+          label: 'Break start',
+        },
+        breakEnd: {
+          label: 'Break end',
+        },
+      },
+      calendar: {
+        cellSize: {
+          label: 'Cell size',
+        },
+      },
+      candlestick: {
+        upColor: {
+          label: 'Bullish color',
+        },
+        downColor: {
+          label: 'Bearish color',
+        },
+      },
+      treemap: {
+        orient: {
+          label: 'Orientation',
+        },
+      },
+      sankey: {
+        nodeWidth: {
+          label: 'Node width',
+        },
+        nodeGap: {
+          label: 'Node gap',
+        },
+        layoutIterations: {
+          label: 'Layout iterations',
+        },
+      },
+      chord: {
+        nodeWidth: {
+          label: 'Node width',
+        },
+        nodeGap: {
+          label: 'Node gap',
+        },
+      },
+    },
+    series: {
+      lineType: {
+        label: 'Line style',
+        options: {
+          solid: {
+            label: 'Solid',
+          },
+          dashed: {
+            label: 'Dashed',
+          },
+          dotted: {
+            label: 'Dotted',
+          },
+        },
+      },
+      lineColor: {
+        label: 'Line color',
+        placeholder: 'Leave blank to use the palette',
+      },
+      lineWidth: {
+        label: 'Line width',
+      },
+      symbol: {
+        label: 'Symbol',
+        options: {
+          circle: {
+            label: 'Filled circle',
+          },
+          emptyCircle: {
+            label: 'Hollow circle',
+          },
+          rect: {
+            label: 'Rect',
+          },
+          roundRect: {
+            label: 'Rounded rect',
+          },
+          diamond: {
+            label: 'Diamond',
+          },
+          triangle: {
+            label: 'Triangle',
+          },
+          none: {
+            label: 'None',
+          },
+        },
+      },
+      symbolSize: {
+        label: 'Symbol size',
+      },
+    },
+  },
   palettes: {
     classicBlue: 'Classic blue',
     soft: 'Soft',
