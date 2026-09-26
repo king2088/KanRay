@@ -1,7 +1,8 @@
-<!-- 桑基图 (sankey) - 数据流向桑基图 -->
+<!-- Sankey diagram (sankey) - data flow -->
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
+import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip } from './chartUtils'
 
 const props = defineProps<{
@@ -67,11 +68,20 @@ const getChartOption = () => {
 
 const initChart = () => {
   if (!chartRef.value) return
-  chart = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg' })
+  chart = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg', locale: currentEchartsLocale() })
   chart.setOption(getChartOption())
   resizeObserver = new ResizeObserver(() => chart?.resize())
   resizeObserver.observe(chartRef.value)
 }
+
+// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+const rebuildChart = () => {
+  resizeObserver?.disconnect()
+  chart?.dispose()
+  chart = null
+  initChart()
+}
+useChartLocale(rebuildChart)
 
 onMounted(() => setTimeout(initChart, 100))
 watch(() => [props.data, props.props], () => chart?.setOption(getChartOption(), true), { deep: true })
