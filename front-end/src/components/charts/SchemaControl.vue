@@ -10,7 +10,7 @@
     v-else-if="field.type === 'input'"
     :model-value="value"
     @update:model-value="(v) => emit('change', v)"
-    :placeholder="field.placeholder"
+    :placeholder="ph(field)"
     :disabled="field.disabled"
     style="width: 100%"
   />
@@ -19,7 +19,7 @@
     v-else-if="field.type === 'textarea'"
     :model-value="value"
     @update:model-value="(v) => emit('change', v)"
-    :placeholder="field.placeholder"
+    :placeholder="ph(field)"
     :disabled="field.disabled"
     :rows="4"
     type="textarea"
@@ -33,7 +33,7 @@
     :min="field.min"
     :max="field.max"
     :step="field.step || 1"
-    :placeholder="field.placeholder"
+    :placeholder="ph(field)"
     :disabled="field.disabled"
     :controls-position="field.controlsPosition || 'right'"
     :style="compact ? 'width: 86px' : (fluid ? 'width: 100%' : 'width: 140px')"
@@ -54,7 +54,7 @@
     v-else-if="field.type === 'select'"
     :model-value="value"
     @update:model-value="(v) => emit('change', v)"
-    :placeholder="field.placeholder || '请选择'"
+    :placeholder="ph(field) || t('chart.common.pleaseSelect')"
     :disabled="field.disabled"
     :multiple="field.multiple"
     :collapse-tags="field.multiple"
@@ -64,7 +64,7 @@
     <el-option
       v-for="opt in field.options || []"
       :key="opt.value"
-      :label="opt.label"
+      :label="lbl(opt)"
       :value="opt.value"
     />
   </el-select>
@@ -76,13 +76,13 @@
     :disabled="field.disabled"
   />
 
-  <el-tooltip v-else-if="field.type === 'toggle'" :content="field.label" placement="top" :enterable="false" :show-after="200">
+  <el-tooltip v-else-if="field.type === 'toggle'" :content="lbl(field)" placement="top" :enterable="false" :show-after="200">
     <el-button
       :type="value === field.activeValue ? 'primary' : 'default'"
       @click="toggle"
       style="min-width: 20px; padding: 0 2px;"
     >
-      <span :style="getToggleStyle()">{{ field.icon || field.label }}</span>
+      <span :style="getToggleStyle()">{{ field.icon || lbl(field) }}</span>
     </el-button>
   </el-tooltip>
 
@@ -90,7 +90,7 @@
     <el-tooltip
       v-for="opt in field.options || []"
       :key="opt.value"
-      :content="opt.title || opt.label"
+      :content="ttl(opt) || lbl(opt)"
       placement="top"
       :enterable="false"
       :show-after="200"
@@ -103,7 +103,7 @@
         <el-icon v-if="typeof opt.icon === 'object' || typeof opt.icon === 'function'" :size="18">
           <component :is="opt.icon" />
         </el-icon>
-        <span v-else :style="decoStyle(opt.value)" v-html="opt.icon || opt.label"></span>
+        <span v-else :style="decoStyle(opt.value)" v-html="opt.icon || lbl(opt)"></span>
       </el-button>
     </el-tooltip>
   </div>
@@ -133,11 +133,13 @@
     </el-tooltip>
   </div>
 
-  <el-alert v-else title="Unsupported field type" type="warning" :show-icon="false" style="font-size: 12px" />
+  <el-alert v-else :title="t('chart.common.unsupportedFieldType')" type="warning" :show-icon="false" style="font-size: 12px" />
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
+import { t } from '@/i18n'
+import { lbl, ttl, ph } from '@/utils/chart-schema-i18n'
 import {
   posTopLeft, posTopCenter, posTopRight,
   posMidLeft, posMidCenter, posMidRight,
@@ -151,10 +153,11 @@ const GRID_ICONS = [
   [posMidLeft, posMidCenter, posMidRight],
   [posBotLeft, posBotCenter, posBotRight],
 ]
+// 位置提示名走词典：GRID_LABELS[r][c] 是 key，渲染/取值时再 t()
 const GRID_LABELS = [
-  ['左上', '上中', '右上'],
-  ['左中', '居中', '右中'],
-  ['左下', '下中', '右下'],
+  ['chart.position.topLeft', 'chart.position.topCenter', 'chart.position.topRight'],
+  ['chart.position.midLeft', 'chart.position.midCenter', 'chart.position.midRight'],
+  ['chart.position.botLeft', 'chart.position.botCenter', 'chart.position.botRight'],
 ]
 
 const props = defineProps({
@@ -189,8 +192,8 @@ function activeGridLabel() {
   const v = props.value || {}
   const r = ROW_VALS.indexOf(v.top)
   const c = COL_VALS.indexOf(v.left)
-  if (r < 0 || c < 0) return '居中'
-  return GRID_LABELS[r][c]
+  if (r < 0 || c < 0) return t('chart.position.midCenter')
+  return t(GRID_LABELS[r][c])
 }
 const hoverLabel = ref(activeGridLabel())
 function onGridMove(e) {
