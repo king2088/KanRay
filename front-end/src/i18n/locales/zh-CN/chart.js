@@ -100,6 +100,8 @@ export default {
     cumulativeShare: '累积占比%',
   },
   empty: {
+    categoryAll: '全部分类',
+    noTypesInCategory: '该分类暂无图表类型',
     configureDimsMetrics: '请配置维度与指标后展示',
     configureData: '请配置数据',
     configureDimsMetricsShort: '请配置维度与指标',

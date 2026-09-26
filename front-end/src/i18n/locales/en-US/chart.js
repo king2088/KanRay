@@ -100,6 +100,8 @@ export default {
     cumulativeShare: 'Cumulative %',
   },
   empty: {
+    categoryAll: 'All categories',
+    noTypesInCategory: 'No chart types in this category',
     configureDimsMetrics: 'Configure a dimension and a metric to preview',
     configureData: 'Configure data',
     configureDimsMetricsShort: 'Configure dimensions and metrics',
