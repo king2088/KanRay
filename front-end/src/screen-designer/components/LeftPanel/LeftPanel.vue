@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useComponentsStore } from '../../stores/components'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const componentsStore = useComponentsStore()
 const activeTab = ref('components')
@@ -10,236 +13,236 @@ const searchQuery = ref('')
 const componentCategories = [
   {
     key: 'charts',
-    name: '可视化图表',
+    nameKey: 'bigscreen.category.chart',
     icon: 'TrendCharts',
     children: [
       {
-        group: '柱形图',
+        groupKey: 'bigscreen.group.bar',
         items: [
-          { name: '单柱图', type: 'bar-single', icon: 'chart-bar' },
-          { name: '簇状柱形图', type: 'bar-group', icon: 'chart-bar' },
-          { name: '堆积柱形图', type: 'bar-stack', icon: 'chart-bar' },
-          { name: '折线混合图', type: 'bar-line', icon: 'chart-bar' },
-          { name: '分组堆积图', type: 'bar-group-stacked', icon: 'chart-bar' },
-          { name: '百分比堆积图', type: 'bar-percent', icon: 'chart-bar' },
-          { name: '瀑布图', type: 'bar-waterfall', icon: 'chart-bar' }
+{ nameKey: 'bigscreen.widget.barSingle', type: 'bar-single', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barGroup', type: 'bar-group', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barStack', type: 'bar-stack', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barLine', type: 'bar-line', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barGroupStacked', type: 'bar-group-stacked', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barPercent', type: 'bar-percent', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barWaterfall', type: 'bar-waterfall', icon: 'chart-bar' }
         ]
       },
       {
-        group: '条形图',
+        groupKey: 'bigscreen.group.barHorizontal',
         items: [
-          { name: '单条图', type: 'bar-horizontal', icon: 'chart-bar' },
-          { name: '簇状条形图', type: 'bar-horizontal-group', icon: 'chart-bar' },
-          { name: '堆积条形图', type: 'bar-horizontal-stack', icon: 'chart-bar' },
-          { name: '百分比条形图', type: 'bar-horizontal-percent', icon: 'chart-bar' },
-          { name: '混合条形图', type: 'bar-horizontal-mixed', icon: 'chart-bar' },
-          { name: '正负条形图', type: 'positive-negative-bar', icon: 'chart-bar' },
-          { name: '动态排序条形图', type: 'dynamic-bar-race', icon: 'chart-bar' }
+{ nameKey: 'bigscreen.widget.barHorizontal', type: 'bar-horizontal', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barHorizontalGroup', type: 'bar-horizontal-group', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barHorizontalStack', type: 'bar-horizontal-stack', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barHorizontalPercent', type: 'bar-horizontal-percent', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.barHorizontalMixed', type: 'bar-horizontal-mixed', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.positiveNegativeBar', type: 'positive-negative-bar', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.dynamicBarRace', type: 'dynamic-bar-race', icon: 'chart-bar' }
         ]
       },
       {
-        group: '折线图与面积图',
+        groupKey: 'bigscreen.group.line',
         items: [
-          { name: '单线图', type: 'line-single', icon: 'chart-line' },
-          { name: '多线图', type: 'line-multi', icon: 'chart-line' },
-          { name: '面积图', type: 'line-area', icon: 'chart-line' },
-          { name: '平滑折线图', type: 'line-smooth', icon: 'chart-line' },
-          { name: '堆叠面积图', type: 'stacked-area', icon: 'chart-line' },
-          { name: '百分比面积图', type: 'line-percent-area', icon: 'chart-line' },
-          { name: '阶梯折线图', type: 'line-step', icon: 'chart-line' }
+{ nameKey: 'bigscreen.widget.lineSingle', type: 'line-single', icon: 'chart-line' },
+{ nameKey: 'bigscreen.widget.lineMulti', type: 'line-multi', icon: 'chart-line' },
+{ nameKey: 'bigscreen.widget.lineArea', type: 'line-area', icon: 'chart-line' },
+{ nameKey: 'bigscreen.widget.lineSmooth', type: 'line-smooth', icon: 'chart-line' },
+{ nameKey: 'bigscreen.widget.stackedArea', type: 'stacked-area', icon: 'chart-line' },
+{ nameKey: 'bigscreen.widget.linePercentArea', type: 'line-percent-area', icon: 'chart-line' },
+{ nameKey: 'bigscreen.widget.lineStep', type: 'line-step', icon: 'chart-line' }
         ]
       },
       {
-        group: '饼图',
+        groupKey: 'bigscreen.group.pie',
         items: [
-          { name: '饼图', type: 'pie', icon: 'chart-pie' },
-          { name: '环形图', type: 'pie-doughnut', icon: 'chart-pie' },
-          { name: '南丁格尔玫瑰图', type: 'pie-rose', icon: 'chart-pie' },
-          { name: '旭日图', type: 'pie-sunburst', icon: 'chart-pie' },
-          { name: '矩形树图', type: 'pie-treemap', icon: 'chart-pie' }
+{ nameKey: 'bigscreen.widget.pie', type: 'pie', icon: 'chart-pie' },
+{ nameKey: 'bigscreen.widget.pieDoughnut', type: 'pie-doughnut', icon: 'chart-pie' },
+{ nameKey: 'bigscreen.widget.pieRose', type: 'pie-rose', icon: 'chart-pie' },
+{ nameKey: 'bigscreen.widget.pieSunburst', type: 'pie-sunburst', icon: 'chart-pie' },
+{ nameKey: 'bigscreen.widget.pieTreemap', type: 'pie-treemap', icon: 'chart-pie' }
         ]
       },
       {
-        group: '漏斗图',
+        groupKey: 'bigscreen.group.funnel',
         items: [
-          { name: '漏斗图', type: 'funnel', icon: 'chart-pie' },
-          { name: '水平漏斗图', type: 'funnel-horizontal', icon: 'chart-pie' }
+{ nameKey: 'bigscreen.widget.funnel', type: 'funnel', icon: 'chart-pie' },
+{ nameKey: 'bigscreen.widget.funnelHorizontal', type: 'funnel-horizontal', icon: 'chart-pie' }
         ]
       },
       {
-        group: '散点图与气泡图',
+        groupKey: 'bigscreen.group.scatter',
         items: [
-          { name: '散点图', type: 'scatter', icon: 'chart-scatter' },
-          { name: '气泡图', type: 'bubble', icon: 'chart-scatter' }
+{ nameKey: 'bigscreen.widget.scatter', type: 'scatter', icon: 'chart-scatter' },
+{ nameKey: 'bigscreen.widget.bubble', type: 'bubble', icon: 'chart-scatter' }
         ]
       },
       {
-        group: '仪表盘',
+        groupKey: 'bigscreen.group.gauge',
         items: [
-          { name: '基础仪表盘', type: 'gauge', icon: 'chart-gauge' },
-          { name: '速度仪表盘', type: 'gauge-speed', icon: 'chart-gauge' },
-          { name: '阶段仪表盘', type: 'gauge-stage', icon: 'chart-gauge' },
-          { name: '等级仪表盘', type: 'gauge-level', icon: 'chart-gauge' },
-          { name: '多标题仪表盘', type: 'gauge-multi-title', icon: 'chart-gauge' },
-          { name: '气温仪表盘', type: 'gauge-temp', icon: 'chart-gauge' },
-          { name: '得分环', type: 'gauge-score', icon: 'chart-gauge' },
-          { name: '气压表', type: 'gauge-pressure', icon: 'chart-gauge' },
-          { name: '时钟仪表盘', type: 'gauge-clock', icon: 'chart-gauge' },
-          { name: '汽车仪表盘', type: 'gauge-car', icon: 'chart-gauge' },
-          { name: '多环进度', type: 'gauge-multi', icon: 'chart-gauge' },
-          { name: '水球图', type: 'liquid-fill', icon: 'chart-gauge' },
-          { name: '进度条', type: 'progress', icon: 'chart-gauge' }
+{ nameKey: 'bigscreen.widget.gauge', type: 'gauge', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeSpeed', type: 'gauge-speed', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeStage', type: 'gauge-stage', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeLevel', type: 'gauge-level', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeMultiTitle', type: 'gauge-multi-title', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeTemp', type: 'gauge-temp', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeScore', type: 'gauge-score', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugePressure', type: 'gauge-pressure', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeClock', type: 'gauge-clock', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeCar', type: 'gauge-car', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.gaugeMulti', type: 'gauge-multi', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.liquidFill', type: 'liquid-fill', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.progress', type: 'progress', icon: 'chart-gauge' }
         ]
       },
       {
-        group: '雷达图',
+        groupKey: 'bigscreen.group.radar',
         items: [
-          { name: '雷达图', type: 'radar', icon: 'chart-radar' },
-          { name: '极坐标柱状图', type: 'polar-bar', icon: 'chart-radar' }
+{ nameKey: 'bigscreen.widget.radar', type: 'radar', icon: 'chart-radar' },
+{ nameKey: 'bigscreen.widget.polarBar', type: 'polar-bar', icon: 'chart-radar' }
         ]
       },
       {
-        group: '其他图表',
+        groupKey: 'bigscreen.group.otherChart',
         items: [
-          { name: '热力图', type: 'heatmap', icon: 'chart-bar' },
-          { name: '词云', type: 'wordcloud', icon: 'chart-bar' },
-          { name: '箱线图', type: 'boxplot', icon: 'chart-bar' },
-          { name: '桑基图', type: 'sankey', icon: 'chart-bar' },
-          { name: '日历视图', type: 'calendar', icon: 'chart-bar' },
-          { name: 'K线图', type: 'candlestick', icon: 'chart-bar' },
-          { name: '交错正负标签图', type: 'mixed-positive-negative', icon: 'chart-bar' }
+{ nameKey: 'bigscreen.widget.heatmap', type: 'heatmap', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.wordcloud', type: 'wordcloud', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.boxplot', type: 'boxplot', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.sankey', type: 'sankey', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.calendar', type: 'calendar', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.candlestick', type: 'candlestick', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.mixedPositiveNegative', type: 'mixed-positive-negative', icon: 'chart-bar' }
         ]
       },
       {
-        group: '地图',
+        groupKey: 'bigscreen.group.map',
         items: [
-          { name: '中国地图', type: 'map-china', icon: 'chart-bar' },
-          { name: '气泡地图', type: 'map-bubble', icon: 'chart-bar' },
-          { name: '地理坐标图', type: 'geo-map', icon: 'chart-bar' }
+{ nameKey: 'bigscreen.widget.mapChina', type: 'map-china', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.mapBubble', type: 'map-bubble', icon: 'chart-bar' },
+{ nameKey: 'bigscreen.widget.geoMap', type: 'geo-map', icon: 'chart-bar' }
         ]
       },
       {
-        group: '三维',
+        groupKey: 'bigscreen.group.threeD',
         items: [
-          { name: '3D地球', type: 'globe-3d', icon: 'monitor' }
+{ nameKey: 'bigscreen.widget.globe3d', type: 'globe-3d', icon: 'monitor' }
         ]
       }
     ]
   },
   {
     key: 'tables',
-    name: '表格',
+    nameKey: 'bigscreen.category.table',
     icon: 'Grid',
     children: [
       {
-        group: '数据表格',
+        groupKey: 'bigscreen.group.dataTable',
         items: [
-          { name: '普通表格', type: 'table-normal', icon: 'document' },
-          { name: '轮播列表', type: 'carousel-list', icon: 'document' },
-          { name: '排名列表', type: 'rank-list', icon: 'document' }
+{ nameKey: 'bigscreen.widget.tableNormal', type: 'table-normal', icon: 'document' },
+{ nameKey: 'bigscreen.widget.carouselList', type: 'carousel-list', icon: 'document' },
+{ nameKey: 'bigscreen.widget.rankList', type: 'rank-list', icon: 'document' }
         ]
       }
     ]
   },
   {
     key: 'text',
-    name: '文本',
+    nameKey: 'bigscreen.category.text',
     icon: 'Document',
     children: [
       {
-        group: '文本组件',
+        groupKey: 'bigscreen.group.textWidget',
         items: [
-          { name: '静态文本', type: 'static-text', icon: 'text-static' },
-          { name: '数据文本', type: 'data-text', icon: 'text-data' },
-          { name: '数字翻牌器', type: 'number-flip', icon: 'chart-gauge' },
-          { name: '时间文本', type: 'time-text', icon: 'text-time' },
-          { name: '跑马灯', type: 'marquee-text', icon: 'text-marquee' }
+{ nameKey: 'bigscreen.widget.staticText', type: 'static-text', icon: 'text-static' },
+{ nameKey: 'bigscreen.widget.dataText', type: 'data-text', icon: 'text-data' },
+{ nameKey: 'bigscreen.widget.numberFlip', type: 'number-flip', icon: 'chart-gauge' },
+{ nameKey: 'bigscreen.widget.timeText', type: 'time-text', icon: 'text-time' },
+{ nameKey: 'bigscreen.widget.marqueeText', type: 'marquee-text', icon: 'text-marquee' }
         ]
       }
     ]
   },
   {
     key: 'media',
-    name: '媒体',
+    nameKey: 'bigscreen.category.media',
     icon: 'Picture',
     children: [
       {
-        group: '媒体组件',
+        groupKey: 'bigscreen.group.mediaWidget',
         items: [
-          { name: '静态图片', type: 'static-image', icon: 'image' },
-          { name: '轮播图片', type: 'carousel-image', icon: 'image' },
-          { name: '视频', type: 'video', icon: 'video-camera' },
-          { name: 'iframe', type: 'iframe', icon: 'monitor' }
+{ nameKey: 'bigscreen.widget.staticImage', type: 'static-image', icon: 'image' },
+{ nameKey: 'bigscreen.widget.carouselImage', type: 'carousel-image', icon: 'image' },
+{ nameKey: 'bigscreen.widget.video', type: 'video', icon: 'video-camera' },
+          { nameKey: 'bigscreen.widget.iframe', type: 'iframe', icon: 'monitor' }
         ]
       }
     ]
   },
   {
     key: 'datav',
-    name: 'DataV装饰',
+    nameKey: 'bigscreen.category.decoration',
     icon: 'MagicStick',
     children: [
       {
-        group: '边框',
+        groupKey: 'bigscreen.group.border',
         items: [
-          { name: '边框1', type: 'dv-border-1', icon: 'document' },
-          { name: '边框2', type: 'dv-border-2', icon: 'document' },
-          { name: '边框3', type: 'dv-border-3', icon: 'document' },
-          { name: '边框4', type: 'dv-border-4', icon: 'document' },
-          { name: '边框5', type: 'dv-border-5', icon: 'document' },
-          { name: '边框6', type: 'dv-border-6', icon: 'document' },
-          { name: '边框7', type: 'dv-border-7', icon: 'document' },
-          { name: '边框8', type: 'dv-border-8', icon: 'document' },
-          { name: '边框9', type: 'dv-border-9', icon: 'document' },
-          { name: '边框10', type: 'dv-border-10', icon: 'document' },
-          { name: '边框11', type: 'dv-border-11', icon: 'document' },
-          { name: '边框12', type: 'dv-border-12', icon: 'document' },
-          { name: '边框13', type: 'dv-border-13', icon: 'document' }
+{ nameKey: 'bigscreen.widget.dvBorder1', type: 'dv-border-1', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder2', type: 'dv-border-2', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder3', type: 'dv-border-3', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder4', type: 'dv-border-4', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder5', type: 'dv-border-5', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder6', type: 'dv-border-6', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder7', type: 'dv-border-7', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder8', type: 'dv-border-8', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder9', type: 'dv-border-9', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder10', type: 'dv-border-10', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder11', type: 'dv-border-11', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder12', type: 'dv-border-12', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvBorder13', type: 'dv-border-13', icon: 'document' }
         ]
       },
       {
-        group: '装饰',
+        groupKey: 'bigscreen.group.decoration',
         items: [
-          { name: '装饰1', type: 'dv-decoration-1', icon: 'document' },
-          { name: '装饰2', type: 'dv-decoration-2', icon: 'document' },
-          { name: '装饰3', type: 'dv-decoration-3', icon: 'document' },
-          { name: '装饰4', type: 'dv-decoration-4', icon: 'document' },
-          { name: '装饰5', type: 'dv-decoration-5', icon: 'document' },
-          { name: '装饰6', type: 'dv-decoration-6', icon: 'document' },
-          { name: '装饰7', type: 'dv-decoration-7', icon: 'document' },
-          { name: '装饰8', type: 'dv-decoration-8', icon: 'document' },
-          { name: '装饰9', type: 'dv-decoration-9', icon: 'document' },
-          { name: '装饰10', type: 'dv-decoration-10', icon: 'document' },
-          { name: '装饰11', type: 'dv-decoration-11', icon: 'document' },
-          { name: '装饰12', type: 'dv-decoration-12', icon: 'document' }
+{ nameKey: 'bigscreen.widget.dvDecoration1', type: 'dv-decoration-1', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration2', type: 'dv-decoration-2', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration3', type: 'dv-decoration-3', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration4', type: 'dv-decoration-4', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration5', type: 'dv-decoration-5', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration6', type: 'dv-decoration-6', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration7', type: 'dv-decoration-7', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration8', type: 'dv-decoration-8', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration9', type: 'dv-decoration-9', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration10', type: 'dv-decoration-10', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration11', type: 'dv-decoration-11', icon: 'document' },
+{ nameKey: 'bigscreen.widget.dvDecoration12', type: 'dv-decoration-12', icon: 'document' }
         ]
       }
     ]
   },
   {
     key: 'small',
-    name: '小组件',
+    nameKey: 'bigscreen.category.small',
     icon: 'MoreFilled',
     children: [
       {
-        group: '实用组件',
+        groupKey: 'bigscreen.group.utility',
         items: [
-          { name: '倒计时', type: 'countdown', icon: 'timer' },
-          { name: '时钟', type: 'clock', icon: 'timer' },
-          { name: '步骤条', type: 'steps', icon: 'document' }
+{ nameKey: 'bigscreen.widget.countdown', type: 'countdown', icon: 'timer' },
+{ nameKey: 'bigscreen.widget.clock', type: 'clock', icon: 'timer' },
+{ nameKey: 'bigscreen.widget.steps', type: 'steps', icon: 'document' }
         ]
       }
     ]
   },
   {
     key: 'custom',
-    name: '自定义组件',
+    nameKey: 'bigscreen.category.custom',
     icon: 'Cpu',
     children: [
       {
-        group: '自定义组件',
+        groupKey: 'bigscreen.group.customWidget',
         items: [
-          { name: '自定义HTML', type: 'custom-chart', icon: 'document' }
+{ nameKey: 'bigscreen.widget.customChart', type: 'custom-chart', icon: 'document' }
         ]
       }
     ]
@@ -262,7 +265,8 @@ const filteredCategories = computed(() => {
 })
 
 const onDragStart = (event: DragEvent, component: any) => {
-  event.dataTransfer?.setData('component', JSON.stringify(component))
+  // 组件名在拖拽时按当前语言解析；落库后即用户数据，不再随语言变化
+  event.dataTransfer?.setData('component', JSON.stringify({ ...component, name: t(component.nameKey) }))
   event.dataTransfer!.effectAllowed = 'copy'
 }
 
@@ -270,7 +274,7 @@ const sortedComponents = computed(() => {
   return [...componentsStore.components].sort((a, b) => b.zIndex - a.zIndex)
 })
 
-const componentIcons: Record<string, string> = {
+const componentIcons = computed<Record<string, string>>(() => ({
   'bar-single': `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="28" width="10" height="24" fill="#409EFF" fill-opacity="0.3" stroke="#409EFF" stroke-width="1.5" rx="1"/></svg>`,
   'bar-group': `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="20" width="7" height="32" fill="#409EFF" fill-opacity="0.3" stroke="#409EFF" stroke-width="1.5" rx="1"/><rect x="17" y="28" width="7" height="24" fill="#67C23A" fill-opacity="0.3" stroke="#67C23A" stroke-width="1.5" rx="1"/><rect x="26" y="14" width="7" height="38" fill="#E6A23C" fill-opacity="0.3" stroke="#E6A23C" stroke-width="1.5" rx="1"/></svg>`,
   'bar-stack': `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="12" height="14" fill="#409EFF" fill-opacity="0.3" stroke="#409EFF" stroke-width="1.5" rx="1"/><rect x="10" y="22" width="12" height="10" fill="#67C23A" fill-opacity="0.3" stroke="#67C23A" stroke-width="1.5" rx="1"/><rect x="10" y="32" width="12" height="20" fill="#E6A23C" fill-opacity="0.3" stroke="#E6A23C" stroke-width="1.5" rx="1"/><rect x="30" y="16" width="12" height="10" fill="#409EFF" fill-opacity="0.3" stroke="#409EFF" stroke-width="1.5" rx="1"/><rect x="30" y="26" width="12" height="6" fill="#67C23A" fill-opacity="0.3" stroke="#67C23A" stroke-width="1.5" rx="1"/><rect x="30" y="32" width="12" height="20" fill="#E6A23C" fill-opacity="0.3" stroke="#E6A23C" stroke-width="1.5" rx="1"/></svg>`,
@@ -303,7 +307,7 @@ const componentIcons: Record<string, string> = {
   'gauge-speed': `<svg viewBox="0 0 60 60" fill="none"><path d="M10,44 A20,20 0 1,1 50,44" fill="none" stroke="#DCDFE6" stroke-width="4" stroke-linecap="round"/><path d="M10,44 A20,20 0 0,1 26,12" fill="none" stroke="#67C23A" stroke-width="4" stroke-linecap="round"/><path d="M26,12 A20,20 0 0,1 42,14" fill="none" stroke="#E6A23C" stroke-width="4" stroke-linecap="round"/><path d="M42,14 A20,20 0 0,1 50,44" fill="none" stroke="#F56C6C" stroke-width="4" stroke-linecap="round"/><line x1="30" y1="44" x2="38" y2="18" stroke="#303133" stroke-width="2" stroke-linecap="round"/><circle cx="30" cy="44" r="3" fill="#303133"/></svg>`,
   'gauge-stage': `<svg viewBox="0 0 60 60" fill="none"><path d="M12,42 A18,18 0 1,1 48,42" fill="none" stroke="#DCDFE6" stroke-width="6" stroke-linecap="round"/><path d="M12,42 A18,18 0 0,1 24,20" fill="none" stroke="#67C23A" stroke-width="6" stroke-linecap="round"/><path d="M24,20 A18,18 0 0,1 48,42" fill="none" stroke="#E6A23C" stroke-width="6" stroke-linecap="round"/><circle cx="30" cy="42" r="3" fill="#E6A23C"/></svg>`,
   'gauge-level': `<svg viewBox="0 0 60 60" fill="none"><path d="M10,44 A20,20 0 1,1 50,44" fill="none" stroke="#DCDFE6" stroke-width="3" stroke-linecap="round"/><path d="M10,44 A20,20 0 0,1 18,24" fill="none" stroke="#F56C6C" stroke-width="3" stroke-linecap="round"/><path d="M18,24 A20,20 0 0,1 30,14" fill="none" stroke="#E6A23C" stroke-width="3" stroke-linecap="round"/><path d="M30,14 A20,20 0 0,1 42,24" fill="none" stroke="#67C23A" stroke-width="3" stroke-linecap="round"/><path d="M42,24 A20,20 0 0,1 50,44" fill="none" stroke="#409EFF" stroke-width="3" stroke-linecap="round"/><text x="30" y="38" font-size="10" fill="#409EFF" text-anchor="middle" font-weight="bold">A+</text></svg>`,
-  'gauge-multi-title': `<svg viewBox="0 0 60 60" fill="none"><path d="M12,42 A18,18 0 1,1 48,42" fill="none" stroke="#DCDFE6" stroke-width="3" stroke-linecap="round"/><path d="M12,42 A18,18 0 0,1 30,14" fill="none" stroke="#409EFF" stroke-width="3" stroke-linecap="round"/><path d="M30,14 A18,18 0 0,1 48,42" fill="none" stroke="#67C23A" stroke-width="3" stroke-linecap="round"/><text x="30" y="36" font-size="8" fill="#409EFF" text-anchor="middle">75%</text><text x="30" y="48" font-size="5" fill="#909399" text-anchor="middle">负载率</text></svg>`,
+  'gauge-multi-title': `<svg viewBox="0 0 60 60" fill="none"><path d="M12,42 A18,18 0 1,1 48,42" fill="none" stroke="#DCDFE6" stroke-width="3" stroke-linecap="round"/><path d="M12,42 A18,18 0 0,1 30,14" fill="none" stroke="#409EFF" stroke-width="3" stroke-linecap="round"/><path d="M30,14 A18,18 0 0,1 48,42" fill="none" stroke="#67C23A" stroke-width="3" stroke-linecap="round"/><text x="30" y="36" font-size="8" fill="#409EFF" text-anchor="middle">75%</text><text x="30" y="48" font-size="5" fill="#909399" text-anchor="middle">${t('bigscreen.leftPanel.iconLoadRate')}</text></svg>`,
   'gauge-temp': `<svg viewBox="0 0 60 60" fill="none"><path d="M12,42 A18,18 0 1,1 48,42" fill="none" stroke="#DCDFE6" stroke-width="4" stroke-linecap="round"/><path d="M12,42 A18,18 0 0,1 40,18" fill="none" stroke="#F56C6C" stroke-width="4" stroke-linecap="round"/><circle cx="30" cy="42" r="4" fill="#F56C6C"/><text x="30" y="36" font-size="10" fill="#F56C6C" text-anchor="middle" font-weight="bold">36.5°</text></svg>`,
   'gauge-score': `<svg viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="22" fill="none" stroke="#DCDFE6" stroke-width="4"/><circle cx="30" cy="30" r="22" fill="none" stroke="#409EFF" stroke-width="4" stroke-dasharray="100 40" stroke-dashoffset="0" transform="rotate(-90 30 30)"/><circle cx="30" cy="30" r="16" fill="none" stroke="#67C23A" stroke-width="3" stroke-dasharray="70 50" stroke-dashoffset="0" transform="rotate(-90 30 30)"/><text x="30" y="34" font-size="12" fill="#409EFF" text-anchor="middle" font-weight="bold">86</text></svg>`,
   'gauge-pressure': `<svg viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="22" fill="white" stroke="#DCDFE6" stroke-width="1.5"/><circle cx="30" cy="30" r="18" fill="none" stroke="#DCDFE6" stroke-width="1"/><path d="M30,12 L30,14" stroke="#303133" stroke-width="2"/><path d="M12,30 L14,30" stroke="#303133" stroke-width="2"/><path d="M48,30 L46,30" stroke="#303133" stroke-width="2"/><path d="M30,48 L30,46" stroke="#303133" stroke-width="2"/><line x1="30" y1="30" x2="42" y2="18" stroke="#F56C6C" stroke-width="2" stroke-linecap="round"/><circle cx="30" cy="30" r="3" fill="#303133"/></svg>`,
@@ -368,8 +372,7 @@ const componentIcons: Record<string, string> = {
   'dv-decoration-10': `<svg viewBox="0 0 60 60" fill="none"><circle cx="8" cy="30" r="3" fill="none" stroke="#00c2ff" stroke-width="1.5"/><circle cx="22" cy="30" r="3" fill="none" stroke="#00c2ff" stroke-width="1.5"/><circle cx="38" cy="30" r="3" fill="none" stroke="#00c2ff" stroke-width="1.5"/><circle cx="52" cy="30" r="3" fill="none" stroke="#00c2ff" stroke-width="1.5"/><line x1="11" y1="30" x2="19" y2="30" stroke="#00c2ff" stroke-width="1.5" stroke-dasharray="4,3"/><line x1="25" y1="30" x2="35" y2="30" stroke="#00c2ff" stroke-width="2" stroke-dasharray="6,4"/><line x1="41" y1="30" x2="49" y2="30" stroke="#00c2ff" stroke-width="1.5" stroke-dasharray="4,3"/></svg>`,
   'dv-decoration-11': `<svg viewBox="0 0 60 60" fill="none"><polygon points="30,6 52,18 52,42 30,54 8,42 8,18" fill="#1a98fc" fill-opacity="0.15" stroke="#1a98fc" stroke-width="1.5"/><polygon points="30,6 52,18 52,42 30,54 8,42 8,18" fill="none" stroke="#2cf7fe" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/><polygon points="8,6 14,6 11,10" fill="#1a98fc" fill-opacity="0.6"/><polygon points="52,6 46,6 49,10" fill="#1a98fc" fill-opacity="0.6"/><polygon points="8,54 14,54 11,50" fill="#1a98fc" fill-opacity="0.6"/><polygon points="52,54 46,54 49,50" fill="#1a98fc" fill-opacity="0.6"/></svg>`,
   'dv-decoration-12': `<svg viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="26" fill="none" stroke="#2783ce" stroke-width="1" stroke-dasharray="3,3"/><circle cx="30" cy="30" r="20" fill="none" stroke="#2783ce" stroke-width="1" stroke-dasharray="2,4" opacity="0.7"/><circle cx="30" cy="30" r="14" fill="none" stroke="#2783ce" stroke-width="1" stroke-dasharray="1,3" opacity="0.5"/><circle cx="30" cy="30" r="3" fill="#2cf7fe"/><line x1="30" y1="30" x2="30" y2="4" stroke="#2cf7fe" stroke-width="1.5"/><path d="M30,30 L30,4 A26,26 0 0,1 48,14 Z" fill="#2cf7fe" fill-opacity="0.15"/></svg>`,
-}
-
+}))
 defineExpose({ sortedComponents, componentIcons })
 </script>
 
@@ -377,32 +380,32 @@ defineExpose({ sortedComponents, componentIcons })
   <div class="left-panel">
     <div class="panel-tabs">
       <div
-        v-for="tab in [{ key: 'components', label: '组件' }, { key: 'layers', label: '图层' }]"
+        v-for="tab in [{ key: 'components', labelKey: 'bigscreen.leftPanel.tabComponents' }, { key: 'layers', labelKey: 'bigscreen.leftPanel.tabLayers' }]"
         :key="tab.key"
         class="tab-item"
         :class="{ active: activeTab === tab.key }"
         @click="activeTab = tab.key"
       >
-        {{ tab.label }}
+        {{ t(tab.labelKey) }}
       </div>
     </div>
 
     <template v-if="activeTab === 'components'">
       <div class="search-box">
-        <el-input v-model="searchQuery" placeholder="搜索组件..." clearable size="default" prefix-icon="Search" />
+        <el-input v-model="searchQuery" :placeholder="t('bigscreen.leftPanel.searchPlaceholder')" clearable size="default" prefix-icon="Search" />
       </div>
       <div class="component-list">
         <div v-for="category in filteredCategories" :key="category.key" class="category">
           <div class="category-header" @click="expandedCategories.includes(category.key) ? expandedCategories.splice(expandedCategories.indexOf(category.key), 1) : expandedCategories.push(category.key)">
             <el-icon><component :is="category.icon" /></el-icon>
-            <span>{{ category.name }}</span>
+            <span>{{ t(category.nameKey) }}</span>
             <el-icon class="expand-icon">
               <component :is="expandedCategories.includes(category.key) ? 'ArrowDown' : 'ArrowRight'" />
             </el-icon>
           </div>
           <div v-show="expandedCategories.includes(category.key)" class="category-content">
-            <div v-for="group in category.children" :key="group.group" class="group">
-              <div class="group-title">{{ group.group }}</div>
+            <div v-for="group in category.children" :key="group.groupKey" class="group">
+              <div class="group-title">{{ t(group.groupKey) }}</div>
               <div class="group-items">
                 <div
                   v-for="item in group.items"
@@ -412,7 +415,7 @@ defineExpose({ sortedComponents, componentIcons })
                   @dragstart="onDragStart($event, item)"
                 >
                   <div class="item-icon" v-html="componentIcons[item.type] || '<div class=default-icon/>'"></div>
-                  <span class="item-name">{{ item.name }}</span>
+                  <span class="item-name">{{ t(item.nameKey) }}</span>
                 </div>
               </div>
             </div>
@@ -434,7 +437,7 @@ defineExpose({ sortedComponents, componentIcons })
           <span class="layer-type">{{ comp.type }}</span>
         </div>
         <div v-if="!sortedComponents.length" class="empty-layers">
-          暂无组件
+          {{ t('bigscreen.leftPanel.empty') }}
         </div>
       </div>
     </template>

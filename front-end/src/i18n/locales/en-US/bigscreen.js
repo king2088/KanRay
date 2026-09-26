@@ -139,6 +139,7 @@ export default {
     tabLayers: 'Layers',
     searchPlaceholder: 'Search components...',
     empty: 'No components',
+    iconLoadRate: 'Load',
   },
   category: {
     chart: 'Visual Charts',
@@ -266,6 +267,7 @@ export default {
     clock: 'Clock',
     steps: 'Steps',
     customChart: 'Custom HTML',
+    iframe: 'Embedded Page',
   },
   codeEditor: {
     dialogTitle: 'Custom Component Code Editor',

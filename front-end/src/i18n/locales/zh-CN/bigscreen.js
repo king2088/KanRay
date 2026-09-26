@@ -139,6 +139,7 @@ export default {
     tabLayers: '图层',
     searchPlaceholder: '搜索组件...',
     empty: '暂无组件',
+    iconLoadRate: '负载率',
   },
   category: {
     chart: '可视化图表',
@@ -266,6 +267,7 @@ export default {
     clock: '时钟',
     steps: '步骤条',
     customChart: '自定义HTML',
+    iframe: '内嵌网页',
   },
   codeEditor: {
     dialogTitle: '自定义组件代码编辑',
