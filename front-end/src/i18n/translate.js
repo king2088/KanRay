@@ -19,8 +19,20 @@ export function setTranslator(fn) {
   translator = typeof fn === 'function' ? fn : null
 }
 
+// 默认翻译器直接返回 zh-CN 原文，不会经过 vue-i18n 编译，
+// 因此命名插值要自己替换，否则会漏出 {name} 占位符。
+function interpolate(msg, named) {
+  if (typeof msg !== 'string' || !named || typeof named !== 'object') return msg
+  return msg.replace(/\{(\w+)\}/g, (m, k) => (named[k] === undefined ? m : String(named[k])))
+}
+
+const defaultTranslate = (k, named) => {
+  if (typeof k !== 'string' || ZH[k] === undefined) return k
+  return named === undefined ? ZH[k] : interpolate(ZH[k], named)
+}
+
 export function tr(key, named) {
-  const fn = translator || ((k) => (typeof k === 'string' && ZH[k] !== undefined ? ZH[k] : k))
+  const fn = translator || defaultTranslate
   return named === undefined ? fn(key) : fn(key, named)
 }
 
