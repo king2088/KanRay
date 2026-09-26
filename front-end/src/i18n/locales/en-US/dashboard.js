@@ -53,4 +53,22 @@ export default {
     empty: 'No charts available',
     inDashboard: 'In dashboard',
   },
+  style: {
+    cardSpacing: 'Card spacing',
+    horizontal: 'Horizontal',
+    vertical: 'Vertical',
+    cardStyle: 'Card style',
+    cardBorder: 'Card border',
+    borderRadius: 'Border radius',
+    titleVisibility: 'Title visibility',
+    titleHeight: 'Title height',
+    titleFontSize: 'Title font size',
+    titleBottomBorder: 'Title bottom border',
+    hint: 'Note: styles are stored on the dashboard and apply to every card. Click Save to persist your changes.',
+  },
+  filter: {
+    pleaseSelect: 'Select',
+    emptyValue: '(empty)',
+    noValues: 'No values available',
+  },
 }

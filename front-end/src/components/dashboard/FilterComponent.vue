@@ -5,21 +5,22 @@
       <el-select
         v-if="values.length"
         :model-value="modelValue"
-        placeholder="请选择"
+        :placeholder="t('dashboard.filter.pleaseSelect')"
         clearable
         filterable
         
         style="width: 100%"
         @update:model-value="onChange"
       >
-        <el-option v-for="v in values" :key="v" :label="String(v ?? '(空)')" :value="v" />
+        <el-option v-for="v in values" :key="v" :label="String(v ?? t('dashboard.filter.emptyValue'))" :value="v" />
       </el-select>
-      <span v-else class="filter-empty">暂无可选值</span>
+      <span v-else class="filter-empty">{{ t('dashboard.filter.noValues') }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
+import { t } from '@/i18n'
 import { onMounted, ref } from 'vue'
 import { datasetApi } from '@/api'
 

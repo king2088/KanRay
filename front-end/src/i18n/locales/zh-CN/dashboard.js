@@ -53,4 +53,22 @@ export default {
     empty: '没有可用图表',
     inDashboard: '已在看板',
   },
+  style: {
+    cardSpacing: '卡片间距',
+    horizontal: '左右',
+    vertical: '上下',
+    cardStyle: '卡片样式',
+    cardBorder: '卡片边框',
+    borderRadius: '边框圆角',
+    titleVisibility: '标题显隐',
+    titleHeight: '标题高度',
+    titleFontSize: '标题字号',
+    titleBottomBorder: '标题底部线',
+    hint: '提示：样式保存在看板上，对所有卡片生效；修改后需点击「保存」才会写入。',
+  },
+  filter: {
+    pleaseSelect: '请选择',
+    emptyValue: '(空)',
+    noValues: '暂无可选值',
+  },
 }

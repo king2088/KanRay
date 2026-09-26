@@ -1,56 +1,57 @@
 <template>
   <div class="dash-style-panel">
     <div class="ds-sec">
-      <div class="ds-sec-title">卡片间距</div>
+      <div class="ds-sec-title">{{ t('dashboard.style.cardSpacing') }}</div>
       <div class="ds-row">
-        <span class="ds-label">左右</span>
+        <span class="ds-label">{{ t('dashboard.style.horizontal') }}</span>
         <el-input-number v-model="gap.x" :min="4" :max="96"  controls-position="right" style="width: 96px" />
         <span class="ds-unit">px</span>
       </div>
       <div class="ds-row">
-        <span class="ds-label">上下</span>
+        <span class="ds-label">{{ t('dashboard.style.vertical') }}</span>
         <el-input-number v-model="gap.y" :min="4" :max="96"  controls-position="right" style="width: 96px" />
         <span class="ds-unit">px</span>
       </div>
     </div>
 
     <div class="ds-sec">
-      <div class="ds-sec-title">卡片样式</div>
+      <div class="ds-sec-title">{{ t('dashboard.style.cardStyle') }}</div>
       <div class="ds-row">
-        <span class="ds-label">卡片边框</span>
+        <span class="ds-label">{{ t('dashboard.style.cardBorder') }}</span>
         <el-switch v-model="cardStyle.border" />
       </div>
       <div class="ds-row ds-row--slider">
-        <span class="ds-label">边框圆角</span>
+        <span class="ds-label">{{ t('dashboard.style.borderRadius') }}</span>
         <el-slider v-model="cardStyle.radius" :min="0" :max="20" :step="1" />
         <span class="ds-val">{{ cardStyle.radius }}px</span>
       </div>
       <div class="ds-row">
-        <span class="ds-label">标题显隐</span>
+        <span class="ds-label">{{ t('dashboard.style.titleVisibility') }}</span>
         <el-switch v-model="cardStyle.showTitle" />
       </div>
       <div class="ds-divider" />
       <div class="ds-row ds-row--slider">
-        <span class="ds-label">标题高度</span>
+        <span class="ds-label">{{ t('dashboard.style.titleHeight') }}</span>
         <el-slider v-model="cardStyle.titleHeight" :min="24" :max="52" :step="1" />
         <span class="ds-val">{{ cardStyle.titleHeight }}px</span>
       </div>
       <div class="ds-row ds-row--slider">
-        <span class="ds-label">标题字号</span>
+        <span class="ds-label">{{ t('dashboard.style.titleFontSize') }}</span>
         <el-slider v-model="cardStyle.titleFontSize" :min="12" :max="20" :step="1" />
         <span class="ds-val">{{ cardStyle.titleFontSize }}px</span>
       </div>
       <div class="ds-row">
-        <span class="ds-label">标题底部线</span>
+        <span class="ds-label">{{ t('dashboard.style.titleBottomBorder') }}</span>
         <el-switch v-model="cardStyle.titleUnderline" />
       </div>
     </div>
 
-    <p class="ds-hint">提示：样式保存在看板上，对所有卡片生效；修改后需点击「保存」才会写入。</p>
+    <p class="ds-hint">{{ t('dashboard.style.hint') }}</p>
   </div>
 </template>
 
 <script setup>
+import { t } from '@/i18n'
 defineProps({
   gap: { type: Object, required: true },
   cardStyle: { type: Object, required: true },
