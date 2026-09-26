@@ -2,6 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const rateLimit = require('express-rate-limit');
 const HttpError = require('../utils/http-error');
+const { enOf } = require('../i18n');
 const { ok } = require('../middleware/response');
 const authService = require('../services/auth.service');
 const { requireUser } = require('../middleware/auth');
@@ -15,7 +16,7 @@ const authLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { code: 429, message: '请求过于频繁，请稍后再试', data: null },
+  message: { code: 429, message: '请求过于频繁，请稍后再试', data: null, messageEn: enOf('请求过于频繁，请稍后再试') },
 });
 
 router.post('/register', authLimiter, async (req, res) => {

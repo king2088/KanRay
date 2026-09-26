@@ -3,6 +3,7 @@ const config = require('../config');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit; // validate: custom keyGenerator 需经官方 IP helper 兜底
 const HttpError = require('../utils/http-error');
+const { enOf } = require('../i18n');
 const apiKeyService = require('../services/api-key.service');
 const audit = require('../services/audit.service');
 
@@ -68,7 +69,7 @@ function createOpenRateLimit(max = config.openApi.ratePerMin) {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req, id) => req.principal?.key?.keyHash || ipKeyGenerator(req, id),
-    handler: (req, res) => res.status(429).json({ code: 429, message: '请求过于频繁，请稍后再试', data: null }),
+    handler: (req, res) => res.status(429).json({ code: 429, message: '请求过于频繁，请稍后再试', data: null, messageEn: enOf('请求过于频繁，请稍后再试') }),
   });
 }
 
