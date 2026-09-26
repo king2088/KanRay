@@ -1,7 +1,7 @@
 export interface Template {
   id: string
-  name: string
-  description: string
+  nameKey: string
+  descriptionKey: string
   thumbnail: string
   config: {
     width: number
@@ -52,8 +52,8 @@ export const presetTemplates: Template[] = [
   // ==================== 1. 智慧城市运营中心 (复杂专业版) ====================
   {
     id: 'smart-city-pro',
-    name: '智慧城市运营中心',
-    description: '40+组件 | 地图+指标+图表+装饰框 | 专业级',
+    nameKey: 'bigscreen.template.smartCityPro.name',
+    descriptionKey: 'bigscreen.template.smartCityPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -180,8 +180,8 @@ export const presetTemplates: Template[] = [
   // ==================== 2. 交通态势感知 (专业版) ====================
   {
     id: 'traffic-pro',
-    name: '交通态势感知平台',
-    description: '35+组件 | 实时路况+地图+指标 | 专业级',
+    nameKey: 'bigscreen.template.trafficPro.name',
+    descriptionKey: 'bigscreen.template.trafficPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -287,8 +287,8 @@ export const presetTemplates: Template[] = [
   // ==================== 3. 电商数据大盘 (专业版) ====================
   {
     id: 'ecommerce-pro',
-    name: '电商实时数据大盘',
-    description: '38+组件 | GMV+订单+转化+排行 | 专业级',
+    nameKey: 'bigscreen.template.ecommercePro.name',
+    descriptionKey: 'bigscreen.template.ecommercePro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -377,8 +377,8 @@ export const presetTemplates: Template[] = [
   // ==================== 4. 工业物联网监控 (专业版) ====================
   {
     id: 'iot-pro',
-    name: '工业物联网监控平台',
-    description: '35+组件 | 设备+产线+能耗+告警 | 专业级',
+    nameKey: 'bigscreen.template.iotPro.name',
+    descriptionKey: 'bigscreen.template.iotPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -499,8 +499,8 @@ export const presetTemplates: Template[] = [
   // ==================== 5. 智慧能源管理 (专业版) ====================
   {
     id: 'energy-pro',
-    name: '智慧能源管理平台',
-    description: '35+组件 | 电水气+节能+趋势 | 专业级',
+    nameKey: 'bigscreen.template.energyPro.name',
+    descriptionKey: 'bigscreen.template.energyPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -610,8 +610,8 @@ export const presetTemplates: Template[] = [
   // (复用之前已有的简化版模板作为第6-10个)
   {
     id: 'park-pro',
-    name: '智慧园区运营平台',
-    description: '30+组件 | 安防+能耗+人员+车辆 | 专业级',
+    nameKey: 'bigscreen.template.parkPro.name',
+    descriptionKey: 'bigscreen.template.parkPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -727,8 +727,8 @@ export const presetTemplates: Template[] = [
   // 简化版保留作为 fallback
   {
     id: 'health-pro',
-    name: '智慧医疗数据中心',
-    description: '30+组件 | 门诊+住院+设备+床位 | 专业级',
+    nameKey: 'bigscreen.template.healthPro.name',
+    descriptionKey: 'bigscreen.template.healthPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -835,8 +835,8 @@ export const presetTemplates: Template[] = [
 
   {
     id: 'education-pro',
-    name: '智慧教育校园平台',
-    description: '30+组件 | 师生+课程+成绩+设备 | 专业级',
+    nameKey: 'bigscreen.template.educationPro.name',
+    descriptionKey: 'bigscreen.template.educationPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -933,8 +933,8 @@ export const presetTemplates: Template[] = [
 
   {
     id: 'logistics-pro',
-    name: '智慧物流调度中心',
-    description: '30+组件 | 运输+签收+时效+排名 | 专业级',
+    nameKey: 'bigscreen.template.logisticsPro.name',
+    descriptionKey: 'bigscreen.template.logisticsPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1030,8 +1030,8 @@ export const presetTemplates: Template[] = [
 
   {
     id: 'business-pro',
-    name: '企业经营驾驶舱',
-    description: '30+组件 | 营收+利润+人效+增长 | 专业级',
+    nameKey: 'bigscreen.template.businessPro.name',
+    descriptionKey: 'bigscreen.template.businessPro.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1129,8 +1129,8 @@ export const presetTemplates: Template[] = [
   // ==================== 11. 智慧交通信号控制 ====================
   {
     id: 'traffic-signal',
-    name: '智慧交通信号控制',
-    description: '信号灯+路口实时+车流分析+拥堵指数',
+    nameKey: 'bigscreen.template.trafficSignal.name',
+    descriptionKey: 'bigscreen.template.trafficSignal.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1252,8 +1252,8 @@ export const presetTemplates: Template[] = [
   // ==================== 12. 应急指挥中心 ====================
   {
     id: 'emergency',
-    name: '应急指挥中心',
-    description: '事件监测+资源调度+预案管理+态势分析',
+    nameKey: 'bigscreen.template.emergency.name',
+    descriptionKey: 'bigscreen.template.emergency.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1358,8 +1358,8 @@ export const presetTemplates: Template[] = [
   // ==================== 13. 智慧社区管理 ====================
   {
     id: 'smart-community',
-    name: '智慧社区管理平台',
-    description: '人口管理+安防监控+物业服务+社区活动',
+    nameKey: 'bigscreen.template.smartCommunity.name',
+    descriptionKey: 'bigscreen.template.smartCommunity.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1501,8 +1501,8 @@ export const presetTemplates: Template[] = [
   // ==================== 14. 智慧停车管理 ====================
   {
     id: 'smart-parking',
-    name: '智慧停车管理平台',
-    description: '车位监控+停车引导+收入统计+车流分析',
+    nameKey: 'bigscreen.template.smartParking.name',
+    descriptionKey: 'bigscreen.template.smartParking.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1632,8 +1632,8 @@ export const presetTemplates: Template[] = [
   // ==================== 15. 数字孪生可视化 ====================
   {
     id: 'digital-twin',
-    name: '数字孪生可视化平台',
-    description: '3D场景+设备监控+能耗分析+环境感知',
+    nameKey: 'bigscreen.template.digitalTwin.name',
+    descriptionKey: 'bigscreen.template.digitalTwin.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1773,8 +1773,8 @@ export const presetTemplates: Template[] = [
   // ==================== 16. 政务服务大屏 ====================
   {
     id: 'government',
-    name: '政务服务数据大屏',
-    description: '办事大厅+窗口服务+满意度+效能分析',
+    nameKey: 'bigscreen.template.government.name',
+    descriptionKey: 'bigscreen.template.government.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -1909,8 +1909,8 @@ export const presetTemplates: Template[] = [
   // ==================== DataV施工养护综合数据 (忠实还原) ====================
   {
     id: 'datav-construction',
-    name: '施工养护综合数据',
-    description: 'DataV风格 | 数字翻牌+排行+玫瑰图+水位图+滚动表 | 施工养护',
+    nameKey: 'bigscreen.template.datavConstruction.name',
+    descriptionKey: 'bigscreen.template.datavConstruction.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -2042,8 +2042,8 @@ export const presetTemplates: Template[] = [
   // ==================== DataV机电运维管理台 (忠实还原) ====================
   {
     id: 'datav-manage-desk',
-    name: '机电运维管理台',
-    description: 'DataV风格 | 设备状态+工单管理+系统负载 | 运维管理',
+    nameKey: 'bigscreen.template.datavManageDesk.name',
+    descriptionKey: 'bigscreen.template.datavManageDesk.desc',
     thumbnail: '',
     config: {
       width: 1920,
@@ -2183,8 +2183,8 @@ export const presetTemplates: Template[] = [
   // ==================== DataV机电设备电子档案 (忠实还原) ====================
   {
     id: 'datav-electronic-file',
-    name: '机电设备电子档案',
-    description: 'DataV风格 | 设备列表+类型分布+状态监测 | 电子档案',
+    nameKey: 'bigscreen.template.datavElectronicFile.name',
+    descriptionKey: 'bigscreen.template.datavElectronicFile.desc',
     thumbnail: '',
     config: {
       width: 1920,
