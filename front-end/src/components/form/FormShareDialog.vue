@@ -1,47 +1,47 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    :title="`分享表单：${name}`"
+    :title="t('form.share.title', { name })"
     width="680px"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="share-create">
-      <el-switch v-model="requirePassword" inline-prompt active-text="密码" inactive-text="公开"
+      <el-switch v-model="requirePassword" inline-prompt :active-text="t('form.share.password')" :inactive-text="t('form.share.public')"
         style="margin-right: 2px" />
       <el-input v-model="password" type="password" show-password :disabled="!requirePassword"
-        placeholder="访问密码（4-64 位）" style="width: 180px" />
-      <el-date-picker v-model="expiresAt" type="datetime" placeholder="过期时间（可选）"
+        :placeholder="t('form.share.passwordPlaceholder')" style="width: 180px" />
+      <el-date-picker v-model="expiresAt" type="datetime" :placeholder="t('form.share.expiresPlaceholder')"
         value-format="YYYY-MM-DDTHH:mm:ssZ" style="width: 200px" />
-      <el-button type="primary" :loading="creating" @click="create">创建分享</el-button>
+      <el-button type="primary" :loading="creating" @click="create">{{ t('form.share.create') }}</el-button>
     </div>
 
-    <div class="share-tip">分享链接免登录打开，访问者提交的数据将进入该表单的数据表；表单需先发布才能被填写。</div>
+    <div class="share-tip">{{ t('form.share.tip') }}</div>
 
-    <el-table :data="shares" v-loading="loading" empty-text="还没有分享链接">
-      <el-table-column label="访问" width="80" align="center">
+    <el-table :data="shares" v-loading="loading" :empty-text="t('form.share.empty')">
+      <el-table-column :label="t('form.share.access')" width="80" align="center">
         <template #default="{ row }">
           <el-tag size="small" effect="plain" :type="row.hasPassword ? 'warning' : 'success'">
-            {{ row.hasPassword ? '密码' : '公开' }}
+            {{ row.hasPassword ? t('form.share.password') : t('form.share.public') }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="链接" min-width="260">
+      <el-table-column :label="t('form.share.link')" min-width="260">
         <template #default="{ row }">
           <span class="share-link">{{ shareUrl(row) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="过期时间" width="150">
-        <template #default="{ row }">{{ row.expiresAt ? formatDateTime(row.expiresAt, appStore.timezone) : '永久' }}</template>
+      <el-table-column :label="t('form.share.expiresAt')" width="150">
+        <template #default="{ row }">{{ row.expiresAt ? formatDateTime(row.expiresAt, appStore.timezone) : t('form.share.never') }}</template>
       </el-table-column>
-      <el-table-column label="状态" width="70" align="center">
+      <el-table-column :label="t('form.share.status')" width="70" align="center">
         <template #default="{ row }">
           <el-switch :model-value="!!row.isActive" @change="(v) => toggleActive(row, v)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="140" align="center">
+      <el-table-column :label="t('form.share.actions')" width="140" align="center">
         <template #default="{ row }">
-          <el-button link type="primary" @click="copy(row)">复制链接</el-button>
-          <el-button link type="danger" @click="remove(row)">删除</el-button>
+          <el-button link type="primary" @click="copy(row)">{{ t('form.share.copyLink') }}</el-button>
+          <el-button link type="danger" @click="remove(row)">{{ t('form.share.delete') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -52,6 +52,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { formApi } from '@/api'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -61,6 +62,7 @@ const props = defineProps({
   name: { type: String, default: '' },
 })
 const emit = defineEmits(['update:modelValue'])
+const { t } = useI18n()
 const appStore = useAppStore()
 const shares = ref([])
 const loading = ref(false)
@@ -85,7 +87,7 @@ async function load() {
 
 async function create() {
   if (requirePassword.value && (!password.value || password.value.length < 4)) {
-    return ElMessage.warning('访问密码至少 4 位')
+    return ElMessage.warning(t('form.share.passwordTooShort'))
   }
   creating.value = true
   try {
@@ -97,7 +99,7 @@ async function create() {
     password.value = ''
     expiresAt.value = null
     requirePassword.value = true
-    ElMessage.success('分享创建成功')
+    ElMessage.success(t('form.share.createSuccess'))
   } finally {
     creating.value = false
   }
@@ -106,21 +108,21 @@ async function create() {
 async function toggleActive(row, v) {
   await formApi.updateShare(props.formId, row.id, { isActive: v })
   row.isActive = v ? 1 : 0
-  ElMessage.success(v ? '已启用' : '已停用')
+  ElMessage.success(v ? t('form.share.enabled') : t('form.share.disabled'))
 }
 
 async function remove(row) {
   await formApi.deleteShare(props.formId, row.id)
   shares.value = shares.value.filter((s) => s.id !== row.id)
-  ElMessage.success('分享已删除')
+  ElMessage.success(t('form.share.deleteSuccess'))
 }
 
 async function copy(row) {
   try {
     await navigator.clipboard.writeText(shareUrl(row))
-    ElMessage.success('链接已复制')
+    ElMessage.success(t('form.share.copied'))
   } catch (e) {
-    ElMessage.warning('复制失败，请手动复制')
+    ElMessage.warning(t('form.share.copyFailed'))
   }
 }
 

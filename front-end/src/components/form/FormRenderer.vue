@@ -27,7 +27,7 @@
             v-model="model[field.key]"
             :type="field.type === 'textarea' ? 'textarea' : 'text'"
             :rows="field.type === 'textarea' ? 4 : undefined"
-            :placeholder="field.placeholder || `请输入${field.label}`"
+            :placeholder="field.placeholder || t('form.designer.enterLabel', { label: field.label })"
             :show-word-limit="false"
           />
           <el-input-number
@@ -35,20 +35,20 @@
             v-model="model[field.key]"
             :controls="false"
             style="width: 100%"
-            :placeholder="field.placeholder || `请输入${field.label}`"
+            :placeholder="field.placeholder || t('form.designer.enterLabel', { label: field.label })"
           />
           <el-date-picker
             v-else-if="field.type === 'date'"
             v-model="model[field.key]"
             type="date"
             value-format="YYYY-MM-DD"
-            :placeholder="field.placeholder || '选择日期'"
+            :placeholder="field.placeholder || t('form.designer.datePlaceholder')"
             style="width: 100%"
           />
           <el-select
             v-else-if="field.type === 'select'"
             v-model="model[field.key]"
-            :placeholder="field.placeholder || `请选择${field.label}`"
+            :placeholder="field.placeholder || t('form.designer.chooseLabel', { label: field.label })"
             clearable
             style="width: 100%"
           >
@@ -68,6 +68,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   fields: { type: Array, default: () => [] },
@@ -114,7 +115,7 @@ function rulesFor(field) {
     rules = [{
       validator: (rule, value, cb) => {
         if (field.required && (value == null || value === '' || (Array.isArray(value) && !value.length))) {
-          cb(new Error(`请填写${field.label}`))
+          cb(new Error(t('form.renderer.requiredField', { label: field.label })))
         } else {
           cb()
         }
