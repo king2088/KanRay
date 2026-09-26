@@ -1,9 +1,9 @@
 <template>
   <div class="data-source-panel">
-    <div class="panel-title">数据源</div>
+    <div class="panel-title">{{ t('chart.dataSource.title') }}</div>
     <el-select-v2
       v-model="selectedId"
-      placeholder="选择一个数据集"
+      :placeholder="t('chart.dataSource.selectDataset')"
       filterable
       :options="datasetOptions"
       style="width: 100%"
@@ -14,12 +14,13 @@
       </template>
     </el-select-v2>
     <div v-if="!datasets.length" style="margin-top: 8px; color: #909399; font-size: 12px">
-      还没有数据集，<el-link type="primary" @click="$router.push('/datasources')">去「数据源」页上传</el-link>
+      {{ t('chart.dataSource.emptyPrefix') }}<el-link type="primary" @click="$router.push('/datasources')">{{ t('chart.dataSource.goUpload') }}</el-link>
     </div>
   </div>
 </template>
 
 <script setup>
+import { t } from '@/i18n'
 import { computed } from 'vue'
 import { toDatasetOptions } from '@/utils/dataset-type'
 import DatasetOption from '@/components/DatasetOption.vue'

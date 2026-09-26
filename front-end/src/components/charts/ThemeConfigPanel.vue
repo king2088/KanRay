@@ -1,35 +1,35 @@
 <template>
   <div class="theme-panel">
     <div class="theme-row">
-      <span class="theme-label">模式</span>
+      <span class="theme-label">{{ t('chart.theme.mode') }}</span>
       <div class="mode-btns">
         <el-button
           
           :type="mode === 'light' ? 'primary' : 'default'"
           @click="setMode('light')"
-        >亮色</el-button>
+        >{{ t('chart.theme.light') }}</el-button>
         <el-button
           
           :type="mode === 'dark' ? 'primary' : 'default'"
           @click="setMode('dark')"
-        >暗色</el-button>
+        >{{ t('chart.theme.dark') }}</el-button>
       </div>
     </div>
 
     <div class="theme-row">
-      <span class="theme-label">背景色</span>
+      <span class="theme-label">{{ t('chart.theme.backgroundColor') }}</span>
       <el-color-picker :model-value="background" @update:model-value="setBackground" />
-      <span class="theme-reset" @click="setBackground('')">重置</span>
+      <span class="theme-reset" @click="setBackground('')">{{ t('chart.theme.reset') }}</span>
     </div>
 
     <div class="theme-row">
-      <span class="theme-label">文字颜色</span>
+      <span class="theme-label">{{ t('chart.theme.textColor') }}</span>
       <el-color-picker :model-value="textColor" @update:model-value="setTextColor" />
-      <span class="theme-reset" @click="setTextColor('')">重置</span>
+      <span class="theme-reset" @click="setTextColor('')">{{ t('chart.theme.reset') }}</span>
     </div>
 
     <div class="theme-row">
-      <span class="theme-label">系列色板</span>
+      <span class="theme-label">{{ t('chart.theme.palette') }}</span>
       <el-select
         class="theme-palette-select"
         
@@ -49,12 +49,12 @@
             <span class="palette-opt-name">{{ t(p.nameKey) }}</span>
           </div>
         </el-option>
-        <el-option :value="CUSTOM_PALETTE_INDEX" label="自定义">
+        <el-option :value="CUSTOM_PALETTE_INDEX" :label="t('chart.theme.customPalette')">
           <div class="palette-opt">
             <div class="palette-opt-swatches">
               <span v-for="c in customColors" :key="c" class="palette-opt-swatch" :style="{ background: c }" />
             </div>
-            <span class="palette-opt-name">自定义</span>
+            <span class="palette-opt-name">{{ t('chart.theme.customPalette') }}</span>
           </div>
         </el-option>
       </el-select>
@@ -70,7 +70,7 @@
           @update:model-value="setCustomColor(i, $event)"
         />
       </div>
-      <span class="theme-reset" @click="setCustomColors(DEFAULT_PALETTE)">恢复默认</span>
+      <span class="theme-reset" @click="setCustomColors(DEFAULT_PALETTE)">{{ t('chart.theme.restoreDefault') }}</span>
     </div>
   </div>
 </template>
