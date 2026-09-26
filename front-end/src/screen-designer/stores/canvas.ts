@@ -22,12 +22,11 @@ export type PreviewDevice = 'pc' | 'mobile' | 'custom'
 export interface DevicePreset {
   width: number
   height: number
-  label: string
 }
 
 const DEVICE_PRESETS: Record<string, DevicePreset> = {
-  pc: { width: 1920, height: 1080, label: 'PC' },
-  mobile: { width: 375, height: 812, label: '移动端' }
+  pc: { width: 1920, height: 1080 },
+  mobile: { width: 375, height: 812 }
 }
 
 export const useCanvasStore = defineStore('canvas', () => {
