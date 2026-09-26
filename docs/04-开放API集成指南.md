@@ -60,6 +60,8 @@ Swagger UI：`/api/open/docs`（浏览器打开）；OpenAPI 规范：`GET /api/
 
 ![Swagger UI 接口文档](images/39-swagger.png)
 
+![Swagger UI API reference (English UI)](images/en/39-swagger.png)
+
 ## 2. Endpoint overview
 
 Swagger UI: `/api/open/docs` (open it in a browser); OpenAPI spec: `GET /api/open/v1/openapi.json`. Opened in a browser it renders as visual API documentation you can integrate against directly:
