@@ -5,6 +5,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ---------- helpers ----------
+
+# ---------- 输出语言 ----------
+# 刻意用 APP_LANG 而不是 LANG：LANG 是 POSIX 标准变量，多数系统已被占用
+# （en_US.UTF-8 之类），复用它会让部署输出语言取决于宿主机 locale，不可预期。
+APP_LANG="${APP_LANG:-zh-CN}"
+if [ "$APP_LANG" = "en-US" ]; then
+  t() { printf '%s\n' "$2"; }
+  t_err() { printf '%s\n' "$2" >&2; }
+else
+  t() { printf '%s\n' "$1"; }
+  t_err() { printf '%s\n' "$1" >&2; }
+fi
 rand_hex() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 24
@@ -59,7 +71,8 @@ docker compose version >/dev/null 2>&1 || die "需要 docker compose v2+"
 
 # ---------- .env 生成 ----------
 if [[ ! -f .env ]]; then
-  echo '[deploy] 未检测到 .env，从 .env.example 生成并注入随机密钥'
+  t '[deploy] 未检测到 .env，从 .env.example 生成并注入随机密钥' \
+      '[deploy] No .env found; generated one from .env.example with random secrets'
   [[ -f .env.example ]] || die ".env.example 不存在"
   cp .env.example .env
   rand_jwt="$(rand_b64)"
@@ -76,22 +89,28 @@ if [[ ! -f .env ]]; then
     .env
   # 兼容 macOS / GNU sed 产生的 .bak
   rm -f .env.bak
-  echo '[deploy] .env 已生成（JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD 已自动填充）'
-  echo '[deploy] 管理员初始密码：admin123（生产环境请修改 ADMIN_INITIAL_PASSWORD）'
+  t '[deploy] .env 已生成（JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD 已自动填充）' \
+      '[deploy] .env generated (JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD auto-filled)'
+  t '[deploy] 管理员初始密码：admin123（生产环境请修改 ADMIN_INITIAL_PASSWORD）' \
+      '[deploy] Initial admin password: admin123 (set ADMIN_INITIAL_PASSWORD for production)'
 fi
 
 # ---------- 子命令 ----------
 case "$ACTION" in
   up)
-    echo "[deploy] stack=${STACK} 编排文件=${COMPOSE_FILE}"
+    t "[deploy] stack=${STACK} 编排文件=${COMPOSE_FILE}" \
+        "[deploy] stack=${STACK} compose file=${COMPOSE_FILE}"
     "${COMPOSE[@]}" up -d --build ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
     "${COMPOSE[@]}" ps
     PORT="$(grep -E '^KANRAY_PORT=' .env 2>/dev/null | cut -d= -f2)"
     PORT="${PORT:-8080}"
     echo
-    echo "[deploy] stack=${STACK} 访问地址：http://localhost:${PORT}"
-    echo "[deploy] Swagger 文档：http://localhost:${PORT}/api/open/docs"
-    echo "[deploy] 初始管理员：admin@kanray.local / admin123（请尽快改密）"
+    t "[deploy] stack=${STACK} 访问地址：http://localhost:${PORT}" \
+        "[deploy] stack=${STACK} URL: http://localhost:${PORT}"
+    t "[deploy] Swagger 文档：http://localhost:${PORT}/api/open/docs" \
+        "[deploy] Swagger docs: http://localhost:${PORT}/api/open/docs"
+    t "[deploy] 初始管理员：admin@kanray.local / admin123（请尽快改密）" \
+        "[deploy] Initial admin: admin@kanray.local / admin123 (change it soon)"
     ;;
   down)
     "${COMPOSE[@]}" down ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
@@ -106,8 +125,9 @@ case "$ACTION" in
     "${COMPOSE[@]}" ps ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
     ;;
   *)
-    echo "用法：$0 {up|down|restart|logs|ps} [--stack pg|sqlite|mysql|mariadb] [docker compose 参数]"
-    echo "也可用环境变量 STACK=mysql $0 up"
+    t "用法：$0 {up|down|restart|logs|ps} [--stack pg|sqlite|mysql|mariadb] [docker compose 参数]" \
+        "Usage: $0 {up|down|restart|logs|ps} [--stack pg|sqlite|mysql|mariadb] [docker compose args]"
+    t "也可用环境变量 STACK=mysql $0 up" "Or pass the stack via env var: STACK=mysql $0 up"
     exit 1
     ;;
 esac
