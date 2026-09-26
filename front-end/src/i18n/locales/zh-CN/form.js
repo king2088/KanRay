@@ -66,6 +66,7 @@ export default {
     saved: '已保存',
     publishedSuccess: '发布成功，已建表并注册为数据集',
     closeConfirm: '关闭后登录用户将无法提交；可通过重新发布恢复。确定关闭？',
+    closeConfirmTitle: '关闭表单',
     closeSuccess: '已关闭',
     deleteFormConfirm: '确定删除表单「{name}」？其数据表与全部提交记录将一并删除，不可恢复。',
     deleteConfirmTitle: '删除确认',

@@ -66,6 +66,7 @@ export default {
     saved: 'Saved',
     publishedSuccess: 'Published — table created and registered as a dataset',
     closeConfirm: 'Once closed, signed-in users can no longer submit. You can reopen by publishing again. Close this form?',
+    closeConfirmTitle: 'Close form',
     closeSuccess: 'Closed',
     deleteFormConfirm: 'Delete form "{name}"? Its data table and all submission records will be deleted too, and this cannot be undone.',
     deleteConfirmTitle: 'Confirm deletion',
