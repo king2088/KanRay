@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -24,11 +27,15 @@ const timeStr = computed(() => {
   return `${pad(now.value.getHours())}:${pad(now.value.getMinutes())}:${pad(now.value.getSeconds())}`
 })
 
-const dateStr = computed(() => {
-  const d = now.value
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-  return `${d.getFullYear()}年${pad(d.getMonth() + 1)}月${pad(d.getDate())}日 星期${weekdays[d.getDay()]}`
-})
+// 日期格式（含星期名）交给 Intl 按当前语言输出，避免手写两套格式。
+const dateStr = computed(() =>
+  new Intl.DateTimeFormat(locale.value, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  }).format(now.value)
+)
 
 const secondDeg = computed(() => now.value.getSeconds() * 6)
 const minuteDeg = computed(() => now.value.getMinutes() * 6 + now.value.getSeconds() * 0.1)

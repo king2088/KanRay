@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -15,7 +18,7 @@ const text = computed(() => {
     } catch { return props.data.value }
   }
   if (props.props?.content) return props.props.content
-  return '静态文本'
+  return t('bigscreen.widget.staticTextFallback')
 })
 
 const fontSize = computed(() => props.props?.fontSize || 24)

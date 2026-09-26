@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -46,22 +49,22 @@ const diff = computed(() => {
     <div class="countdown-row">
       <div class="countdown-block">
         <span class="countdown-number">{{ pad(diff.days) }}</span>
-        <span class="countdown-label">天</span>
+        <span class="countdown-label">{{ t('bigscreen.widget.countdownDay') }}</span>
       </div>
       <span class="countdown-sep">:</span>
       <div class="countdown-block">
         <span class="countdown-number">{{ pad(diff.hours) }}</span>
-        <span class="countdown-label">时</span>
+        <span class="countdown-label">{{ t('bigscreen.widget.countdownHour') }}</span>
       </div>
       <span class="countdown-sep">:</span>
       <div class="countdown-block">
         <span class="countdown-number">{{ pad(diff.minutes) }}</span>
-        <span class="countdown-label">分</span>
+        <span class="countdown-label">{{ t('bigscreen.widget.countdownMinute') }}</span>
       </div>
       <span class="countdown-sep">:</span>
       <div class="countdown-block">
         <span class="countdown-number">{{ pad(diff.seconds) }}</span>
-        <span class="countdown-label">秒</span>
+        <span class="countdown-label">{{ t('bigscreen.widget.countdownSecond') }}</span>
       </div>
     </div>
   </div>
