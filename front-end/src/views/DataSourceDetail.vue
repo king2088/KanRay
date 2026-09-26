@@ -19,7 +19,7 @@
           <el-tag v-if="ds.last_test_ok === true" type="success" >{{ t('common.state.success') }}</el-tag>
           <el-tag v-else-if="ds.last_test_ok === false" type="danger" >{{ t('common.state.failed') }}</el-tag>
           <span v-else>{{ t('dataset.dataSource.neverTested') }}</span>
-          <span v-if="ds.last_test_msg"> — {{ ds.last_test_msg }}</span>
+          <span v-if="lastTestMsg"> — {{ lastTestMsg }}</span>
         </div>
       </div>
     </el-card>
@@ -215,6 +215,7 @@ import SchemaNodeIcon from '@/components/SchemaNodeIcon.vue'
 import { datasourceApi, syncApi } from '@/api'
 import { formatDateTime } from '@/utils/datetime'
 import { fieldTypeLabel } from '@/utils/field-type-label'
+import { pickLocaleText } from '@/i18n/locale-util'
 import { t } from '@/i18n'
 import { useAppStore } from '@/stores/app'
 
@@ -223,6 +224,10 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const ds = ref(null)
+// 落库的连接诊断文案只有中文，英文列由后端 enOf 在写入时补；缺英文时按契约回退中文
+const lastTestMsg = computed(() =>
+  pickLocaleText(locale.value, ds.value?.last_test_msg, ds.value?.last_test_msg_en),
+)
 const loading = ref(false)
 const testing = ref(false)
 const schemas = ref([])

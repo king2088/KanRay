@@ -7,6 +7,7 @@ const dialects = require('../datasources/dialects');
 const buildSql = require('../datasources/build-sql');
 const audit = require('./audit.service');
 const { uuidv7 } = require('../utils/uuidv7');
+const { enOf } = require('../i18n');
 
 // 文件型数据源（Excel/CSV 上传）不属于 drivers 列表，单独定义驱动元数据
 const FILE_META = {
@@ -86,6 +87,7 @@ function toPublic(row) {
     last_test_at: row.last_test_at,
     last_test_ok: row.last_test_ok == null ? null : !!row.last_test_ok,
     last_test_msg: row.last_test_msg,
+    last_test_msg_en: row.last_test_msg_en || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -191,7 +193,8 @@ async function testSaved(id, req) {
   if (!row) throw new HttpError(404, '数据源不存在');
   const driverMeta = getDriverMeta(row.type);
   if (driverMeta.family === 'file') {
-    await db.prepare("UPDATE data_sources SET last_test_at = datetime('now'), last_test_ok = 1, last_test_msg = '文件数据源已导入' WHERE id = ?").run(id);
+    await db.prepare("UPDATE data_sources SET last_test_at = datetime('now'), last_test_ok = 1, last_test_msg = '文件数据源已导入', last_test_msg_en = ? WHERE id = ?")
+    .run(enOf('文件数据源已导入') || 'File data source imported', id);
     await audit.log({ userId: row.owner_id ?? null, email: req?.user?.email, action: 'datasource.test', resourceType: 'datasource', resourceId: id, detail: { ok: true, msg: '文件数据源已导入' } }, req);
     return { ok: true, message: '文件数据源已导入' };
   }
@@ -204,8 +207,9 @@ async function testSaved(id, req) {
   } catch (e) {
     msg = e.message;
   }
-  await db.prepare("UPDATE data_sources SET last_test_at = datetime('now'), last_test_ok = ?, last_test_msg = ? WHERE id = ?")
-    .run(ok ? 1 : 0, msg, id);
+  // 英文诊断文案与 API 响应同一套映射（enOf），22 个 provider 不用各带一份
+  await db.prepare("UPDATE data_sources SET last_test_at = datetime('now'), last_test_ok = ?, last_test_msg = ?, last_test_msg_en = ? WHERE id = ?")
+    .run(ok ? 1 : 0, msg, enOf(msg) || null, id);
   await audit.log({ userId: row.owner_id ?? null, email: req?.user?.email, action: 'datasource.test', resourceType: 'datasource', resourceId: id, detail: { ok, msg } }, req);
   return { ok, message: msg };
 }
