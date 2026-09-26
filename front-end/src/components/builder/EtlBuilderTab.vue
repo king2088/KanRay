@@ -138,7 +138,7 @@
             <el-table-column label="运算符" width="96">
               <template #default="{ row }">
                 <el-select v-model="row.op"  style="width: 100%" @change="emitChange">
-                  <el-option v-for="o in STRING_OPS" :key="o.value" :label="o.label" :value="o.value" />
+                  <el-option v-for="o in STRING_OPS" :key="o.value" :label="o.labelKey ? t(o.labelKey) : o.label" :value="o.value" />
                 </el-select>
               </template>
             </el-table-column>
@@ -169,7 +169,7 @@
             <el-table-column label="聚合方式" width="132">
               <template #default="{ row }">
                 <el-select v-model="row.agg" style="width: 100%" @change="emitChange">
-                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="t(a.labelKey)" :value="a.value" />
                 </el-select>
               </template>
             </el-table-column>
@@ -311,6 +311,7 @@ import { Background } from '@vue-flow/background'
 import { ElMessage, TableV2 } from 'element-plus'
 import { buildApi } from '@/api'
 import { allFields, AGG_OPTIONS, STRING_OPS } from '@/utils/catalog'
+import { t } from '@/i18n'
 import EtlNodeCard from './EtlNodeCard.vue'
 import SqlCodeMirror from './SqlCodeMirror.vue'
 import '@vue-flow/core/dist/style.css'

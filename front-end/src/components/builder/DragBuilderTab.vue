@@ -104,7 +104,7 @@
                   <div class="agg-title">聚合指标</div>
                   <div v-for="(m, i) in aggMetrics" :key="i" class="agg-metric">
                     <el-select v-model="m.agg"  style="width: 130px" @change="emitChange">
-                      <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+                      <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="t(a.labelKey)" :value="a.value" />
                     </el-select>
                     <el-select v-if="m.agg !== 'count'" v-model="m.field"  filterable style="width: 160px" @change="emitChange">
                       <el-option v-for="o in fieldOptions" :key="o.value" :label="o.label" :value="o.value" />
@@ -142,6 +142,7 @@ import { ArrowDown } from '@element-plus/icons-vue'
 import Sortable from 'sortablejs'
 import { buildApi } from '@/api'
 import { allFields, AGG_OPTIONS } from '@/utils/catalog'
+import { t } from '@/i18n'
 import SchemaTree from './SchemaTree.vue'
 
 const props = defineProps({ datasourceId: { type: [Number, String], required: true }, catalog: { type: Array, default: () => [] }, initialDefinition: Object })

@@ -82,7 +82,7 @@
                   <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
                 </el-select>
                 <el-select v-model="m.agg" style="width: 100px">
-                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+                  <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="t(a.labelKey)" :value="a.value" />
                 </el-select>
                 <el-icon class="dq-remove" @click="removeItem(metrics, mi)"><Delete /></el-icon>
               </div>
@@ -128,6 +128,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, Delete, DataLine } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
 import { AGG_OPTIONS } from '@/utils/chart-utils'
+import { t } from '@/i18n'
 import { toDatasetOptions } from '@/utils/dataset-type'
 import DatasetOption from '@/components/DatasetOption.vue'
 
