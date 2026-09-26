@@ -1,7 +1,13 @@
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+</script>
+
 <template>
   <div class="rc-section">
     <el-alert type="info" :closable="false" class="rc-alert">
-      在自定义JS代码中，通过 <code>data</code> 变量访问绑定的数据。例如: <code>data.list</code>、<code>data.values</code>
+      {{ t('bigscreen.config.dataHint.lead') }} <code>data</code> {{ t('bigscreen.config.dataHint.trail') }} <code>data.list</code>、<code>data.values</code>
     </el-alert>
   </div>
 </template>
