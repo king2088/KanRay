@@ -62,7 +62,7 @@ module.exports = [
   `CREATE TABLE IF NOT EXISTS data_sources (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL,
     config TEXT NOT NULL, is_active SMALLINT NOT NULL DEFAULT 1, owner_id TEXT,
-    mode TEXT NOT NULL DEFAULT 'direct', last_test_at TIMESTAMP, last_test_ok SMALLINT, last_test_msg TEXT,
+    mode TEXT NOT NULL DEFAULT 'direct', last_test_at TIMESTAMP, last_test_ok SMALLINT, last_test_msg TEXT, last_test_msg_en TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
   'CREATE INDEX IF NOT EXISTS idx_data_sources_owner ON data_sources(owner_id)',
