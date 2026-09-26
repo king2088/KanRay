@@ -14,7 +14,7 @@
           <template #default="{ row }">{{ row[col.key] }}</template>
         </el-table-column>
       </el-table>
-      <el-empty v-else description="暂无数据" :image-size="60" />
+      <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
     </template>
 
     <!-- 数值卡 -->
@@ -23,7 +23,7 @@
         <div class="stat-value">{{ fmtNumber(statValue) }}</div>
         <div class="stat-label">{{ statLabel }}</div>
       </div>
-      <el-empty v-else description="暂无数据" :image-size="60" />
+      <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
     </template>
 
     <!-- 进度类型 -->
@@ -80,18 +80,19 @@
         <div class="stat-value">{{ fmtNumber(statValue) }}</div>
         <div class="stat-label">{{ statLabel }}</div>
       </div>
-      <el-empty v-else description="暂无数据" :image-size="60" />
+      <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
     </template>
 
     <!-- 图表 -->
     <EChartRenderer v-else-if="data" :chart-type="chartType" :data="data" :options="chartOptions" />
     <div v-else class="tile-loading" v-loading="!loaded">
-      <el-empty v-if="loaded" description="暂无数据" :image-size="60" />
+      <el-empty v-if="loaded" :description="t('common.empty.noData')" :image-size="60" />
     </div>
   </div>
 </template>
 
 <script setup>
+import { t } from '@/i18n'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { chartApi as defaultChartApi, datasetApi as defaultDatasetApi } from '@/api'
 import { getChartType } from '@/config/chart-types'

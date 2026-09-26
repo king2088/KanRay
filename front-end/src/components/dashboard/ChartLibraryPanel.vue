@@ -1,18 +1,18 @@
 <template>
   <aside class="chart-library-panel">
     <div class="clp-header">
-      <div class="clp-title"><el-icon :size="15"><PieChart /></el-icon> 图表库</div>
-      <el-select-v2 v-model="dsFilter" clearable filterable placeholder="按数据源筛选" class="clp-select" :options="datasetOptions" @change="onFilterChange">
+      <div class="clp-title"><el-icon :size="15"><PieChart /></el-icon> {{ t('dashboard.library.title') }}</div>
+      <el-select-v2 v-model="dsFilter" clearable filterable :placeholder="t('dashboard.library.filterByDatasource')" class="clp-select" :options="datasetOptions" @change="onFilterChange">
         <template #default="{ item }">
           <DatasetOption :item="item" />
         </template>
       </el-select-v2>
-      <el-input v-model="keyword" clearable placeholder="搜索图表名称" :prefix-icon="Search" class="clp-search" @input="onKeywordInput" @clear="onKeywordClear" />
-      <div class="clp-count">共 {{ total }} 个图表</div>
+      <el-input v-model="keyword" clearable :placeholder="t('dashboard.library.searchChart')" :prefix-icon="Search" class="clp-search" @input="onKeywordInput" @clear="onKeywordClear" />
+      <div class="clp-count">{{ t('dashboard.library.totalCharts', { n: total }) }}</div>
     </div>
 
     <el-scrollbar class="clp-scroll">
-      <div v-loading="loading" class="clp-lists" element-loading-text="加载中…">
+      <div v-loading="loading" class="clp-lists" :element-loading-text="t('dashboard.library.loading')">
         <template v-if="available.length">
           <div class="clp-list">
             <div
@@ -26,26 +26,26 @@
               <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
               <div class="clp-body">
                 <span class="clp-name">{{ c.name }}</span>
-                <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+                <span class="clp-meta">{{ c.datasetName || t('dashboard.library.unboundDatasource') }}</span>
                 <span v-if="c.updatedAt" class="clp-time">{{ formatDateTime(c.updatedAt, appStore.timezone) }}</span>
               </div>
             </div>
           </div>
           <div v-if="hasMore" class="clp-more">
-            <el-button  text :loading="loadingMore" @click="loadMore">加载更多</el-button>
+            <el-button  text :loading="loadingMore" @click="loadMore">{{ t('dashboard.library.loadMore') }}</el-button>
           </div>
         </template>
-        <el-empty v-else-if="!loading" description="没有可用图表" :image-size="46" />
+        <el-empty v-else-if="!loading" :description="t('dashboard.library.empty')" :image-size="46" />
 
         <div v-if="usedList.length" class="clp-list clp-list--used">
           <div v-for="c in usedList" :key="c.id" class="chart-palette-item is-used">
             <ChartTypeIcon :name="c.chartType || 'bar'" :size="30" class="clp-type-icon" />
             <div class="clp-body">
               <span class="clp-name">{{ c.name }}</span>
-              <span class="clp-meta">{{ c.datasetName || '未绑定数据源' }}</span>
+              <span class="clp-meta">{{ c.datasetName || t('dashboard.library.unboundDatasource') }}</span>
               <span v-if="c.updatedAt" class="clp-time">{{ formatDateTime(c.updatedAt, appStore.timezone) }}</span>
             </div>
-            <el-tag  type="info">已在看板</el-tag>
+            <el-tag  type="info">{{ t('dashboard.library.inDashboard') }}</el-tag>
           </div>
         </div>
       </div>
@@ -54,6 +54,7 @@
 </template>
 
 <script setup>
+import { t } from '@/i18n'
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { Search, PieChart } from '@element-plus/icons-vue'
 import { chartApi } from '@/api'
