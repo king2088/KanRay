@@ -211,6 +211,7 @@ export default {
     logs: '日志',
     emptyTasks: '暂无同步任务。同步后数据落到本机存储，浏览树中可看到本地表。',
     dialogTitle: '新建同步任务',
+    sourceSchema: '源 Schema',
     localTable: '目标表名',
     localTablePlaceholder: '本地落库表名',
     strategyIncrementalRadio: '按水印增量',

@@ -211,6 +211,7 @@ export default {
     logs: 'Logs',
     emptyTasks: 'No sync jobs yet. After a sync the data lands in local storage and the local table shows up in the tree.',
     dialogTitle: 'New sync job',
+    sourceSchema: 'Source schema',
     localTable: 'Target table name',
     localTablePlaceholder: 'Local table name',
     strategyIncrementalRadio: 'Incremental by watermark',
