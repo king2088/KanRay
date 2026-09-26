@@ -11,7 +11,7 @@ export default {
     status: 'Status',
     createdAt: 'Created at',
     actions: 'Actions',
-    assignRoles: 'Assign roles',
+    assignRoles: 'Role',
     resetPassword: 'Reset password',
     delete: 'Delete',
     noPermission: 'You do not have permission to view this page',
@@ -35,7 +35,7 @@ export default {
     updated: 'Updated',
     passwordReset: 'Password reset',
     deleteConfirm: 'Delete user {email}?',
-    confirmTitle: 'Confirm',
+    confirmTitle: 'Notice',
     deleteSuccess: 'Deleted',
   },
     perm: {
@@ -116,7 +116,7 @@ export default {
     createSuccess: 'Role created',
     updateSuccess: 'Role updated',
     deleteConfirm: 'Delete role "{name}"?',
-    confirmTitle: 'Confirm',
+    confirmTitle: 'Notice',
     deleteSuccess: 'Deleted',
     moduleLabels: {
       dataset: 'Datasets',
