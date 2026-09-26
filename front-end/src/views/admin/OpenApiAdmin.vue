@@ -71,7 +71,7 @@
           <el-table-column :label="t('admin.openApi.lastUsedAt')" width="180">
             <template #default="{ row }">{{ row.lastUsedAt ? formatDateTime(row.lastUsedAt, appStore.timezone) : '-' }}</template>
           </el-table-column>
-          <el-table-column :label="t('admin.openApi.actions')" width="200" fixed="right">
+          <el-table-column :label="t('admin.openApi.actions')" width="250" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="openRotate(row)">{{ t('admin.openApi.rotate') }}</el-button>
               <el-button link :type="row.status === 'active' ? 'warning' : 'success'" @click="toggleActive(row)">

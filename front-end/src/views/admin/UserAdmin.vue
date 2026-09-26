@@ -36,7 +36,7 @@
       <el-table-column :label="t('admin.user.createdAt')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
       </el-table-column>
-      <el-table-column :label="t('admin.user.actions')" width="230" fixed="right">
+      <el-table-column :label="t('admin.user.actions')" width="250" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEditRoles(row)">{{ t('admin.user.assignRoles') }}</el-button>
           <el-button link type="primary" @click="openResetPw(row)">{{ t('admin.user.resetPassword') }}</el-button>

@@ -39,7 +39,7 @@
         <el-table-column :label="t('openapi.token.lastUsedAt')" width="180">
           <template #default="{ row }">{{ row.lastUsedAt ? formatDateTime(row.lastUsedAt, appStore.timezone) : '-' }}</template>
         </el-table-column>
-        <el-table-column :label="t('openapi.token.actions')" width="200" fixed="right">
+        <el-table-column :label="t('openapi.token.actions')" width="250" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="onRotate(row)">{{ t('openapi.token.rotate') }}</el-button>
             <el-button link :type="row.status === 'active' ? 'warning' : 'success'" @click="onToggle(row)">
