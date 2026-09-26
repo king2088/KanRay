@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { applyTheme, darkByMode, watchSystemTheme } from '@/utils/theme'
 import { configApi } from '@/api'
+import { applyLocale } from '@/i18n'
+import { DEFAULT_LOCALE, SUPPORT_LOCALES } from '@/i18n/constants'
 
 const KEY = 'kanban-app-settings'
 const THEME_MODES = ['light', 'dark', 'auto']
-const DEFAULTS = { layout: 'horizontal', collapsed: false, themeMode: 'light', primaryColor: '#3fa49a', size: 'default', timezone: 'Asia/Shanghai' }
+const DEFAULTS = { layout: 'horizontal', collapsed: false, themeMode: 'light', primaryColor: '#3fa49a', size: 'default', timezone: 'Asia/Shanghai', locale: DEFAULT_LOCALE }
 
 // 浅色玻璃主题的出厂主色；旧版本默认蓝视为"未做选择"，加载时迁到新主色
 const LEGACY_DEFAULT_PRIMARY = '#409eff'
@@ -19,6 +21,7 @@ function load() {
     let themeMode = 'light'
     if (THEME_MODES.includes(s.themeMode)) themeMode = s.themeMode
     else if (s.dark === true) themeMode = 'dark'
+    if (!SUPPORT_LOCALES.includes(s.locale)) s.locale = DEFAULT_LOCALE
     return { ...DEFAULTS, ...s, dark: undefined, themeMode }
   } catch (e) {
     return { ...DEFAULTS }
@@ -37,6 +40,7 @@ export const useAppStore = defineStore('app', {
           themeMode: this.themeMode,
           primaryColor: this.primaryColor,
           size: this.size,
+          locale: this.locale,
         }),
       )
     },
@@ -60,6 +64,7 @@ export const useAppStore = defineStore('app', {
     },
     applyInitial() {
       this.applyCurTheme()
+      applyLocale(this.locale)
     },
     // 从后端拉取系统配置（时区等），失败时回退默认值，不阻塞渲染
     async loadConfig() {
@@ -93,6 +98,11 @@ export const useAppStore = defineStore('app', {
     setSize(v) {
       if (!['large', 'default', 'small'].includes(v)) return
       this.size = v
+      this.persist()
+    },
+    setLocale(v) {
+      if (!SUPPORT_LOCALES.includes(v)) return
+      this.locale = applyLocale(v)
       this.persist()
     },
   },
