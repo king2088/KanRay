@@ -4,7 +4,8 @@
 // 3) 无空值、无与键名同值的占位符
 // 4) pickLocaleText 语言选择与回退行为
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DEFAULT_LOCALE, DOMAINS, SUPPORT_LOCALES } from '../src/i18n/constants.js'
 import { flattenMessages } from '../src/i18n/flatten.js'
@@ -91,6 +92,63 @@ t('无「值等于键名」的占位符', () => {
       assert.notEqual(value, key, `${locale}.${key} 的值等于键名，疑似未翻译占位`)
     }
   }
+})
+
+t('源码中引用的字面量翻译键都存在', () => {
+  // 动态键（'a.b.' + x、变量）不参与校验：键名按 . 分段且每段非空，尾随 . 视为动态前缀。
+  const root = fileURLToPath(new URL('../src', import.meta.url))
+  const files = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'locales') continue
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (['.vue', '.js'].includes(extname(p))) files.push(p)
+    }
+  }
+  walk(root)
+
+  const patterns = [/\b(?:t|tr)\(\s*'([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)'/g, /\blabelKey:\s*'([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)'/g]
+  const missing = []
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8')
+    for (const re of patterns) {
+      for (const m of src.matchAll(re)) {
+        const key = m[1]
+        if (zhFlat[key] === undefined) missing.push(`${file.replace(root, 'src')}: ${key}`)
+        else if (enFlat[key] === undefined) missing.push(`${file.replace(root, 'src')}: ${key} (缺 en-US)`)
+      }
+    }
+  }
+  assert.deepEqual([...new Set(missing)].sort(), [], `存在未定义的翻译键:\n${[...new Set(missing)].join('\n')}`)
+})
+
+t('词典源码无重复键（后者会静默覆盖前者）', () => {
+  // 解析成 JS 对象后重复键已丢失，只能按源码行检测：每行一个键、缩进表示层级。
+  // 同一对象内出现同名键即为覆盖，例如 detail: '详情' 后面又来 detail: { ... }。
+  const stripStrings = (line) => line.replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""')
+  const dups = []
+  for (const locale of SUPPORT_LOCALES) {
+    for (const domain of DOMAINS) {
+      const file = fileURLToPath(new URL(`../src/i18n/locales/${locale}/${domain}.js`, import.meta.url))
+      if (!existsSync(file)) continue
+      const stack = [new Set()]
+      for (const [i, raw] of readFileSync(file, 'utf8').split('\n').entries()) {
+        const line = stripStrings(raw)
+        const m = raw.match(/^\s*(?:'([^']+)'|([A-Za-z0-9_]+)):/)
+        if (m && stack.length) {
+          const key = m[1] || m[2]
+          if (stack[stack.length - 1].has(key)) dups.push(`${locale}/${domain}.js:${i + 1} ${key}`)
+          else stack[stack.length - 1].add(key)
+        }
+        for (const ch of line) {
+          if (ch === '{') stack.push(new Set())
+          else if (ch === '}' && stack.length > 1) stack.pop()
+        }
+      }
+    }
+  }
+  assert.deepEqual(dups, [], `存在被覆盖的重复键:\n${dups.join('\n')}`)
 })
 
 t('isEnglish 判定', () => {
