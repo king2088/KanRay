@@ -80,7 +80,7 @@
             <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('chart.list.colActions')" width="200" fixed="right" align="center">
+        <el-table-column :label="t('chart.list.colActions')" width="215" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               link

@@ -76,7 +76,7 @@
         <el-table-column :label="t('dataset.sync.colNext')" min-width="110">
           <template #default="{ row }">{{ nextSync(row) }}</template>
         </el-table-column>
-        <el-table-column :label="t('dataset.sync.colActions')" width="200" fixed="right">
+        <el-table-column :label="t('dataset.sync.colActions')" width="215" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="syncingId === row.id" :disabled="row.last_sync_status === 'running'" @click="runTask(row)">{{ t('dataset.sync.runNow') }}</el-button>
             <el-button link @click="openLogs(row)">{{ t('dataset.sync.logs') }}</el-button>

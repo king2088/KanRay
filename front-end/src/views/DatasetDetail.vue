@@ -128,7 +128,7 @@
               <el-table-column prop="created_at" :label="t('dataset.list.colCreatedAt')" width="180">
                 <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
               </el-table-column>
-              <el-table-column :label="t('dataset.list.actions')" width="140" fixed="right">
+              <el-table-column :label="t('dataset.list.actions')" width="150" fixed="right">
                 <template #default="{ row }">
                   <el-button link type="primary" size="small" @click="openMetricDialog(row)">{{ t('common.actions.edit') }}</el-button>
                   <el-button link type="danger" size="small" @click="removeMetric(row)">{{ t('common.actions.delete') }}</el-button>
