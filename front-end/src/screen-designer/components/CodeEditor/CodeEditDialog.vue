@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import CodeEditor from './CodeEditor.vue'
 import * as echarts from 'echarts'
 import { loadMonaco } from '@/utils/monacoCore'
 
 // 用户自定义脚本通过 window.echarts 使用图表库（原挂在 main.js 入口，现按需注入）
 window.echarts = echarts
+
+const { t } = useI18n()
 
 const vHighlight = {
   async mounted(el: HTMLElement) {
@@ -30,7 +33,7 @@ interface Template {
 
 const templates: Template[] = [
   {
-    name: 'Hello World 柱状图',
+    nameKey: 'bigscreen.codeTemplate.helloBar',
     html: `<div class="demo">
   <h2>Hello World</h2>
   <p>双击在这里编写HTML</p>
@@ -70,7 +73,7 @@ if (chartBox && values.length) {
 }`
   },
   {
-    name: '数据卡片',
+    nameKey: 'bigscreen.codeTemplate.dataCard',
     html: `<div class="card-wrap">
   <div class="card">
     <div class="card-icon" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">
@@ -106,7 +109,7 @@ body { background: #0f0f2e; }
     js: ``
   },
   {
-    name: '轮播排名榜',
+    nameKey: 'bigscreen.codeTemplate.carouselRank',
     html: `<div class="rank-wrap">
   <div class="rank-header"><span>实时销量排行</span><span class="rank-tag">LIVE</span></div>
   <div class="rank-list" id="rankList"></div>
@@ -170,7 +173,7 @@ render();
 setInterval(render, 3000);`
   },
   {
-    name: '科技感边框',
+    nameKey: 'bigscreen.codeTemplate.techBorder',
     html: `<div class="tech-box">
   <div class="corner tl"></div><div class="corner tr"></div>
   <div class="corner bl"></div><div class="corner br"></div>
@@ -207,7 +210,7 @@ body { background: #0f0f2e; display: flex; align-items: center; justify-content:
     js: ``
   },
   {
-    name: '动态时钟',
+    nameKey: 'bigscreen.codeTemplate.dynamicClock',
     html: `<div class="clock-wrap">
   <div class="clock-date" id="date"></div>
   <div class="clock-time" id="time"></div>
@@ -239,7 +242,7 @@ tick();
 setInterval(tick, 1000);`
   },
   {
-    name: '环形进度环',
+    nameKey: 'bigscreen.codeTemplate.ringProgress',
     html: `<div class="ring-wrap">
   <div class="ring" id="ring">
     <div class="ring-inner"><span id="ringVal">72%</span></div>
@@ -281,7 +284,7 @@ setVal(val);
 setInterval(function () { setVal(val + Math.round((Math.random() - 0.5) * 6)); }, 2000);`
   },
   {
-    name: '3D翻转卡片',
+    nameKey: 'bigscreen.codeTemplate.flipCard3d',
     html: `<div class="flip-scene">
   <div class="flip-card">
     <div class="flip-face front">
@@ -334,7 +337,7 @@ body { background: #0f0f2e; }
     js: ``
   },
   {
-    name: '雷达扫描',
+    nameKey: 'bigscreen.codeTemplate.radarScan',
     html: `<div class="radar-wrap">
   <div class="radar-circle c1"></div>
   <div class="radar-circle c2"></div>
@@ -531,9 +534,9 @@ onUnmounted(() => {
   >
     <template #header>
       <div class="dialog-header">
-        <span class="dialog-title">自定义组件代码编辑</span>
-        <el-select v-model="selectedTemplate" size="default" placeholder="选择模板" style="width: 160px" @change="loadTemplate">
-          <el-option v-for="(t, i) in templates" :key="i" :label="t.name" :value="i" />
+        <span class="dialog-title">{{ t('bigscreen.codeEditor.dialogTitle') }}</span>
+        <el-select v-model="selectedTemplate" size="default" :placeholder="t('bigscreen.codeEditor.selectTemplate')" style="width: 160px" @change="loadTemplate">
+          <el-option v-for="(tpl, i) in templates" :key="i" :label="t(tpl.nameKey)" :value="i" />
         </el-select>
       </div>
     </template>
@@ -557,37 +560,37 @@ onUnmounted(() => {
       </div>
       <div class="preview-section" :style="{ height: previewHeight + 'px' }">
         <div class="preview-toolbar">
-          <span class="preview-label">实时预览</span>
+          <span class="preview-label">{{ t('bigscreen.codeEditor.livePreview') }}</span>
           <el-button size="default" text @click="openPreviewWindow">
-            <el-icon><View /></el-icon> 在新窗口中预览
+            <el-icon><View /></el-icon> {{ t('bigscreen.codeEditor.previewInNewWindow') }}
           </el-button>
           <el-button size="default" type="primary" @click="helpVisible = true">
-            <el-icon><QuestionFilled /></el-icon> 帮助文档
+            <el-icon><QuestionFilled /></el-icon> {{ t('bigscreen.codeEditor.helpDoc') }}
           </el-button>
         </div>
         <iframe :key="previewKey" :srcdoc="previewHtml" class="preview-iframe"></iframe>
       </div>
     </div>
     <template #footer>
-      <el-button @click="emit('update:visible', false)">取消</el-button>
-      <el-button type="primary" @click="handleSave">保存</el-button>
+      <el-button @click="emit('update:visible', false)">{{ t('bigscreen.codeEditor.cancel') }}</el-button>
+      <el-button type="primary" @click="handleSave">{{ t('bigscreen.codeEditor.save') }}</el-button>
     </template>
 
     <!-- 帮助文档弹窗 -->
-    <el-dialog v-model="helpVisible" title="自定义组件开发帮助" width="800px" :close-on-click-modal="false" destroy-on-close top="5vh">
+    <el-dialog v-model="helpVisible" :title="t('bigscreen.help.title')" width="800px" :close-on-click-modal="false" destroy-on-close top="5vh">
       <div class="help-content">
-        <h3>可用变量</h3>
-        <p>在 JavaScript 编辑器中，你可以直接使用以下变量：</p>
+        <h3>{{ t('bigscreen.help.availableVars') }}</h3>
+        <p>{{ t('bigscreen.help.availableVarsIntro') }}</p>
         <table class="help-table">
-          <thead><tr><th>变量名</th><th>类型</th><th>说明</th></tr></thead>
+          <thead><tr><th>{{ t('bigscreen.help.colName') }}</th><th>{{ t('bigscreen.help.colType') }}</th><th>{{ t('bigscreen.help.colDesc') }}</th></tr></thead>
           <tbody>
-            <tr><td><code>container</code></td><td>HTMLElement</td><td>组件容器DOM元素，你的内容会渲染在此元素内</td></tr>
-            <tr><td><code>echarts</code></td><td>Object</td><td>ECharts实例，可直接调用 <code>echarts.init()</code></td></tr>
-            <tr><td><code>data</code></td><td>Object|Null</td><td>API数据绑定返回的数据，未绑定时为 null</td></tr>
+            <tr><td><code>container</code></td><td>HTMLElement</td><td>{{ t('bigscreen.help.varContainer') }}</td></tr>
+            <tr><td><code>echarts</code></td><td>Object</td><td>{{ t('bigscreen.help.varEcharts') }}</td></tr>
+            <tr><td><code>data</code></td><td>Object|Null</td><td>{{ t('bigscreen.help.varData') }}</td></tr>
           </tbody>
         </table>
 
-        <h3>示例1：基础柱状图</h3>
+        <h3>{{ t('bigscreen.help.example1') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">var chart = echarts.init(container.querySelector('#myChart'));
 chart.setOption({
   xAxis: { type: 'category', data: ['Mon','Tue','Wed','Thu','Fri'] },
@@ -596,7 +599,7 @@ chart.setOption({
 });
 window.addEventListener('resize', () => chart.resize());</pre>
 
-        <h3>示例2：折线图</h3>
+        <h3>{{ t('bigscreen.help.example2') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">var chart = echarts.init(container.querySelector('#myChart'));
 chart.setOption({
   xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'] },
@@ -608,7 +611,7 @@ chart.setOption({
 });
 window.addEventListener('resize', () => chart.resize());</pre>
 
-        <h3>示例3：饼图</h3>
+        <h3>{{ t('bigscreen.help.example3') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">var chart = echarts.init(container.querySelector('#myChart'));
 chart.setOption({
   series: [{
@@ -623,7 +626,7 @@ chart.setOption({
 });
 window.addEventListener('resize', () => chart.resize());</pre>
 
-        <h3>示例4：使用API数据</h3>
+        <h3>{{ t('bigscreen.help.example4') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">// data 来自右侧面板「数据绑定」配置的API返回值
 if (data && data.list) {
   var chart = echarts.init(container.querySelector('#myChart'));
@@ -637,7 +640,7 @@ if (data && data.list) {
   window.addEventListener('resize', () => chart.resize());
 }</pre>
 
-        <h3>示例5：纯HTML/CSS内容（不使用ECharts）</h3>
+        <h3>{{ t('bigscreen.help.example5') }}</h3>
         <pre v-highlight data-lang="html" class="help-code">&lt;!-- HTML编辑器 --&gt;
 &lt;div class="card"&gt;
   &lt;div class="title"&gt;系统状态&lt;/div&gt;
@@ -657,7 +660,7 @@ if (data && data.list) {
 
 /* JS编辑器留空即可 */</pre>
 
-        <h3>示例6：动态数据与定时更新</h3>
+        <h3>{{ t('bigscreen.help.example6') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">var chart = echarts.init(container.querySelector('#myChart'));
 function update() {
   var data = Array.from({length: 5}, () => Math.round(Math.random() * 200));
@@ -671,13 +674,13 @@ update();
 setInterval(update, 3000);
 window.addEventListener('resize', () => chart.resize());</pre>
 
-        <h3>注意事项</h3>
+        <h3>{{ t('bigscreen.help.notes') }}</h3>
         <ul class="help-list">
-          <li>使用 <code>container.querySelector()</code> 获取容器内的DOM元素</li>
-          <li>ECharts 图表需要设置容器宽高，HTML编辑器中建议使用 <code>width:100%;height:100%</code></li>
-          <li>务必监听 <code>window resize</code> 事件调用 <code>chart.resize()</code></li>
-          <li>不要使用 <code>document.querySelector</code>，请使用 <code>container.querySelector</code></li>
-          <li>API数据绑定：在右侧面板「数据」→「数据绑定」中配置API地址，返回的数据通过 <code>data</code> 变量访问</li>
+          <li>{{ t('bigscreen.help.note1') }}</li>
+          <li>{{ t('bigscreen.help.note2') }}</li>
+          <li>{{ t('bigscreen.help.note3') }}</li>
+          <li>{{ t('bigscreen.help.note4') }}</li>
+          <li>{{ t('bigscreen.help.note5') }}</li>
         </ul>
       </div>
     </el-dialog>
