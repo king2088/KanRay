@@ -10,7 +10,7 @@
           :class="{ 'is-fixed': f.field.selectWidth }"
         >
           <span v-if="f.field.separator" class="row-sep" />
-          <span class="row-field-label">{{ f.field.label }}</span>
+          <span class="row-field-label">{{ lbl(f.field) }}</span>
           <Control
             :field="f.field"
             :value="getModelValue(f.key)"
@@ -24,7 +24,7 @@
       <template v-else>
         <!-- Inline toolbar group (text style) -->
         <div v-if="unit.field.type === 'group' && unit.field.inline && unit.field.children" class="inline-group">
-          <span class="inline-group-label">{{ unit.field.label }}</span>
+          <span class="inline-group-label">{{ lbl(unit.field) }}</span>
           <span class="inline-sub">
             <SchemaForm
               :schema="unit.field.children"
@@ -37,7 +37,7 @@
 
         <!-- Flattened single-control group: rendered as a plain field-row -->
         <div v-else-if="unit.field.type === 'group' && unit.field.flat && unit.field.children" class="field-row">
-          <div class="field-label">{{ unit.field.label }}</div>
+          <div class="field-label">{{ lbl(unit.field) }}</div>
           <div class="field-control flat-control">
             <SchemaForm
               :schema="unit.field.children"
@@ -50,7 +50,7 @@
 
         <!-- Nested group: render as a sub-block -->
         <div v-else-if="!unit.field.type || unit.field.type === 'group'" class="field-row group-child">
-          <div class="field-label sub">{{ unit.field.label }}</div>
+          <div class="field-label sub">{{ lbl(unit.field) }}</div>
           <div class="field-control">
             <SchemaForm
               v-if="unit.field.children"
@@ -58,7 +58,7 @@
               :model="getNestedModel(unit.key)"
               @update="onNestedUpdate(unit.key, $event)"
             />
-            <span v-else class="hint">配置缺失</span>
+            <span v-else class="hint">{{ t('chart.common.configMissing') }}</span>
           </div>
         </div>
 
@@ -74,7 +74,7 @@
 
         <!-- Normal row: label left, control right -->
         <div v-else class="field-row">
-          <div class="field-label">{{ unit.field.label }}</div>
+          <div class="field-label">{{ lbl(unit.field) }}</div>
           <div class="field-control">
             <Control
               :field="unit.field"
@@ -90,6 +90,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { t } from '@/i18n'
+import { lbl } from '@/utils/chart-schema-i18n'
 import Control from './SchemaControl.vue'
 
 const props = defineProps({
