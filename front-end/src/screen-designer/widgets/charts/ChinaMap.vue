@@ -1,7 +1,8 @@
-<!-- 中国地图 (map-china) - 中国省级地图 -->
+<!-- China map (map-china) - province-level map of China -->
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import * as echarts from 'echarts'
+import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
 
 const props = defineProps<{
   data: any
@@ -89,7 +90,7 @@ async function initChart() {
   const ok = await loadChinaMap()
   if (!ok) return
 
-  chart.value = echarts.init(chartRef.value)
+  chart.value = echarts.init(chartRef.value, undefined, { locale: currentEchartsLocale() })
   chart.value.setOption(getOption())
 
   resizeObserver = new ResizeObserver(() => { chart?.value?.resize() })
@@ -99,6 +100,15 @@ async function initChart() {
 watch(() => [props.props, props.data], () => {
   chart.value?.setOption(getOption())
 }, { deep: true })
+
+// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+const rebuildChart = () => {
+  resizeObserver?.disconnect()
+  chart.value?.dispose()
+  chart.value = null
+  initChart()
+}
+useChartLocale(rebuildChart)
 
 onMounted(() => initChart())
 
