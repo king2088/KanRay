@@ -5,6 +5,8 @@ export default {
     save: '保存',
     edit: '编辑',
     delete: '删除',
+    selectAll: '全选',
+    clear: '清空',
     remove: '移除',
     add: '新增',
     create: '创建',

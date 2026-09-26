@@ -5,6 +5,8 @@ export default {
     save: 'Save',
     edit: 'Edit',
     delete: 'Delete',
+    selectAll: 'Select all',
+    clear: 'Clear',
     remove: 'Remove',
     add: 'Add',
     create: 'Create',
