@@ -73,6 +73,8 @@ const SCAN_PATHS = [
   'screen-designer/components/LeftPanel',
   'screen-designer/components/CodeEditor',
   'screen-designer/components/ScreenIcon.vue',
+  // 计划 7：右侧配置面板（RightPanel + DatasetQueryDialog + 18 个 configs 专属配置组件）
+  'screen-designer/components/RightPanel',
 ]
 
 // 行级豁免清单：file + 代码片段 + 原因
@@ -105,6 +107,25 @@ const CJK_EXEMPTIONS = [
     reason:
       '整文件是预置的新画布种子图表数据（系列名、类目名、数值），不含界面框架文案；' +
       '落库后即用户数据，与 preset.ts 同理不随界面语言切换。',
+  },
+  {
+    file: 'screen-designer/components/RightPanel/RightPanel.vue',
+    match: [
+      "'默认'", "'自定义'", "'科技蓝'", "'自然绿'", "'暖阳橙'", "'星空紫'",
+      "'海洋蓝'", "'大地棕'", "'糖果粉'", "'暗夜灰'", "'彩虹'", "'莫兰迪'",
+    ],
+    reason:
+      '图表主题名是落库的中文枚举值：applyTheme 把它写进 component.props.theme，' +
+      '存量存量大屏都是这批中文值。界面显示走同条记录的 nameKey，' +
+      '因此切换界面语言不会让已保存的大屏失效；' +
+      '若把 name 直接改成英文，旧大屏的主题名就匹配不到色板。',
+  },
+  {
+    file: 'screen-designer/components/RightPanel/RightPanel.vue',
+    match: ['总销售额'],
+    reason:
+      '这是「静态数据」提示里的 JSON 演示样本，用于展示用户自己的数据长什么样' +
+      '（value / label 两个字段），属演示数据而非界面文案。',
   },
   {
     file: 'screen-designer/components/CodeEditor/CodeEditDialog.vue',
