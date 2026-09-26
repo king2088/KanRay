@@ -1,13 +1,7 @@
-// ECharts 内置文案（tooltip 的「无数据」、图例、数据视图等）不受 vue-i18n 影响，
-// 只能在 init 时通过 opts.locale 指定，且切换语言必须 dispose 后重建。
-//
-// 本模块只做「应用 locale -> ECharts 语言包 id」的纯映射，不 import echarts：
-// screen-designer/widgets 下的 widget 用的是完整包 `import * as echarts from 'echarts'`
-// （不走 utils/echarts.js 的按需引入 shim），若从 shim 取该函数会把 core 的注册
-// 副作用带进每个 widget。纯函数单独成模块，两边共用同一份映射。
-import { DEFAULT_LOCALE } from '@/i18n/constants'
+import { DEFAULT_LOCALE } from '../i18n/constants.js'
 
 // 完整包已内置 ZH / EN 语言包，无需 registerLocale。
+// 这里只用相对导入，保持本模块可被 node 测试直接引入（不依赖 @/ 别名与 Vue）。
 export const CHART_LOCALES = { 'zh-CN': 'ZH', 'en-US': 'EN' }
 
 export function echartsLocaleOf(locale) {

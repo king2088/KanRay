@@ -1,5 +1,11 @@
 import { watch } from 'vue'
 import { i18n } from '@/i18n'
+import { echartsLocaleOf } from './echarts-locale'
+
+// widget 侧直接用这个，省得每个文件都自己 import i18n 再读一遍全局 locale。
+export function currentEchartsLocale() {
+  return echartsLocaleOf(i18n.global.locale.value)
+}
 
 // 语言切换时让 ECharts 图表重建。locale 在 init 时确定，setOption 改不了，
 // 所以回调里必须 dispose 旧实例再 init（widget 自己的 initChart 里做）。
