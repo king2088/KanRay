@@ -1,7 +1,8 @@
-<!-- 动态排序条形图 (dynamic-bar-race) - 动画条形图竞赛 -->
+<!-- Animated bar race (dynamic-bar-race) -->
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
+import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip, getCommonValueXAxis, getCommonCategoryYAxis, getCommonDataZoom } from './chartUtils'
 
 const props = defineProps<{
@@ -103,12 +104,21 @@ const startAnimation = () => {
 
 const initChart = () => {
   if (!chartRef.value) return
-  chart = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg' })
+  chart = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg', locale: currentEchartsLocale() })
   chart.setOption(getChartOption())
   resizeObserver = new ResizeObserver(() => chart?.resize())
   resizeObserver.observe(chartRef.value)
   startAnimation()
 }
+
+// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+const rebuildChart = () => {
+  resizeObserver?.disconnect()
+  chart?.dispose()
+  chart = null
+  initChart()
+}
+useChartLocale(rebuildChart)
 
 onMounted(() => setTimeout(initChart, 100))
 watch(() => [props.data, props.props], () => {
