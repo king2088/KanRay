@@ -76,7 +76,7 @@
             <el-collapse v-if="permGroups.length">
               <el-collapse-item v-for="group in permGroups" :key="group.key" :name="group.key" :title="`${permGroupLabel(group.key)} · ${t('admin.role.permCount', { count: group.perms.length })}`">
                 <el-checkbox-group v-model="form.permissions">
-                  <el-checkbox v-for="p in group.perms" :key="p.code" :value="p.code">{{ p.name }}</el-checkbox>
+                  <el-checkbox v-for="p in group.perms" :key="p.code" :value="p.code">{{ permNameOf(p.code) }}</el-checkbox>
                 </el-checkbox-group>
               </el-collapse-item>
             </el-collapse>
@@ -99,7 +99,7 @@ import { useI18n } from 'vue-i18n'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const auth = useAuthStore()
 const canView = computed(() => auth.hasPermission('role', 'read'))
 
@@ -138,10 +138,9 @@ function onSizeChange(size) {
   page.value = 1
 }
 
-const permNameOf = (code) => {
-  const found = permissions.value.find((p) => p.code === code)
-  return found ? found.name : code
-}
+// 权限码 → admin.perm.* 标签。后端 permissions.name 是中文数据，界面统一走词典，
+// 未收录的码原样回退为码本身。
+const permNameOf = (code) => (te(`admin.perm.${code}`) ? t(`admin.perm.${code}`) : code)
 
 const permGroups = computed(() => {
   const map = {}

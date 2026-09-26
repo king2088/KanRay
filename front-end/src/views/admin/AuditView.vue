@@ -68,21 +68,19 @@ import { useAuthStore } from '@/stores/auth'
 import JsonCodeMirror from '@/components/JsonCodeMirror.vue'
 import { formatDateTime } from '@/utils/datetime'
 import { useAppStore } from '@/stores/app'
-// 码 → 词典标签。取回的标签若与键名相同，说明词典里没有该码，原样回退为码本身
-// （与迁移前展示裸码的行为一致），因此无需在 JS 里重复维护一份码表。
-function actionLabel(code) {
-  const key = `admin.audit.actions.${code}`
-  const label = t(key)
-  return label === key ? code : label
+// 码 → 词典标签。先用 te() 判断再取值：未收录的码原样回退（与迁移前展示裸码一致），
+// 且不会打出 intlify 缺失 key 警告。含点的码（datasource.sync.create）按路径解析，
+// 故词典中的 actions 与码同构嵌套。
+function codeLabel(prefix, code, fallback = '—') {
+  if (!code) return fallback
+  const key = `${prefix}.${code}`
+  return te(key) ? t(key) : code
 }
 
-function resourceTypeLabel(type) {
-  const key = `admin.audit.resourceTypes.${type}`
-  const label = t(key)
-  return label === key ? type : label
-}
+const actionLabel = (code) => codeLabel('admin.audit.actions', code)
+const resourceTypeLabel = (type) => codeLabel('admin.audit.resourceTypes', type)
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const auth = useAuthStore()
 const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('audit', 'read'))
