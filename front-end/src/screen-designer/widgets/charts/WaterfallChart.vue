@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip, getCommonXAxis, getCommonYAxis, getCommonDataZoom, getSeriesLabel } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -67,14 +70,14 @@ const getChartOption = () => {
     dataZoom: getCommonDataZoom(p),
     series: [
       {
-        name: '辅助',
+        name: t('bigscreen.chart.waterfallHelper'),
         type: 'bar',
         stack: 'waterfall',
         itemStyle: { color: 'transparent' },
         data: helper
       },
       {
-        name: '增加',
+        name: t('bigscreen.chart.waterfallIncrease'),
         type: 'bar',
         stack: 'waterfall',
         data: positive,
@@ -83,7 +86,7 @@ const getChartOption = () => {
         label: getSeriesLabel(p)
       },
       {
-        name: '减少',
+        name: t('bigscreen.chart.waterfallDecrease'),
         type: 'bar',
         stack: 'waterfall',
         data: negative,

@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip, getCommonXAxis, getCommonYAxis, getCommonDataZoom, getSeriesLabel } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -56,14 +59,14 @@ const getChartOption = () => {
     dataZoom: getCommonDataZoom(p),
     series: [
       {
-        name: '正向',
+        name: t('bigscreen.chart.positiveLabel'),
         type: 'bar',
         data: posData,
         barWidth: p.barWidth || null,
         label: posLabel
       },
       {
-        name: '负向',
+        name: t('bigscreen.chart.negativeLabel'),
         type: 'bar',
         data: negData,
         barWidth: p.barWidth || null,

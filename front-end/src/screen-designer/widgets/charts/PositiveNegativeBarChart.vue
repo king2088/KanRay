@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip, getCommonValueXAxis, getCommonCategoryYAxis, getCommonDataZoom, getSeriesLabel } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -59,7 +62,7 @@ const getChartOption = () => {
     dataZoom: getCommonDataZoom(p),
     series: [
       {
-        name: '收入',
+        name: t('bigscreen.chart.incomeLabel'),
         type: 'bar',
         stack: 'total',
         data: posData,
@@ -68,7 +71,7 @@ const getChartOption = () => {
         label: { ...labelPos, position: 'inside' }
       },
       {
-        name: '支出',
+        name: t('bigscreen.chart.expenseLabel'),
         type: 'bar',
         stack: 'total',
         data: negData,
