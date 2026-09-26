@@ -1,9 +1,9 @@
 /**
- * 图表工具函数集
- * 提供图表配置的通用生成函数，减少各组件重复代码
+ * Shared chart helpers
+ * Common option builders that keep the individual chart components free of boilerplate
  */
 
-/** 图例位置映射 - 将位置字符串转换为ECharts定位属性 */
+/** Legend position map - converts a position string into the ECharts positioning properties */
 export const getLegendPosition = (pos: string) => {
   const map: Record<string, any> = {
     'top': { top: 5, left: 'center' },
@@ -19,10 +19,10 @@ export const getLegendPosition = (pos: string) => {
   return map[pos] || map['bottom']
 }
 
-/** 默认调色板 */
+/** Default palette */
 export const defaultColors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399']
 
-/** 生成通用标题配置 */
+/** Build the shared title option */
 export const getCommonTitle = (p: any) => {
   return p.titleShow !== false ? {
     text: p.titleText || '',
@@ -32,7 +32,7 @@ export const getCommonTitle = (p: any) => {
   } : {}
 }
 
-/** 生成通用图例配置 */
+/** Build the shared legend option */
 export const getCommonLegend = (p: any) => {
   return p.legendShow !== false ? {
     show: true,
@@ -46,10 +46,12 @@ export const getCommonLegend = (p: any) => {
 }
 
 /**
- * 生成通用Grid配置
- * 根据图例位置、标签大小、轴名称等自动计算边距，避免元素重叠
- * 说明：开启 containLabel 后，坐标轴刻度标签会绘制在 grid 区域内并被自适应容纳，
- * 因此这里的 left/right 只需保留较小的留白即可，无需再为常规刻度标签额外计算宽度。
+ * Build the shared grid option
+ * Margins are derived from the legend position, label sizes and axis names so that
+ * elements do not overlap.
+ * Note: with containLabel enabled the axis tick labels are drawn inside the grid and
+ * absorbed automatically, so left/right only need a small padding here - no extra room
+ * has to be computed for ordinary tick labels.
  */
 export const getCommonGrid = (p: any) => {
   const legendPadding = p.legendPadding ?? 0
@@ -60,7 +62,7 @@ export const getCommonGrid = (p: any) => {
   let left = p.gridLeft ?? 15
   let right = p.gridRight ?? 20
 
-  // 根据图例位置增加对应方向的边距
+  // Add padding on the side the legend occupies
   if (p.legendShow !== false) {
     if (legendPosition === 'top' || legendPosition === 'top-left' || legendPosition === 'top-right' || legendPosition === 'center') {
       top = Math.max(top, 40 + legendPadding)
@@ -76,12 +78,12 @@ export const getCommonGrid = (p: any) => {
     }
   }
 
-  // 标题占位高度
+  // Reserved height for the title
   if (p.titleShow !== false && p.titleText) {
     top = Math.max(top, (p.titleSize || 16) + (p.titlePadding ?? 10) + 25)
   }
 
-  // X轴名称占位高度（X轴常规刻度标签已由 containLabel 容纳）
+  // Reserved height for the X axis name (tick labels are absorbed by containLabel)
   if (p.xAxisShow !== false && (p.xAxisName || p.xAxisLabelRotate)) {
     const rotate = p.xAxisLabelRotate ?? 0
     const nameSize = p.xAxisNameSize || 12
@@ -97,7 +99,7 @@ export const getCommonGrid = (p: any) => {
     }
   }
 
-  // Y轴名称额外占位（Y轴常规刻度标签已由 containLabel 容纳）
+  // Extra room for the Y axis name (tick labels are absorbed by containLabel)
   if (p.yAxisShow !== false) {
     const rotate = p.yAxisLabelRotate ?? 0
     const nameSize = p.yAxisNameSize || 12
@@ -122,7 +124,7 @@ export const getCommonGrid = (p: any) => {
   } : {}
 }
 
-/** 生成通用Tooltip配置 */
+/** Build the shared tooltip option */
 export const getCommonTooltip = (p: any) => {
   return p.tooltipShow !== false ? {
     show: true,
@@ -132,7 +134,7 @@ export const getCommonTooltip = (p: any) => {
   } : { show: false }
 }
 
-/** 获取轴标签文本样式（颜色、大小、粗体、斜体、下划线） */
+/** Axis label text style (color, size, bold, italic, underline) */
 function getLabelTextStyle(p: any, prefix: string) {
   const style: any = {}
   const color = p[`${prefix}LabelColor`]
@@ -148,7 +150,7 @@ function getLabelTextStyle(p: any, prefix: string) {
   return style
 }
 
-/** 获取轴标签截断格式化函数 - 超过指定字符数时显示省略号 */
+/** Axis label truncation formatter - shows an ellipsis past the given length */
 function getLabelFormatter(p: any, prefix: string) {
   const maxLen = p[`${prefix}LabelMaxLen`]
   if (!maxLen) return undefined
@@ -158,7 +160,7 @@ function getLabelFormatter(p: any, prefix: string) {
   }
 }
 
-/** 生成通用X轴配置 */
+/** Build the shared category X axis option */
 export const getCommonXAxis = (p: any): any => {
   if (p.xAxisShow === false) return { show: false }
   const labelStyle = getLabelTextStyle(p, 'x')
@@ -190,7 +192,7 @@ export const getCommonXAxis = (p: any): any => {
   }
 }
 
-/** 生成通用数值X轴配置 - 用于水平条形图 */
+/** Build the shared value X axis option - used by horizontal bar charts */
 export const getCommonValueXAxis = (p: any): any => {
   if (p.xAxisShow === false) return { show: false }
   return {
@@ -227,7 +229,7 @@ export const getCommonValueXAxis = (p: any): any => {
   }
 }
 
-/** 生成通用分类Y轴配置 - 用于水平条形图 */
+/** Build the shared category Y axis option - used by horizontal bar charts */
 export const getCommonCategoryYAxis = (p: any, categories: any[] = []): any => {
   if (p.yAxisShow === false) return { show: false }
   const labelStyle = getLabelTextStyle(p, 'y')
@@ -260,7 +262,7 @@ export const getCommonCategoryYAxis = (p: any, categories: any[] = []): any => {
   }
 }
 
-/** 生成通用Y轴配置 - 支持单位、范围、分隔线等 */
+/** Build the shared Y axis option - unit, range, split line, etc. */
 export const getCommonYAxis = (p: any): any => {
   if (p.yAxisShow === false) return { show: false }
   const labelStyle = getLabelTextStyle(p, 'y')
@@ -305,7 +307,7 @@ export const getCommonYAxis = (p: any): any => {
   }
 }
 
-/** 生成DataZoom滚动条配置 - 用于数据量大的图表 */
+/** Build the DataZoom slider option - for charts with a lot of data points */
 export const getCommonDataZoom = (p: any) => {
   if (!p.dataZoomShow) return []
   return [{
@@ -323,8 +325,8 @@ export const getCommonDataZoom = (p: any) => {
 }
 
 /**
- * 生成系列标签配置
- * 支持自定义显示内容（系列名/分类名/数值）和分隔符
+ * Build the series label option
+ * Supports a custom label content (series name / category name / value) and separator
  */
 export const getSeriesLabel = (p: any) => {
   if (p.labelShow !== true) return { show: false }
