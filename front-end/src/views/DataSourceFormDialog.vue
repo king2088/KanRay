@@ -1,26 +1,26 @@
 <template>
-  <el-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" :title="editRow ? '编辑数据源' : '新建数据源'" width="560px" destroy-on-close>
+  <el-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" :title="editRow ? t('dataset.dataSource.editTitle') : t('dataset.dataSource.create')" width="560px" destroy-on-close>
     <el-form :model="form" label-width="120px">
-      <el-form-item label="数据源类型" required>
-        <el-select v-model="form.type" placeholder="请选择" :disabled="!!editRow" style="width: 100%">
+      <el-form-item :label="t('dataset.dataSource.form.typeLabel')" required>
+        <el-select v-model="form.type" :placeholder="t('dataset.dataSource.form.selectPlaceholder')" :disabled="!!editRow" style="width: 100%">
           <el-option-group v-for="cat in groupedDrivers" :key="cat.category" :label="cat.category">
             <el-option v-for="d in cat.items" :key="d.type" :value="d.type" :label="d.name" :disabled="d.status === 'planned'">
               <span class="ds-opt"><DbIcon :type="d.type" :size="16" /><span>{{ d.name }}</span></span>
-              <el-tag v-if="d.status === 'planned'"  type="info" style="margin-left: 8px">暂不支持</el-tag>
+              <el-tag v-if="d.status === 'planned'"  type="info" style="margin-left: 8px">{{ t('dataset.dataSource.form.planned') }}</el-tag>
             </el-option>
           </el-option-group>
         </el-select>
       </el-form-item>
-      <el-form-item label="名称" required>
-        <el-input v-model="form.name" placeholder="请输入数据源名称" maxlength="100" />
+      <el-form-item :label="t('dataset.dataSource.name')" required>
+        <el-input v-model="form.name" :placeholder="t('dataset.dataSource.form.namePlaceholder')" maxlength="100" />
       </el-form-item>
-      <el-form-item label="存储方式">
+      <el-form-item :label="t('dataset.dataSource.form.storageMode')">
         <el-radio-group v-model="form.mode" :disabled="isExcelEdit">
-          <el-radio value="direct">直连</el-radio>
-          <el-radio value="sync" :disabled="isFileDriver">同步</el-radio>
+          <el-radio value="direct">{{ t('dataset.dataSource.form.modeDirect') }}</el-radio>
+          <el-radio value="sync" :disabled="isFileDriver">{{ t('dataset.dataSource.form.modeSync') }}</el-radio>
         </el-radio-group>
         <div v-if="form.mode === 'sync' && !isFileDriver" class="mode-tip">
-          连接信息与直连一致；保存后请在详情页为要分析的表配置「同步」任务（数据定期落到本机存储，不在此自动注册数据集）。
+          {{ t('dataset.dataSource.form.syncTip') }}
         </div>
       </el-form-item>
       <template v-if="currentDriver">
@@ -37,9 +37,9 @@
       <el-alert :type="testResult.ok ? 'success' : 'error'" :title="testResult.message" show-icon />
     </div>
     <template #footer>
-      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button :loading="testing" :disabled="isExcelEdit" @click="doTest">测试连接</el-button>
-      <el-button type="primary" :loading="saving" @click="doSave">保存</el-button>
+      <el-button @click="$emit('update:modelValue', false)">{{ t('common.actions.cancel') }}</el-button>
+      <el-button :loading="testing" :disabled="isExcelEdit" @click="doTest">{{ t('dataset.dataSource.test') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="doSave">{{ t('common.actions.save') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -48,6 +48,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { datasourceApi } from '@/api'
+import { t } from '@/i18n'
 import DbIcon from '@/components/DbIcon.vue'
 
 const props = defineProps({ modelValue: Boolean, editRow: Object })
@@ -86,7 +87,7 @@ async function loadDrivers() {
 }
 
 async function doTest() {
-  if (!form.value.type) return ElMessage.warning('请选择数据源类型')
+  if (!form.value.type) return ElMessage.warning(t('dataset.dataSource.form.typeRequired'))
   testing.value = true
   testResult.value = null
   try {
@@ -96,8 +97,8 @@ async function doTest() {
 }
 
 async function doSave() {
-  if (!form.value.name.trim()) return ElMessage.warning('请输入名称')
-  if (!form.value.type) return ElMessage.warning('请选择类型')
+  if (!form.value.name.trim()) return ElMessage.warning(t('dataset.dataSource.form.nameRequired'))
+  if (!form.value.type) return ElMessage.warning(t('dataset.dataSource.form.typeRequired'))
   saving.value = true
   try {
     if (props.editRow) {
@@ -105,7 +106,7 @@ async function doSave() {
     } else {
       await datasourceApi.create(form.value)
     }
-    ElMessage.success('保存成功')
+    ElMessage.success(t('dataset.dataSource.saveSuccess'))
     emit('saved')
   } finally { saving.value = false }
 }
