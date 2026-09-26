@@ -21,6 +21,9 @@ KanRay 是一款开源的一站式 BI（商业智能）平台，面向业务与�
 
 - **表单中心**：可视化表单字段设计（输入 / 文本域 / 下拉 / 多选 / 评分 / 分节说明等）、发布 / 关闭 / 订阅状态管理、密码或公开分享、在线填报与提交记录管理，提交数据自动回写数据集进入分析链路（详见 [表单中心使用手册](docs/08-表单中心使用手册.md)）
 - **多用户与权限**：邮箱+密码注册/登录，JWT 令牌（访问 + 刷新轮换）；内置管理员 / 数据工程师 / 分析师 / 看板编辑者 / 查看者角色，支持自定义角色；数据集/图表/看板按 owner 隔离，越权统一 403；首次启动自动创建 `admin@kanray.local / admin123`（请尽快改密）
+
+  内置共 44 个权限点，覆盖数据集 / 图表 / 看板 / 大屏 / 数据源 / 表单 / API Key 等资源，按「资源:动作」命名；自定义角色可自由勾选组合。其中 `apikey:manage` 用于管理开放 API 的 API Key。
+  English: 44 built-in permission points covering datasets / charts / dashboards / big screens / data sources / forms / API keys, named as `resource:action`; custom roles can combine them freely. `apikey:manage` governs API key management for the Open API.
 - **开放 API**：`/api/open/v1` + API Key / PAT 长效凭证，提供图表/数据集/看板发现、取数、数据集自定义聚合、看板快照导出（JSON / CSV），Swagger 文档（详见 [开放 API 集成指南](docs/04-开放API集成指南.md)）
 
 ## 核心流程（四步）
