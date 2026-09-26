@@ -61,3 +61,36 @@ test('守卫本身有效：能抓出绕过 t() 的中文', () => {
   const site = outputCallSites(bad)[0];
   assert.ok(CJK.test(site.text) && !site.text.includes('t('), '规则对反例应成立');
 });
+
+// ---------- 部署脚本 ----------
+const DEPLOY_SCRIPTS = [
+  'deploy/docker/deploy.sh',
+  'deploy/k8s/scripts/build-images.sh',
+  'deploy/k8s/scripts/deploy.sh',
+];
+const REPO = path.join(__dirname, '..', '..');
+
+DEPLOY_SCRIPTS.forEach((rel) => {
+  const src = fs.readFileSync(path.join(REPO, rel), 'utf8');
+
+  test(`${rel}: 有 APP_LANG 开关`, () => {
+    assert.match(src, /APP_LANG="\$\{APP_LANG:-zh-CN\}"/, '缺少 APP_LANG 默认值');
+    assert.match(src, /if \[ "\$APP_LANG" = "en-US" \]/, '缺少 en-US 分支');
+    assert.doesNotMatch(src, /^\s*LANG="\$\{LANG/, '不要占用 POSIX 标准变量 LANG');
+  });
+
+  test(`${rel}: 不得有裸 echo 中文`, () => {
+    // echo 是最常见的漏网之处：加了 t() 却忘了把原来的 echo 换掉
+    const bare = src
+      .split('\n')
+      .map((line, i) => [i + 1, line])
+      .filter(([, line]) => /^\s*echo\b/.test(line) && CJK.test(line));
+    assert.deepEqual(bare.map(([n]) => `第 ${n} 行`), [], '请改用 t "中文" "English"');
+  });
+});
+
+test('部署脚本的 t() 助手两个分支都只打印对应语言', () => {
+  const src = fs.readFileSync(path.join(REPO, DEPLOY_SCRIPTS[0]), 'utf8');
+  assert.match(src, /t\(\) \{ printf '%s\\n' "\$2"; \}/, '英文分支应打印第 2 个参数');
+  assert.match(src, /t\(\) \{ printf '%s\\n' "\$1"; \}/, '中文分支应打印第 1 个参数');
+});
