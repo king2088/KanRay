@@ -139,15 +139,14 @@ import { openApiAdminApi, OPEN_SCOPES } from '@/api/open'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/datetime'
 import { useAppStore } from '@/stores/app'
-// scope 是技术码（read/write/admin），展示走词典；未收录的码原样回退。
+// scope 存的是真实权限码（dataset:read 等），展示走 admin.perm.* 词典；
+// 未收录的码原样回退为码本身。
 function scopeLabel(scope) {
-  const key = `admin.openApi.scopeLabels.${scope}`
-  const label = t(key)
-  return label === key ? scope : label
+  return te(`admin.perm.${scope}`) ? t(`admin.perm.${scope}`) : scope
 }
 
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const auth = useAuthStore()
 const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('apikey', 'manage'))
