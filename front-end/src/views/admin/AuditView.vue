@@ -3,35 +3,37 @@
     <template v-if="canView">
       <div class="page-header">
         <div class="page-header__main">
-          <h2 class="page-title">操作审计</h2>
-          <div class="page-desc">记录用户在平台上的关键操作，便于安全追踪与审计</div>
+          <h2 class="page-title">{{ t('admin.audit.title') }}</h2>
+          <div class="page-desc">{{ t('admin.audit.pageDesc') }}</div>
         </div>
       </div>
 
       <div class="page-card">
         <div class="page-card__header">
-          <div class="page-card__header-title">审计记录</div>
+          <div class="page-card__header-title">{{ t('admin.audit.listTitle') }}</div>
           <div class="page-card__header-right">
-            <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+            <el-tag type="info" effect="plain">{{ t('admin.audit.totalCount', { count: total }) }}</el-tag>
           </div>
         </div>
 
         <el-table :data="rows" stripe v-loading="loading">
-          <el-table-column label="时间" width="180">
+          <el-table-column :label="t('admin.audit.time')" width="180">
             <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
           </el-table-column>
-          <el-table-column prop="action" label="操作" width="150" />
-          <el-table-column prop="email" label="用户" min-width="150" />
-          <el-table-column label="资源" width="130">
+          <el-table-column :label="t('admin.audit.action')" width="150">
+          <template #default="{ row }">{{ actionLabel(row.action) }}</template>
+        </el-table-column>
+          <el-table-column prop="email" :label="t('admin.audit.user')" min-width="150" />
+          <el-table-column :label="t('admin.audit.resource')" width="130">
             <template #default="{ row }">
-              <span v-if="row.resource_type">{{ row.resource_type }}<template v-if="row.resource_id"> · {{ row.resource_id }}</template></span>
+              <span v-if="row.resource_type">{{ resourceTypeLabel(row.resource_type) }}<template v-if="row.resource_id"> · {{ row.resource_id }}</template></span>
               <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column prop="ip" label="IP" width="130" />
-          <el-table-column label="明细" width="130">
+          <el-table-column :label="t('admin.audit.detail')" width="130">
             <template #default="{ row }">
-              <el-button v-if="row.detail" link type="primary" @click="openDetail(row.detail)">查看详情</el-button>
+              <el-button v-if="row.detail" link type="primary" @click="openDetail(row.detail)">{{ t('admin.audit.viewDetail') }}</el-button>
               <span v-else>-</span>
             </template>
           </el-table-column>
@@ -51,21 +53,36 @@
         </div>
       </div>
 
-      <el-dialog v-model="detailVisible" title="操作明细" width="680px">
+      <el-dialog v-model="detailVisible" :title="t('admin.audit.detailDialog')" width="680px">
         <JsonCodeMirror v-if="currentDetail !== null" :model-value="currentDetail" />
       </el-dialog>
     </template>
-    <el-empty v-if="!canView" description="无权限访问该页面" />
+    <el-empty v-if="!canView" :description="t('admin.audit.noPermission')" />
   </div>
 </template>
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import JsonCodeMirror from '@/components/JsonCodeMirror.vue'
 import { formatDateTime } from '@/utils/datetime'
 import { useAppStore } from '@/stores/app'
+// 码 → 词典标签。取回的标签若与键名相同，说明词典里没有该码，原样回退为码本身
+// （与迁移前展示裸码的行为一致），因此无需在 JS 里重复维护一份码表。
+function actionLabel(code) {
+  const key = `admin.audit.actions.${code}`
+  const label = t(key)
+  return label === key ? code : label
+}
 
+function resourceTypeLabel(type) {
+  const key = `admin.audit.resourceTypes.${type}`
+  const label = t(key)
+  return label === key ? type : label
+}
+
+const { t } = useI18n()
 const auth = useAuthStore()
 const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('audit', 'read'))
