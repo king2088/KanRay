@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, onUnmounted, watch } from 'vue'
 import { loadMonaco } from '@/utils/monacoCore'
+import { monacoLocaleOf } from '@/i18n'
+import { useAppStore } from '@/stores/app'
 
 const props = defineProps<{
   modelValue: string
   language?: string
   height?: string
 }>()
+
+const appStore = useAppStore()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -31,11 +35,11 @@ onMounted(async () => {
     automaticLayout: true,
     tabSize: 2,
     wordWrap: 'on',
-    ...({ locale: 'zh-cn' } as any)
+    ...({ locale: monacoLocaleOf(appStore.locale) } as any)
   } as any)
 
   if (typeof (monaco.editor as any).setLocale === 'function') {
-    (monaco.editor as any).setLocale('zh-cn')
+    (monaco.editor as any).setLocale(monacoLocaleOf(appStore.locale))
   }
 
   editor.value.onDidChangeModelContent(() => {

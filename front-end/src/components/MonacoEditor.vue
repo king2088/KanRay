@@ -14,6 +14,8 @@
 import { ref, shallowRef, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { loadMonaco } from '@/utils/monacoCore'
 import { buildCatalogIndex, registerSqlCatalog, unregisterSqlCatalog, setSqlCatalog } from '@/utils/monacoSqlCompletion'
+import { monacoLocaleOf } from '@/i18n'
+import { useAppStore } from '@/stores/app'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -25,6 +27,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+
+const appStore = useAppStore()
 
 const containerRef = ref(null)
 const placeholderRef = ref(null)
@@ -70,7 +74,7 @@ onMounted(async () => {
   if (disposed || !containerRef.value) return
 
   if (typeof monaco.editor.setLocale === 'function') {
-    monaco.editor.setLocale('zh-cn')
+    monaco.editor.setLocale(monacoLocaleOf(appStore.locale))
   }
   registerSqlCatalog(monaco, catalogToken, catalogIndex)
 
@@ -86,7 +90,7 @@ onMounted(async () => {
     automaticLayout: true,
     tabSize: 2,
     wordWrap: 'on',
-    ...({ locale: 'zh-cn' })
+    ...({ locale: monacoLocaleOf(appStore.locale) })
   })
 
   editor.value.onDidChangeModelContent(() => {
