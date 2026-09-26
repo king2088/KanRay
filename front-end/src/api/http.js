@@ -4,6 +4,7 @@ import { pinia } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import { topLoading } from '@/utils/top-loading'
 import { attachMethods } from './reqMethods'
+import { localizeApiMessage, t } from '@/i18n'
 
 const http = axios.create({ baseURL: '/api', timeout: 60000 })
 
@@ -41,7 +42,7 @@ http.interceptors.response.use(
     topLoading.done()
     const body = res.data
     if (body && body.code === 0) return body.data
-    const msg = body?.message || '请求失败'
+    const msg = localizeApiMessage(body?.message, body?.messageEn) || t('common.http.requestFailed')
     if (!res.config?.silent) ElMessage.error(msg)
     return Promise.reject(new Error(msg))
   },
@@ -49,7 +50,7 @@ http.interceptors.response.use(
     topLoading.done()
     const { response, config } = err
     if (!response) {
-      if (!config?.silent) ElMessage.error(err?.message || '网络错误')
+      if (!config?.silent) ElMessage.error(err?.message || t('common.http.networkError'))
       return Promise.reject(err)
     }
     const body = response.data
@@ -66,7 +67,7 @@ http.interceptors.response.use(
           } catch (e2) {
             if (e2?.response?.status === 401) {
               forceLogout()
-              return Promise.reject(new Error('登录已失效'))
+              return Promise.reject(new Error(t('common.http.sessionExpired')))
             }
             throw e2
           }
@@ -74,9 +75,9 @@ http.interceptors.response.use(
       }
       // 走到这里 = refresh 不可用/失败，或重放后仍 401：会话不可恢复
       forceLogout()
-      return Promise.reject(new Error('登录已失效'))
+      return Promise.reject(new Error(t('common.http.sessionExpired')))
     }
-    if (!config?.silent) ElMessage.error(body?.message || `请求失败 (${response.status})`)
+    if (!config?.silent) ElMessage.error(localizeApiMessage(body?.message, body?.messageEn) || `${t('common.http.requestFailed')} (${response.status})`)
     return Promise.reject(err)
   }
 )
