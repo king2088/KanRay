@@ -17,7 +17,7 @@ npm run preview  # 预览构建产物
 npm test
 ```
 
-纯 node 脚本，无浏览器依赖，校验布局算法、数据源图标、图表配置、表单渲染、数据集类型、顶栏 loading 与 HTTP 方法矩阵。
+纯 node 脚本，无浏览器依赖，校验布局算法、数据源图标、图表配置、表单渲染、数据集类型、顶栏 loading、HTTP 方法矩阵、图表类型前后端同步，以及 i18n 词典键一致性与 CJK 残留扫描。
 
 ## 目录
 
@@ -53,7 +53,7 @@ npm run preview  # preview the production build
 npm test
 ```
 
-Pure node scripts with no browser dependency, covering the layout algorithm, database icons, chart config, form rendering, dataset types, the top loading bar and the HTTP method matrix.
+Pure node scripts with no browser dependency, covering the layout algorithm, database icons, chart config, form rendering, dataset types, the top loading bar, the HTTP method matrix, front/back chart-type parity, and the i18n message key parity and CJK residue scan.
 
 ## Layout
 
