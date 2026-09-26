@@ -1,2 +1,25 @@
-// Copy filled in later i18n plans.
-export default {}
+export default {
+  login: {
+    title: 'Sign in',
+    email: 'Email',
+    password: 'Password',
+    submit: 'Sign in',
+    noAccount: 'No account yet?',
+    toRegister: 'Create one',
+    emailAndPasswordRequired: 'Please enter your email and password',
+  },
+  register: {
+    title: 'Create an account',
+    email: 'Email',
+    nickname: 'Display name',
+    nicknamePlaceholder: 'Your display name',
+    password: 'Password',
+    confirmPassword: 'Confirm password',
+    submit: 'Sign up',
+    hasAccount: 'Already have an account?',
+    toLogin: 'Sign in',
+    requiredFields: 'Please enter your email, display name and password',
+    passwordMismatch: 'The passwords do not match',
+    success: 'Account created, please sign in',
+  },
+}

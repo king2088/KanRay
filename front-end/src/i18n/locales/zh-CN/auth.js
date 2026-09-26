@@ -1,2 +1,25 @@
-// 文案在后续国际化计划填充。
-export default {}
+export default {
+  login: {
+    title: '登录',
+    email: '邮箱',
+    password: '密码',
+    submit: '登 录',
+    noAccount: '没有账号？',
+    toRegister: '去注册',
+    emailAndPasswordRequired: '请输入邮箱和密码',
+  },
+  register: {
+    title: '注册账号',
+    email: '邮箱',
+    nickname: '昵称',
+    nicknamePlaceholder: '你的昵称',
+    password: '密码',
+    confirmPassword: '确认密码',
+    submit: '注 册',
+    hasAccount: '已有账号？',
+    toLogin: '去登录',
+    requiredFields: '请填写邮箱、昵称和密码',
+    passwordMismatch: '两次密码不一致',
+    success: '注册成功，请登录',
+  },
+}
