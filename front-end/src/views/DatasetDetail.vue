@@ -6,12 +6,12 @@
           <el-button circle class="back-btn" @click="$router.push('/datasets')"><el-icon><ArrowLeft /></el-icon></el-button>
           <div>
             <h2 class="page-title">{{ ds.name }}</h2>
-            <div class="page-desc">来源：{{ ds.original_file || '-' }} · 创建于 {{ formatDateTime(ds.created_at, appStore.timezone) }}</div>
+            <div class="page-desc">{{ t('dataset.detail.sourcePrefix') }}{{ ds.original_file || '-' }} · {{ t('dataset.detail.createdAtPrefix') }} {{ formatDateTime(ds.created_at, appStore.timezone) }}</div>
           </div>
         </div>
         <div class="page-header__actions">
           <el-button type="primary" @click="$router.push(`/charts/new?dataset=${ds.id}`)">
-            <el-icon style="margin-right: 6px"><DataAnalysis /></el-icon>基于此数据建图
+            <el-icon style="margin-right: 6px"><DataAnalysis /></el-icon>{{ t('dataset.detail.buildChart') }}
           </el-button>
         </div>
       </div>
@@ -20,32 +20,32 @@
         <div class="stat-item">
           <div class="stat-item__icon"><el-icon><DataLine /></el-icon></div>
           <div>
-            <div class="stat-item__value">{{ (ds.row_count || 0).toLocaleString('zh-CN') }}</div>
-            <div class="stat-item__label">数据行数</div>
+            <div class="stat-item__value">{{ (ds.row_count || 0).toLocaleString(locale) }}</div>
+            <div class="stat-item__label">{{ t('dataset.detail.statRows') }}</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-item__icon"><el-icon><Grid /></el-icon></div>
           <div>
             <div class="stat-item__value">{{ ds.column_count }}</div>
-            <div class="stat-item__label">字段列数</div>
+            <div class="stat-item__label">{{ t('dataset.detail.statCols') }}</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-item__icon"><el-icon><Files /></el-icon></div>
           <div>
             <div class="stat-item__value">{{ ds.fields.length }}</div>
-            <div class="stat-item__label">字段定义数</div>
+            <div class="stat-item__label">{{ t('dataset.detail.statFields') }}</div>
           </div>
         </div>
       </div>
 
       <el-tabs v-model="tab" class="detail-tabs">
-        <el-tab-pane label="数据预览" name="data">
+        <el-tab-pane :label="t('dataset.detail.tabData')" name="data">
           <div class="page-card">
             <div class="page-card__body">
               <div v-loading="loading" style="min-height: 220px">
-                <el-table :data="rows" max-height="460" empty-text="暂无数据">
+                <el-table :data="rows" max-height="460" :empty-text="t('dataset.detail.emptyRows')">
                   <el-table-column
                     v-for="f in fields"
                     :key="f.name"
@@ -70,137 +70,132 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="字段定义" name="fields">
+        <el-tab-pane :label="t('dataset.detail.tabFields')" name="fields">
           <div class="page-card">
             <div class="page-card__header">
-              <div class="page-card__header-title">字段别名与类型</div>
+              <div class="page-card__header-title">{{ t('dataset.detail.fieldsCardTitle') }}</div>
               <div class="page-card__header-right">
-                <el-tag  type="info" effect="plain">修改展示名称后回车保存</el-tag>
+                <el-tag  type="info" effect="plain">{{ t('dataset.detail.fieldsCardTip') }}</el-tag>
               </div>
             </div>
             <el-table :data="ds.fields">
-              <el-table-column prop="name" label="内部字段名" min-width="160">
+              <el-table-column prop="name" :label="t('dataset.detail.colInternalName')" min-width="160">
                 <template #default="{ row }">
                   <span class="cell-key">{{ row.name }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="label" label="展示名称" min-width="200">
+              <el-table-column prop="label" :label="t('dataset.detail.colDisplayName')" min-width="200">
                 <template #default="{ row }">
-                  <el-input v-model="row.label"  placeholder="输入展示名称" @change="() => updateFieldLabel(row)" />
+                  <el-input v-model="row.label"  :placeholder="t('dataset.detail.displayNamePlaceholder')" @change="() => updateFieldLabel(row)" />
                 </template>
               </el-table-column>
-              <el-table-column prop="type" label="类型" width="130">
+              <el-table-column prop="type" :label="t('dataset.field.type')" width="130">
                 <template #default="{ row }">
-                  <el-tag  :type="typeTag(row.type)">{{ typeLabel(row.type) }}</el-tag>
+                  <el-tag  :type="typeTag(row.type)">{{ fieldTypeLabel(row.type) }}</el-tag>
                 </template>
               </el-table-column>
             </el-table>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="指标库" name="metrics">
+        <el-tab-pane :label="t('dataset.detail.tabMetrics')" name="metrics">
           <div class="page-card">
             <div class="page-card__header">
               <div class="page-card__header-title">
-                指标库
-                <el-tag type="info" effect="plain" style="margin-left: 8px">命名指标可在此创建，供图表「指标库」形态复用</el-tag>
+                {{ t('dataset.detail.tabMetrics') }}
+                <el-tag type="info" effect="plain" style="margin-left: 8px">{{ t('dataset.detail.metricsCardTip') }}</el-tag>
               </div>
               <div class="page-card__header-right">
                 <el-button type="primary" size="small" @click="openMetricDialog()">
-                  <el-icon style="margin-right: 4px"><Plus /></el-icon>新建指标
+                  <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('dataset.detail.createMetric') }}
                 </el-button>
               </div>
             </div>
-            <el-table :data="metricsLib" v-loading="metricsLoading" empty-text="暂无指标">
-              <el-table-column prop="name" label="名称" min-width="180">
+            <el-table :data="metricsLib" v-loading="metricsLoading" :empty-text="t('dataset.detail.emptyMetrics')">
+              <el-table-column prop="name" :label="t('dataset.list.name')" min-width="180">
                 <template #default="{ row }"><span class="metric-name">{{ row.name }}</span></template>
               </el-table-column>
-              <el-table-column label="类型" width="90">
+              <el-table-column :label="t('dataset.field.type')" width="90">
                 <template #default="{ row }">
                   <el-tag :type="{ base: 'success', expr: 'warning', derived: 'danger' }[row.kind]" effect="light">
                     {{ kindLabel(row.kind) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="定义" min-width="240">
+              <el-table-column :label="t('dataset.detail.colDefinition')" min-width="240">
                 <template #default="{ row }"><span class="cell-key">{{ metricDefinitionText(row) }}</span></template>
               </el-table-column>
-              <el-table-column prop="created_at" label="创建时间" width="180">
+              <el-table-column prop="created_at" :label="t('dataset.list.colCreatedAt')" width="180">
                 <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
               </el-table-column>
-              <el-table-column label="操作" width="140" fixed="right">
+              <el-table-column :label="t('dataset.list.actions')" width="140" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" size="small" @click="openMetricDialog(row)">编辑</el-button>
-                  <el-button link type="danger" size="small" @click="removeMetric(row)">删除</el-button>
+                  <el-button link type="primary" size="small" @click="openMetricDialog(row)">{{ t('common.actions.edit') }}</el-button>
+                  <el-button link type="danger" size="small" @click="removeMetric(row)">{{ t('common.actions.delete') }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
           </div>
         </el-tab-pane>
 
-        <el-dialog v-model="metricDialog.show" :title="metricDialog.editing ? '编辑指标' : '新建指标'" width="520px">
+        <el-dialog v-model="metricDialog.show" :title="metricDialog.editing ? t('dataset.detail.editMetric') : t('dataset.detail.createMetric')" width="520px">
           <el-form label-width="88px">
-            <el-form-item label="指标名称" required>
-              <el-input v-model="metricForm.name" placeholder="如：销售额、客单价、销售额占比" maxlength="100" />
+            <el-form-item :label="t('dataset.detail.metricNameLabel')" required>
+              <el-input v-model="metricForm.name" :placeholder="t('dataset.detail.metricNamePlaceholder')" maxlength="100" />
             </el-form-item>
-            <el-form-item label="指标类型" required>
+            <el-form-item :label="t('dataset.detail.metricKindLabel')" required>
               <el-radio-group v-model="metricForm.kind" :disabled="!!metricDialog.editing" @change="onMetricKindChange">
-                <el-radio-button value="base">原子指标</el-radio-button>
-                <el-radio-button value="expr">复合指标</el-radio-button>
-                <el-radio-button value="derived">衍生指标</el-radio-button>
+                <el-radio-button value="base">{{ t('dataset.detail.kindBase') }}</el-radio-button>
+                <el-radio-button value="expr">{{ t('dataset.detail.kindExpr') }}</el-radio-button>
+                <el-radio-button value="derived">{{ t('dataset.detail.kindDerived') }}</el-radio-button>
               </el-radio-group>
-              <div v-if="metricDialog.editing" class="type-lock-hint">已建指标的类型不可修改，如需变更请删除后重建</div>
+              <div v-if="metricDialog.editing" class="type-lock-hint">{{ t('dataset.detail.typeLockHint') }}</div>
             </el-form-item>
 
             <template v-if="metricForm.kind === 'base'">
-              <el-form-item label="字段" required>
-                <el-select v-model="metricForm.field" style="width: 100%" placeholder="选择字段">
+              <el-form-item :label="t('dataset.detail.fieldLabel')" required>
+                <el-select v-model="metricForm.field" style="width: 100%" :placeholder="t('dataset.detail.fieldPlaceholder')">
                   <el-option v-for="f in ds.fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="聚合" required>
+              <el-form-item :label="t('dataset.detail.aggLabel')" required>
                 <el-select v-model="metricForm.agg" style="width: 100%">
-                  <el-option label="求和 sum" value="sum" />
-                  <el-option label="平均 avg" value="avg" />
-                  <el-option label="计数 count" value="count" />
-                  <el-option label="去重计数 count_distinct" value="count_distinct" />
-                  <el-option label="最大 max" value="max" />
-                  <el-option label="最小 min" value="min" />
+                  <el-option v-for="o in AGG_OPTIONS" :key="o.value" :label="t(o.labelKey)" :value="o.value" />
                 </el-select>
               </el-form-item>
             </template>
 
             <template v-else-if="metricForm.kind === 'expr'">
-              <el-form-item label="指标公式" required>
+              <el-form-item :label="t('dataset.detail.exprLabel')" required>
                 <div class="formula-field">
                   <el-input v-model="metricForm.expr" type="textarea" :rows="3"
-                    placeholder="如：$<指标ID> / $<指标ID> * 100（$<指标ID> 引用下方引用指标）" />
+                    :placeholder="t('dataset.detail.exprPlaceholder')" />
                   <div class="formula-bar">
                     <el-button link type="primary" size="small" @click="formulaHelp.show = true">
-                      <el-icon style="margin-right: 2px"><QuestionFilled /></el-icon>公式怎么写？查看帮助
+                      <el-icon style="margin-right: 2px"><QuestionFilled /></el-icon>{{ t('dataset.detail.formulaHelpBtn') }}
                     </el-button>
-                    <span class="ref-empty">点击下方指标标签可插入引用</span>
+                    <span class="ref-empty">{{ t('dataset.detail.refHint') }}</span>
                   </div>
                 </div>
               </el-form-item>
-              <el-form-item label="引用指标">
+              <el-form-item :label="t('dataset.detail.refLabel')">
                 <div class="expr-refs">
                   <el-tag v-for="b in libraryBaseMetrics" :key="b.id" size="small" effect="plain"
                     class="ref-tag" @click="insertLibRef(b)">
                     {{ b.name }}
                   </el-tag>
-                  <span v-if="!libraryBaseMetrics.length" class="ref-empty">（暂无原子指标，请先创建「原子指标」类型指标）</span>
+                  <span v-if="!libraryBaseMetrics.length" class="ref-empty">{{ t('dataset.detail.refEmpty') }}</span>
                 </div>
               </el-form-item>
             </template>
 
             <template v-else>
-              <el-form-item label="衍生类型" required>
+              <el-form-item :label="t('dataset.detail.derivativeLabel')" required>
                 <el-select v-model="metricForm.derivative" style="width: 100%">
                   <el-option v-for="d in DERIVED_OPTIONS" :key="d.value" :label="t(d.labelKey)" :value="d.value" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="引用指标" required>
+              <el-form-item :label="t('dataset.detail.refLabel')" required>
                 <el-select v-model="metricForm.refId" style="width: 100%">
                   <el-option v-for="b in libraryBaseMetrics" :key="b.id" :label="b.name" :value="b.id" />
                 </el-select>
@@ -208,37 +203,49 @@
             </template>
           </el-form>
           <template #footer>
-            <el-button @click="metricDialog.show = false">取消</el-button>
-            <el-button type="primary" :loading="metricSaving" @click="saveMetric">保存</el-button>
+            <el-button @click="metricDialog.show = false">{{ t('common.actions.cancel') }}</el-button>
+            <el-button type="primary" :loading="metricSaving" @click="saveMetric">{{ t('common.actions.save') }}</el-button>
           </template>
         </el-dialog>
 
-        <el-dialog v-model="formulaHelp.show" title="指标公式帮助" width="580px" class="formula-help">
+        <el-dialog v-model="formulaHelp.show" :title="t('dataset.metric.help.title')" width="580px" class="formula-help">
           <div class="help-section">
-            <p class="help-lead">指标公式基于指标库中的「原子指标」做四则运算，产出一个新的命名指标（复合指标）。</p>
-            <h4>一、语法</h4>
+            <p class="help-lead">{{ t('dataset.metric.help.lead') }}</p>
+            <h4>{{ t('dataset.metric.help.hSyntax') }}</h4>
             <ul>
-              <li>用 <code>$&lt;指标ID&gt;</code> 引用原子指标（ID 见公式输入框下方「引用指标」，点击标签自动插入），例如 <code>$0189…</code>。</li>
-              <li>支持运算符与括号：<code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>( )</code>，以及数字与 <code>%</code>。</li>
-              <li>整数相除会自动提升为小数，无需额外乘 1.0。</li>
+              <li>
+                {{ t('dataset.metric.help.syntaxLead') }}
+                <code>$&lt;{{ t('dataset.metric.help.idToken') }}&gt;</code>
+                {{ t('dataset.metric.help.syntaxExample', { sample: '$0189…' }) }}
+              </li>
+              <li>
+                {{ t('dataset.metric.help.opsIntro') }}
+                <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>( )</code>
+                {{ t('dataset.metric.help.opsOutro') }} <code>%</code>
+              </li>
+              <li>{{ t('dataset.metric.help.intDivide') }}</li>
             </ul>
           </div>
           <div class="help-section">
-            <h4>二、规则</h4>
+            <h4>{{ t('dataset.metric.help.hRules') }}</h4>
             <ul>
-              <li>只能引用「原子指标」，不能引用复合指标或衍生指标。</li>
-              <li>除 <code>$&lt;指标ID&gt;</code> 引用令牌外，公式内不能出现其他字母（防止注入），仅允许数字、运算符、括号与空白。</li>
-              <li>括号必须成对，左括号与右括号数量不一致会被拒绝。</li>
+              <li>{{ t('dataset.metric.help.onlyBase') }}</li>
+              <li>
+                {{ t('dataset.metric.help.noLettersLead') }}
+                <code>$&lt;{{ t('dataset.metric.help.idToken') }}&gt;</code>
+                {{ t('dataset.metric.help.noLettersTail') }}
+              </li>
+              <li>{{ t('dataset.metric.help.parens') }}</li>
             </ul>
           </div>
           <div class="help-section">
-            <h4>三、常用公式示例</h4>
+            <h4>{{ t('dataset.metric.help.hExamples') }}</h4>
             <el-table :data="helpExamples" size="small" border>
-              <el-table-column prop="name" label="指标" width="120" />
-              <el-table-column prop="formula" label="公式" width="230">
+              <el-table-column prop="name" :label="t('dataset.metric.help.colMetric')" width="120" />
+              <el-table-column prop="formula" :label="t('dataset.metric.help.colFormula')" width="230">
                 <template #default="{ row }"><code>{{ row.formula }}</code></template>
               </el-table-column>
-              <el-table-column prop="desc" label="说明" />
+              <el-table-column prop="desc" :label="t('dataset.metric.help.colDesc')" />
             </el-table>
           </div>
         </el-dialog>
@@ -249,15 +256,19 @@
 
 <script setup>
 import { onMounted, ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, DataAnalysis, Plus, QuestionFilled } from '@element-plus/icons-vue'
 import { datasetApi, metricApi } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
+import { AGG_OPTIONS } from '@/utils/catalog'
 import { DERIVED_OPTIONS } from '@/utils/chart-utils'
+import { fieldTypeLabel } from '@/utils/field-type-label'
 import { t } from '@/i18n'
 
+const { locale } = useI18n()
 const route = useRoute()
 const id = String(route.params.id)
 const appStore = useAppStore()
@@ -275,20 +286,22 @@ const metricSaving = ref(false)
 const metricDialog = ref({ show: false, editing: null })
 const metricForm = ref(emptyMetricForm())
 const formulaHelp = ref({ show: false })
-const helpExamples = [
-  { name: '客单价', formula: '$<销售额ID> / $<销量ID>', desc: '销售额 ÷ 销量' },
-  { name: '转化率（%）', formula: '$<下单ID> / $<访客ID> * 100', desc: '下单人数 ÷ 访客人数' },
-  { name: '毛利率（%）', formula: '($<收入ID> - $<成本ID>) / $<收入ID> * 100', desc: '毛利 ÷ 销售额' },
-  { name: '折扣后金额', formula: '$<销售额ID> * 0.9', desc: '销售额 × 9 折' },
-  { name: '同比增幅（%）', formula: '($<本期ID> - $<上期ID>) / $<上期ID> * 100', desc: '本期较上期涨跌' },
-]
+// 公式示例用语言中立的数字 ID 占位符（与真实公式形态一致），名称与说明走词典。
+const helpExamples = computed(() => [
+  { name: t('dataset.metric.help.ex1.name'), formula: '$<1> / $<2>', desc: t('dataset.metric.help.ex1.desc') },
+  { name: t('dataset.metric.help.ex2.name'), formula: '$<3> / $<4> * 100', desc: t('dataset.metric.help.ex2.desc') },
+  { name: t('dataset.metric.help.ex3.name'), formula: '($<5> - $<6>) / $<5> * 100', desc: t('dataset.metric.help.ex3.desc') },
+  { name: t('dataset.metric.help.ex4.name'), formula: '$<1> * 0.9', desc: t('dataset.metric.help.ex4.desc') },
+  { name: t('dataset.metric.help.ex5.name'), formula: '($<7> - $<8>) / $<8> * 100', desc: t('dataset.metric.help.ex5.desc') },
+])
 
 function emptyMetricForm() {
   return { name: '', kind: 'base', field: '', agg: 'sum', expr: '', derivative: 'share', refId: null }
 }
 
 function kindLabel(k) {
-  return { base: '普通', expr: '公式', derived: '衍生' }[k] || k
+  const key = { base: 'base', expr: 'expr', derived: 'derived' }[k]
+  return key ? t('dataset.metric.kind.' + key) : k
 }
 
 function metricDefinitionText(m) {
@@ -344,17 +357,17 @@ function openMetricDialog(row) {
 
 async function saveMetric() {
   const f = metricForm.value
-  if (!f.name.trim()) return ElMessage.warning('请填写指标名称')
+  if (!f.name.trim()) return ElMessage.warning(t('dataset.metric.nameRequired'))
   const definition = { label: f.name }
   if (f.kind === 'base') {
-    if (!f.field) return ElMessage.warning('请选择字段')
+    if (!f.field) return ElMessage.warning(t('dataset.metric.fieldRequired'))
     definition.field = f.field
     definition.agg = f.agg
   } else if (f.kind === 'expr') {
-    if (!f.expr.trim()) return ElMessage.warning('请填写公式')
+    if (!f.expr.trim()) return ElMessage.warning(t('dataset.metric.exprRequired'))
     definition.expr = f.expr.trim()
   } else {
-    if (!f.refId) return ElMessage.warning('请选择引用指标')
+    if (!f.refId) return ElMessage.warning(t('dataset.metric.refRequired'))
     definition.derivative = f.derivative
     definition.refId = f.refId
   }
@@ -362,10 +375,10 @@ async function saveMetric() {
   try {
     if (metricDialog.value.editing) {
       await metricApi.update(id, metricDialog.value.editing.id, { name: f.name.trim(), definition })
-      ElMessage.success('指标已更新')
+      ElMessage.success(t('dataset.metric.updated'))
     } else {
       await metricApi.create(id, { name: f.name.trim(), kind: f.kind, definition })
-      ElMessage.success('指标已创建')
+      ElMessage.success(t('dataset.metric.created'))
     }
     metricDialog.value.show = false
     await loadMetrics()
@@ -378,25 +391,25 @@ async function saveMetric() {
 
 async function removeMetric(row) {
   try {
-    await ElMessageBox.confirm(`确认删除指标「${row.name}」？被其他指标/图表引用时将无法删除。`, '删除指标', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
+    await ElMessageBox.confirm(
+      t('dataset.metric.deleteConfirm', { name: row.name }),
+      t('dataset.metric.deleteTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('common.actions.delete'),
+        cancelButtonText: t('common.actions.cancel'),
+      }
+    )
   } catch (e) {
     return
   }
   try {
     await metricApi.remove(id, row.id)
-    ElMessage.success('指标已删除')
+    ElMessage.success(t('dataset.metric.deleted'))
     await loadMetrics()
   } catch (e) {
     // 拦截器已提示
   }
-}
-
-function typeLabel(t) {
-  return { string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t
 }
 
 function typeTag(t) {
@@ -423,7 +436,7 @@ async function onPageChange(p) {
 async function updateFieldLabel(row) {
   try {
     await datasetApi.updateFieldLabel(id, row.id, row.label.trim())
-    ElMessage.success('字段别名已更新')
+    ElMessage.success(t('dataset.detail.fieldAliasUpdated'))
     await loadRows()
   } catch (e) {
     await load()
