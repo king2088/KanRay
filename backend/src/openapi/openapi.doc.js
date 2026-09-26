@@ -9,11 +9,12 @@
  *   get:
  *     tags: [发现]
  *     summary: 可见图表列表
+ *     x-en-summary: Visible chart list
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: keyword, in: query, description: 名称/数据集模糊搜索, schema: { type: string } }
- *       - { name: limit, in: query, description: 每页条数（默认50/上限200）, schema: { type: integer, default: 50 } }
- *       - { name: offset, in: query, description: 偏移量, schema: { type: integer, default: 0 } }
+ *       - { name: keyword, in: query, description: 名称/数据集模糊搜索, 'x-en': 'Fuzzy search by name or dataset', schema: { type: string } }
+ *       - { name: limit, in: query, description: 每页条数（默认50/上限200）, 'x-en': 'Page size (default 50, max 200)', schema: { type: integer, default: 50 } }
+ *       - { name: offset, in: query, description: 偏移量, 'x-en': 'Offset', schema: { type: integer, default: 0 } }
  *     responses:
  *       '200':
  *         description: ok
@@ -34,6 +35,7 @@
  *   get:
  *     tags: [发现]
  *     summary: 可见数据集列表
+ *     x-en-summary: Visible dataset list
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: limit, in: query, schema: { type: integer, default: 50 } }
@@ -58,6 +60,7 @@
  *   get:
  *     tags: [发现]
  *     summary: 可见看板列表
+ *     x-en-summary: Visible dashboard list
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: limit, in: query, schema: { type: integer, default: 50 } }
@@ -82,11 +85,13 @@
  *   get:
  *     tags: [取数]
  *     summary: 按图表当前配置取数
+ *     x-en-summary: Fetch data using the chart's current configuration
  *     description: 校验图表与其数据集双重归属；响应为 columns + rows（不含构建 SQL）。
+ *     x-en: Verifies that both the chart and its dataset are accessible to you; the response is columns + rows (the build SQL is not included).
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
- *       - { name: format, in: query, description: 'csv 时返回带 BOM 的 CSV', schema: { type: string, enum: [csv] } }
+ *       - { name: format, in: query, description: 'csv 时返回带 BOM 的 CSV', 'x-en': 'Return CSV with a BOM when set to csv', schema: { type: string, enum: [csv] } }
  *     responses:
  *       '200':
  *         description: ok
@@ -106,7 +111,9 @@
  *   post:
  *     tags: [取数]
  *     summary: 数据集自定义聚合
+ *     x-en-summary: Custom aggregation over a dataset
  *     description: metrics/dimensions/filters 字段必须为该数据集已注册字段；超出 OPEN_API_MAX_ROWS 会截断并返回 truncated。
+ *     x-en: Fields in metrics/dimensions/filters must be registered on the dataset; results beyond OPEN_API_MAX_ROWS are truncated and flagged with truncated.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -127,7 +134,7 @@
  *       '401': { $ref: '#/components/responses/Unauthorized' }
  *       '403': { $ref: '#/components/responses/Forbidden' }
  *       '404': { $ref: '#/components/responses/NotFound' }
- *       '422': { description: 包含未注册字段 }
+ *       '422': { description: 包含未注册字段, 'x-en': Contains unregistered fields }
  */
 
 /**
@@ -136,10 +143,11 @@
  *   get:
  *     tags: [取数]
  *     summary: 看板快照导出（元信息 + 全部图表数据）
+ *     x-en-summary: Export a dashboard snapshot (metadata + all chart data)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
- *       - { name: format, in: query, description: 'csv 时逐卡输出 CSV（以 # 图表名 分行）', schema: { type: string, enum: [csv] } }
+ *       - { name: format, in: query, description: 'csv 时逐卡输出 CSV（以 # 图表名 分行）', 'x-en': 'Emit one CSV block per tile (rows prefixed with # chart name) when set to csv', schema: { type: string, enum: [csv] } }
  *     responses:
  *       '200':
  *         description: ok
