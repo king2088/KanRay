@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import './config-common.css'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ component: any }>()
 const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>()
@@ -16,19 +19,19 @@ watch(() => props.component?.id, () => {
 
 <template>
   <div class="rc-section">
-    <div class="rc-section-title">iframe配置</div>
+    <div class="rc-section-title">{{ t('bigscreen.config.iframe.title') }}</div>
     <el-form label-width="70px" size="default">
-      <el-form-item label="网址URL">
-        <el-input v-model="iframeSrc" @blur="emit('updateProps', 'src', iframeSrc)" placeholder="输入URL后按回车确认" />
+      <el-form-item :label="t('bigscreen.config.iframe.url')">
+        <el-input v-model="iframeSrc" @blur="emit('updateProps', 'src', iframeSrc)" :placeholder="t('bigscreen.config.iframe.urlHint')" />
       </el-form-item>
-      <el-form-item label="透明背景">
+      <el-form-item :label="t('bigscreen.config.iframe.transparent')">
         <el-switch :model-value="component.props.transparent === true" @update:model-value="emit('updateProps', 'transparent', $event)" />
       </el-form-item>
-      <el-form-item label="安全沙箱">
-        <el-input v-model="iframeSandbox" @blur="emit('updateProps', 'sandbox', iframeSandbox)" placeholder="默认已开启全部权限，一般无需修改" />
+      <el-form-item :label="t('bigscreen.config.iframe.sandbox')">
+        <el-input v-model="iframeSandbox" @blur="emit('updateProps', 'sandbox', iframeSandbox)" :placeholder="t('bigscreen.config.iframe.sandboxHint')" />
       </el-form-item>
       <div class="rc-section-tip">
-        提示：部分网站（如百度、知乎等）通过X-Frame-Options头禁止被iframe嵌入，无法通过沙箱配置绕过。可尝试允许嵌入的网站（如 Wikipedia、示例页面等）。
+        {{ t('bigscreen.config.iframe.warn') }}
       </div>
     </el-form>
   </div>
