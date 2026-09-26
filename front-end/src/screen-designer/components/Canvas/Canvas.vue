@@ -7,6 +7,9 @@ import { getComponent } from '../../core/components/registry'
 import { getDefaultDataForComponent } from '../../core/components/defaultData'
 import { useDataFetch } from '../../composables/useDataFetch'
 import { generateId } from '../../utils/id'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const canvasStore = useCanvasStore()
 const componentsStore = useComponentsStore()
@@ -943,16 +946,16 @@ const exportJSON = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `大屏设计.json`
+  a.download = `${t('bigscreen.editor.exportFileName')}.json`
   a.click()
   URL.revokeObjectURL(url)
-  ElMessage.success('导出成功')
+  ElMessage.success(t('bigscreen.editor.exportSuccess'))
 }
 
 const importJSON = () => {
   // 如果当前有组件，先确认是否覆盖
   if (componentsStore.components.length > 0) {
-    if (!confirm('导入将覆盖当前设计内容，是否继续？')) return
+    if (!confirm(t('bigscreen.editor.importOverwriteConfirm'))) return
   }
 
   const input = document.createElement('input')
@@ -984,9 +987,9 @@ const importJSON = () => {
           componentsStore.addComponent(c)
         })
       }
-      ElMessage.success('导入成功')
+      ElMessage.success(t('bigscreen.editor.importSuccess'))
     } catch {
-      ElMessage.error('导入失败：无效的JSON文件')
+      ElMessage.error(t('bigscreen.editor.importFailed'))
     }
   }
   input.click()
@@ -1026,7 +1029,7 @@ function ctxAction(action: string) {
     case 'duplicate':
       ids.forEach(id => {
         const c = componentsStore.components.find(comp => comp.id === id)
-        if (c) componentsStore.addComponent({ ...c, id: generateId(), x: c.x + 20, y: c.y + 20, name: c.name + ' - 副本' })
+        if (c) componentsStore.addComponent({ ...c, id: generateId(), x: c.x + 20, y: c.y + 20, name: c.name + t('bigscreen.editor.duplicateSuffix') })
       })
       historyStore.pushState(componentsStore.components)
       break
@@ -1066,7 +1069,7 @@ function ctxAction(action: string) {
             v-show="component.visible && !(isMobilePreview && component.mobile?.hideOnMobile)">
             <div class="component-content" :style="{ backgroundColor: component.style.backgroundColor, borderWidth: component.style.borderWidth + 'px', borderColor: component.style.borderColor, borderStyle: component.style.borderWidth > 0 ? 'solid' : 'none', borderRadius: component.style.borderRadius + 'px', boxShadow: `${component.style.boxShadowX}px ${component.style.boxShadowY}px ${component.style.boxShadowBlur}px ${component.style.boxShadowColor}` }">
               <component v-if="getWidgetComponent(component.type) && !isDataEmpty(component)" :is="getWidgetComponent(component.type)" :componentType="component.type" :data="getWidgetData(component)" :style="component.style" :props="component.props" />
-              <div v-else-if="getWidgetComponent(component.type) && isDataEmpty(component)" class="component-no-data">暂无数据</div>
+              <div v-else-if="getWidgetComponent(component.type) && isDataEmpty(component)" class="component-no-data">{{ t('bigscreen.editor.noData') }}</div>
               <div v-else class="component-placeholder">{{ component.name }}</div>
             </div>
             <div v-if="componentsStore.selectedIds.includes(component.id) && !component.locked" class="resize-handles">
@@ -1092,61 +1095,61 @@ function ctxAction(action: string) {
     </div>
 
     <div class="zoom-controls">
-      <el-tooltip content="缩小" placement="top" :show-after="500">
+      <el-tooltip :content="t('bigscreen.editor.zoomOut')" placement="top" :show-after="500">
         <button class="zoom-btn" @click="canvasStore.zoomOut()">−</button>
       </el-tooltip>
       <span class="zoom-label">{{ canvasStore.actualZoom }}%</span>
-      <el-tooltip content="放大" placement="top" :show-after="500">
+      <el-tooltip :content="t('bigscreen.editor.zoomIn')" placement="top" :show-after="500">
         <button class="zoom-btn" @click="canvasStore.zoomIn()">+</button>
       </el-tooltip>
-      <el-tooltip content="重置视图" placement="top" :show-after="500">
+      <el-tooltip :content="t('bigscreen.editor.resetView')" placement="top" :show-after="500">
         <button class="zoom-btn zoom-reset" @click="resetView">↺</button>
       </el-tooltip>
       <span class="zoom-divider"></span>
-      <el-tooltip content="导入JSON文件" placement="top" :show-after="500">
+      <el-tooltip :content="t('bigscreen.editor.importTooltip')" placement="top" :show-after="500">
         <button class="zoom-btn" @click="importJSON">↑</button>
       </el-tooltip>
-      <el-tooltip content="导出JSON文件" placement="top" :show-after="500">
+      <el-tooltip :content="t('bigscreen.editor.exportTooltip')" placement="top" :show-after="500">
         <button class="zoom-btn" @click="exportJSON">↓</button>
       </el-tooltip>
     </div>
     <Teleport to="body">
       <div v-if="contextMenu.show" class="context-menu" :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }" @click.stop>
         <template v-if="contextMenu.componentId">
-          <div class="ctx-item" @click="ctxAction('copy')">复制</div>
-          <div class="ctx-item" @click="ctxAction('cut')">剪切</div>
-          <div class="ctx-item" @click="ctxAction('paste')">粘贴</div>
-          <div class="ctx-item" @click="ctxAction('duplicate')">复制组件</div>
+          <div class="ctx-item" @click="ctxAction('copy')">{{ t('bigscreen.contextMenu.copy') }}</div>
+          <div class="ctx-item" @click="ctxAction('cut')">{{ t('bigscreen.contextMenu.cut') }}</div>
+          <div class="ctx-item" @click="ctxAction('paste')">{{ t('bigscreen.contextMenu.paste') }}</div>
+          <div class="ctx-item" @click="ctxAction('duplicate')">{{ t('bigscreen.contextMenu.duplicate') }}</div>
           <div class="ctx-divider"></div>
-          <div class="ctx-item" @click="ctxAction('front')">置顶</div>
-          <div class="ctx-item" @click="ctxAction('back')">置底</div>
-          <div class="ctx-item" @click="ctxAction('up')">上移一层</div>
-          <div class="ctx-item" @click="ctxAction('down')">下移一层</div>
+          <div class="ctx-item" @click="ctxAction('front')">{{ t('bigscreen.contextMenu.bringToFront') }}</div>
+          <div class="ctx-item" @click="ctxAction('back')">{{ t('bigscreen.contextMenu.sendToBack') }}</div>
+          <div class="ctx-item" @click="ctxAction('up')">{{ t('bigscreen.contextMenu.moveUp') }}</div>
+          <div class="ctx-item" @click="ctxAction('down')">{{ t('bigscreen.contextMenu.moveDown') }}</div>
           <div class="ctx-divider"></div>
           <div class="ctx-item" @click="ctxAction('lock')">
-            {{ componentsStore.components.find(c => c.id === contextMenu.componentId)?.locked ? '解锁' : '锁定' }}
+            {{ componentsStore.components.find(c => c.id === contextMenu.componentId)?.locked ? t('bigscreen.contextMenu.unlock') : t('bigscreen.contextMenu.lock') }}
           </div>
           <div class="ctx-item" @click="ctxAction('hide')">
-            {{ componentsStore.components.find(c => c.id === contextMenu.componentId)?.visible ? '隐藏' : '显示' }}
+            {{ componentsStore.components.find(c => c.id === contextMenu.componentId)?.visible ? t('bigscreen.contextMenu.hide') : t('bigscreen.contextMenu.show') }}
           </div>
           <div class="ctx-divider"></div>
           <div class="ctx-item ctx-submenu" v-if="componentsStore.selectedIds.length >= 2">
-            对齐
+            {{ t('bigscreen.contextMenu.align') }}
             <span class="ctx-arrow">▶</span>
             <div class="ctx-submenu-panel">
-              <div class="ctx-item" @click="alignComponents('left')">左对齐</div>
-              <div class="ctx-item" @click="alignComponents('right')">右对齐</div>
-              <div class="ctx-item" @click="alignComponents('top')">顶部对齐</div>
-              <div class="ctx-item" @click="alignComponents('bottom')">底部对齐</div>
-              <div class="ctx-item" @click="alignComponents('center-h')">水平居中</div>
-              <div class="ctx-item" @click="alignComponents('center-v')">垂直居中</div>
+              <div class="ctx-item" @click="alignComponents('left')">{{ t('bigscreen.contextMenu.alignLeft') }}</div>
+              <div class="ctx-item" @click="alignComponents('right')">{{ t('bigscreen.contextMenu.alignRight') }}</div>
+              <div class="ctx-item" @click="alignComponents('top')">{{ t('bigscreen.contextMenu.alignTop') }}</div>
+              <div class="ctx-item" @click="alignComponents('bottom')">{{ t('bigscreen.contextMenu.alignBottom') }}</div>
+              <div class="ctx-item" @click="alignComponents('center-h')">{{ t('bigscreen.contextMenu.alignCenterH') }}</div>
+              <div class="ctx-item" @click="alignComponents('center-v')">{{ t('bigscreen.contextMenu.alignCenterV') }}</div>
             </div>
           </div>
           <div class="ctx-divider"></div>
-          <div class="ctx-item ctx-danger" @click="ctxAction('delete')">删除</div>
+          <div class="ctx-item ctx-danger" @click="ctxAction('delete')">{{ t('bigscreen.contextMenu.delete') }}</div>
         </template>
         <template v-else>
-          <div class="ctx-item" @click="ctxAction('paste')">粘贴</div>
+          <div class="ctx-item" @click="ctxAction('paste')">{{ t('bigscreen.contextMenu.paste') }}</div>
         </template>
       </div>
     </Teleport>
