@@ -2,21 +2,21 @@
   <div class="builder-page" v-loading="loading">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">数据集构建器</h2>
-        <div class="page-desc">数据源：{{ dsName }}（{{ dsType }}）· 三种形态自由切换</div>
+        <h2 class="page-title">{{ t('dataset.builderPage.title') }}</h2>
+        <div class="page-desc">{{ t('dataset.builderPage.desc', { name: dsName, type: dsType }) }}</div>
       </div>
       <div class="page-header__actions">
-        <el-button @click="$router.back()">返回</el-button>
-        <el-input v-model="name" placeholder="数据集名称" style="width: 220px" clearable />
-        <el-button type="primary" :loading="saving" @click="save">保存数据集</el-button>
+        <el-button @click="$router.back()">{{ t('common.actions.back') }}</el-button>
+        <el-input v-model="name" :placeholder="t('dataset.builderPage.namePlaceholder')" style="width: 220px" clearable />
+        <el-button type="primary" :loading="saving" @click="save">{{ t('dataset.builderPage.save') }}</el-button>
       </div>
     </div>
 
     <el-card shadow="never">
       <el-tabs v-model="activeMode" @tab-change="onTabChange">
-        <el-tab-pane label="纯 SQL" name="sql" />
-        <el-tab-pane label="可视化" name="drag" />
-        <el-tab-pane label="ETL" name="etl" />
+        <el-tab-pane :label="t('dataset.builderPage.tabSql')" name="sql" />
+        <el-tab-pane :label="t('dataset.builderPage.tabVisual')" name="drag" />
+        <el-tab-pane :label="t('dataset.etl.title')" name="etl" />
       </el-tabs>
       <div class="builder-page__content">
         <keep-alive>
@@ -34,6 +34,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { datasourceApi, buildApi, datasetApi } from '@/api'
+import { t } from '@/i18n'
 import SqlBuilderTab from '@/components/builder/SqlBuilderTab.vue'
 import DragBuilderTab from '@/components/builder/DragBuilderTab.vue'
 import EtlBuilderTab from '@/components/builder/EtlBuilderTab.vue'
@@ -65,26 +66,26 @@ function onChange(payload) {
 
 function currentDefinition() {
   if (liveDefinition.value && MODE_MAP[liveDefinition.value.type] === activeMode.value) return liveDefinition.value
-  const ref = activeMode.value === 'sql' ? sqlRef.value : activeMode.value === 'drag' ? dragRef.value : etlRef.value
-  return ref?.getDefinition?.() ?? null
+  const tabRef = activeMode.value === 'sql' ? sqlRef.value : activeMode.value === 'drag' ? dragRef.value : etlRef.value
+  return tabRef?.getDefinition?.() ?? null
 }
 
 function onTabChange() {
   const prev = lastMode.value
-  const ref = prev === 'sql' ? sqlRef.value : prev === 'drag' ? dragRef.value : etlRef.value
-  const d = ref?.getDefinition?.()
+  const tabRef = prev === 'sql' ? sqlRef.value : prev === 'drag' ? dragRef.value : etlRef.value
+  const d = tabRef?.getDefinition?.()
   if (d) liveDefinition.value = d
   lastMode.value = activeMode.value
 }
 
 async function save() {
-  if (!name.value.trim()) return ElMessage.warning('请填写数据集名称')
+  if (!name.value.trim()) return ElMessage.warning(t('dataset.builderPage.nameRequired'))
   const definition = currentDefinition()
-  if (!definition) return ElMessage.warning('构建定义为空')
+  if (!definition) return ElMessage.warning(t('dataset.builderPage.definitionEmpty'))
   saving.value = true
   try {
     const created = await buildApi.save(dsId, name.value.trim(), definition, editDatasetId.value)
-    ElMessage.success(editDatasetId.value ? '数据集已更新' : '数据集创建成功')
+    ElMessage.success(t(editDatasetId.value ? 'dataset.builderPage.updated' : 'dataset.builderPage.created'))
     router.push(`/datasets/${created.id}`)
   } finally { saving.value = false }
 }
@@ -107,7 +108,7 @@ onMounted(async () => {
           editDefinition.value = def
           activeMode.value = MODE_MAP[def.type] || 'sql'
         } catch (e) {
-          ElMessage.error('数据集定义解析失败')
+          ElMessage.error(t('dataset.builderPage.parseFailed'))
         }
       }
     }
