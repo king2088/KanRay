@@ -180,7 +180,7 @@ The list and data endpoints support `?format=csv` (or the request header `Accept
     "rows": [ { "区域": "华南", "销售额": 67300 } ],
     "truncated": false
   },
-  "message": "OK"
+  "message": "success"
 }
 ```
 
@@ -253,9 +253,9 @@ Always read the text as `messageEn || message` (falling back to Chinese when `me
 |------|------|
 | 鉴权 | 仅接受有效 `kan_*` 凭证；无效/停用/过期返回 401，对应权限缺失返回 403 |
 | 资源隔离 | 列表仅返回本人可见；数据端点同时校验图表与数据集归属 |
-| 限流 | 每 Key 每分钟 `OPEN_API_RATE_PER_MIN` 次（默认 120），超限返回 `429 请求过于频繁` |
+| 限流 | 每 Key 每分钟 `OPEN_API_RATE_PER_MIN` 次（默认 120），超限返回 `429 请求过于频繁，请稍后再试` |
 | 行数上限 | `OPEN_API_MAX_ROWS`（默认 10000），超出截断并标记 `truncated` |
-| 审计 | 取数类调用记录审计日志（资源 chart/dataset，操作 `api:charts.data` 等） |
+| 审计 | 取数类调用记录审计日志（资源 chart/dataset，操作 `api:chart.data` 等） |
 
 ## 4. Security and rate limiting
 
@@ -263,9 +263,9 @@ Always read the text as `messageEn || message` (falling back to Chinese when `me
 |------|------|
 | Authentication | Only valid `kan_*` credentials are accepted; an invalid, revoked, or expired credential returns 401, and a missing permission returns 403 |
 | Resource isolation | Lists return only what you can see; data endpoints validate ownership of both the chart and the dataset |
-| Rate limiting | `OPEN_API_RATE_PER_MIN` requests per key per minute (120 by default); exceeding it returns 429 "请求过于频繁" (Too many requests) |
+| Rate limiting | `OPEN_API_RATE_PER_MIN` requests per key per minute (120 by default); exceeding it returns 429 "请求过于频繁，请稍后再试" (Too many requests, please try again later) |
 | Row limit | `OPEN_API_MAX_ROWS` (10000 by default); larger results are truncated and flagged with `truncated` |
-| Audit | Data-fetching calls are written to the audit log (resource `chart`/`dataset`, action `api:charts.data`, and so on) |
+| Audit | Data-fetching calls are written to the audit log (resource `chart`/`dataset`, action `api:chart.data`, and so on) |
 
 ## 五、错误码
 
@@ -323,7 +323,7 @@ Fetch a chart as CSV on a schedule and write it straight to a file (see the comm
 ```bash
 curl -sH "Authorization: Bearer kan_pat_xxx" \
   "http://localhost:8080/api/open/v1/dashboards/2/export" \
-  | jq '.data.meta + { charts: (.data.cards | length) }'
+  | jq '.data.dashboard + { cards: (.data.cards | length) }'
 ```
 
 ### Dashboard snapshot by email

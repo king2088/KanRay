@@ -83,7 +83,7 @@ After the key changes, existing connection passwords can no longer be decrypted.
 看板列表 → 操作 → 分享 → 停用/删除该分享。停用后访问链接将无法查看。
 
 **Q13：分享链接能设置有效期吗？**
-当前版本分享链接默认长期有效，暂不支持自定义过期时间（见已知限制）。
+分享链接支持自定义过期时间：创建分享时可在弹窗中选择具体到期时间，到期后链接失效；不填则长期有效。
 
 **Q14：为什么登录用户看不到某些看板？**
 看板按 owner 隔离，且需要看板读取权限。分享页是跨用户只读访问的例外场景。
@@ -97,7 +97,7 @@ By default an access password (4–64 characters) is set when you create a share
 Dashboard list → Actions (操作) → Share → deactivate or delete that share. Once deactivated, the link no longer shows anything.
 
 **Q13: Can share links expire automatically?**
-In the current version share links are valid indefinitely; custom expiry times are not supported yet (see Known Limitations).
+Share links support a custom expiry: when you create a share you can pick a specific expiry in the dialog, and the link stops working once it passes. Leave it empty for a link that never expires.
 
 **Q14: Why can't a signed-in user see some dashboards?**
 Dashboards are isolated by owner and also require dashboard read permission. The share page is the one exception: it grants cross-user read-only access.
