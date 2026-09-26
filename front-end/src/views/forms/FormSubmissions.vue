@@ -42,7 +42,7 @@
                 <span class="cell-muted">{{ formatDateTime(row.submittedAt, appStore.timezone) }}</span>
               </template>
             </el-table-column>
-            <el-table-column :label="t('form.submissions.actions')" width="150" align="center" fixed="right">
+            <el-table-column :label="t('form.submissions.actions')" width="160" align="center" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click="edit(row)">{{ t('form.submissions.edit') }}</el-button>
                 <el-button link type="danger" @click="remove(row)">{{ t('form.submissions.delete') }}</el-button>
