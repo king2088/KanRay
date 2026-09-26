@@ -1,8 +1,8 @@
 <template>
   <div class="field-config-panel">
-    <div class="panel-title">字段配置</div>
+    <div class="panel-title">{{ t('chart.field.panelTitle') }}</div>
     <div class="field-palette">
-      <div class="palette-title">可用字段（拖拽或点击添加）</div>
+      <div class="palette-title">{{ t('chart.field.paletteTitle') }}</div>
       <div
         v-for="f in fields"
         :key="f.name"
@@ -13,30 +13,30 @@
       >
         <el-icon :size="14" style="margin-right: 6px"><DataLine /></el-icon>
         <span>{{ f.label || f.name }}</span>
-        <el-tag  effect="light" :style="typeTagStyle(f.type)" style="margin-left: auto">{{ typeLabel(f.type) }}</el-tag>
+        <el-tag  effect="light" :style="typeTagStyle(f.type)" style="margin-left: auto">{{ fieldTypeLabel(f.type) }}</el-tag>
       </div>
     </div>
 
     <!-- 维度 -->
     <div class="drop-zone" @dragover.prevent @drop="onDrop($event, 'dimensions')">
       <div class="drop-zone-title">
-        维度（分类 / X 轴）
+        {{ t('chart.field.dimsGroup') }}
         <el-icon class="add-icon" @click="addBlank('dimensions')"><Plus /></el-icon>
       </div>
-      <div v-if="!dims.length" class="drop-hint">拖入字段作为维度</div>
+      <div v-if="!dims.length" class="drop-hint">{{ t('chart.field.dropHintDim') }}</div>
       <div v-for="(d, di) in dims" :key="di" class="slot-row">
-        <el-select v-model="d.field" placeholder="选择字段" style="flex: 1">
+        <el-select v-model="d.field" :placeholder="t('chart.field.selectField')" style="flex: 1">
           <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
         </el-select>
         <el-select
           v-if="isDateField(d.field)"
           v-model="d.granularity"
           style="width: 80px"
-          placeholder="粒度"
+          :placeholder="t('chart.field.granularity')"
         >
-          <el-option label="日" value="day" />
-          <el-option label="月" value="month" />
-          <el-option label="年" value="year" />
+          <el-option :label="t('chart.grain.day')" value="day" />
+          <el-option :label="t('chart.grain.month')" value="month" />
+          <el-option :label="t('chart.grain.year')" value="year" />
         </el-select>
         <el-icon class="remove-icon" @click="removeItem(dims, di)"><Delete /></el-icon>
       </div>
@@ -45,31 +45,31 @@
     <!-- 指标 -->
     <div class="drop-zone" @dragover.prevent @drop="onDrop($event, 'metrics')">
       <div class="drop-zone-title">
-        指标（数值 / Y 轴）
+        {{ t('chart.field.metricsGroup') }}
         <el-icon class="add-icon" @click="addBlank('metrics')"><Plus /></el-icon>
       </div>
-      <div v-if="!metrics.length" class="drop-hint">拖入字段作为指标</div>
+      <div v-if="!metrics.length" class="drop-hint">{{ t('chart.field.dropHintMetric') }}</div>
       <div v-for="(m, mi) in metrics" :key="mi" class="metric-wrap">
         <div class="slot-row">
-          <el-select v-model="m.type" style="width: 100px" placeholder="形态" @change="onTypeChange(m)">
-            <el-option label="原子指标" value="base" />
-            <el-option label="复合指标" value="expr" />
-            <el-option label="衍生指标" value="derived" />
-            <el-option label="指标库" value="saved" />
+          <el-select v-model="m.type" style="width: 100px" :placeholder="t('chart.field.metricShape')" @change="onTypeChange(m)">
+            <el-option :label="t('chart.metricKind.base')" value="base" />
+            <el-option :label="t('chart.metricKind.expr')" value="expr" />
+            <el-option :label="t('chart.metricKind.derived')" value="derived" />
+            <el-option :label="t('chart.metricKind.saved')" value="saved" />
           </el-select>
           <template v-if="m.type === 'saved'">
-            <el-select v-model="m.metricId" style="flex: 1" placeholder="选择指标库指标">
+            <el-select v-model="m.metricId" style="flex: 1" :placeholder="t('chart.field.selectLibraryMetric')">
               <el-option v-for="l in library" :key="l.id" :label="metricTypeTag(l) + ' ' + l.name" :value="l.id" />
             </el-select>
           </template>
           <template v-else-if="m.type === 'expr'">
-            <el-input v-model="m.label" placeholder="指标名称" style="flex: 1" />
+            <el-input v-model="m.label" :placeholder="t('chart.field.metricName')" style="flex: 1" />
           </template>
           <template v-else-if="m.type === 'derived'">
-            <el-input v-model="m.label" placeholder="指标名称" style="flex: 1" />
+            <el-input v-model="m.label" :placeholder="t('chart.field.metricName')" style="flex: 1" />
           </template>
           <template v-else>
-            <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
+            <el-select v-model="m.field" :placeholder="t('chart.field.selectField')" style="flex: 1">
               <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
             </el-select>
             <el-select v-model="m.agg" style="width: 95px">
@@ -83,14 +83,14 @@
           <el-input
             v-model="m.expr"
             :class="{ 'is-invalid': exprError(m) }"
-            placeholder="复合指标公式，如 $m0 / $m1"
+            :placeholder="t('chart.field.formulaPlaceholder')"
           />
         </div>
         <div v-else-if="m.type === 'derived'" class="metric-subrow">
-          <el-select v-model="m.kind" style="width: 104px" placeholder="类型">
+          <el-select v-model="m.kind" style="width: 104px" :placeholder="t('chart.field.kindPlaceholder')">
             <el-option v-for="k in DERIVED_OPTIONS" :key="k.value" :label="t(k.labelKey)" :value="k.value" />
           </el-select>
-          <el-select v-model="m.ref" style="flex: 1" placeholder="引用指标">
+          <el-select v-model="m.ref" style="flex: 1" :placeholder="t('chart.field.refMetric')">
             <el-option
               v-for="b in derivedRefs(mi)"
               :key="b.key"
@@ -101,14 +101,14 @@
         </div>
         <div v-if="m.type === 'derived'" class="ref-row">
           <span v-if="derivedError(m)" class="ref-error">{{ derivedError(m) }}</span>
-          <span v-else class="ref-hint">衍生指标基于前序原子/复合指标在结果行上计算</span>
+          <span v-else class="ref-hint">{{ t('chart.field.derivedHint') }}</span>
         </div>
         <div v-if="m.type === 'saved'" class="ref-row">
           <span v-if="savedError(m)" class="ref-error">{{ savedError(m) }}</span>
-          <span v-else-if="!library.length" class="ref-empty">（指标库为空，请先在数据集「指标库」中创建）</span>
+          <span v-else-if="!library.length" class="ref-empty">{{ t('chart.field.libraryEmpty') }}</span>
         </div>
         <div v-if="m.type === 'expr'" class="ref-row">
-          <span class="ref-label">引用前序原子指标：</span>
+          <span class="ref-label">{{ t('chart.field.refLabel') }}</span>
           <el-tag
             v-for="b in referableFor(mi)"
             :key="b.key"
@@ -119,7 +119,7 @@
           >
             {{ '$' + b.key }} {{ b.field || '' }}
           </el-tag>
-          <span v-if="!referableFor(mi).length" class="ref-empty">（暂无，请先在上方添加原子指标）</span>
+          <span v-if="!referableFor(mi).length" class="ref-empty">{{ t('chart.field.noReferable') }}</span>
           <span v-if="exprError(m)" class="ref-error">{{ exprError(m) }}</span>
         </div>
       </div>
@@ -132,6 +132,7 @@ import { computed } from 'vue'
 import { Plus, Delete, DataLine } from '@element-plus/icons-vue'
 import { AGG_OPTIONS, DERIVED_OPTIONS } from '@/utils/chart-utils'
 import { t } from '@/i18n'
+import { fieldTypeLabel } from '@/utils/field-type-label'
 
 const props = defineProps({
   fields: { type: Array, default: () => [] },
@@ -145,7 +146,6 @@ const update = () => {
   // dims/metrics are reactive objects passed by reference, mutation happens in-place
 }
 
-const typeLabel = (t) => ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t)
 
 const NUMERIC_TYPES = ['integer', 'number']
 
@@ -209,12 +209,12 @@ function onTypeChange(m) {
   if (m.type === 'expr') {
     m.field = undefined
     m.agg = undefined
-    if (!m.label) m.label = `复合指标${props.metrics.findIndex((x) => x === m) + 1}`
+    if (!m.label) m.label = t('chart.field.defaultExprName', { n: props.metrics.findIndex((x) => x === m) + 1 })
   } else if (m.type === 'derived') {
     m.field = undefined
     m.agg = undefined
     if (!m.kind) m.kind = 'share'
-    if (!m.label) m.label = `衍生指标${props.metrics.findIndex((x) => x === m) + 1}`
+    if (!m.label) m.label = t('chart.field.defaultDerivedName', { n: props.metrics.findIndex((x) => x === m) + 1 })
   } else if (m.type === 'saved') {
     m.field = undefined
     m.agg = undefined
@@ -236,13 +236,13 @@ function derivedRefs(mi) {
 
 function savedError(m) {
   if (m.type !== 'saved') return ''
-  if (props.library.length === 0) return '数据集指标库为空'
-  if (!m.metricId) return '请选择要复用的指标'
+  if (props.library.length === 0) return t('chart.field.errLibraryEmpty')
+  if (!m.metricId) return t('chart.field.errSelectReuse')
   return ''
 }
 
 function metricTypeTag(l) {
-  return { base: '原子指标', expr: '复合指标', derived: '衍生指标' }[l.kind] || l.kind
+  return l.kind ? t(`chart.metricKind.${l.kind}`) : l.kind
 }
 
 // 校验公式引用是否可用（其余语法由后端白名单把关）
@@ -250,15 +250,15 @@ function exprError(m) {
   if (m.type !== 'expr') return ''
   const tokens = new Set(String(m.expr || '').match(/\$[A-Za-z_][A-Za-z0-9_]*/g) || [])
   for (const tok of tokens) {
-    if (!props.metrics.some((x) => x.type !== 'expr' && x.type !== 'derived' && x.key === tok.slice(1))) return `引用 ${tok} 不存在`
+    if (!props.metrics.some((x) => x.type !== 'expr' && x.type !== 'derived' && x.key === tok.slice(1))) return t('chart.field.errRefMissing', { ref: tok })
   }
   return ''
 }
 
 function derivedError(m) {
   if (m.type !== 'derived') return ''
-  if (!derivedRefs(props.metrics.findIndex((x) => x === m)).length) return '需要先在上方添加原子/复合指标作为引用源'
-  if (!m.ref) return '请选择要引用的指标'
+  if (!derivedRefs(props.metrics.findIndex((x) => x === m)).length) return t('chart.field.errNeedSource')
+  if (!m.ref) return t('chart.field.errSelectRef')
   return ''
 }
 
