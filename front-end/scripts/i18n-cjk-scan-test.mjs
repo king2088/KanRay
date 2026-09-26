@@ -58,6 +58,21 @@ const SCAN_PATHS = [
   'views/open',
   'components/form',
   'utils/form-meta.js',
+  // 计划 6：大屏设计器内核（RightPanel 属计划 7、widgets 属计划 8，尚未迁移故不在此列）
+  'views/BigScreenList.vue',
+  'screen-designer/views',
+  'screen-designer/stores/canvas.ts',
+  'screen-designer/utils/storage.ts',
+  'screen-designer/core/components/registry.ts',
+  'screen-designer/core/templates/thumbnail.ts',
+  'screen-designer/core/templates/preset.ts',
+  'screen-designer/core/components/defaultData.ts',
+  'screen-designer/components/Canvas',
+  'screen-designer/components/TopToolbar',
+  'screen-designer/components/StatusBar',
+  'screen-designer/components/LeftPanel',
+  'screen-designer/components/CodeEditor',
+  'screen-designer/components/ScreenIcon.vue',
 ]
 
 // 行级豁免清单：file + 代码片段 + 原因
@@ -75,6 +90,33 @@ const CJK_EXEMPTIONS = [
     reason:
       'KEY_SEED 是生成表单字段入库列名的种子，keyFor 会剥掉非 ASCII 字符后稳定回退为 field_*；' +
       '它必须与界面语言无关，否则切换语言会改变已落库到后端的列名，属于不可翻译的字面量。',
+  },
+  {
+    file: 'screen-designer/core/templates/preset.ts',
+    fileScoped: true,
+    reason:
+      '整文件是 19 个预置大屏模板的数据定义（画布尺寸、组件清单与组件内的文案/指标/图例），' +
+      '不含任何界面框架文案；这些内容会随模板复制进用户画布并由用户自行编辑，属于用户数据，' +
+      '若随界面语言切换，用户保存的模板会出现中英混杂，因此刻意不翻译。',
+  },
+  {
+    file: 'screen-designer/core/components/defaultData.ts',
+    fileScoped: true,
+    reason:
+      '整文件是预置的新画布种子图表数据（系列名、类目名、数值），不含界面框架文案；' +
+      '落库后即用户数据，与 preset.ts 同理不随界面语言切换。',
+  },
+  {
+    file: 'screen-designer/components/CodeEditor/CodeEditDialog.vue',
+    match: [
+      '双击', '请在右侧', '今日访问', '活跃用户', '实时销量排行', '系统监控', '运行稳定性',
+      '星期日', "getFullYear() + '年'", '磁盘使用率', '系统状态', '搜索引擎', '直接访问', '邮件营销', '联盟广告',
+      'data 来自右侧面板', 'HTML编辑器', '运行中', 'CSS编辑器', 'JS编辑器留空', '1月',
+    ],
+    reason:
+      '这些行是「自定义组件代码模板」与帮助文档里的示例代码内容（示例图表的类目/系列名、' +
+      '示例 DOM 文案、示例注释），属演示数据：用户把模板插入画布后即可任意改写，' +
+      '译文写进代码字符串反而会与用户数据混杂；帮助文档的说明文字已单独译出。',
   },
 ]
 
@@ -103,7 +145,14 @@ const usedExemptions = new Set()
 // 该行是否被声明的豁免覆盖（同一文件 + 行内包含指定代码片段）
 function exemptionFor(relFile, line) {
   for (const [i, ex] of CJK_EXEMPTIONS.entries()) {
-    if (ex.file === relFile && line.includes(ex.match)) {
+    if (ex.file !== relFile) continue
+    // 整文件豁免：仅用于「全文件都是预置数据、没有任何界面文案」的数据模块
+    if (ex.fileScoped) {
+      usedExemptions.add(i)
+      return ex
+    }
+    const needles = Array.isArray(ex.match) ? ex.match : [ex.match]
+    if (needles.some((n) => line.includes(n))) {
       usedExemptions.add(i)
       return ex
     }
@@ -149,7 +198,9 @@ t('SCAN_PATHS 中每个路径都存在', () => {
 t('行级豁免都写明了原因', () => {
   for (const ex of CJK_EXEMPTIONS) {
     assert.ok(ex.reason && ex.reason.length >= 20, `豁免缺少充分原因: ${ex.file} ${ex.match}`)
-    assert.ok(ex.reason.includes('枚举') || ex.reason.includes('后端'), `豁免原因需说明为何不可翻译: ${ex.file}`)
+    const why = ['枚举', '后端', '演示', '预置'].some((w) => ex.reason.includes(w))
+    assert.ok(why, `豁免原因需说明为何不可翻译: ${ex.file}`)
+    assert.ok(ex.fileScoped || ex.match, `豁免缺少匹配条件: ${ex.file}`)
   }
 })
 

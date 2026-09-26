@@ -262,4 +262,61 @@ t('setTranslator 注入后 tr 使用注入实现', () => {
   assert.equal(tr('common.settings.language'), '语言', '传 null 应恢复默认翻译器')
 })
 
+// 大屏设计器把界面文案搬进了词典，因此「源码里引用的键」必须真实存在。
+// 这条断言是为了防住 LeftPanel 曾经的漏网：第 97 个 widget 名为 ASCII 的 'iframe'，
+// 中文盘点看不见它，于是词典少一键，界面渲染成空字符串。
+const DESIGNER_KEY_REFS = [
+  ['screen-designer/components/LeftPanel/LeftPanel.vue', ['nameKey', 'groupKey']],
+  ['screen-designer/core/templates/preset.ts', ['nameKey', 'descriptionKey']],
+  ['screen-designer/components/CodeEditor/CodeEditDialog.vue', ['nameKey']],
+]
+
+const SRC = fileURLToPath(new URL('../src/', import.meta.url))
+
+function collectKeyRefs(relFile, fields) {
+  const body = readFileSync(join(SRC, relFile), 'utf8')
+  const found = new Set()
+  for (const field of fields) {
+    const re = new RegExp(`${field}:\\s*'([^']+)'`, 'g')
+    for (const m of body.matchAll(re)) found.add(m[1])
+  }
+  return [...found]
+}
+
+t('设计器引用的词典键在两种语言中都存在', () => {
+  const missing = []
+  for (const [relFile, fields] of DESIGNER_KEY_REFS) {
+    for (const key of collectKeyRefs(relFile, fields)) {
+      for (const locale of SUPPORT_LOCALES) {
+        // 域文件里的键不带 bigscreen. 前缀，前缀由 locales/<locale>/index.js 挂载
+        const rel = key.replace(/^bigscreen\./, '')
+        let cur = locales[locale].bigscreen
+        for (const seg of rel.split('.')) cur = cur?.[seg]
+        if (typeof cur !== 'string' || !cur.trim()) missing.push(`${relFile} -> ${key} @${locale}`)
+      }
+    }
+  }
+  assert.deepEqual(missing, [], `设计器引用了词典中不存在的键:\n${missing.join('\n')}`)
+})
+
+t('左侧面板 widget 数量与词典键数一致（漏一个就报错）', () => {
+  const body = readFileSync(join(SRC, 'screen-designer/components/LeftPanel/LeftPanel.vue'), 'utf8')
+  // widget 条目形如 { nameKey: '...', type: 'xxx', icon: 'yyy' }
+  const widgets = [...body.matchAll(/\{\s*nameKey:\s*'bigscreen\.widget\.[^']+'[^}]*?type:/g)]
+  assert.equal(widgets.length, 97, `widget 条目数应为 97，实际 ${widgets.length}（新增 widget 必须同时补词典键）`)
+  // widget 段除 97 个组件名外，只允许这两个非组件键存在，用来反向发现陈旧键
+  const EXTRA_WIDGET_KEYS = ['configHint', 'emptyHint']
+  const zhWidgetKeys = Object.keys(locales['zh-CN'].bigscreen.widget)
+  const enWidgetKeys = Object.keys(locales['en-US'].bigscreen.widget)
+  assert.equal(zhWidgetKeys.length, 99, `bigscreen.widget 键数应为 97+2，实际 ${zhWidgetKeys.length}`)
+  assert.deepEqual(zhWidgetKeys, enWidgetKeys, 'widget 段中英文键集合不一致')
+  for (const k of EXTRA_WIDGET_KEYS) {
+    assert.ok(zhWidgetKeys.includes(k), `widget 段缺少非组件键 ${k}`)
+  }
+  const stale = zhWidgetKeys.filter((k) => !EXTRA_WIDGET_KEYS.includes(k) && !body.includes(`bigscreen.widget.${k}'`))
+  assert.deepEqual(stale, [], `widget 段存在无组件引用的陈旧键: ${stale.join(', ')}`)
+  // 不得残留旧的 name: '中文' 形态
+  assert.equal(/name:\s*'[\u4e00-\u9fff]/.test(body), false, 'LeftPanel 仍有未迁移的中文 name 字面量')
+})
+
 console.log(`i18n 词典测试：${passed} 项通过`)
