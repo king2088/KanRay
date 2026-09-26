@@ -11,7 +11,7 @@
         <template #default="{ row }">{{ row[col.key] }}</template>
       </el-table-column>
     </el-table>
-    <el-empty v-if="!tableRows.length" description="暂无数据" :image-size="60" />
+    <el-empty v-if="!tableRows.length" :description="t('common.empty.noData')" :image-size="60" />
   </div>
 
   <div v-else-if="builtOpt && (renderMode === 'stat' || renderMode === 'statTrend')" class="ec-non ec-stat-tile">
@@ -66,7 +66,7 @@ const builtOpt = computed(() => {
   } catch (e) {
     return {
       title: {
-        text: `图表构建失败: ${e.message}`,
+        text: t('chart.runtime.buildFailed', { msg: e.message }),
         left: 'center', top: 'middle',
         textStyle: { color: '#F56C6C', fontSize: 13 },
       },
@@ -323,7 +323,7 @@ function loadGeo(type) {
   if (!geoLoading[type]) {
     const p = fetch(path)
       .then((r) => {
-        if (!r.ok) throw new Error(`地图数据加载失败: ${path}`)
+        if (!r.ok) throw new Error(t('chart.runtime.mapLoadFailed', { path }))
         return r.json()
       })
       .then((g) => { geoCache[type] = g; return g })
@@ -356,7 +356,7 @@ function renderMap(meta) {
   const dim = data.dimensions?.[0]
   const metric = data.metrics?.[0]
   if (!dim || !metric || !data.rows?.length) {
-    chart.setOption({ title: { text: '请配置维度与指标', left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } } }, true)
+    chart.setOption({ title: { text: t('chart.runtime.needDimsMetrics'), left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } } }, true)
     return
   }
   const mapName = type === 'world' ? 'chinaWorld' : 'china'
@@ -470,7 +470,7 @@ function renderMap(meta) {
     chart.setOption(option, true)
   }).catch((e) => {
     if (!chart) return
-    chart.setOption({ title: { text: e.message || '地图加载失败', left: 'center', top: 'middle', textStyle: { color: '#F56C6C', fontSize: 13 } } }, true)
+    chart.setOption({ title: { text: e.message || t('chart.runtime.mapLoadFailedShort'), left: 'center', top: 'middle', textStyle: { color: '#F56C6C', fontSize: 13 } } }, true)
   })
 }
 

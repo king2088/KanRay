@@ -65,6 +65,12 @@ export default {
     sankey: '桑基图',
     chord: '和弦图',
   },
+  runtime: {
+    buildFailed: '图表构建失败: {msg}',
+    mapLoadFailed: '地图数据加载失败: {path}',
+    mapLoadFailedShort: '地图加载失败',
+    needDimsMetrics: '请配置维度与指标',
+  },
   agg: {
     sum: '求和',
     avg: '平均值',
@@ -96,6 +102,8 @@ export default {
     unitOnly: '单位： {unit}',
   },
   series: {
+
+    waterfallPlaceholder: '占位',
     thresholdValue: '阈值 {value}',
     cumulativeShare: '累积占比%',
   },

@@ -65,6 +65,12 @@ export default {
     sankey: 'Sankey',
     chord: 'Chord',
   },
+  runtime: {
+    buildFailed: 'Failed to build chart: {msg}',
+    mapLoadFailed: 'Failed to load map data: {path}',
+    mapLoadFailedShort: 'Failed to load map',
+    needDimsMetrics: 'Configure dimensions and metrics',
+  },
   agg: {
     sum: 'Sum',
     avg: 'Average',
@@ -96,6 +102,8 @@ export default {
     unitOnly: 'Unit: {unit}',
   },
   series: {
+
+    waterfallPlaceholder: 'Placeholder',
     thresholdValue: 'Threshold {value}',
     cumulativeShare: 'Cumulative %',
   },
