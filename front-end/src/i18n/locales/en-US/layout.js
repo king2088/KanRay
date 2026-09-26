@@ -55,6 +55,7 @@ export default {
   },
   profile: {
     title: 'Profile',
+    basicInfo: 'Basic info',
     nickname: 'Display name',
     email: 'Email',
     role: 'Role',
@@ -63,9 +64,11 @@ export default {
     oldPassword: 'Current password',
     newPassword: 'New password',
     confirmPassword: 'Confirm new password',
+    newPasswordHint: 'At least 8 characters, with letters and digits',
     passwordChanged: 'Password changed, please sign in again',
-    oldPasswordRequired: 'Please enter your current password',
-    newPasswordTooShort: 'New password must be at least 6 characters',
+    profileUpdated: 'Profile updated',
+    nicknameRequired: 'Display name cannot be empty',
+    passwordFieldsRequired: 'Please fill in all fields',
     passwordMismatch: 'The new passwords do not match',
   },
 }

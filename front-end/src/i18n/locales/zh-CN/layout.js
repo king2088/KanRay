@@ -54,6 +54,7 @@ export default {
   },
   profile: {
     title: '个人中心',
+    basicInfo: '基本资料',
     nickname: '昵称',
     email: '邮箱',
     role: '角色',
@@ -62,9 +63,11 @@ export default {
     oldPassword: '原密码',
     newPassword: '新密码',
     confirmPassword: '确认新密码',
+    newPasswordHint: '至少8位，含字母和数字',
     passwordChanged: '密码已修改，请重新登录',
-    oldPasswordRequired: '请输入原密码',
-    newPasswordTooShort: '新密码至少 6 位',
+    profileUpdated: '资料已更新',
+    nicknameRequired: '昵称不能为空',
+    passwordFieldsRequired: '请填写完整',
     passwordMismatch: '两次输入的新密码不一致',
   },
 }
