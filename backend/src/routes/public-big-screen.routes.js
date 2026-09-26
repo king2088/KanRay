@@ -3,6 +3,7 @@ const { z } = require('zod');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const HttpError = require('../utils/http-error');
+const { enOf } = require('../i18n');
 const { ok } = require('../middleware/response');
 const { signShare } = require('../utils/jwt');
 const bigScreenService = require('../services/big-screen.service');
@@ -15,7 +16,7 @@ const verifyLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { code: 429, message: '密码尝试次数过多，请稍后再试', data: null },
+  message: { code: 429, message: '密码尝试次数过多，请稍后再试', data: null, messageEn: enOf('密码尝试次数过多，请稍后再试') },
 });
 
 // GET /api/public/big-screens/:token/meta
