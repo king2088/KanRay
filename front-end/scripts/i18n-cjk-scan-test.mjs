@@ -52,6 +52,12 @@ const SCAN_PATHS = [
   'views/DatasetDetail.vue',
   'views/DataSourceBuilder.vue',
   'components/builder',
+  // 计划 5：表单域与管理后台
+  'views/forms',
+  'views/admin',
+  'views/open',
+  'components/form',
+  'utils/form-meta.js',
 ]
 
 // 行级豁免清单：file + 代码片段 + 原因
@@ -62,6 +68,13 @@ const CJK_EXEMPTIONS = [
     reason:
       "后端 datasources 驱动的 category 枚举值为中文「文件」，此处是与后端返回值的枚举比较而非展示文案；" +
       '计划 9 统一后端枚举后删除本条豁免。',
+  },
+  {
+    file: 'views/forms/FormDesigner.vue',
+    match: "const KEY_SEED = '字段'",
+    reason:
+      'KEY_SEED 是生成表单字段入库列名的种子，keyFor 会剥掉非 ASCII 字符后稳定回退为 field_*；' +
+      '它必须与界面语言无关，否则切换语言会改变已落库到后端的列名，属于不可翻译的字面量。',
   },
 ]
 
