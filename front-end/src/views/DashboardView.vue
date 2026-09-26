@@ -4,15 +4,15 @@
       <div class="vb-left">
         <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
         <h3 class="vb-title">{{ dashName }}</h3>
-        <el-tag  type="warning" effect="light">预览模式</el-tag>
+        <el-tag  type="warning" effect="light">{{ t('dashboard.view.previewMode') }}</el-tag>
       </div>
       <div class="vb-right">
-        <el-button  @click="refresh">刷新数据</el-button>
+        <el-button  @click="refresh">{{ t('dashboard.view.refresh') }}</el-button>
         <el-button  @click="fullscreen = !fullscreen">
           <el-icon style="margin-right: 4px">
             <component :is="fullscreen ? 'Close' : 'FullScreen'" />
           </el-icon>
-          {{ fullscreen ? '退出全屏' : '全屏' }}
+          {{ fullscreen ? t('dashboard.view.exitFullscreen') : t('dashboard.view.fullscreen') }}
         </el-button>
       </div>
     </div>
@@ -32,6 +32,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { t } from '@/i18n'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api'
 import { alignTree, DEFAULT_CARD_STYLE, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
@@ -59,7 +60,7 @@ async function load() {
 
 function refresh() {
   refreshKey.value += 1
-  ElMessage.success('已刷新')
+  ElMessage.success(t('dashboard.view.refreshed'))
 }
 
 onMounted(load)

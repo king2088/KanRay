@@ -2,33 +2,33 @@
   <div class="page-container">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">看板中心</h2>
-        <div class="page-desc">将已建图表编排到看板中，通过筛选组件逐张联动</div>
+        <h2 class="page-title">{{ t('dashboard.list.title') }}</h2>
+        <div class="page-desc">{{ t('dashboard.list.desc') }}</div>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" @click="create">
-          <el-icon style="margin-right: 4px"><Plus /></el-icon>新建看板
+          <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('dashboard.list.create') }}
         </el-button>
       </div>
     </div>
 
     <div class="page-card">
       <div class="page-card__header">
-        <div class="page-card__header-title">看板列表</div>
+        <div class="page-card__header-title">{{ t('dashboard.list.listTitle') }}</div>
         <div class="page-card__header-right">
           <el-input
             v-model="search"
-            placeholder="搜索看板名称"
+            :placeholder="t('dashboard.list.searchPlaceholder')"
             clearable
             style="width: 240px"
             :prefix-icon="Search"
           />
-          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          <el-tag type="info" effect="plain">{{ t('dashboard.list.totalTag', { n: total }) }}</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有看板，输入名称创建一个">
-        <el-table-column prop="name" label="名称" min-width="220">
+      <el-table :data="filtered" v-loading="loading" :empty-text="t('dashboard.list.empty')">
+        <el-table-column prop="name" :label="t('dashboard.list.colName')" min-width="220">
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon"><el-icon><Odometer /></el-icon></div>
@@ -36,24 +36,32 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="组件数" width="120" align="center">
+        <el-table-column :label="t('dashboard.list.colItemCount')" width="120" align="center">
           <template #default="{ row }">
             <el-tag  effect="plain">{{ row.layout.length }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="190">
+        <el-table-column prop="updatedAt" :label="t('dashboard.list.colUpdatedAt')" width="190">
           <template #default="{ row }">
             <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right" align="center">
+        <el-table-column :label="t('dashboard.list.colActions')" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary"  @click="$router.push(`/dashboards/${row.id}`)">查看</el-button>
-            <el-button link type="primary"  @click="$router.push(`/dashboards/${row.id}/edit`)">编辑</el-button>
+            <el-button
+              link
+              type="primary"
+              @click="$router.push(`/dashboards/${row.id}`)"
+            >{{ t('dashboard.list.view') }}</el-button>
+            <el-button
+              link
+              type="primary"
+              @click="$router.push(`/dashboards/${row.id}/edit`)"
+            >{{ t('dashboard.list.edit') }}</el-button>
             <el-button v-if="canShare" link type="primary" @click="openShare(row)">
-              <el-icon style="margin-right: 2px"><Share /></el-icon>分享
+              <el-icon style="margin-right: 2px"><Share /></el-icon>{{ t('dashboard.list.share') }}
             </el-button>
-            <el-button link type="danger"  @click="remove(row)">删除</el-button>
+            <el-button link type="danger"  @click="remove(row)">{{ t('dashboard.list.remove') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -84,6 +92,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { t } from '@/i18n'
 import { Plus, Search, Share } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
@@ -136,19 +145,19 @@ function onSizeChange(size) {
 
 async function create() {
   const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
-  const d = await dashboardApi.create(`未命名看板-${suffix}`)
-  ElMessage.success('看板创建成功')
+  const d = await dashboardApi.create(t('dashboard.list.defaultName', { suffix }))
+  ElMessage.success(t('dashboard.list.created'))
   router.push(`/dashboards/${d.id}/edit`)
 }
 
 async function remove(row) {
-  await ElMessageBox.confirm(`确定删除看板「${row.name}」？`, '删除确认', {
+  await ElMessageBox.confirm(t('dashboard.list.deleteConfirm', { name: row.name }), t('dashboard.list.deleteConfirmTitle'), {
     type: 'warning',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
+    confirmButtonText: t('common.actions.delete'),
+    cancelButtonText: t('common.actions.cancel'),
   })
   await dashboardApi.remove(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('dashboard.list.deleteSuccess'))
   load()
 }
 

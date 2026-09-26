@@ -5,31 +5,31 @@
         <div class="editor-toolbar">
           <div class="et-left">
             <el-button circle @click="$router.push('/dashboards')"><el-icon><ArrowLeft /></el-icon></el-button>
-            <el-input v-model="dashName" placeholder="看板名称" style="width: 220px" maxlength="100" @change="onNameChange" />
-            <el-tag v-if="dashId" type="warning" effect="light">编辑中</el-tag>
+            <el-input v-model="dashName" :placeholder="t('dashboard.editor.namePlaceholder')" style="width: 220px" maxlength="100" @change="onNameChange" />
+            <el-tag v-if="dashId" type="warning" effect="light">{{ t('dashboard.editor.editing') }}</el-tag>
           </div>
           <div class="et-right">
             <el-button @click="settingsDrawer = true">
-              <el-icon style="margin-right: 4px"><Setting /></el-icon>设置
+              <el-icon style="margin-right: 4px"><Setting /></el-icon>{{ t('dashboard.editor.settings') }}
             </el-button>
             <el-dropdown trigger="click" @command="onAddComponent">
               <el-button>
-                <el-icon style="margin-right: 4px"><Plus /></el-icon>组件
+                <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('dashboard.editor.components') }}
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="text">添加文本</el-dropdown-item>
-                  <el-dropdown-item command="filter">添加筛选</el-dropdown-item>
-                  <el-dropdown-item command="container">添加容器</el-dropdown-item>
+                  <el-dropdown-item command="text">{{ t('dashboard.editor.addText') }}</el-dropdown-item>
+                  <el-dropdown-item command="filter">{{ t('dashboard.editor.addFilter') }}</el-dropdown-item>
+                  <el-dropdown-item command="container">{{ t('dashboard.editor.addContainer') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
             <el-button @click="$router.push(`/dashboards/${dashId}`)">
-              <el-icon style="margin-right: 4px"><View /></el-icon>预览
+              <el-icon style="margin-right: 4px"><View /></el-icon>{{ t('dashboard.editor.preview') }}
             </el-button>
             <el-button type="primary" :loading="saving" @click="save">
-              <el-icon style="margin-right: 4px"><Check /></el-icon>保存
+              <el-icon style="margin-right: 4px"><Check /></el-icon>{{ t('dashboard.editor.save') }}
             </el-button>
           </div>
         </div>
@@ -48,46 +48,46 @@
     </div>
 
     <!-- 看板设置（卡片间距 / 卡片样式） -->
-    <el-drawer v-model="settingsDrawer" title="看板设置" direction="rtl" size="320px">
+    <el-drawer v-model="settingsDrawer" :title="t('dashboard.editor.settingsTitle')" direction="rtl" size="320px">
       <DashboardStylePanel :gap="gap" :card-style="cardStyle" />
     </el-drawer>
 
     <!-- 添加文本 -->
-    <el-dialog v-model="addTextDialog" title="添加文本组件" width="520px">
+    <el-dialog v-model="addTextDialog" :title="t('dashboard.editor.addTextTitle')" width="520px">
       <el-input
         v-model="textContent"
         type="textarea"
         :rows="4"
-        placeholder="支持 Markdown 段落、HTML 标签（如 <h3>标题</h3>）"
+        :placeholder="t('dashboard.editor.addTextPlaceholder')"
       />
       <template #footer>
-        <el-button @click="addTextDialog = false">取消</el-button>
-        <el-button type="primary" @click="confirmAddText">添加</el-button>
+        <el-button @click="addTextDialog = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmAddText">{{ t('common.actions.add') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 添加筛选 -->
-    <el-dialog v-model="filterDialogVisible" title="添加筛选组件" width="520px">
+    <el-dialog v-model="filterDialogVisible" :title="t('dashboard.editor.addFilterTitle')" width="520px">
       <el-form label-width="80px">
-        <el-form-item label="数据源">
-          <el-select-v2 v-model="filterCfg.datasetId" filterable placeholder="选择数据源" style="width: 100%" :options="datasetOptions" @change="onFilterDatasetChange">
+        <el-form-item :label="t('dashboard.editor.dataset')">
+          <el-select-v2 v-model="filterCfg.datasetId" filterable :placeholder="t('dashboard.editor.selectDataset')" style="width: 100%" :options="datasetOptions" @change="onFilterDatasetChange">
             <template #default="{ item }">
               <DatasetOption :item="item" />
             </template>
           </el-select-v2>
         </el-form-item>
-        <el-form-item label="筛选字段">
-          <el-select v-model="filterCfg.field" placeholder="选择要筛选的字段" style="width: 100%">
+        <el-form-item :label="t('dashboard.editor.filterField')">
+          <el-select v-model="filterCfg.field" :placeholder="t('dashboard.editor.selectFilterField')" style="width: 100%">
             <el-option v-for="f in filterFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
           </el-select>
         </el-form-item>
-        <el-form-item label="显示名称">
-          <el-input v-model="filterCfg.label" placeholder="例如：区域" />
+        <el-form-item :label="t('dashboard.editor.displayName')">
+          <el-input v-model="filterCfg.label" :placeholder="t('dashboard.editor.displayNamePlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="filterDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmAddFilter">添加</el-button>
+        <el-button @click="filterDialogVisible = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmAddFilter">{{ t('common.actions.add') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -97,6 +97,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { t } from '@/i18n'
 import { ArrowLeft, View, Check, Plus, ArrowDown, Setting } from '@element-plus/icons-vue'
 import { dashboardApi, datasetApi } from '@/api'
 import { alignTree, DEFAULT_CARD_STYLE, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
@@ -138,9 +139,9 @@ async function load() {
 }
 
 async function onNameChange() {
-  if (!dashName.value.trim()) return ElMessage.warning('看板名称不能为空')
+  if (!dashName.value.trim()) return ElMessage.warning(t('dashboard.editor.errNameRequired'))
   await dashboardApi.update(dashId, { name: dashName.value.trim() })
-  ElMessage.success('名称已更新')
+  ElMessage.success(t('dashboard.editor.errNameUpdated'))
 }
 
 function onAddChart(chart) {
@@ -172,7 +173,7 @@ async function onFilterDatasetChange(dsId) {
 }
 
 function confirmAddFilter() {
-  if (!filterCfg.value.datasetId || !filterCfg.value.field) return ElMessage.warning('请选择数据源和筛选字段')
+  if (!filterCfg.value.datasetId || !filterCfg.value.field) return ElMessage.warning(t('dashboard.editor.errFilterIncomplete'))
   const field = filterFields.value.find((f) => f.name === filterCfg.value.field)
   canvasRef.value.addFilter({
     datasetId: filterCfg.value.datasetId,
@@ -183,11 +184,11 @@ function confirmAddFilter() {
 }
 
 async function save() {
-  if (!dashName.value.trim()) return ElMessage.warning('看板名称不能为空')
+  if (!dashName.value.trim()) return ElMessage.warning(t('dashboard.editor.errNameRequired'))
   saving.value = true
   try {
     await dashboardApi.update(dashId, { name: dashName.value.trim(), layout: items.value, gap: gap.value, cardStyle: cardStyle.value })
-    ElMessage.success('看板已保存')
+    ElMessage.success(t('dashboard.editor.saved'))
   } finally {
     saving.value = false
   }
