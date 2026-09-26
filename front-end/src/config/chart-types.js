@@ -88,27 +88,3 @@ export const getChartType = (v) => CHART_TYPES.find((t) => t.value === v) || CHA
 
 export const getChartTypesByCategory = (category) =>
   CHART_TYPES.filter((t) => t.category === category)
-
-// 特殊图表类型需要特殊字段映射
-export const SPECIAL_FIELD_NEEDS = {
-  // 需要 2 维 3 指标 (X, Y, Z) 的图表
-  heatmap: { x: '维度', y: '维度', value: '指标' },
-  // 需要 3 指标 (开, 高, 低, 收) 的图表
-  candlestick: { time: '维度', open: '指标', high: '指标', low: '指标', close: '指标' },
-  // 需要 2 维度 + 1 指标的图表（来源-目标-值）
-  sankey: { source: '维度', target: '维度', value: '指标' },
-  chord: { source: '维度', target: '维度', value: '指标' },
-  // 需要区域名称维度 + 数值指标的图表
-  mapChina: { region: '维度', value: '指标' },
-  mapChinaBubble: { region: '维度', value: '指标' },
-  mapChinaSymbol: { region: '维度', value: '指标' },
-  mapWorld: { region: '维度', value: '指标' },
-  // 需要时间维度 + 数值指标的图表
-  calendar: { date: '维度', value: '指标' },
-  statTrend: { date: '维度', value: '指标' },
-  // 箱线图需要数值字段（自动计算分位数）
-  boxplot: { category: '维度', value: '指标' },
-  // 散点图/气泡图需要 X 维度 + Y 数值
-  scatter: { x: '维度', y: '指标' },
-  bubble: { x: '维度', y: '指标' },
-}

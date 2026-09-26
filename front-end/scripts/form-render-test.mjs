@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {
-  KEY_RE, FIELD_TYPES, ENUM_TYPES, TYPE_LABELS, isValidKey,
+  KEY_RE, FIELD_TYPES, ENUM_TYPES, isValidKey,
 } from '../src/utils/form-meta.js'
 
 let passed = 0
@@ -29,9 +29,6 @@ t('FIELD_TYPES 包含 8 种控件', () => assert.deepEqual(
   ['text', 'textarea', 'number', 'date', 'select', 'radio', 'checkbox', 'static'],
 ))
 t('ENUM_TYPES 三选型', () => assert.deepEqual(ENUM_TYPES, ['select', 'radio', 'checkbox']))
-t('TYPE_LABELS 与 FIELD_TYPES 对齐', () => {
-  for (const f of FIELD_TYPES) assert.ok(TYPE_LABELS[f], `缺少 ${f} 的中文标签`)
-})
 
 // 字段契约校验：模拟设计器 serialize 的结果，双端(前后端)对齐
 function validateFields(fields) {
@@ -41,7 +38,7 @@ function validateFields(fields) {
     if (!isValidKey(f.key)) errors.push(`${f.label}: key 非法`)
     if (seen.has(f.key)) errors.push(`key 重复 ${f.key}`)
     seen.add(f.key)
-    if (!TYPE_LABELS[f.type]) errors.push(`${f.label}: 未知类型 ${f.type}`)
+    if (!FIELD_TYPES.includes(f.type)) errors.push(`${f.label}: 未知类型 ${f.type}`)
     if (!f.label || !String(f.label).trim()) errors.push('标签为空')
     if (typeof f.span === 'number' && ![1, 2].includes(f.span)) errors.push(`${f.label}: span 非法`)
     if (ENUM_TYPES.includes(f.type) && (!Array.isArray(f.options) || f.options.length === 0)) {
