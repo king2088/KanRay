@@ -11,12 +11,12 @@ function fakeRes() {
   };
 }
 
-test('ok 默认中英文文案', () => {
+test('ok 未传 messageEn 时省略该字段，由前端回退 message', () => {
   const res = fakeRes();
   ok(res, { id: 1 });
   assert.equal(res.body.code, 0);
   assert.equal(res.body.message, 'success');
-  assert.equal(res.body.messageEn, 'Success');
+  assert.equal('messageEn' in res.body, false);
   assert.deepEqual(res.body.data, { id: 1 });
 });
 
@@ -27,13 +27,13 @@ test('ok 接受显式中英文文案', () => {
   assert.equal(res.body.messageEn, 'Created');
 });
 
-test('HttpError 缺省 messageEn 时回退中文', () => {
+test('HttpError 缺省 messageEn 时省略该字段，不把中文塞进英文位', () => {
   const err = new HttpError(400, '参数错误');
   const res = fakeRes();
   errorHandler(err, {}, res, () => {});
   assert.equal(res.statusCode, 400);
   assert.equal(res.body.message, '参数错误');
-  assert.equal(res.body.messageEn, '参数错误');
+  assert.equal('messageEn' in res.body, false);
   assert.equal(res.body.code, 400);
 });
 

@@ -1,8 +1,12 @@
 const HttpError = require('../utils/http-error');
 
-// 统一成功响应。message 保持中文以兼容既有 API 消费者，messageEn 为英文文案。
-function ok(res, data, message = 'success', messageEn = 'Success') {
-  res.json({ code: 0, data, message, messageEn });
+// 统一成功响应。message 保持中文以兼容既有 API 消费者。
+// messageEn 仅在调用方显式给出时输出：省略它表示「没有英文文案」，
+// 由前端回退中文，避免把中文写进名为 messageEn 的字段。
+function ok(res, data, message = 'success', messageEn) {
+  const body = { code: 0, data, message };
+  if (messageEn) body.messageEn = messageEn;
+  res.json(body);
 }
 
 // Express 5 统一错误中间件：异步 throw 会自动汇入此处
@@ -16,8 +20,8 @@ function errorHandler(err, req, res, next) {
   if (err instanceof HttpError) {
     status = err.status;
     message = err.message;
-    // 未提供英文文案时回退中文，保证前端在英文界面也有可读文本
-    messageEn = err.messageEn || message;
+    // 只认调用点显式给出的英文，不把中文回填进 messageEn
+    messageEn = err.messageEn;
     details = err.details;
   } else if (err.type === 'entity.too.large') {
     status = 413;
@@ -36,7 +40,8 @@ function errorHandler(err, req, res, next) {
     console.error('[error]', err);
   }
 
-  const body = { code: (err && err.code !== undefined) ? err.code : status, message, messageEn, data: null };
+  const body = { code: (err && err.code !== undefined) ? err.code : status, message, data: null };
+  if (messageEn) body.messageEn = messageEn;
   if (details !== undefined) body.details = details;
   res.status(status).json(body);
 }
