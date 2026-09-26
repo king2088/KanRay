@@ -2,6 +2,8 @@
 
 ![大屏预览](docs/images/30-big-screen-preview.png)
 
+![Big screen preview (English UI)](docs/images/en/30-big-screen-preview.png)
+
 KanRay 是一款开源的一站式 BI（商业智能）平台，面向业务与数据团队，覆盖「**数据接入 → 数据建模 → 可视化分析 → 数据看板/大屏 → 表单填报**」完整链路。无需编写代码或 SQL：上传 Excel/CSV 或直连/同步外部数据库后，即可通过拖拽式数据集构建器建模，可视化配置图表，快速搭建可交互、可分享、可联动筛选的数据看板与像素级自由布局的数据大屏；内置表单中心，可将任意字段组合发布为在线填报表单，提交数据自动回写数据集，闭环数据采集与分析。
 
 KanRay is an open-source, all-in-one BI (business intelligence) platform for business and data teams. It covers the whole chain of "**data ingestion → data modeling → visual analysis → dashboards / big screens → form submission**" — with no code and no SQL required. Upload an Excel/CSV file, or connect to / sync an external database, and you can model it with the drag-and-drop dataset builder, configure charts visually, and rapidly assemble interactive, shareable dashboards with cross-chart filtering as well as pixel-precise, freely laid out big screens. The built-in form center turns any combination of fields into an online submission form, and submitted data is written back to the dataset automatically, closing the loop between data collection and analysis.
@@ -30,6 +32,8 @@ Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 d
 
   ![大屏设计器](docs/images/29-big-screen-designer.png)
 
+  ![Big screen designer (English UI)](docs/images/en/29-big-screen-designer.png)
+
   English: **Big-screen design**: free-canvas big screens (pixel-precise layout, freely resizable components with snapping and alignment), a component library covering charts / tables / text / media / DataV decorations, static data / API requests (scheduled refresh) / dataset binding, PC and mobile preview, system presets and "My templates", JSON import/export, and password-protected or public big-screen sharing (see [Big-screen designer manual](docs/07-大屏设计器使用手册.md))
 - **表单中心**：可视化表单字段设计（输入 / 文本域 / 下拉 / 多选 / 评分 / 分节说明等）、发布 / 关闭 / 订阅状态管理、密码或公开分享、在线填报与提交记录管理，提交数据自动回写数据集进入分析链路（详见 [表单中心使用手册](docs/08-表单中心使用手册.md)）
   English: **Form center**: visual form field design (input / textarea / dropdown / multi-select / rating / section notes, etc.), publish / close / subscription status management, password-protected or public sharing, online filling and submission record management, with submitted data written back into datasets and into the analysis chain (see [Form center manual](docs/08-表单中心使用手册.md))
@@ -51,6 +55,8 @@ Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 d
 
    ![图表构建器：拖入维度/指标并复用指标库](docs/images/21-chart-builder-metric-lib.png)
 
+   ![Reusing the metric library in the builder (English UI)](docs/images/en/21-chart-builder-metric-lib.png)
+
    English: **Chart center → New chart**: pick a dataset → pick a chart type → drag fields into "Dimensions / Metrics" → live preview → save
 3. **看板中心**：输入名称新建看板 → 进入编辑 → 从上方拖入已保存的图表
    English: **Dashboard center**: enter a name to create a dashboard → enter the editor → drag saved charts in from the panel above
@@ -59,6 +65,8 @@ Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 d
 5. **表单中心**：设计并发布填报表单 → 密码或公开分享 → 提交记录自动回写数据集，继续进入图表/看板分析链路
 
    ![表单设计器](docs/images/24-form-designer.png)
+
+   ![Form designer (English UI)](docs/images/en/24-form-designer.png)
 
    English: **Form center**: design and publish a submission form → share it with a password or publicly → submissions are written back to the dataset and flow onward into the chart / dashboard analysis chain
 

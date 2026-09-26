@@ -67,7 +67,7 @@ This directory holds the project's **complete product manual**. It is split into
 - 基准：以 `master` 分支的最新代码为准
 - 默认账号：`admin@kanray.local / admin123`（生产环境务必修改，见部署手册）
 - 文中以“系统管理 → 用户管理”样式表示菜单路径
-- 双语排版：中文段落在前、英文段落在后；代码块与命令只写一份（与语言无关）；表格列头为中文时，在其后追加一份英文表格；截图只引用一次
+- 双语排版：中文段落在前、英文段落在后；代码块与命令只写一份（与语言无关）；表格列头为中文时，在其后追加一份英文表格；截图区分中英文两份——中文界面用 `images/NN-*.png`，英文界面用 `images/en/NN-*.png`，同一张图紧邻成对出现
 - 专有名词不译：产品名 `KanRay`、技术栈名、权限码、API 路径、环境变量名保持原样
 
 ## Conventions
@@ -75,5 +75,5 @@ This directory holds the project's **complete product manual**. It is split into
 - Baseline: the latest code on the `master` branch
 - Default account: `admin@kanray.local / admin123` (change it in production — see the deployment manual)
 - Menu paths are written in the form “系统管理 → 用户管理”
-- Bilingual layout: the Chinese paragraph comes first, the English one after it; code blocks and commands appear only once (they are language-neutral); when a table's headers are Chinese, an English table is appended right after; each screenshot is referenced once
+- Bilingual layout: the Chinese paragraph comes first, the English one after it; code blocks and commands appear only once (they are language-neutral); when a table's headers are Chinese, an English table is appended right after; screenshots come in two language variants — the Chinese UI uses `images/NN-*.png` and the English UI uses `images/en/NN-*.png`, and each figure appears as an adjacent pair
 - Proper nouns are not translated: the product name `KanRay`, technology stack names, permission codes, API paths, and environment variable names stay as-is
