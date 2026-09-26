@@ -1,6 +1,8 @@
 // 模块级共享：同一页面多个 SQL 编辑器只注册一个 completion provider，
 // 补全项来自所有已挂载编辑器的 catalog 合并（表名 + 字段，字段范围跟随所在表）
 
+import { t } from '@/i18n'
+
 const catalogRegistry = new Map()
 let sqlCompletionDisposable = null
 
@@ -73,7 +75,7 @@ function ensureSqlCompletion(monaco) {
               push(`c:${col.name}`, {
                 label: col.name,
                 kind: kindField,
-                detail: `字段：${col.name}（${col.type || '?'}）`,
+                detail: t('dataset.sql.completeColumn', { name: col.name, type: col.type || '?' }),
                 insertText: col.name,
                 range,
               })
@@ -88,14 +90,14 @@ function ensureSqlCompletion(monaco) {
           push(`t:${entry.schema}.${entry.name}`, {
             label: `${entry.schema}.${entry.name}`,
             kind: kindClass,
-            detail: `表：${entry.name}`,
+            detail: t('dataset.sql.completeTable', { name: entry.name }),
             insertText: `${entry.schema}.${entry.name}`,
             range,
           })
           push(`tb:${entry.name}`, {
             label: entry.name,
             kind: kindClass,
-            detail: `表：${entry.schema}.${entry.name}`,
+            detail: t('dataset.sql.completeTable', { name: `${entry.schema}.${entry.name}` }),
             insertText: entry.name,
             range,
           })

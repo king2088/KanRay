@@ -222,6 +222,8 @@ export default {
     previewFailed: '预览失败',
     previewFirst: '先执行预览再导入字段',
     importFieldsSuccess: '已导入 {count} 个字段',
+    completeColumn: '{name} · {type}',
+    completeTable: '{name}',
   },
   schemaTree: {
     searchPlaceholder: '搜索表 / 字段',
