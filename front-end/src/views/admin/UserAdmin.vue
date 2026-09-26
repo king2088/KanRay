@@ -117,6 +117,8 @@ import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/datetime'
 import { useAppStore } from '@/stores/app'
 
+const { t } = useI18n()
+
 const auth = useAuthStore()
 const appStore = useAppStore()
 const canView = computed(() => auth.hasPermission('user', 'read'))
