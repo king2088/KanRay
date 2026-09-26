@@ -1,7 +1,7 @@
 <template>
   <div class="etl-builder">
     <div class="etl-builder__left">
-      <div class="etl-builder__panel-title">算子</div>
+      <div class="etl-builder__panel-title">{{ t('dataset.etl.operators') }}</div>
       <div
         v-for="op in palette"
         :key="op.type"
@@ -40,19 +40,19 @@
 
       <div class="etl-canvas-toolbar">
         <div class="etl-toolbar-group">
-          <el-tooltip content="放大" placement="left"><button class="etl-canvas-toolbar__btn" @click="zoomIn()">+</button></el-tooltip>
-          <el-tooltip content="缩小" placement="left"><button class="etl-canvas-toolbar__btn" @click="zoomOut()">-</button></el-tooltip>
+          <el-tooltip :content="t('dataset.etl.zoomIn')" placement="left"><button class="etl-canvas-toolbar__btn" @click="zoomIn()">+</button></el-tooltip>
+          <el-tooltip :content="t('dataset.etl.zoomOut')" placement="left"><button class="etl-canvas-toolbar__btn" @click="zoomOut()">-</button></el-tooltip>
         </div>
         <div class="etl-toolbar-divider" />
         <div class="etl-toolbar-group">
-          <el-tooltip content="撤销" placement="left"><button class="etl-canvas-toolbar__btn" :disabled="!past.length" @click="undo">↺</button></el-tooltip>
-          <el-tooltip content="重做" placement="left"><button class="etl-canvas-toolbar__btn" :disabled="!future.length" @click="redo">↻</button></el-tooltip>
-          <el-tooltip content="自动布局" placement="left"><button class="etl-canvas-toolbar__btn" @click="autoLayout">⊞</button></el-tooltip>
+          <el-tooltip :content="t('dataset.etl.undo')" placement="left"><button class="etl-canvas-toolbar__btn" :disabled="!past.length" @click="undo">↺</button></el-tooltip>
+          <el-tooltip :content="t('dataset.etl.redo')" placement="left"><button class="etl-canvas-toolbar__btn" :disabled="!future.length" @click="redo">↻</button></el-tooltip>
+          <el-tooltip :content="t('dataset.etl.autoLayout')" placement="left"><button class="etl-canvas-toolbar__btn" @click="autoLayout">⊞</button></el-tooltip>
         </div>
       </div>
 
       <div v-if="ctxMenu.visible" class="etl-ctx-menu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }">
-        <div class="etl-ctx-menu__item" @click="ctxMenuDelete">{{ ctxMenu.kind === 'node' ? '删除节点' : '删除连线' }}</div>
+        <div class="etl-ctx-menu__item" @click="ctxMenuDelete">{{ ctxMenu.kind === 'node' ? t('dataset.etl.deleteNode') : t('dataset.etl.deleteEdge') }}</div>
       </div>
     </div>
 
@@ -67,14 +67,14 @@
     >
       <template #header>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="drawer-node-badge" :style="{ background: activeNode ? nodeColor(activeNode) : '#409eff' }">{{ activeNode ? NODE_META[activeNode.nodeType]?.short : '' }}</span>
+          <span class="drawer-node-badge" :style="{ background: activeNode ? nodeColor(activeNode) : '#409eff' }">{{ activeNode ? etlNodeShort(activeNode.nodeType) : '' }}</span>
           <span style="font-weight:600;font-size:15px">{{ activeNode ? nodeTitle(activeNode) : '' }}</span>
         </div>
       </template>
 
       <template v-if="activeNode">
         <template v-if="activeNode.nodeType === 'source'">
-          <div class="drawer-field">表
+          <div class="drawer-field">{{ t('dataset.etl.field.table') }}
             <el-select v-model="activeNode._tableValue"  filterable @change="onSourceChange">
               <el-option v-for="t in tableOptions" :key="t.id" :label="t.label" :value="t.id" />
             </el-select>
@@ -82,82 +82,82 @@
         </template>
 
         <template v-if="activeNode.nodeType === 'join'">
-          <div class="drawer-field">关联类型
+          <div class="drawer-field">{{ t('dataset.etl.field.joinType') }}
             <el-select v-model="activeNode.joinType"  style="width: 120px" @change="emitChange">
               <el-option label="INNER" value="inner" />
               <el-option label="LEFT" value="left" />
               <el-option label="RIGHT" value="right" />
             </el-select>
           </div>
-          <div class="drawer-field">关联节点（右侧输入）
+          <div class="drawer-field">{{ t('dataset.etl.field.rightNode') }}
             <el-select v-model="activeNode.rightNodeId"  filterable clearable @change="onRightNodeChange">
               <el-option v-for="s in rightNodeOptions" :key="s.nodeId" :label="rightNodeLabel(s)" :value="s.nodeId" />
             </el-select>
           </div>
-          <div v-if="!activeNode.rightNodeId" class="drawer-field">关联表（旧式）
+          <div v-if="!activeNode.rightNodeId" class="drawer-field">{{ t('dataset.etl.field.legacyJoinTable') }}
             <el-select v-model="activeNode._joinTableValue"  filterable @change="onJoinTableChange">
               <el-option v-for="t in tableOptions" :key="t.id" :label="t.label" :value="t.id" />
             </el-select>
           </div>
           <el-table :data="activeNode.on" size="small" class="drawer-table">
-            <el-table-column label="目标字段" min-width="150">
+            <el-table-column :label="t('dataset.etl.field.targetField')" min-width="150">
               <template #default="{ row }">
                 <el-select v-model="row.to"  filterable @change="emitChange">
                   <el-option v-for="f in joinTargetFields" :key="f.pref" :label="f.pref" :value="f.pref" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="运算符" width="76" align="center">
+            <el-table-column :label="t('dataset.etl.field.operator')" width="76" align="center">
               <template #default="{ row }"><span class="drawer-join-op">=</span></template>
             </el-table-column>
-            <el-table-column label="源字段" min-width="150">
+            <el-table-column :label="t('dataset.etl.field.sourceField')" min-width="150">
               <template #default="{ row }">
                 <el-select v-model="row.from"  filterable @change="emitChange">
                   <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="56" align="center">
+            <el-table-column :label="t('dataset.list.actions')" width="56" align="center">
               <template #default="{ $index }">
-                <el-button link type="danger" @click="activeNode.on.splice($index, 1); emitChange()">删</el-button>
+                <el-button link type="danger" @click="activeNode.on.splice($index, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
-          <el-button  @click="addJoinCondition">+ 条件</el-button>
+          <el-button  @click="addJoinCondition">{{ t('dataset.etl.field.addCondition') }}</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'filter'">
           <el-table :data="activeNode.conditions" size="small" class="drawer-table">
-            <el-table-column label="列名" min-width="150">
+            <el-table-column :label="t('dataset.etl.field.column')" min-width="150">
               <template #default="{ row }">
                 <el-select v-model="row.field"  filterable @change="emitChange">
                   <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="运算符" width="96">
+            <el-table-column :label="t('dataset.etl.field.operator')" width="96">
               <template #default="{ row }">
                 <el-select v-model="row.op"  style="width: 100%" @change="emitChange">
                   <el-option v-for="o in STRING_OPS" :key="o.value" :label="o.labelKey ? t(o.labelKey) : o.label" :value="o.value" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="值" min-width="110">
+            <el-table-column :label="t('dataset.etl.field.value')" min-width="110">
               <template #default="{ row }">
                 <el-input v-model="row.value"  @change="emitChange" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="56" align="center">
+            <el-table-column :label="t('dataset.list.actions')" width="56" align="center">
               <template #default="{ $index }">
-                <el-button link type="danger" @click="activeNode.conditions.splice($index, 1); emitChange()">删</el-button>
+                <el-button link type="danger" @click="activeNode.conditions.splice($index, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
-          <el-button  @click="activeNode.conditions.push({ field: '', op: 'eq', value: '' }); emitChange()">+ 条件</el-button>
+          <el-button  @click="activeNode.conditions.push({ field: '', op: 'eq', value: '' }); emitChange()">{{ t('dataset.etl.field.addCondition') }}</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'aggregate'">
-          <div class="drawer-field">分组
+          <div class="drawer-field">{{ t('dataset.etl.field.groupBy') }}
             <el-select v-model="activeNode.groupBy" multiple collapse-tags collapse-tags-tooltip filterable :max-collapse-tags="3" style="width: 100%" @change="emitChange">
               <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
@@ -166,14 +166,14 @@
             <el-table-column label="#" width="40" align="center">
               <template #default="{ $index }"><span class="drawer-metric-seq">{{ $index + 1 }}</span></template>
             </el-table-column>
-            <el-table-column label="聚合方式" width="132">
+            <el-table-column :label="t('dataset.etl.field.aggMethod')" width="132">
               <template #default="{ row }">
                 <el-select v-model="row.agg" style="width: 100%" @change="emitChange">
                   <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="t(a.labelKey)" :value="a.value" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="字段" min-width="140">
+            <el-table-column :label="t('dataset.etl.field.name')" min-width="140">
               <template #default="{ row }">
                 <el-select v-if="row.agg !== 'count'" v-model="row.field" filterable style="width: 100%" @change="emitChange">
                   <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
@@ -181,17 +181,17 @@
                 <span v-else class="drawer-metric-seq">—</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="56" align="center">
+            <el-table-column :label="t('dataset.list.actions')" width="56" align="center">
               <template #default="{ $index }">
-                <el-button link type="danger" @click="activeNode.metrics.splice($index, 1); emitChange()">删</el-button>
+                <el-button link type="danger" @click="activeNode.metrics.splice($index, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
-          <el-button  @click="activeNode.metrics.push({ agg: 'sum', field: '' }); emitChange()">+ 指标</el-button>
+          <el-button  @click="activeNode.metrics.push({ agg: 'sum', field: '' }); emitChange()">{{ t('dataset.etl.field.addMetric') }}</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'columnSelect'">
-          <div class="drawer-field">选择输出列
+          <div class="drawer-field">{{ t('dataset.etl.field.selectOutputColumns') }}
             <el-select v-model="activeNode.columns" multiple collapse-tags collapse-tags-tooltip filterable :max-collapse-tags="3" style="width: 100%" @change="emitChange">
               <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
@@ -199,7 +199,7 @@
         </template>
 
         <template v-if="activeNode.nodeType === 'dedup'">
-          <div class="drawer-field">按列去重（不选则全列）
+          <div class="drawer-field">{{ t('dataset.etl.field.dedupColumns') }}
             <el-select v-model="activeNode.columns" multiple collapse-tags collapse-tags-tooltip filterable clearable :max-collapse-tags="3" style="width: 100%" @change="emitChange">
               <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
@@ -208,38 +208,38 @@
 
         <template v-if="activeNode.nodeType === 'valueReplace'">
           <el-table :data="activeNode.mappings" size="small" class="drawer-table">
-            <el-table-column label="列名" min-width="140">
+            <el-table-column :label="t('dataset.etl.field.column')" min-width="140">
               <template #default="{ row }">
                 <el-select v-model="row.field"  filterable @change="emitChange">
                   <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="原值" min-width="96">
+            <el-table-column :label="t('dataset.etl.field.oldValue')" min-width="96">
               <template #default="{ row }">
-                <el-input v-model="row.from"  placeholder="原值" @change="emitChange" />
+                <el-input v-model="row.from"  :placeholder="t('dataset.etl.field.oldValue')" @change="emitChange" />
               </template>
             </el-table-column>
             <el-table-column label="→" width="40" align="center">
               <template #default="{ row }"><span class="drawer-join-op">→</span></template>
             </el-table-column>
-            <el-table-column label="新值" min-width="96">
+            <el-table-column :label="t('dataset.etl.field.newValue')" min-width="96">
               <template #default="{ row }">
-                <el-input v-model="row.to"  placeholder="新值" @change="emitChange" />
+                <el-input v-model="row.to"  :placeholder="t('dataset.etl.field.newValue')" @change="emitChange" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="56" align="center">
+            <el-table-column :label="t('dataset.list.actions')" width="56" align="center">
               <template #default="{ $index }">
-                <el-button link type="danger" @click="activeNode.mappings.splice($index, 1); emitChange()">删</el-button>
+                <el-button link type="danger" @click="activeNode.mappings.splice($index, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
-          <el-button  @click="activeNode.mappings.push({ field: '', from: '', to: '' }); emitChange()">+ 替换规则</el-button>
+          <el-button  @click="activeNode.mappings.push({ field: '', from: '', to: '' }); emitChange()">{{ t('dataset.etl.field.addReplaceRule') }}</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'nullReplace'">
           <el-table :data="activeNode.mappings" size="small" class="drawer-table">
-            <el-table-column label="列名" min-width="160">
+            <el-table-column :label="t('dataset.etl.field.column')" min-width="160">
               <template #default="{ row }">
                 <el-select v-model="row.field"  filterable @change="emitChange">
                   <el-option v-for="f in etlOutputFields(activeNode.sourceNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
@@ -249,22 +249,22 @@
             <el-table-column label="Null →" width="86" align="center">
               <template #default="{ row }"><span class="drawer-join-op">Null →</span></template>
             </el-table-column>
-            <el-table-column label="默认值" min-width="120">
+            <el-table-column :label="t('dataset.etl.field.defaultValue')" min-width="120">
               <template #default="{ row }">
-                <el-input v-model="row.to"  placeholder="默认值" @change="emitChange" />
+                <el-input v-model="row.to"  :placeholder="t('dataset.etl.field.defaultValue')" @change="emitChange" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="56" align="center">
+            <el-table-column :label="t('dataset.list.actions')" width="56" align="center">
               <template #default="{ $index }">
-                <el-button link type="danger" @click="activeNode.mappings.splice($index, 1); emitChange()">删</el-button>
+                <el-button link type="danger" @click="activeNode.mappings.splice($index, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
-          <el-button  @click="activeNode.mappings.push({ field: '', to: '' }); emitChange()">+ 替换规则</el-button>
+          <el-button  @click="activeNode.mappings.push({ field: '', to: '' }); emitChange()">{{ t('dataset.etl.field.addReplaceRule') }}</el-button>
         </template>
 
         <template v-if="activeNode.nodeType === 'trim'">
-          <div class="drawer-field">去空格列（不选则全部）
+          <div class="drawer-field">{{ t('dataset.etl.field.trimColumns') }}
             <el-select v-model="activeNode.columns" multiple collapse-tags filterable clearable  style="width: 100%" @change="emitChange">
               <el-option v-for="f in etlOutputFields(activeNode)" :key="f.pref" :label="f.pref" :value="f.pref" />
             </el-select>
@@ -274,31 +274,31 @@
         <template v-if="activeNode.nodeType === 'sqlNode'">
           <div class="drawer-field" style="flex-direction:column;align-items:stretch">
             <div style="margin-bottom:4px;font-size:12px;color:var(--app-text-secondary);line-height:1.7">
-              <div>用 SQL 继续加工数据：</div>
-              <div>· 有输入线连接上游节点时，<code>__etl_prev</code> 就代表上游节点的数据，可像查表一样用（如 <code>FROM __etl_prev</code>）；</div>
-              <div>· 没有接上游节点时，SQL 会直接查询数据源里的真实表。</div>
+              <div>{{ t('dataset.etl.sqlHelp.lead') }}</div>
+              <div>{{ t('dataset.etl.sqlHelp.withInputLead') }}<code>__etl_prev</code>{{ t('dataset.etl.sqlHelp.withInputMid') }}<code>FROM __etl_prev</code>{{ t('dataset.etl.sqlHelp.withInputTail') }}</div>
+              <div>{{ t('dataset.etl.sqlHelp.withoutInput') }}</div>
             </div>
             <SqlCodeMirror v-model="activeNode.sql" :catalog="schemas" placeholder="SELECT * FROM __etl_prev WHERE ..." class="etl-sql-editor" @update:model-value="emitChange" />
           </div>
         </template>
 
         <template v-if="activeNode.nodeType === 'output'">
-          <div class="drawer-field">输出行数上限
+          <div class="drawer-field">{{ t('dataset.etl.field.outputLimit') }}
             <el-input-number v-model="activeNode.limit" :min="1" :max="100000"  @change="emitChange" />
           </div>
         </template>
 
         <el-divider />
         <div class="drawer-preview-actions">
-          <el-button  type="primary" :loading="previewingNode === activeNode.nodeId" @click="previewNode(activeNode)">预览此节点</el-button>
+          <el-button  type="primary" :loading="previewingNode === activeNode.nodeId" @click="previewNode(activeNode)">{{ t('dataset.etl.previewNode') }}</el-button>
           <span v-if="nodeError[activeNode.nodeId]" class="drawer-error">{{ nodeError[activeNode.nodeId] }}</span>
         </div>
 
-        <div class="drawer-section-title" style="margin-top:12px">节点预览</div>
+        <div class="drawer-section-title" style="margin-top:12px">{{ t('dataset.etl.nodePreview') }}</div>
         <div v-if="nodePreview.length" ref="previewWrapRef" class="drawer-preview-table">
           <TableV2 :columns="previewCols" :data="nodePreview" :width="previewWidth" :height="320" :row-height="36" :row-class="previewRowClass" />
         </div>
-        <el-empty v-else :description="activeNode ? '点击「预览此节点」查看真实数据' : ''" :image-size="60" />
+        <el-empty v-else :description="activeNode ? t('dataset.etl.nodePreviewEmpty') : ''" :image-size="60" />
       </template>
     </el-drawer>
   </div>
@@ -311,6 +311,7 @@ import { Background } from '@vue-flow/background'
 import { ElMessage, TableV2 } from 'element-plus'
 import { buildApi } from '@/api'
 import { allFields, AGG_OPTIONS, STRING_OPS } from '@/utils/catalog'
+import { ETL_NODE_ORDER, etlNodeColor, etlNodeLabel, etlNodeShort } from '@/utils/etl-nodes'
 import { t } from '@/i18n'
 import EtlNodeCard from './EtlNodeCard.vue'
 import SqlCodeMirror from './SqlCodeMirror.vue'
@@ -323,20 +324,7 @@ const emit = defineEmits(['change'])
 const schemas = ref([])
 watch(() => props.catalog, (v) => { schemas.value = v || [] }, { immediate: true, deep: true })
 
-const NODE_META = {
-  source: { label: '输入源', short: '源', color: '#67c23a' },
-  join: { label: '关联', short: '联', color: '#909399' },
-  filter: { label: '过滤', short: '筛', color: '#e6a23c' },
-  aggregate: { label: '聚合', short: '聚', color: '#409eff' },
-  output: { label: '输出', short: '出', color: '#f56c6c' },
-  columnSelect: { label: '选择列', short: '选', color: '#9b59b6' },
-  dedup: { label: '去重', short: '去', color: '#1abc9c' },
-  valueReplace: { label: '值替换', short: '替', color: '#e67e22' },
-  nullReplace: { label: 'Null替换', short: '空', color: '#e74c3c' },
-  trim: { label: '去空格', short: '格', color: '#3498db' },
-  sqlNode: { label: 'SQL', short: 'SQL', color: '#34495e' },
-}
-const NODE_ORDER = ['source', 'join', 'filter', 'columnSelect', 'dedup', 'valueReplace', 'nullReplace', 'trim', 'sqlNode', 'aggregate', 'output']
+// 节点 label/short/color 的唯一来源见 utils/etl-nodes.js
 const nodes = ref([])
 const past = ref([])
 const future = ref([])
@@ -369,19 +357,13 @@ const ctxMenu = reactive({ visible: false, x: 0, y: 0, kind: null, target: null 
 
 const { screenToFlowCoordinate, fitView, zoomIn, zoomOut } = useVueFlow()
 
-const palette = computed(() => [
-  { type: 'source', ...NODE_META.source, enabled: () => true },
-  { type: 'join', ...NODE_META.join, enabled: () => true },
-  { type: 'filter', ...NODE_META.filter, enabled: () => true },
-  { type: 'columnSelect', ...NODE_META.columnSelect, enabled: () => true },
-  { type: 'dedup', ...NODE_META.dedup, enabled: () => true },
-  { type: 'valueReplace', ...NODE_META.valueReplace, enabled: () => true },
-  { type: 'nullReplace', ...NODE_META.nullReplace, enabled: () => true },
-  { type: 'trim', ...NODE_META.trim, enabled: () => true },
-  { type: 'sqlNode', ...NODE_META.sqlNode, enabled: () => true },
-  { type: 'aggregate', ...NODE_META.aggregate, enabled: () => true },
-  { type: 'output', ...NODE_META.output, enabled: () => !nodes.value.some((n) => n.nodeType === 'output') },
-])
+const palette = computed(() => ETL_NODE_ORDER.concat('output').map((type) => ({
+  type,
+  label: etlNodeLabel(type),
+  short: etlNodeShort(type),
+  color: etlNodeColor(type),
+  enabled: () => (type === 'output' ? !nodes.value.some((n) => n.nodeType === 'output') : true),
+})))
 
 const activeNode = computed(() => nodes.value.find((n) => n.nodeId === selectedNodeId.value) || null)
 const tableOptions = computed(() => {
@@ -392,7 +374,7 @@ const tableOptions = computed(() => {
 const rightNodeOptions = computed(() => nodes.value.filter((n) => n.nodeType !== 'output'))
 const rightNodeLabel = (n) => {
   if (n.nodeType === 'source') return `${n.alias} (${n.schema}.${n.table})`
-  return `${n.alias ? `${n.alias} ` : ''}${nodeTitle(n)} 输出`
+  return `${n.alias ? `${n.alias} ` : ''}${nodeTitle(n)} ${etlNodeLabel('output')}`
 }
 const joinTargetFields = computed(() => {
   if (!activeNode.value || activeNode.value.nodeType !== 'join') return []
@@ -441,8 +423,8 @@ const flowEdges = computed(() => {
   return edges
 })
 
-function nodeColor(n) { return NODE_META[n.nodeType]?.color || '#409eff' }
-function nodeTitle(n) { return NODE_META[n.nodeType]?.label || n.nodeType }
+function nodeColor(n) { return etlNodeColor(n.nodeType) }
+function nodeTitle(n) { return etlNodeLabel(n.nodeType) }
 
 function stripInternal(nodesArr) {
   return JSON.parse(JSON.stringify(nodesArr)).map((n) => {
@@ -517,7 +499,7 @@ function warnOccupied() {
   const now = Date.now()
   if (now - lastOccupiedWarn > 800) {
     lastOccupiedWarn = now
-    ElMessage.warning('该节点已有一个上游输入，请先删除原连线，或用「关联」节点做多路合并')
+    ElMessage.warning(t('dataset.etl.inputOccupied'))
   }
 }
 function isValidConnection(c) {
@@ -657,7 +639,7 @@ function autoLayout(push = true) {
   const baseX = 220
   const baseY = 90
   for (const [l, arr] of grouped) {
-    const sorted = [...arr].sort((a, b) => NODE_ORDER.indexOf(a.nodeType) - NODE_ORDER.indexOf(b.nodeType) || (a.y || 0) - (b.y || 0))
+    const sorted = [...arr].sort((a, b) => ETL_NODE_ORDER.indexOf(a.nodeType) - ETL_NODE_ORDER.indexOf(b.nodeType) || (a.y || 0) - (b.y || 0))
     const mid = (sorted.length - 1) / 2
     sorted.forEach((n, i) => { n.x = l * baseX; n.y = (i - mid) * baseY })
   }
@@ -695,7 +677,7 @@ let counter = 1
 function makeNodeId(kind) { return `n_${kind}_${counter++}_${Date.now() % 100000}` }
 
 function addNode(type, pos, openDrawer = true) {
-  if (type === 'output' && nodes.value.some((n) => n.nodeType === 'output')) return ElMessage.warning('已存在输出')
+  if (type === 'output' && nodes.value.some((n) => n.nodeType === 'output')) return ElMessage.warning(t('dataset.etl.outputExists'))
   pushSnapshot()
   const node = makeNode(type)
   if (!node) return
@@ -839,7 +821,7 @@ function selectNodeFromCard(n) { if (n) { selectedNodeId.value = n.nodeId; drawe
 function onPaletteDrag(e, type) { e.dataTransfer.setData('text/plain', type) }
 function onCanvasDrop(e) {
   const type = e.dataTransfer.getData('text/plain')
-  if (!type || !NODE_META[type]) return
+  if (!type || !etlNodeLabel(type)) return
   const pos = screenToFlowCoordinate({ x: e.clientX, y: e.clientY })
   addNode(type, pos)
 }
@@ -906,7 +888,7 @@ async function previewNode(node) {
     nodePreview.value = res.rows
     nodePreviewCols.value = res.rows.length ? Object.keys(res.rows[0]) : (res.fields || []).map((f) => f.name)
   } catch (e) {
-    nodeError.value[node.nodeId] = e.message || '节点执行失败'
+    nodeError.value[node.nodeId] = e.message || t('dataset.etl.nodeFailed')
   } finally { previewingNode.value = null }
 }
 
