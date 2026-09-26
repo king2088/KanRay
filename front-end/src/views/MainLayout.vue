@@ -15,13 +15,13 @@
         <el-main class="app-main">
           <el-header class="app-header">
             <div class="app-header__left">
-              <el-tooltip content="折叠 / 展开侧栏" placement="bottom">
+              <el-tooltip :content="t('layout.menu.collapseSidebar')" placement="bottom">
                 <el-icon class="collapse-btn" @click="store.toggleCollapsed()">
                   <component :is="store.collapsed ? 'Expand' : 'Fold'" />
                 </el-icon>
               </el-tooltip>
               <el-breadcrumb separator="/">
-                <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+                <el-breadcrumb-item :to="{ path: '/' }">{{ t('layout.menu.home') }}</el-breadcrumb-item>
                 <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
               </el-breadcrumb>
             </div>
@@ -89,6 +89,7 @@ import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { activeMenuOf, groupOf } from '@/router/menu'
 import { routeLabel } from '@/router'
+import { t } from '@/i18n'
 import AppLogo from '@/components/layout/AppLogo.vue'
 import SideMenu from '@/components/layout/SideMenu.vue'
 import TopMenu from '@/components/layout/TopMenu.vue'
