@@ -4,16 +4,16 @@
     <div class="category-select">
       <el-select
         v-model="activeCategory"
-        placeholder="全部分类"
+        :placeholder="t('chart.empty.categoryAll')"
         style="width: 100%"
         clearable
         @change="onCategoryChange"
       >
-        <el-option label="全部分类" :value="''" />
+        <el-option :label="t('chart.empty.categoryAll')" :value="''" />
         <el-option
           v-for="cat in CHART_CATEGORIES"
           :key="cat.key"
-          :label="cat.label"
+          :label="t(cat.labelKey)"
           :value="cat.key"
         />
       </el-select>
@@ -23,27 +23,28 @@
     <el-scrollbar class="chart-type-scroll">
       <div class="chart-type-grid">
         <div
-          v-for="t in filteredTypes"
-          :key="t.value"
+          v-for="ct in filteredTypes"
+          :key="ct.value"
           class="chart-type-item"
-          :class="{ active: chartType === t.value }"
-          @click="$emit('update:chartType', t.value)"
-          :title="t.label"
+          :class="{ active: chartType === ct.value }"
+          @click="$emit('update:chartType', ct.value)"
+          :title="t(ct.labelKey)"
         >
           <ChartTypeIcon :name="t.value" :size="50" />
-          <span>{{ t.label }}</span>
+          <span>{{ t(ct.labelKey) }}</span>
         </div>
       </div>
     </el-scrollbar>
 
     <div v-if="filteredTypes.length === 0" class="empty-hint">
-      该分类暂无图表类型
+      {{ t('chart.empty.noTypesInCategory') }}
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import { t } from '@/i18n'
 import { CHART_TYPES, CHART_CATEGORIES } from '@/config/chart-types'
 import ChartTypeIcon from '@/components/charts/ChartTypeIcon.vue'
 
@@ -57,7 +58,7 @@ const activeCategory = ref('')
 
 const filteredTypes = computed(() => {
   if (activeCategory.value === '') return CHART_TYPES
-  return CHART_TYPES.filter((t) => t.category === activeCategory.value)
+  return CHART_TYPES.filter((ct) => ct.category === activeCategory.value)
 })
 
 function onCategoryChange(val) {
