@@ -1,7 +1,7 @@
 <template>
   <div class="drag-builder">
     <div class="drag-builder__left">
-      <div class="drag-builder__panel-title">目录 · 拖「表」进画布</div>
+      <div class="drag-builder__panel-title">{{ t('dataset.drag.leftPanelTitle') }}</div>
       <SchemaTree
         :catalog="schemas"
         :show-fields="false"
@@ -16,10 +16,10 @@
       @drop="onMidDrop"
       @dragleave="dragOver = false"
     >
-      <div v-if="dragOver" class="drag-builder__mid--overlay">松开以加入表</div>
+      <div v-if="dragOver" class="drag-builder__mid--overlay">{{ t('dataset.drag.dropOverlay') }}</div>
       <el-tabs v-model="activeTab" type="card" class="drag-builder__tabs">
-        <!-- 选字段 -->
-        <el-tab-pane label="选字段" name="fields">
+        <!-- fields -->
+        <el-tab-pane :label="t('dataset.drag.tabFields')" name="fields">
           <el-scrollbar class="drag-builder__scroll">
             <div>
               <div v-for="t in tables" :key="t.alias" class="field-card">
@@ -28,11 +28,11 @@
                     <el-icon :size="14"><ArrowDown /></el-icon>
                   </button>
                   <span class="field-card__table">{{ t.schema }}.{{ t.table }}</span>
-                  <el-input v-model="t.alias"  style="width: 110px" placeholder="别名" @focus="rememberAlias(t)" @change="onAliasChange(t)" />
+                  <el-input v-model="t.alias"  style="width: 110px" :placeholder="t('dataset.drag.aliasPlaceholder')" @focus="rememberAlias(t)" @change="onAliasChange(t)" />
                   <span class="field-card__actions">
-                    <el-button link  type="primary" @click="selectAll(t, true)">全选</el-button>
-                    <el-button link  @click="selectAll(t, false)">清空</el-button>
-                    <el-button link  type="danger" @click="removeTable(t)">移除</el-button>
+                    <el-button link  type="primary" @click="selectAll(t, true)">{{ t('common.actions.selectAll') }}</el-button>
+                    <el-button link  @click="selectAll(t, false)">{{ t('common.actions.clear') }}</el-button>
+                    <el-button link  type="danger" @click="removeTable(t)">{{ t('common.actions.remove') }}</el-button>
                   </span>
                 </div>
                 <el-collapse-transition>
@@ -40,27 +40,27 @@
                     <div v-for="(row, i) in rowList(t)" :key="row.name" class="field-row drag-row">
                       <el-checkbox v-model="row.checked"  @change="emitChange" />
                       <span class="field-row__name">{{ row.name }}</span>
-                      <el-input v-model="row.label"  style="width: 120px" placeholder="别名" @change="emitChange" />
+                      <el-input v-model="row.label"  style="width: 120px" :placeholder="t('dataset.drag.aliasPlaceholder')" @change="emitChange" />
                       <el-radio-group v-model="row.kind"  @change="onKindChange(row)">
-                        <el-radio-button label="dimension">维度</el-radio-button>
-                        <el-radio-button label="metric">指标</el-radio-button>
+                        <el-radio-button label="dimension">{{ t('dataset.schemaTree.roleDimension') }}</el-radio-button>
+                        <el-radio-button label="metric">{{ t('dataset.schemaTree.roleMetric') }}</el-radio-button>
                       </el-radio-group>
-                      <el-tag v-if="row.role"  :type="row.role === 'metric' ? 'primary' : row.role === 'time' ? 'warning' : 'success'" effect="plain">{{ { metric: '指标', dimension: '维度', time: '时间' }[row.role] }}</el-tag>
+                      <el-tag v-if="row.role"  :type="row.role === 'metric' ? 'primary' : row.role === 'time' ? 'warning' : 'success'" effect="plain">{{ t('dataset.schemaTree.role.' + row.role) }}</el-tag>
                     </div>
-                    <el-empty v-if="!rowList(t).length" :image-size="48" description="该表没有可列字段" />
+                    <el-empty v-if="!rowList(t).length" :image-size="48" :description="t('dataset.drag.noFields')" />
                   </div>
                 </el-collapse-transition>
               </div>
-              <el-empty v-if="!tables.length" description="先上架数据表（左侧目录 → 上架 / 拖入）" />
+              <el-empty v-if="!tables.length" :description="t('dataset.drag.emptyTables')" />
             </div>
           </el-scrollbar>
         </el-tab-pane>
 
-        <!-- 数据关联 -->
-        <el-tab-pane label="数据关联" name="assoc">
+        <!-- joins -->
+        <el-tab-pane :label="t('dataset.drag.tabAssoc')" name="assoc">
           <el-scrollbar class="drag-builder__scroll">
             <div>
-              <div class="drag-builder__join-title">关联条件（{{ joins.length }}）</div>
+              <div class="drag-builder__join-title">{{ t('dataset.drag.joinTitle', { count: joins.length }) }}</div>
               <div v-for="(j, i) in joins" :key="i" class="join-row">
                 <el-select v-model="j.type"  style="width: 90px">
                   <el-option label="INNER" value="inner" />
@@ -80,28 +80,28 @@
                 <el-select v-model="j.toField"  filterable style="width: 140px" @change="emitChange">
                   <el-option v-for="f in tableFields(j.toAlias)" :key="f.name" :value="f.name" :label="f.name" />
                 </el-select>
-                <el-button link  type="danger" @click="joins.splice(i, 1); emitChange()">删</el-button>
+                <el-button link  type="danger" @click="joins.splice(i, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
               </div>
-              <el-button  style="margin-top: 8px" :disabled="tables.length < 2" @click="addJoin">+ 关联条件</el-button>
-              <div v-if="tables.length < 2" class="drag-builder__hint">至少上架 2 张表才能关联</div>
+              <el-button  style="margin-top: 8px" :disabled="tables.length < 2" @click="addJoin">{{ t('dataset.drag.addJoin') }}</el-button>
+              <div v-if="tables.length < 2" class="drag-builder__hint">{{ t('dataset.drag.needTwoTables') }}</div>
             </div>
           </el-scrollbar>
         </el-tab-pane>
 
-        <!-- 聚合 -->
-        <el-tab-pane label="聚合" name="agg">
+        <!-- aggregation -->
+        <el-tab-pane :label="t('dataset.drag.tabAgg')" name="agg">
           <el-scrollbar class="drag-builder__scroll">
             <div>
-              <el-switch v-model="useAgg"  active-text="启用聚合" @change="emitChange" />
+              <el-switch v-model="useAgg"  :active-text="t('dataset.drag.enableAgg')" @change="emitChange" />
               <template v-if="useAgg">
                 <div class="agg-block">
-                  <div class="agg-title">分组维度</div>
+                  <div class="agg-title">{{ t('dataset.drag.groupBy') }}</div>
                   <el-select v-model="aggGroupBy" multiple collapse-tags filterable  style="width: 100%">
                     <el-option v-for="o in fieldOptions" :key="o.value" :label="o.label" :value="o.value" />
                   </el-select>
                 </div>
                 <div class="agg-block">
-                  <div class="agg-title">聚合指标</div>
+                  <div class="agg-title">{{ t('dataset.drag.aggMetrics') }}</div>
                   <div v-for="(m, i) in aggMetrics" :key="i" class="agg-metric">
                     <el-select v-model="m.agg"  style="width: 130px" @change="emitChange">
                       <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="t(a.labelKey)" :value="a.value" />
@@ -109,9 +109,9 @@
                     <el-select v-if="m.agg !== 'count'" v-model="m.field"  filterable style="width: 160px" @change="emitChange">
                       <el-option v-for="o in fieldOptions" :key="o.value" :label="o.label" :value="o.value" />
                     </el-select>
-                    <el-button link  type="danger" @click="aggMetrics.splice(i, 1); emitChange()">删</el-button>
+                    <el-button link  type="danger" @click="aggMetrics.splice(i, 1); emitChange()">{{ t('common.actions.delete') }}</el-button>
                   </div>
-                  <el-button  style="margin-top: 6px" @click="aggMetrics.push({ agg: 'sum', field: '' }); emitChange()">+ 指标</el-button>
+                  <el-button  style="margin-top: 6px" @click="aggMetrics.push({ agg: 'sum', field: '' }); emitChange()">{{ t('dataset.drag.addMetric') }}</el-button>
                 </div>
               </template>
             </div>
@@ -121,13 +121,13 @@
     </div>
 
     <div class="drag-builder__preview">
-      <div class="drag-builder__panel-title">{{ useAgg ? '聚合预览' : '明细预览' }}（前 {{ useAgg ? 1000 : previewLimit }} 行）</div>
+      <div class="drag-builder__panel-title">{{ t(useAgg ? 'dataset.drag.modeAgg' : 'dataset.drag.modeDetail') }}{{ t('dataset.drag.previewFirstRows', { count: useAgg ? 1000 : previewLimit }) }}</div>
       <div class="drag-builder__preview-actions">
-        <el-button :loading="previewing" size="small" @click="runPreview">执行预览</el-button>
+        <el-button :loading="previewing" size="small" @click="runPreview">{{ t('dataset.drag.runPreview') }}</el-button>
         <span v-if="lastError" class="drag-builder__error">{{ lastError }}</span>
       </div>
       <div class="drag-builder__preview-table">
-        <el-table :data="previewRows" height="100%" empty-text="执行预览查看数据">
+        <el-table :data="previewRows" height="100%" :empty-text="t('dataset.drag.previewEmpty')">
           <el-table-column v-for="c in previewCols" :key="c" :prop="c" :label="c" min-width="110" show-overflow-tooltip />
         </el-table>
       </div>
@@ -215,7 +215,7 @@ function initRowsForTable(key, columns) {
       checked: false, label: c.name, kind: c.role === 'metric' ? 'metric' : 'dimension',
     }))
   }
-  // 补齐 catalog 新增列
+  // 补齐 catalog 中新增的列
   for (const c of columns || []) {
     if (!rows[key].some((r) => r.name === c.name)) rows[key].push({ name: c.name, type: c.type || 'string', role: c.role || '', checked: false, label: c.name, kind: c.role === 'metric' ? 'metric' : 'dimension' })
   }
@@ -223,7 +223,7 @@ function initRowsForTable(key, columns) {
 
 function mountTable(id, keepAlias = false) {
   const meta = catalogTableId(id)
-  if (!meta) return ElMessage.warning('未在目录中找到该表')
+  if (!meta) return ElMessage.warning(t('dataset.drag.tableNotFound'))
   if (tables.value.some((t) => t.schema === meta.schema && t.table === meta.table)) return
   const key = `${meta.schema}:${meta.table}`
   initRowsForTable(key, meta.columns)
@@ -312,8 +312,8 @@ const definition = computed(() => ({
 function emitChange() { emit('change', { definition: definition.value }) }
 
 async function runPreview() {
-  if (!tables.value.length) return ElMessage.warning('先上架数据表')
-  if (!definition.value.fields.length) return ElMessage.warning('至少勾选一个字段')
+  if (!tables.value.length) return ElMessage.warning(t('dataset.drag.mountFirst'))
+  if (!definition.value.fields.length) return ElMessage.warning(t('dataset.drag.selectFieldFirst'))
   lastError.value = ''
   previewing.value = true
   try {
@@ -327,7 +327,7 @@ async function runPreview() {
       previewRows.value = res.rows
     }
   } catch (e) {
-    lastError.value = e.message || '预览失败'
+    lastError.value = e.message || t('dataset.sql.previewFailed')
   } finally { previewing.value = false }
 }
 
