@@ -4,10 +4,10 @@
       <div class="auth-logo"><img src="/logo.svg?v=3" alt="KanRay logo" /></div>
       <h2 class="auth-title">KanRay</h2>
       <el-form :model="form" label-position="top" @submit.prevent="onSubmit">
-        <el-form-item label="邮箱"><el-input v-model="form.email" placeholder="you@example.com" /></el-form-item>
-        <el-form-item label="密码"><el-input v-model="form.password" type="password" show-password @keyup.enter="onSubmit" /></el-form-item>
-        <el-button type="primary" class="auth-btn" :loading="loading" @click="onSubmit">登 录</el-button>
-        <div class="auth-switch">没有账号？<el-link type="primary" @click="$router.push('/register')">去注册</el-link></div>
+        <el-form-item :label="t('auth.login.email')"><el-input v-model="form.email" placeholder="you@example.com" /></el-form-item>
+        <el-form-item :label="t('auth.login.password')"><el-input v-model="form.password" type="password" show-password @keyup.enter="onSubmit" /></el-form-item>
+        <el-button type="primary" class="auth-btn" :loading="loading" @click="onSubmit">{{ t('auth.login.submit') }}</el-button>
+        <div class="auth-switch">{{ t('auth.login.noAccount') }}<el-link type="primary" @click="$router.push('/register')">{{ t('auth.login.toRegister') }}</el-link></div>
       </el-form>
     </el-card>
   </div>
@@ -17,13 +17,14 @@ import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { t } from '@/i18n'
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const form = reactive({ email: '', password: '' })
 const loading = ref(false)
 async function onSubmit() {
-  if (!form.email || !form.password) return ElMessage.warning('请输入邮箱和密码')
+  if (!form.email || !form.password) return ElMessage.warning(t('auth.login.emailAndPasswordRequired'))
   loading.value = true
   try {
     await auth.login(form.email, form.password)
