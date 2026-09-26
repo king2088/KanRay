@@ -1,6 +1,6 @@
 <template>
   <div class="header-bar">
-    <el-tooltip content="系统设置" placement="bottom">
+    <el-tooltip :content="t('layout.menu.systemSettings')" placement="bottom">
       <el-icon class="header-icon" @click="emit('update:settingsOpen', true)">
         <Setting />
       </el-icon>
@@ -11,6 +11,7 @@
 
 <script setup>
 import UserMenu from './UserMenu.vue'
+import { t } from '@/i18n'
 
 defineProps({ settingsOpen: { type: Boolean, default: false } })
 const emit = defineEmits(['update:settingsOpen'])
