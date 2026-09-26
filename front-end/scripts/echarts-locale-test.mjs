@@ -9,6 +9,15 @@ import { CHART_LOCALES, echartsLocaleOf } from '../src/utils/echarts-locale.js'
 const SRC = fileURLToPath(new URL('../src/', import.meta.url))
 const CHARTS = join(SRC, 'screen-designer/widgets/charts')
 
+function walkSrc(dir = SRC, out = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name)
+    if (e.isDirectory()) walkSrc(p, out)
+    else if (/\.(js|vue)$/.test(e.name)) out.push(p)
+  }
+  return out
+}
+
 let failed = 0
 function t(name, fn) {
   try {
@@ -68,6 +77,38 @@ t('所有用完整包 echarts 的图表都注册了语言切换重建', () => {
     if (!body.includes('useChartLocale(rebuildChart)')) missing.push(f)
   }
   if (missing.length) throw new Error('这些图表没有调用 useChartLocale: ' + missing.join(', '))
+})
+
+// 回归守卫：`export { x } from '...'` 只做转发，不会把 x 引入本模块作用域。
+// 若同文件里又直接用了 x，运行时就是 ReferenceError——查映射表的单测查不出来，
+// 只有真正渲染图表才会炸（曾导致看板预览整页图表不渲染）。
+// 必须扫整个 src/：出问题的文件在 utils/ 下，不在 widgets 目录里。
+t('转发导出的标识符在本文件内使用前必须先 import', () => {
+  const bad = []
+  for (const f of walkSrc()) {
+    // 先剥掉注释：注释里出现的 `export { x } from` 不是代码，否则会误报
+    const body = readFileSync(f, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+    const forwarded = [...body.matchAll(/export\s*\{([^}]+)\}\s*from/g)]
+      .flatMap((m) => m[1].split(',').map((x) => x.trim().split(/\s+as\s+/).pop().trim()))
+      .filter(Boolean)
+    if (!forwarded.length) continue
+    const imported = new Set(
+      [...body.matchAll(/import\s+(?:\{([^}]+)\}|([A-Za-z_$][\w$]*))\s+from/g)]
+        .flatMap((m) => (m[1] || m[2] || '').split(',').map((x) => x.trim().split(/\s+as\s+/).pop().trim()))
+        .filter(Boolean),
+    )
+    // 去掉转发那一行本身，再看剩余代码有没有直接引用
+    const rest = body.replace(/export\s*\{[^}]+\}\s*from[^\n]*\n/g, '')
+    for (const name of forwarded) {
+      if (imported.has(name)) continue
+      if (new RegExp(`(?<![\\w$.\\'"\`"])${name}\\b`).test(rest)) {
+        bad.push(`${f.replace(SRC, 'src/')}: ${name}`)
+      }
+    }
+  }
+  if (bad.length) throw new Error('这些文件用了转发导出却又直接引用（运行时会 ReferenceError）: ' + bad.join(', '))
 })
 
 if (failed) {
