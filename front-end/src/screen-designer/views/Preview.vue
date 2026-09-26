@@ -1,5 +1,7 @@
 <script setup lang="ts">
+const { t } = useI18n()
 import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useCanvasStore } from '../stores/canvas'
@@ -268,9 +270,9 @@ onMounted(async () => {
     }
   } catch (e: any) {
     if (e?.status === 404) {
-      ElMessage.error('大屏不存在或已被删除')
+      ElMessage.error(t('bigscreen.editor.notFound'))
     } else {
-      ElMessage.error(e?.message || '加载大屏失败')
+      ElMessage.error(e?.message || t('bigscreen.editor.loadFailed'))
     }
   }
 
@@ -302,16 +304,16 @@ onUnmounted(() => {
     <div class="toolbar">
       <el-button @click="toggleFullscreen" type="primary" size="default">
         <el-icon><FullScreen /></el-icon>
-        {{ isFullscreen ? '退出全屏' : '全屏预览' }}
+        {{ isFullscreen ? t('bigscreen.preview.exitFullscreen') : t('bigscreen.preview.fullscreen') }}
       </el-button>
       <el-button-group size="default">
-        <el-button :type="previewMode === 'pc' ? 'primary' : ''" @click="previewMode = 'pc'">PC端</el-button>
-        <el-button :type="previewMode === 'mobile' ? 'primary' : ''" @click="previewMode = 'mobile'">移动端</el-button>
+        <el-button :type="previewMode === 'pc' ? 'primary' : ''" @click="previewMode = 'pc'">{{ t('bigscreen.preview.pc') }}</el-button>
+        <el-button :type="previewMode === 'mobile' ? 'primary' : ''" @click="previewMode = 'mobile'">{{ t('bigscreen.preview.mobile') }}</el-button>
       </el-button-group>
       <span class="mode-tag">
-        {{ isMobile ? `移动端 ${MOBILE_WIDTH}×${MOBILE_HEIGHT}` : (isAdaptive ? 'PC端 · 自适应' : `PC端 ${designW}×${designH}`) }}
+        {{ isMobile ? t('bigscreen.preview.mobileSize', { width: MOBILE_WIDTH, height: MOBILE_HEIGHT }) : (isAdaptive ? t('bigscreen.preview.pcAdaptive') : t('bigscreen.preview.pcSize', { width: designW, height: designH })) }}
       </span>
-      <span class="scale-info">缩放: {{ Math.round(fitScale * 100) }}%</span>
+      <span class="scale-info">{{ t('bigscreen.preview.zoom', { value: Math.round(fitScale * 100) }) }}</span>
     </div>
     <div class="canvas-wrapper">
       <!-- 移动端：外层容器固定尺寸，内层canvas可滚动 -->

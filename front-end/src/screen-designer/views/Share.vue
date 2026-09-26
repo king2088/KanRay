@@ -1,5 +1,7 @@
 <script setup lang="ts">
+const { t } = useI18n()
 import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useCanvasStore } from '../stores/canvas'
@@ -282,7 +284,7 @@ const submitPassword = async () => {
       await loadScreen(screen)
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '访问失败')
+    ElMessage.error(e?.message || t('bigscreen.shareView.loadFailed'))
   } finally {
     verifying.value = false
   }
@@ -326,12 +328,12 @@ onUnmounted(() => {
   <div class="share-preview">
     <div v-if="loading" class="not-found">
       <el-icon :size="64" style="color: #909399;" class="is-loading"><Loading /></el-icon>
-      <h2>正在加载大屏...</h2>
+      <h2>{{ t('bigscreen.shareView.loading') }}</h2>
     </div>
     <div v-else-if="notFound" class="not-found">
       <el-icon :size="64" style="color: #909399;"><WarningFilled /></el-icon>
-      <h2>大屏未找到或已取消发布</h2>
-      <p>该链接对应的大屏不存在或已被发布者取消发布</p>
+      <h2>{{ t('bigscreen.shareView.notFound') }}</h2>
+      <p>{{ t('bigscreen.shareView.notFoundDesc') }}</p>
     </div>
     <template v-else>
       <div class="canvas-wrapper">
@@ -408,16 +410,16 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-      <button class="fullscreen-btn" @click="toggleFullscreen" title="全屏">
+      <button class="fullscreen-btn" @click="toggleFullscreen" :title="t('bigscreen.shareView.fullscreen')">
         <el-icon><FullScreen /></el-icon>
       </button>
     </template>
 
-    <el-dialog v-model="showPasswordDialog" title="访问大屏" width="400px" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="false">
-      <p style="margin: 0 0 12px; color: #909399;">该大屏已设置访问密码，请输入密码查看：</p>
-      <el-input v-model="password" type="password" placeholder="请输入分享密码" show-password @keyup.enter="submitPassword" />
+    <el-dialog v-model="showPasswordDialog" :title="t('bigscreen.shareView.passwordDialogTitle')" width="400px" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="false">
+      <p style="margin: 0 0 12px; color: #909399;">{{ t('bigscreen.shareView.passwordPrompt') }}</p>
+      <el-input v-model="password" type="password" :placeholder="t('bigscreen.shareView.passwordPlaceholder')" show-password @keyup.enter="submitPassword" />
       <template #footer>
-        <el-button :loading="verifying" type="primary" @click="submitPassword">确定</el-button>
+        <el-button :loading="verifying" type="primary" @click="submitPassword">{{ t('bigscreen.shareView.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
