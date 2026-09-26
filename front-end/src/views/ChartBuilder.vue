@@ -20,20 +20,20 @@
           />
           <!-- 显示选项（排序等） -->
           <div class="left-extra">
-            <div class="panel-title">显示选项</div>
+            <div class="panel-title">{{ t('chart.builder.displayOptions') }}</div>
             <el-form label-width="70px">
-              <el-form-item label="显示数量">
+              <el-form-item :label="t('chart.builder.displayCount')">
                 <el-input-number v-model="showOptions.groupLimit" :min="1" :max="500" style="width: 120px" />
               </el-form-item>
-              <el-form-item label="排序方式">
+              <el-form-item :label="t('chart.builder.sortBy')">
                 <el-select v-model="sortConfig.field" style="width: 45%">
-                  <el-option label="不排序" value="" />
-                  <el-option label="按指标" value="metric" />
-                  <el-option label="按维度" value="dim" />
+                  <el-option :label="t('chart.builder.sortNone')" value="" />
+                  <el-option :label="t('chart.builder.sortMetric')" value="metric" />
+                  <el-option :label="t('chart.builder.sortDim')" value="dim" />
                 </el-select>
                 <el-select v-model="sortConfig.order" style="width: 45%; margin-left: 8px">
-                  <el-option label="升序" value="asc" />
-                  <el-option label="降序" value="desc" />
+                  <el-option :label="t('chart.builder.orderAsc')" value="asc" />
+                  <el-option :label="t('chart.builder.orderDesc')" value="desc" />
                 </el-select>
               </el-form-item>
             </el-form>
@@ -50,12 +50,12 @@
       <div class="builder-toolbar">
         <div class="tb-left">
           <el-button circle @click="back"><el-icon><ArrowLeft /></el-icon></el-button>
-          <el-input v-model="chartName" placeholder="图表名称" style="width: 220px" maxlength="100" />
+          <el-input v-model="chartName" :placeholder="t('chart.builder.chartNamePlaceholder')" style="width: 220px" maxlength="100" />
           <el-tag v-if="datasetId" type="info">{{ datasetName }}</el-tag>
         </div>
         <div class="tb-right">
           <el-button :loading="saving" type="primary" @click="save">
-            <el-icon style="margin-right: 4px"><Check /></el-icon>保存图表
+            <el-icon style="margin-right: 4px"><Check /></el-icon>{{ t('chart.builder.save') }}
           </el-button>
         </div>
       </div>
@@ -65,13 +65,13 @@
         <div class="preview-toolbar">
           <span>
             <el-icon style="margin-right: 6px; vertical-align: middle"><TrendCharts />
-            </el-icon>{{ currentChartLabel }} - 实时预览
+            </el-icon>{{ currentChartLabel }}{{ t('chart.builder.livePreview') }}
           </span>
-          <el-button :loading="previewLoading" @click="loadPreview">刷新</el-button>
+          <el-button :loading="previewLoading" @click="loadPreview">{{ t('chart.builder.refresh') }}</el-button>
         </div>
         <div class="preview-area">
           <template v-if="chartType === 'table'">
-            <el-empty v-if="!previewData" description="暂无数据" />
+            <el-empty v-if="!previewData" :description="t('common.empty.noData')" />
             <el-table v-else :data="previewRows" border>
               <el-table-column v-for="d in dims" :key="d.field" :label="dimLabel(d)">
                 <template #default="{ row }">{{ row[`dim:${d.field}`]?.value }}</template>
@@ -132,21 +132,21 @@
             </div>
           </template>
           <template v-else-if="chartType === 'stat'">
-            <el-empty v-if="!statData" description="暂无指标" />
+            <el-empty v-if="!statData" :description="t('chart.builder.noMetric')" />
             <div v-else class="stat-card">
               <div class="stat-label" style="font-size:14px;color:var(--app-text-secondary)">{{ statData.label }}</div>
               <div class="stat-value">{{ fmtNumber(statData.value) }}</div>
             </div>
           </template>
           <template v-else-if="chartType === 'statTrend'">
-            <div v-if="!statData" class="stat-card"><el-empty description="暂无指标" /></div>
+            <div v-if="!statData" class="stat-card"><el-empty :description="t('chart.builder.noMetric')" /></div>
             <div v-else class="stat-card stat-trend-card">
               <div class="stat-label" style="font-size:14px;color:var(--app-text-secondary)">{{ statData.label }}</div>
               <div class="stat-value">{{ fmtNumber(statData.value) }}</div>
             </div>
           </template>
           <template v-else>
-            <el-empty v-if="!previewData" description="配置维度与指标后展示预览" />
+            <el-empty v-if="!previewData" :description="t('chart.builder.configureHint')" />
             <EChartRenderer
               v-else
               :chart-type="chartType"
@@ -161,7 +161,7 @@
       <!-- 右侧：图表类型 + 配置 -->
       <div class="builder-right">
         <div class="right-section right-types">
-          <div class="right-section-title"><span class="rsec-icon" v-html="sectionIcon()"></span>图表类型</div>
+          <div class="right-section-title"><span class="rsec-icon" v-html="sectionIcon()"></span>{{ t('chart.builder.chartType') }}</div>
           <ChartTypePanel :chart-type="chartType" @update:chartType="chartType = $event" />
         </div>
         <el-divider style="margin: 8px 0" />
@@ -184,6 +184,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Check, Delete, DataLine, TrendCharts, Plus } from '@element-plus/icons-vue'
 import { datasetApi, chartApi, metricApi } from '@/api'
+import { t } from '@/i18n'
+import { lbl } from '@/utils/chart-schema-i18n'
+import { AGG_OPTIONS, DERIVED_OPTIONS } from '@/utils/chart-utils'
 import { CHART_TYPES, getChartType } from '@/config/chart-types'
 import { getPalette, DEFAULT_PALETTE_INDEX } from '@/config/color-palettes'
 import { getDefaultConfig } from '@/config/chart-configs'
@@ -194,15 +197,6 @@ import ChartTypePanel from '@/components/charts/ChartTypePanel.vue'
 import ChartConfigPanel from '@/components/charts/ChartConfigPanel.vue'
 
 // Use AGG_OPTIONS from chart-utils for aggregation options (chart-configs doesn't export it)
-const AGGS = [
-  { value: 'sum', label: '求和' },
-  { value: 'avg', label: '平均值' },
-  { value: 'count', label: '计数' },
-  { value: 'count_distinct', label: '去重计数' },
-  { value: 'max', label: '最大值' },
-  { value: 'min', label: '最小值' },
-]
-
 const route = useRoute()
 const router = useRouter()
 
@@ -253,7 +247,6 @@ function mergeWithDefaults(saved = {}, type = chartType.value) {
 
 const isProgressType = computed(() => ['progressBar', 'circularProgress', 'multiRingProgress', 'fluidProgress'].includes(chartType.value))
 
-const typeLabel = (t) => ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' }[t] || t)
 
 const sectionIcon = () => '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><rect x="3" y="11" width="3.4" height="8" rx="1.2"/><rect x="9.2" y="5.5" width="3.4" height="13.5" rx="1.2"/><rect x="15.4" y="8.5" width="3.4" height="10.5" rx="1.2"/><rect x="1.6" y="20.4" width="20.8" height="1.6" rx="0.8"/></svg>'
 
@@ -269,16 +262,16 @@ function dimLabel(d) {
 
 function metricLabel(m) {
   const libMetric = m.type === 'saved' ? library.value.find((x) => x.id === m.metricId) : null
-  if (m.type === 'saved') return m.label || (libMetric && libMetric.name) || '指标库指标'
-  if (m.type === 'expr') return m.label || `复合指标公式 ${m.expr || ''}`
+  if (m.type === 'saved') return m.label || (libMetric && libMetric.name) || t('chart.builder.libraryMetric')
+  if (m.type === 'expr') return m.label || t('chart.builder.exprFormula', { expr: m.expr || '' })
   if (m.type === 'derived') {
     if (m.label) return m.label
-    const kindLabel = { share: '占比', mom: '环比', yoy: '同比', cumsum: '累计', rank: '排名' }[m.kind] || m.kind
+    const kindLabel = lbl(DERIVED_OPTIONS.find((x) => x.value === m.kind)) || m.kind
     const ref = metrics.value.find((x) => x.key === m.ref)
     return ref ? `${metricLabel(ref)}·${kindLabel}` : kindLabel
   }
   const f = fields.value.find((x) => x.name === m.field)
-  const agg = AGGS.find((x) => x.value === m.agg)?.label || m.agg
+  const agg = lbl(AGG_OPTIONS.find((x) => x.value === m.agg)) || m.agg
   return `${f ? f.label || f.name : m.field} (${agg})`
 }
 
@@ -306,14 +299,14 @@ const chartSeriesNames = computed(() => {
   if (!d || !d.rows?.length || !d.dimensions?.length) return []
   const gDim = d.dimensions[1]
   if (gDim) {
-    return [...new Set(d.rows.map((r) => String(r[`dim:${gDim.field}`]?.value ?? r[gDim.field] ?? '无')))]
+      return [...new Set(d.rows.map((r) => String(r[`dim:${gDim.field}`]?.value ?? r[gDim.field] ?? t('chart.empty.none'))))]
   }
   const m = metrics.value?.[0]
   if (!m) return []
   if (m.type === 'saved') return [metricLabel(m)]
-  if (m.type === 'expr') return [m.label || m.expr || '复合指标']
+  if (m.type === 'expr') return [m.label || m.expr || t('chart.metricKind.expr')]
   if (m.type === 'derived') return [metricLabel(m)]
-  if (m.field === '*' && m.agg === 'count') return ['数据行数']
+  if (m.field === '*' && m.agg === 'count') return [t('chart.builder.rowCount')]
   const f = fields.value.find((x) => x.name === m.field)
   return [`${f ? f.label || f.name : m.field}(${m.agg})`]
 })
@@ -421,10 +414,10 @@ async function loadPreview() {
 }
 
 async function save() {
-  if (!chartName.value.trim()) return ElMessage.warning('请填写图表名称')
-  if (!datasetId.value) return ElMessage.warning('请选择数据集')
+  if (!chartName.value.trim()) return ElMessage.warning(t('chart.builder.errNameRequired'))
+  if (!datasetId.value) return ElMessage.warning(t('chart.builder.errDatasetRequired'))
   const vs = validMetrics()
-  if (vs.length === 0) return ElMessage.warning('请至少添加一个指标')
+  if (vs.length === 0) return ElMessage.warning(t('chart.builder.errMetricRequired'))
   saving.value = true
   try {
     const payload = {
@@ -442,10 +435,10 @@ async function save() {
     }
     if (editingId) {
       await chartApi.update(editingId, payload)
-      ElMessage.success('图表已更新')
+      ElMessage.success(t('chart.builder.updated'))
     } else {
       const created = await chartApi.create(payload)
-      ElMessage.success('图表已保存')
+      ElMessage.success(t('chart.builder.saved'))
       editingId = created.id
     }
   } finally {

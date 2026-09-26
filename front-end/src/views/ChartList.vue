@@ -2,12 +2,12 @@
   <div class="page-container">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">图表中心</h2>
-        <div class="page-desc">通过字段拖拽配置维度与指标，实时预览图表效果</div>
+        <h2 class="page-title">{{ t('chart.list.title') }}</h2>
+        <div class="page-desc">{{ t('chart.list.desc') }}</div>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" @click="$router.push('/charts/new')">
-          <el-icon style="margin-right: 6px"><Plus /></el-icon>新建图表
+          <el-icon style="margin-right: 6px"><Plus /></el-icon>{{ t('chart.list.create') }}
         </el-button>
       </div>
     </div>
@@ -17,42 +17,42 @@
         <div class="stat-item__icon"><el-icon><PieChart /></el-icon></div>
         <div>
           <div class="stat-item__value">{{ total }}</div>
-          <div class="stat-item__label">图表总数</div>
+          <div class="stat-item__label">{{ t('chart.list.statTotal') }}</div>
         </div>
       </div>
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><DataAnalysis /></el-icon></div>
         <div>
           <div class="stat-item__value">{{ typeCount }}</div>
-          <div class="stat-item__label">图表类型数</div>
+          <div class="stat-item__label">{{ t('chart.list.statTypeCount') }}</div>
         </div>
       </div>
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><Odometer /></el-icon></div>
         <div>
           <div class="stat-item__value">{{ usedCount }}</div>
-          <div class="stat-item__label">已被看板引用</div>
+          <div class="stat-item__label">{{ t('chart.list.statReferenced') }}</div>
         </div>
       </div>
     </div>
 
     <div class="page-card">
       <div class="page-card__header">
-        <div class="page-card__header-title">图表列表</div>
+        <div class="page-card__header-title">{{ t('chart.list.listTitle') }}</div>
         <div class="page-card__header-right">
           <el-input
             v-model="search"
-            placeholder="搜索图表名称"
+            :placeholder="t('chart.list.searchPlaceholder')"
             clearable
             style="width: 240px"
             :prefix-icon="Search"
           />
-          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          <el-tag type="info" effect="plain">{{ t('chart.list.totalTag', { n: total }) }}</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有图表，点击右上角「新建图表」开始">
-        <el-table-column prop="name" label="名称" min-width="200">
+      <el-table :data="filtered" v-loading="loading" :empty-text="t('chart.list.empty')">
+        <el-table-column prop="name" :label="t('chart.list.colName')" min-width="200">
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon" :class="`cell-name__icon--${typeTone(row.chartType)}`">
@@ -62,29 +62,33 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="图表类型" width="130" align="center">
+        <el-table-column :label="t('chart.list.colType')" width="130" align="center">
           <template #default="{ row }">
             <el-tag  :type="typeTag(row.chartType)" effect="light">{{ typeLabel(row.chartType) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="datasetName" label="数据源" min-width="160">
+        <el-table-column prop="datasetName" :label="t('chart.list.colDatasource')" min-width="160">
           <template #default="{ row }">
             <el-link v-if="row.datasetName" type="info" @click="$router.push(`/datasets/${row.datasetId}`)">
               {{ row.datasetName }}
             </el-link>
-            <span v-else class="cell-muted">已失效</span>
+            <span v-else class="cell-muted">{{ t('chart.list.invalid') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="180">
+        <el-table-column prop="updatedAt" :label="t('chart.list.colUpdatedAt')" width="180">
           <template #default="{ row }">
             <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right" align="center">
+        <el-table-column :label="t('chart.list.colActions')" width="200" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary"  @click="$router.push(`/charts/${row.id}/edit`)">编辑</el-button>
-            <el-button link type="primary"  @click="previewChart(row)">预览</el-button>
-            <el-button link type="danger"  @click="remove(row)">删除</el-button>
+            <el-button
+              link
+              type="primary"
+              @click="$router.push(`/charts/${row.id}/edit`)"
+            >{{ t('chart.list.edit') }}</el-button>
+            <el-button link type="primary"  @click="previewChart(row)">{{ t('chart.list.preview') }}</el-button>
+            <el-button link type="danger"  @click="remove(row)">{{ t('chart.list.remove') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -103,10 +107,10 @@
       </div>
     </div>
 
-    <el-dialog v-model="previewVisible" :title="previewChartRef?.name || '图表预览'" width="680px">
+    <el-dialog v-model="previewVisible" :title="previewChartRef?.name || t('chart.list.previewTitle')" width="680px">
       <div class="preview-dialog-body">
         <EChartRenderer v-if="previewData" :chart-type="previewChartRef.chartType" :data="previewData" :options="previewChartRef.config?.options" />
-        <el-empty v-else description="暂无数据" />
+        <el-empty v-else :description="t('common.empty.noData')" />
       </div>
     </el-dialog>
   </div>
@@ -115,6 +119,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { t } from '@/i18n'
 import { Search, Plus } from '@element-plus/icons-vue'
 import { chartApi, dashboardApi } from '@/api'
 import { getChartType } from '@/config/chart-types'
@@ -197,13 +202,13 @@ async function previewChart(row) {
 }
 
 async function remove(row) {
-  await ElMessageBox.confirm(`确定删除图表「${row.name}」？`, '删除确认', {
+  await ElMessageBox.confirm(t('chart.list.deleteConfirm', { name: row.name }), t('chart.list.deleteConfirmTitle'), {
     type: 'warning',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
+    confirmButtonText: t('common.actions.delete'),
+    cancelButtonText: t('common.actions.cancel'),
   })
   await chartApi.remove(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('chart.list.deleteSuccess'))
   load()
 }
 
