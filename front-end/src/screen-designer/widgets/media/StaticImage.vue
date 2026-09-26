@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 const props = defineProps<{
   data: any
   style: any
@@ -18,7 +21,7 @@ const props = defineProps<{
     />
     <div v-else class="placeholder" @dblclick.stop>
       <el-icon :size="40"><Picture /></el-icon>
-      <span>双击上传图片</span>
+      <span>{{ t('bigscreen.widget.staticImageHint') }}</span>
     </div>
   </div>
 </template>
