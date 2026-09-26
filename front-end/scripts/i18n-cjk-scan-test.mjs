@@ -18,6 +18,11 @@ const SCAN_PATHS = [
   'i18n/flatten.js',
   'i18n/locale-util.js',
   'i18n/index.js',
+  'i18n/translate.js',
+  'components/layout',
+  'router/menu.js',
+  'views/Login.vue',
+  'views/Register.vue',
 ]
 
 let passed = 0
@@ -35,6 +40,7 @@ function walk(abs) {
 
 function stripComments(src) {
   return src
+    .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
 }
