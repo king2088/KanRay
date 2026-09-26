@@ -2,30 +2,30 @@
   <div class="page-container">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">大屏设计</h2>
-        <div class="page-desc">从零开始设计可视化大屏，支持数据集绑定与发布分享</div>
+        <h2 class="page-title">{{ t('bigscreen.list.title') }}</h2>
+        <div class="page-desc">{{ t('bigscreen.list.desc') }}</div>
       </div>
       <div class="page-header__actions">
         <el-button @click="openTemplates">
-          <el-icon style="margin-right: 4px"><Folder /></el-icon>模板管理
+          <el-icon style="margin-right: 4px"><Folder /></el-icon>{{ t('bigscreen.list.templateManage') }}
         </el-button>
         <el-button type="primary" @click="create">
-          <el-icon style="margin-right: 4px"><Plus /></el-icon>新建大屏
+          <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('bigscreen.list.create') }}
         </el-button>
       </div>
     </div>
 
     <div class="page-card">
       <div class="page-card__header">
-        <div class="page-card__header-title">大屏列表</div>
+        <div class="page-card__header-title">{{ t('bigscreen.list.listTitle') }}</div>
         <div class="page-card__header-right">
-          <el-input v-model="search" placeholder="搜索大屏名称" clearable style="width: 240px" :prefix-icon="Search" />
-          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          <el-input v-model="search" :placeholder="t('bigscreen.list.searchPlaceholder')" clearable style="width: 240px" :prefix-icon="Search" />
+          <el-tag type="info" effect="plain">{{ t('bigscreen.list.total', { count: total }) }}</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有大屏，输入名称创建一个">
-        <el-table-column prop="name" label="名称" min-width="220">
+      <el-table :data="filtered" v-loading="loading" :empty-text="t('bigscreen.list.empty')">
+        <el-table-column prop="name" :label="t('bigscreen.list.colName')" min-width="220">
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon"><el-icon><Monitor /></el-icon></div>
@@ -33,23 +33,23 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="发布状态" width="100">
+        <el-table-column :label="t('bigscreen.list.colPublishStatus')" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.published ? 'success' : 'info'" effect="plain">{{ row.published ? '已发布' : '未发布' }}</el-tag>
+            <el-tag :type="row.published ? 'success' : 'info'" effect="plain">{{ row.published ? t('bigscreen.list.published') : t('bigscreen.list.unpublished') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180">
+        <el-table-column prop="createdAt" :label="t('bigscreen.list.colCreatedAt')" width="180">
           <template #default="{ row }">{{ fmt(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="180">
+        <el-table-column prop="updatedAt" :label="t('bigscreen.list.colUpdatedAt')" width="180">
           <template #default="{ row }">{{ fmt(row.updatedAt) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="180" align="right">
+        <el-table-column fixed="right" :label="t('bigscreen.list.colActions')" width="180" align="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openPreview(row)">预览</el-button>
-            <el-button link type="primary" @click="openShare(row)"><el-icon style="margin-right: 4px"><Share /></el-icon>分享</el-button>
-            <el-popconfirm title="确定删除该大屏吗？" @confirm="remove(row)">
-              <template #reference><el-button link type="danger">删除</el-button></template>
+            <el-button link type="primary" @click="openPreview(row)">{{ t('bigscreen.list.preview') }}</el-button>
+            <el-button link type="primary" @click="openShare(row)"><el-icon style="margin-right: 4px"><Share /></el-icon>{{ t('bigscreen.list.share') }}</el-button>
+            <el-popconfirm :title="t('bigscreen.list.deleteConfirm')" @confirm="remove(row)">
+              <template #reference><el-button link type="danger">{{ t('bigscreen.list.delete') }}</el-button></template>
             </el-popconfirm>
           </template>
         </el-table-column>
@@ -60,23 +60,23 @@
       </div>
     </div>
 
-    <el-dialog v-model="showCreate" title="新建大屏" width="420px" @close="createForm.name = ''">
+    <el-dialog v-model="showCreate" :title="t('bigscreen.list.createDialogTitle')" width="420px" @close="createForm.name = ''">
       <el-form @submit.prevent="submitCreate">
-        <el-form-item label="大屏名称" required>
-          <el-input v-model.trim="createForm.name" placeholder="请输入大屏名称" />
+        <el-form-item :label="t('bigscreen.list.nameLabel')" required>
+          <el-input v-model.trim="createForm.name" :placeholder="t('bigscreen.list.namePlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreate = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="submitCreate">确定</el-button>
+        <el-button @click="showCreate = false">{{ t('bigscreen.list.cancel') }}</el-button>
+        <el-button type="primary" :loading="creating" @click="submitCreate">{{ t('bigscreen.list.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <BigScreenShareDialog v-model="share.show" :screen-id="share.screenId" :name="share.screenName" />
 
-    <el-dialog v-model="showTemplates" title="模板管理" width="1040px" top="5vh" class="template-manager-dialog">
+    <el-dialog v-model="showTemplates" :title="t('bigscreen.list.templateManage')" width="1040px" top="5vh" class="template-manager-dialog">
       <div class="tm-section">
-        <div class="tm-section__title">系统预设模板</div>
+        <div class="tm-section__title">{{ t('bigscreen.list.templateSection') }}</div>
         <div class="tm-grid">
           <div v-for="tpl in presetTemplates" :key="tpl.id" class="tm-card">
             <div class="tm-card__preview" :style="{ background: tpl.config.background }">
@@ -85,9 +85,9 @@
               <div class="tm-card__size">{{ tpl.config.width }}×{{ tpl.config.height }}</div>
             </div>
             <div class="tm-card__body">
-              <div class="tm-card__name">{{ tpl.name }}</div>
-              <div class="tm-card__desc">{{ tpl.description }}</div>
-              <el-button size="small" type="primary" @click="startCreateFromTemplate(tpl)">使用此模板</el-button>
+              <div class="tm-card__name">{{ t(tpl.nameKey) }}</div>
+              <div class="tm-card__desc">{{ t(tpl.descriptionKey) }}</div>
+              <el-button size="small" type="primary" @click="startCreateFromTemplate(tpl)">{{ t('bigscreen.list.useThisTemplate') }}</el-button>
             </div>
           </div>
         </div>
@@ -96,7 +96,7 @@
       <el-divider />
 
       <div class="tm-section">
-        <div class="tm-section__title">我的模板 ({{ myTemplates.length }})</div>
+        <div class="tm-section__title">{{ t('bigscreen.list.myTemplates', { count: myTemplates.length }) }}</div>
         <div v-if="myTemplates.length > 0" class="tm-grid">
           <div v-for="tpl in myTemplates" :key="tpl.id" class="tm-card">
             <div class="tm-card__preview" :style="{ background: tpl.config?.background || '#0b1a30' }">
@@ -106,30 +106,30 @@
             </div>
             <div class="tm-card__body">
               <div class="tm-card__name">{{ tpl.name }}</div>
-              <div class="tm-card__desc">{{ tpl.description || '暂无描述' }}</div>
+              <div class="tm-card__desc">{{ tpl.description || t('bigscreen.list.noDescription') }}</div>
               <div class="tm-card__actions">
-                <el-button size="small" type="primary" @click="startCreateFromTemplate(tpl)">使用</el-button>
-                <el-button size="small" type="danger" @click="removeTemplate(tpl)">删除</el-button>
+                <el-button size="small" type="primary" @click="startCreateFromTemplate(tpl)">{{ t('bigscreen.list.use') }}</el-button>
+                <el-button size="small" type="danger" @click="removeTemplate(tpl)">{{ t('bigscreen.list.delete') }}</el-button>
               </div>
             </div>
           </div>
         </div>
-        <el-empty v-else description="暂无自定义模板" :image-size="80" />
+        <el-empty v-else :description="t('bigscreen.list.noCustomTemplate')" :image-size="80" />
       </div>
     </el-dialog>
 
-    <el-dialog v-model="showTemplateName" title="从模板创建大屏" width="420px" @closed="templateNameForm.name = ''">
+    <el-dialog v-model="showTemplateName" :title="t('bigscreen.list.fromTemplateTitle')" width="420px" @closed="templateNameForm.name = ''">
       <el-form @submit.prevent="submitTemplateCreate">
-        <el-form-item label="大屏名称" required>
-          <el-input v-model.trim="templateNameForm.name" placeholder="请输入大屏名称" @keyup.enter="submitTemplateCreate" />
+        <el-form-item :label="t('bigscreen.list.nameLabel')" required>
+          <el-input v-model.trim="templateNameForm.name" :placeholder="t('bigscreen.list.namePlaceholder')" @keyup.enter="submitTemplateCreate" />
         </el-form-item>
-        <el-form-item v-if="activeTemplate.description" label="模板描述">
+        <el-form-item v-if="activeTemplate.description" :label="t('bigscreen.list.templateDescLabel')">
           <div class="tm-active-desc">{{ activeTemplate.description }}</div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showTemplateName = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="submitTemplateCreate">确定</el-button>
+        <el-button @click="showTemplateName = false">{{ t('bigscreen.list.cancel') }}</el-button>
+        <el-button type="primary" :loading="creating" @click="submitTemplateCreate">{{ t('bigscreen.list.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -138,6 +138,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Plus, Search, Monitor, Folder, Share } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
@@ -147,6 +148,7 @@ import { presetTemplates } from '@/screen-designer/core/templates/preset'
 import { generateTemplateThumbnail } from '@/screen-designer/core/templates/thumbnail'
 
 const router = useRouter()
+const { t } = useI18n()
 const loading = ref(false)
 const items = ref([])
 const total = ref(0)
@@ -181,7 +183,7 @@ async function fetchList() {
     items.value = list || []
     total.value = t || items.value.length
   } catch (e) {
-    ElMessage.error(e.message || '获取大屏列表失败')
+    ElMessage.error(e.message || t('bigscreen.list.loadListFailed'))
   } finally {
     loading.value = false
   }
@@ -197,7 +199,7 @@ function create() {
 
 async function submitCreate() {
   if (!createForm.value.name.trim()) {
-    ElMessage.warning('请填写大屏名称')
+    ElMessage.warning(t('bigscreen.list.nameRequired'))
     return
   }
   creating.value = true
@@ -206,7 +208,7 @@ async function submitCreate() {
     showCreate.value = false
     router.push(`/big-screen/design/${d.id}`)
   } catch (e) {
-    ElMessage.error(e.message || '创建失败')
+    ElMessage.error(e.message || t('bigscreen.list.createFailed'))
   } finally {
     creating.value = false
   }
@@ -215,10 +217,10 @@ async function submitCreate() {
 async function remove(row) {
   try {
     await bigScreenApi.remove(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('bigscreen.list.deleteSuccess'))
     fetchList()
   } catch (e) {
-    ElMessage.error(e.message || '删除失败')
+    ElMessage.error(e.message || t('bigscreen.list.deleteFailed'))
   }
 }
 
@@ -237,7 +239,7 @@ async function loadMyTemplates() {
     const list = await bigScreenApi.listTemplates()
     myTemplates.value = list || []
   } catch (e) {
-    ElMessage.error(e?.message || '获取模板失败')
+    ElMessage.error(e?.message || t('bigscreen.list.templateLoadFailed'))
   }
 }
 
@@ -261,7 +263,7 @@ function startCreateFromTemplate(tpl) {
 async function submitTemplateCreate() {
   const name = templateNameForm.value.name.trim()
   if (!name) {
-    ElMessage.warning('请填写大屏名称')
+    ElMessage.warning(t('bigscreen.list.nameRequired'))
     return
   }
   creating.value = true
@@ -276,7 +278,7 @@ async function submitTemplateCreate() {
     showTemplateName.value = false
     router.push(`/big-screen/design/${d.id}`)
   } catch (e) {
-    ElMessage.error(e?.message || '创建失败')
+    ElMessage.error(e?.message || t('bigscreen.list.createFailed'))
   } finally {
     creating.value = false
   }
@@ -285,10 +287,10 @@ async function submitTemplateCreate() {
 async function removeTemplate(tpl) {
   try {
     await bigScreenApi.deleteTemplate(tpl.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('bigscreen.list.deleteSuccess'))
     loadMyTemplates()
   } catch (e) {
-    ElMessage.error(e?.message || '删除失败')
+    ElMessage.error(e?.message || t('bigscreen.list.deleteFailed'))
   }
 }
 </script>
