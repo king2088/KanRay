@@ -27,7 +27,8 @@ const timeStr = computed(() => {
   return `${pad(now.value.getHours())}:${pad(now.value.getMinutes())}:${pad(now.value.getSeconds())}`
 })
 
-// 日期格式（含星期名）交给 Intl 按当前语言输出，避免手写两套格式。
+// Let Intl render the date (weekday name included) for the active language instead of
+// maintaining two hand-written formats.
 const dateStr = computed(() =>
   new Intl.DateTimeFormat(locale.value, {
     year: 'numeric',

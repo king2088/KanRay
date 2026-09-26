@@ -1,4 +1,4 @@
-<!-- 轮播列表 (carousel-list) - 数据轮播列表 -->
+<!-- Carousel list (carousel-list) - rotating data list -->
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 

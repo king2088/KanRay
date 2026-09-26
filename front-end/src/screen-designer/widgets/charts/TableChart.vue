@@ -1,4 +1,4 @@
-<!-- 普通表格 (table-normal) - 数据表格组件 -->
+<!-- Table (table-normal) - data table -->
 <script setup lang="ts">
 import { computed } from 'vue'
 

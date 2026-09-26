@@ -1,4 +1,4 @@
-<!-- 词云 (wordcloud) - 自绘 Canvas 词云图（高性能：词位图预渲染 + 粗粒度碰撞网格 + RAF 防抖） -->
+<!-- Word cloud (wordcloud) - custom Canvas word cloud (pre-rendered glyph bitmaps + coarse collision grid + RAF debounce) -->
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 
@@ -101,8 +101,10 @@ function buildBitmap(text: string, font: string, color: string, rotation: number
 
 interface Placed { bm: Bitmap; x: number; y: number }
 
-// 在独立的“簇坐标空间”内用黄金角螺旋做碰撞安置（不依赖画布尺寸），
-// 最后统一居中并缩放填充画布，保证词云始终居中、完整显示且不被丢弃/截断。
+// Words are placed along a golden-angle spiral inside their own "cluster coordinate
+// space" (independent of the canvas size). Everything is centred and scaled to fill the
+// canvas at the end, so the cloud always stays centred, fully visible and never dropped
+// or clipped.
 function placeCluster(bitmaps: Bitmap[]): Placed[] {
   const CELL = 3
   const GR = 2.399963229728653
@@ -111,7 +113,7 @@ function placeCluster(bitmaps: Bitmap[]): Placed[] {
 
   const placed: Placed[] = []
 
-  // 预估簇的规模，决定螺旋搜索半径与尝试次数上限
+  // Estimate the cluster size to derive the spiral search radius and attempt limit
   const totalArea = bitmaps.reduce((s, b) => s + b.w * b.h, 0)
   const estR = Math.sqrt(totalArea) * 1.4 + 40
   const maxAttempts = Math.min(60000, Math.round(estR * estR))
@@ -146,7 +148,7 @@ function placeCluster(bitmaps: Bitmap[]): Placed[] {
     const bm = bitmaps[bi]
     let done = false
     if (bi === 0) {
-      // 首个(最大的)词居中放置
+      // The first (largest) word goes to the centre
       const px = -Math.floor(bm.w / 2)
       const py = -Math.floor(bm.h / 2)
       if (canPlace(bm, px, py)) {
@@ -189,7 +191,7 @@ function drawWordCloud(canvas: HTMLCanvasElement) {
   const minW = Math.min(...words.map(w => w.weight))
   const span = Math.max(1, maxW - minW)
 
-  // 字号基准随画布大小缩放，保证词云始终饱满填充
+  // The base font size scales with the canvas so the cloud always fills it
   const baseSize = Math.max(12, Math.round(Math.min(cw, ch) / 6.5))
   const sizeRange = p.sizeRange && p.sizeRange.length >= 2 ? p.sizeRange : [Math.round(baseSize * 0.32), baseSize]
   const minSize = sizeRange[0] ?? Math.round(baseSize * 0.32)
@@ -211,7 +213,7 @@ function drawWordCloud(canvas: HTMLCanvasElement) {
   const placed = placeCluster(bitmaps)
   if (!placed.length) return
 
-  // 计算已放置词云的包围盒
+  // Compute the bounding box of the placed words
   let minL = Infinity, minT = Infinity, maxR2 = -Infinity, maxB = -Infinity
   for (const pl of placed) {
     minL = Math.min(minL, pl.x)
@@ -222,7 +224,8 @@ function drawWordCloud(canvas: HTMLCanvasElement) {
   const bw = maxR2 - minL
   const bh = maxB - minT
 
-  // 整体缩放填充画布(保留一点边距)，缩放范围受限避免过大/过小
+  // Scale the whole cloud to fill the canvas (keeping a small margin), clamped so it
+  // never becomes too large or too small
   let scale = Math.min(cw / bw, ch / bh) * 0.92
   scale = Math.max(0.25, Math.min(scale, 2))
 
@@ -245,7 +248,8 @@ function drawWordCloud(canvas: HTMLCanvasElement) {
 function render() {
   const canvas = canvasRef.value
   if (!canvas) return
-  // 用 offsetWidth/offsetHeight 取组件逻辑尺寸(不受父级 scale 变换干扰)
+  // offsetWidth/offsetHeight give the logical size of the component (unaffected by an
+  // ancestor scale transform)
   const el = canvas.parentElement as HTMLElement | null
   const w = el?.offsetWidth || canvas.width || 100
   const h = el?.offsetHeight || canvas.height || 100

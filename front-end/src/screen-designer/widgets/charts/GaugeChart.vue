@@ -36,7 +36,7 @@ const getGaugeValue = () => {
   return 72
 }
 
-// 读取通用配置
+// Read the shared option
 const getC = () => {
   const p = props.props || {}
   return {
@@ -73,7 +73,7 @@ const getChartOption = () => {
   }
 }
 
-// 基础仪表盘 (gauge)
+// Basic gauge (gauge)
 function getDefaultGauge(_p: any, val: number) {
   const c = getC()
   return {
@@ -94,7 +94,7 @@ function getDefaultGauge(_p: any, val: number) {
   }
 }
 
-// 速度仪表盘 (gauge-speed)
+// Speed gauge (gauge-speed)
 function getSpeedGauge(_p: any, val: number) {
   const c = getC()
   return {
@@ -133,7 +133,7 @@ function getSpeedGauge(_p: any, val: number) {
   }
 }
 
-// 阶段仪表盘 (gauge-stage)
+// Stage gauge (gauge-stage)
 function getStageGauge(_p: any, val: number) {
   const c = getC()
   return {
@@ -153,7 +153,7 @@ function getStageGauge(_p: any, val: number) {
   }
 }
 
-// 等级仪表盘 (gauge-level)
+// Level gauge (gauge-level)
 function getGradeGauge(_p: any, val: number) {
   const c = getC()
   const normalizedVal = val / 100
@@ -179,7 +179,7 @@ function getGradeGauge(_p: any, val: number) {
   }
 }
 
-// 多标题仪表盘 (gauge-multi-title)
+// Multi-title gauge (gauge-multi-title)
 function getMultiTitleGauge(_p: any, _val: number) {
   const c = getC()
   return {
@@ -201,7 +201,7 @@ function getMultiTitleGauge(_p: any, _val: number) {
   }
 }
 
-// 气温仪表盘 (gauge-temp)
+// Temperature gauge (gauge-temp)
 function getTemperatureGauge(_p: any, val: number) {
   const c = getC()
   return {
@@ -259,7 +259,7 @@ function getTemperatureGauge(_p: any, val: number) {
   }
 }
 
-// 得分环 (gauge-score)
+// Score ring (gauge-score)
 function getScoreRing(_p: any, _val: number) {
   const c = getC()
   return {
@@ -286,7 +286,7 @@ function getScoreRing(_p: any, _val: number) {
   }
 }
 
-// 气压表 (gauge-pressure)
+// Pressure gauge (gauge-pressure)
 function getBarometerGauge(p: any, val: number) {
   const c = getC()
   return {
@@ -327,7 +327,7 @@ function getBarometerGauge(p: any, val: number) {
   }
 }
 
-// 时钟仪表盘 (gauge-clock)
+// Clock gauge (gauge-clock)
 function getClockGauge() {
   const c = getC()
   const now = new Date()
@@ -398,7 +398,7 @@ function getClockGauge() {
   }
 }
 
-// 汽车仪表盘 (gauge-car) - 对照官方 demo：中心转数表 + 速度显示
+// Car gauge (gauge-car) - follows the official demo: central tachometer + speed readout
 function getCarGauge(_p: any, val: number) {
   const c = getC()
   return {
@@ -473,7 +473,7 @@ function getCarGauge(_p: any, val: number) {
   }
 }
 
-// 多环仪表盘 (gauge-multi)
+// Multi-ring gauge (gauge-multi)
 function getMultiGauge(p: any) {
   let rings = [
     { name: '指标A', value: 85, color: '#409eff' },
@@ -546,7 +546,7 @@ function getMultiGauge(p: any) {
   return { series }
 }
 
-// 水波球 (liquid-fill)
+// Liquid fill (liquid-fill)
 function getLiquidFill(_p: any, val: number) {
   return {
     series: [{
@@ -582,7 +582,8 @@ const initChart = () => {
   resizeObserver.observe(chartRef.value)
 }
 
-// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+// ECharts fixes its locale at init time and setOption cannot change it, so switching
+// language has to go through a full dispose + init.
 const rebuildChart = () => {
   resizeObserver?.disconnect()
   chart?.dispose()

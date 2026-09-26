@@ -1,4 +1,4 @@
-<!-- 排名列表 (rank-list) - 数据排名滚动列表 -->
+<!-- Rank list (rank-list) - scrolling ranking list -->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
