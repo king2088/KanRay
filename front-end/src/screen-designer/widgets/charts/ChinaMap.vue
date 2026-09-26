@@ -3,6 +3,9 @@
 import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -34,14 +37,14 @@ function getOption() {
   const seriesData = parseSeriesData()
 
   return {
-    title: p.titleShow ? { text: p.titleText || '中国地图', left: 'center', textStyle: { color: '#fff', fontSize: 16 } } : undefined,
+    title: p.titleShow ? { text: p.titleText || t('bigscreen.chart.mapTitleChina'), left: 'center', textStyle: { color: '#fff', fontSize: 16 } } : undefined,
     tooltip: p.tooltipShow ? { trigger: 'item', formatter: '{b}: {c}' } : undefined,
     visualMap: p.visualMapShow ? {
       min: 0,
       max: Math.max(...seriesData.map((d: any) => d.value), 100),
       left: 'left',
       top: 'bottom',
-      text: ['高', '低'],
+      text: [t('bigscreen.chart.visualMapHigh'), t('bigscreen.chart.visualMapLow')],
       calculable: true,
       inRange: { color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695'] },
       textStyle: { color: '#fff' }

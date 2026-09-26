@@ -3,6 +3,9 @@
 import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -51,7 +54,7 @@ function getOption() {
   const scatterData = parseScatterData()
 
   return {
-    title: p.titleShow ? { text: p.titleText || '气泡地图', left: 'center', textStyle: { color: '#fff', fontSize: 16 } } : undefined,
+    title: p.titleShow ? { text: p.titleText || t('bigscreen.chart.mapTitleBubble'), left: 'center', textStyle: { color: '#fff', fontSize: 16 } } : undefined,
     tooltip: p.tooltipShow ? {
       trigger: 'item',
       formatter: (params: any) => `${params.name}: ${params.value?.[2] || 0}`
