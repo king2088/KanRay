@@ -2,20 +2,20 @@
   <div class="page-container" v-loading="loading">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">{{ ds?.name || t('dataset.dataSource.detail.title') }}</h2>
+        <h2 class="page-title">{{ ds?.name || t('dataset.dataSource.detailPage.title') }}</h2>
         <div class="page-desc">{{ ds?.type }} · {{ ds?.is_active ? t('common.state.enabled') : t('common.state.disabled') }}</div>
       </div>
       <div class="page-header__actions">
         <el-button @click="$router.back()">{{ t('common.actions.back') }}</el-button>
-        <el-button type="primary" :loading="testing" @click="doTest">{{ t('dataset.dataSource.dataSource.test') }}</el-button>
+        <el-button type="primary" :loading="testing" @click="doTest">{{ t('dataset.dataSource.test') }}</el-button>
       </div>
     </div>
 
     <el-card v-if="ds" shadow="never" style="margin-bottom: 16px">
       <div style="display: flex; gap: 40px; font-size: 14px; color: var(--app-text-secondary)">
-        <div><strong>{{ t('dataset.dataSource.detail.typePrefix') }}</strong>{{ ds.type }}</div>
-        <div><strong>{{ t('dataset.dataSource.detail.modePrefix') }}</strong>{{ ds.mode === 'sync' ? t('dataset.dataSource.dataSource.form.modeSync') : t('dataset.dataSource.dataSource.form.modeDirect') }}</div>
-        <div><strong>{{ t('dataset.dataSource.detail.lastTestPrefix') }}</strong>
+        <div><strong>{{ t('dataset.dataSource.detailPage.typePrefix') }}</strong>{{ ds.type }}</div>
+        <div><strong>{{ t('dataset.dataSource.detailPage.modePrefix') }}</strong>{{ ds.mode === 'sync' ? t('dataset.dataSource.form.modeSync') : t('dataset.dataSource.form.modeDirect') }}</div>
+        <div><strong>{{ t('dataset.dataSource.detailPage.lastTestPrefix') }}</strong>
           <el-tag v-if="ds.last_test_ok === true" type="success" >{{ t('common.state.success') }}</el-tag>
           <el-tag v-else-if="ds.last_test_ok === false" type="danger" >{{ t('common.state.failed') }}</el-tag>
           <span v-else>{{ t('dataset.dataSource.neverTested') }}</span>
@@ -36,12 +36,12 @@
         <div class="file-meta__main">
           <div class="file-meta__name">{{ ds.config?.file || ds.name }}</div>
           <div class="file-meta__sub">
-            {{ t('dataset.dataSource.detail.fileMetaRows', { count: (ds.config?.rowCount ?? 0).toLocaleString(locale) }) }} ·
-            <strong>{{ ds.config?.columnCount ?? 0 }}</strong> {{ t('dataset.dataSource.detail.fileMetaCols', { count: ds.config?.columnCount ?? 0 }) }}
+            {{ t('dataset.dataSource.detailPage.fileMetaRows', { count: (ds.config?.rowCount ?? 0).toLocaleString(locale) }) }} ·
+            <strong>{{ ds.config?.columnCount ?? 0 }}</strong> {{ t('dataset.dataSource.detailPage.fileMetaCols', { count: ds.config?.columnCount ?? 0 }) }}
           </div>
         </div>
       </div>
-      <el-alert type="info" :closable="false" show-icon style="margin-top: 10px" :title="t('dataset.dataSource.detail.excelNoSchemaTip')" />
+      <el-alert type="info" :closable="false" show-icon style="margin-top: 10px" :title="t('dataset.dataSource.detailPage.excelNoSchemaTip')" />
     </el-card>
 
     <el-card v-if="ds && ds.type !== 'excel' && ds.mode === 'sync'" shadow="never" style="margin-bottom: 16px">
