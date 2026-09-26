@@ -36,7 +36,7 @@ const templates: Template[] = [
     nameKey: 'bigscreen.codeTemplate.helloBar',
     html: `<div class="demo">
   <h2>Hello World</h2>
-  <p>双击在这里编写HTML</p>
+  <p>${t('bigscreen.widget.emptyHint')}</p>
   <div class="chart-box"></div>
 </div>`,
     css: `.demo {
@@ -69,7 +69,7 @@ if (chartBox && values.length) {
     grid: { left: 40, right: 20, top: 20, bottom: 30 }
   });
 } else if (chartBox) {
-  chartBox.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;padding-top:80px;">请在右侧数据面板的静态数据中配置 labels / values</div>';
+  chartBox.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;padding-top:80px;">${t('bigscreen.widget.configHint')}</div>';
 }`
   },
   {

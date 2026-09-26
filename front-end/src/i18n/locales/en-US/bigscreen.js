@@ -267,6 +267,8 @@ export default {
     clock: 'Clock',
     steps: 'Steps',
     customChart: 'Custom HTML',
+    emptyHint: 'Double-click here to write HTML',
+    configHint: 'Configure labels / values in the static data section of the data panel on the right',
     iframe: 'Embedded Page',
   },
   codeEditor: {

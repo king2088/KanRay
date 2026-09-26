@@ -267,6 +267,8 @@ export default {
     clock: '时钟',
     steps: '步骤条',
     customChart: '自定义HTML',
+    emptyHint: '双击在这里编写HTML',
+    configHint: '请在右侧数据面板的静态数据中配置 labels / values',
     iframe: '内嵌网页',
   },
   codeEditor: {
