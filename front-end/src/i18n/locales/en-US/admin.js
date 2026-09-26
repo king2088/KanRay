@@ -92,7 +92,7 @@ export default {
     name: 'Role name',
     code: 'Code',
     permissions: 'Permissions',
-    permCount: '{count}',
+    permCount: 'no permission points | 1 permission point | {count} permission points',
     type: 'Type',
     description: 'Description',
     actions: 'Actions',
