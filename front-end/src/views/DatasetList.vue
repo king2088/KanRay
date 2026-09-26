@@ -2,8 +2,8 @@
   <div class="page-container">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">数据集</h2>
-        <div class="page-desc">管理由数据源构建 / 上传的 Excel / CSV 数据集，作为图表与看板的数据基础</div>
+        <h2 class="page-title">{{ t('dataset.list.title') }}</h2>
+        <div class="page-desc">{{ t('dataset.list.pageDesc') }}</div>
       </div>
     </div>
 
@@ -12,42 +12,42 @@
         <div class="stat-item__icon"><el-icon><FolderOpened /></el-icon></div>
         <div>
           <div class="stat-item__value">{{ total }}</div>
-          <div class="stat-item__label">数据集总数</div>
+          <div class="stat-item__label">{{ t('dataset.list.stats.total') }}</div>
         </div>
       </div>
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><DataAnalysis /></el-icon></div>
         <div>
-          <div class="stat-item__value">{{ totalRows.toLocaleString('zh-CN') }}</div>
-          <div class="stat-item__label">累计数据行</div>
+          <div class="stat-item__value">{{ totalRows.toLocaleString(locale) }}</div>
+          <div class="stat-item__label">{{ t('dataset.list.stats.totalRows') }}</div>
         </div>
       </div>
       <div class="stat-item">
         <div class="stat-item__icon"><el-icon><Files /></el-icon></div>
         <div>
           <div class="stat-item__value">{{ totalCols }}</div>
-          <div class="stat-item__label">字段总数</div>
+          <div class="stat-item__label">{{ t('dataset.list.stats.totalCols') }}</div>
         </div>
       </div>
     </div>
 
     <div class="page-card">
       <div class="page-card__header">
-        <div class="page-card__header-title">数据集列表</div>
+        <div class="page-card__header-title">{{ t('dataset.list.listTitle') }}</div>
         <div class="page-card__header-right">
           <el-input
             v-model="search"
-            placeholder="搜索数据集名称"
+            :placeholder="t('dataset.list.searchPlaceholder')"
             clearable
             style="width: 240px"
             :prefix-icon="Search"
           />
-          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          <el-tag type="info" effect="plain">{{ t('dataset.list.totalCount', { count: total }) }}</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有数据集，去「数据源」页上传 Excel / CSV 文件创建">
-        <el-table-column prop="name" label="名称" min-width="180">
+      <el-table :data="filtered" v-loading="loading" :empty-text="t('dataset.list.emptyHint')">
+        <el-table-column prop="name" :label="t('dataset.list.name')" min-width="180">
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon"><DbIcon v-if="row.source_type === 'sql'" :type="row.db_type" :size="16" /><el-icon v-else-if="row.source_type === 'form'" :size="16"><Tickets /></el-icon><el-icon v-else :size="16"><Files /></el-icon></div>
@@ -55,32 +55,32 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="row_count" label="行数" width="130" align="center">
+        <el-table-column prop="row_count" :label="t('dataset.list.rowCount')" width="130" align="center">
           <template #default="{ row }">
             <span v-if="countingIds.has(row.id)" class="cell-muted">…</span>
-            <span v-else class="cell-num">{{ (row.row_count || 0).toLocaleString('zh-CN') }}</span>
+            <span v-else class="cell-num">{{ (row.row_count || 0).toLocaleString(locale) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="column_count" label="列数" width="90" align="center" />
-        <el-table-column prop="original_file" label="来源文件" min-width="160" show-overflow-tooltip>
+        <el-table-column prop="column_count" :label="t('dataset.list.colCols')" width="90" align="center" />
+        <el-table-column prop="original_file" :label="t('dataset.list.colSourceFile')" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="cell-muted">{{ row.original_file || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180">
+        <el-table-column prop="created_at" :label="t('dataset.list.colCreatedAt')" width="180">
           <template #default="{ row }">
             <span class="cell-muted">{{ formatDateTime(row.created_at, appStore.timezone) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right" align="center">
+        <el-table-column :label="t('dataset.list.actions')" width="260" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary"  @click="$router.push(`/datasets/${row.id}`)">查看</el-button>
-            <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary"  @click="openEditBuild(row)">编辑构建</el-button>
+            <el-button link type="primary"  @click="$router.push(`/datasets/${row.id}`)">{{ t('dataset.list.view') }}</el-button>
+            <el-button v-if="row.source_type === 'sql' && row.datasource_id" link type="primary"  @click="openEditBuild(row)">{{ t('dataset.list.editBuild') }}</el-button>
             <el-tooltip v-else-if="row.source_type === 'excel' || row.source_type === 'form'" :content="editBuildDisabledTip(row)" placement="top">
-              <span class="edit-build-tip"><el-button link type="primary" disabled>编辑构建</el-button></span>
+              <span class="edit-build-tip"><el-button link type="primary" disabled>{{ t('dataset.list.editBuild') }}</el-button></span>
             </el-tooltip>
-            <el-button link type="primary"  @click="openRename(row)">重命名</el-button>
-            <el-button link type="danger"  @click="remove(row)">删除</el-button>
+            <el-button link type="primary"  @click="openRename(row)">{{ t('dataset.list.rename') }}</el-button>
+            <el-button link type="danger"  @click="remove(row)">{{ t('common.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -99,11 +99,11 @@
       </div>
     </div>
 
-    <el-dialog v-model="renameVisible" title="重命名数据集" width="440px">
-      <el-input v-model="renameName" placeholder="请输入新的数据集名称" maxlength="100" @keyup.enter="confirmRename" />
+    <el-dialog v-model="renameVisible" :title="t('dataset.list.renameTitle')" width="440px">
+      <el-input v-model="renameName" :placeholder="t('dataset.list.renamePlaceholder')" maxlength="100" @keyup.enter="confirmRename" />
       <template #footer>
-        <el-button @click="renameVisible = false">取消</el-button>
-        <el-button type="primary" :loading="renaming" @click="confirmRename">确定</el-button>
+        <el-button @click="renameVisible = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="renaming" @click="confirmRename">{{ t('common.actions.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -111,14 +111,17 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
+import { t } from '@/i18n'
 import DbIcon from '@/components/DbIcon.vue'
 
+const { locale } = useI18n()
 const router = useRouter()
 const appStore = useAppStore()
 
@@ -188,11 +191,11 @@ function openRename(row) {
 }
 
 async function confirmRename() {
-  if (!renameName.value.trim()) return ElMessage.warning('名称不能为空')
+  if (!renameName.value.trim()) return ElMessage.warning(t('dataset.list.renameRequired'))
   renaming.value = true
   try {
     await datasetApi.rename(renamingId, renameName.value.trim())
-    ElMessage.success('重命名成功')
+    ElMessage.success(t('dataset.list.renameSuccess'))
     renameVisible.value = false
     load()
   } finally {
@@ -201,23 +204,31 @@ async function confirmRename() {
 }
 
 async function openEditBuild(row) {
-  await ElMessageBox.confirm(`打开构建器编辑「${row.name}」？`, '编辑构建', { type: 'info' })
+  await ElMessageBox.confirm(
+    t('dataset.list.editBuildConfirm', { name: row.name }),
+    t('dataset.list.editBuild'),
+    { type: 'info' }
+  )
   router.push({ path: `/datasources/${row.datasource_id}/builder`, query: { editDatasetId: row.id } })
 }
 
 function editBuildDisabledTip(row) {
-  if (row.source_type === 'form') return '表单填报数据集不支持「编辑构建」，数据随表单收集自动更新'
-  return '文件类数据集不支持「编辑构建」，如需更新数据请在数据源页重新上传'
+  if (row.source_type === 'form') return t('dataset.list.editBuildTipForm')
+  return t('dataset.list.editBuildTipFile')
 }
 
 async function remove(row) {
-  await ElMessageBox.confirm(`确定删除数据集「${row.name}」？删除后其下图表数据将不可用。`, '删除确认', {
-    type: 'warning',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
-  })
+  await ElMessageBox.confirm(
+    t('dataset.list.deleteConfirm', { name: row.name }),
+    t('dataset.list.deleteConfirmTitle'),
+    {
+      type: 'warning',
+      confirmButtonText: t('common.actions.delete'),
+      cancelButtonText: t('common.actions.cancel'),
+    }
+  )
   await datasetApi.remove(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('dataset.list.deleteSuccess'))
   load()
 }
 
