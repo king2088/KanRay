@@ -602,7 +602,7 @@ window.addEventListener('resize', () => chart.resize());</pre>
         <h3>{{ t('bigscreen.help.example2') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">var chart = echarts.init(container.querySelector('#myChart'));
 chart.setOption({
-  xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'] },
+  xAxis: { type: 'category', data: {{ t('bigscreen.help.sampleMonths') }} },
   yAxis: { type: 'value' },
   series: [{
     type: 'line', smooth: true, data: [820,932,901,934,1290,1330],
@@ -616,18 +616,13 @@ window.addEventListener('resize', () => chart.resize());</pre>
 chart.setOption({
   series: [{
     type: 'pie', radius: '60%',
-    data: [
-      { value: 1048, name: '搜索引擎' },
-      { value: 735, name: '直接访问' },
-      { value: 580, name: '邮件营销' },
-      { value: 484, name: '联盟广告' }
-    ]
+    data: {{ t('bigscreen.help.samplePieData') }}
   }]
 });
 window.addEventListener('resize', () => chart.resize());</pre>
 
         <h3>{{ t('bigscreen.help.example4') }}</h3>
-        <pre v-highlight data-lang="javascript" class="help-code">// data 来自右侧面板「数据绑定」配置的API返回值
+        <pre v-highlight data-lang="javascript" class="help-code">{{ t('bigscreen.help.cmtApiData') }}
 if (data && data.list) {
   var chart = echarts.init(container.querySelector('#myChart'));
   var names = data.list.map(item => item.name);
@@ -641,13 +636,13 @@ if (data && data.list) {
 }</pre>
 
         <h3>{{ t('bigscreen.help.example5') }}</h3>
-        <pre v-highlight data-lang="html" class="help-code">&lt;!-- HTML编辑器 --&gt;
+        <pre v-highlight data-lang="html" class="help-code">{{ t('bigscreen.help.cmtHtml') }}
 &lt;div class="card"&gt;
-  &lt;div class="title"&gt;系统状态&lt;/div&gt;
-  &lt;div class="value"&gt;运行中&lt;/div&gt;
+  &lt;div class="title"&gt;{{ t('bigscreen.help.sampleStatusTitle') }}&lt;/div&gt;
+  &lt;div class="value"&gt;{{ t('bigscreen.help.sampleStatusValue') }}&lt;/div&gt;
 &lt;/div&gt;
 
-/* CSS编辑器 */
+{{ t('bigscreen.help.cmtCss') }}
 .card {
   width: 100%; height: 100%;
   display: flex; flex-direction: column;
@@ -658,7 +653,7 @@ if (data && data.list) {
 .title { font-size: 14px; opacity: 0.8; margin-bottom: 8px; }
 .value { font-size: 32px; font-weight: bold; }
 
-/* JS编辑器留空即可 */</pre>
+{{ t('bigscreen.help.cmtJsEmpty') }}</pre>
 
         <h3>{{ t('bigscreen.help.example6') }}</h3>
         <pre v-highlight data-lang="javascript" class="help-code">var chart = echarts.init(container.querySelector('#myChart'));
