@@ -1,11 +1,13 @@
 const HttpError = require('../utils/http-error');
+const { enOf } = require('../i18n');
 
 // 统一成功响应。message 保持中文以兼容既有 API 消费者。
-// messageEn 仅在调用方显式给出时输出：省略它表示「没有英文文案」，
-// 由前端回退中文，避免把中文写进名为 messageEn 的字段。
+// messageEn 优先用调用方显式给出的值，否则按中文原文查表；查不到就省略该字段，
+// 由前端回退中文——避免把中文写进名为 messageEn 的字段。
 function ok(res, data, message = 'success', messageEn) {
   const body = { code: 0, data, message };
-  if (messageEn) body.messageEn = messageEn;
+  const en = messageEn || enOf(message);
+  if (en) body.messageEn = en;
   res.json(body);
 }
 
@@ -20,8 +22,8 @@ function errorHandler(err, req, res, next) {
   if (err instanceof HttpError) {
     status = err.status;
     message = err.message;
-    // 只认调用点显式给出的英文，不把中文回填进 messageEn
-    messageEn = err.messageEn;
+    // 调用点显式给出的英文优先，否则按中文原文查表；都没有就省略
+    messageEn = err.messageEn || enOf(message);
     details = err.details;
   } else if (err.type === 'entity.too.large') {
     status = 413;

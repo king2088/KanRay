@@ -37,6 +37,48 @@ test('HttpError 缺省 messageEn 时省略该字段，不把中文塞进英文�
   assert.equal(res.body.code, 400);
 });
 
+test('HttpError 缺省 messageEn 时按映射表补英文', () => {
+  const err = new HttpError(400, '数据源不存在');
+  const res = fakeRes();
+  errorHandler(err, {}, res, () => {});
+  assert.equal(res.body.messageEn, 'Data source not found');
+});
+
+test('ok 的中文文案自动查到英文', () => {
+  const res = fakeRes();
+  ok(res, null, '数据集创建成功');
+  assert.equal(res.body.message, '数据集创建成功');
+  assert.equal(res.body.messageEn, 'Dataset created');
+});
+
+test('ok 显式给出的 messageEn 优先于映射表', () => {
+  const res = fakeRes();
+  ok(res, null, '数据集创建成功', 'Custom English');
+  assert.equal(res.body.messageEn, 'Custom English');
+});
+
+test('映射表未收录的文案省略 messageEn，不报错', () => {
+  const res = fakeRes();
+  ok(res, null, '某个从未出现过的文案');
+  assert.equal(res.body.message, '某个从未出现过的文案');
+  assert.equal('messageEn' in res.body, false);
+});
+
+test('插值错误消息按映射表模板回填英文', () => {
+  const err = new HttpError(404, '数据集不存在: id=ds_9');
+  const res = fakeRes();
+  errorHandler(err, {}, res, () => {});
+  assert.equal(res.body.message, '数据集不存在: id=ds_9');
+  assert.equal(res.body.messageEn, 'Dataset not found: id=ds_9');
+});
+
+test('插值消息未收录时省略 messageEn', () => {
+  const err = new HttpError(404, '未收录的插值消息: id=xyz');
+  const res = fakeRes();
+  errorHandler(err, {}, res, () => {});
+  assert.equal('messageEn' in res.body, false);
+});
+
 test('HttpError 携带 messageEn', () => {
   const err = new HttpError(400, '参数错误', undefined, 40001, 'Invalid parameter');
   const res = fakeRes();
