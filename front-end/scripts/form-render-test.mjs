@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {
-  KEY_RE, FIELD_TYPES, ENUM_TYPES, isValidKey,
+  KEY_RE, FIELD_TYPES, ENUM_TYPES, isValidKey, TYPE_LABEL_KEYS, typeLabel,
 } from '../src/utils/form-meta.js'
 
 let passed = 0
@@ -29,6 +29,30 @@ t('FIELD_TYPES 包含 8 种控件', () => assert.deepEqual(
   ['text', 'textarea', 'number', 'date', 'select', 'radio', 'checkbox', 'static'],
 ))
 t('ENUM_TYPES 三选型', () => assert.deepEqual(ENUM_TYPES, ['select', 'radio', 'checkbox']))
+
+t('TYPE_LABEL_KEYS 与 FIELD_TYPES 一一对应且无多余键', () => {
+  assert.deepEqual(Object.keys(TYPE_LABEL_KEYS).sort(), [...FIELD_TYPES].sort())
+  for (const f of FIELD_TYPES) {
+    assert.equal(TYPE_LABEL_KEYS[f], `form.fieldType.${f}`, `${f} 的标签键应为 form.fieldType.${f}`)
+  }
+})
+
+t('typeLabel 输出中文（node 环境回退默认语言）', () => {
+  assert.equal(typeLabel('text'), '单行文本')
+  assert.equal(typeLabel('textarea'), '多行文本')
+  assert.equal(typeLabel('number'), '数字')
+  assert.equal(typeLabel('date'), '日期')
+  assert.equal(typeLabel('select'), '下拉选择')
+  assert.equal(typeLabel('radio'), '单选')
+  assert.equal(typeLabel('checkbox'), '多选')
+  assert.equal(typeLabel('static'), '说明文字')
+})
+
+t('typeLabel 对未知类型原样回退，不抛错', () => {
+  assert.equal(typeLabel('unknown-x'), 'unknown-x')
+  assert.equal(typeLabel(undefined), '')
+  assert.equal(typeLabel(null), '')
+})
 
 // 字段契约校验：模拟设计器 serialize 的结果，双端(前后端)对齐
 function validateFields(fields) {
