@@ -270,6 +270,24 @@ const SUCCESS_MESSAGES = {
   // 数据源 provider 的 testConnection 结果文案（在 data.message 里，由前端挑选）
   '连接成功': 'Connection successful',
   '文件数据源已导入': 'File data source imported',
+
+
+  // new Error('中文') 抛出的一类：provider 把连接失败原因原样带进 data.message
+  '缺少 URL': 'URL is required',
+  '连接超时': 'Connection timed out',
+  'API 返回为空，无法枚举表': 'The API returned an empty response; cannot enumerate tables',
+  'API 返回为空数组，无法推断列': 'The API returned an empty array; cannot infer columns',
+  '缺少可选依赖 odbc，请先安装：npm i odbc（需本机 unixODBC 与达梦 DM ODBC 驱动；macOS 官方驱动暂无）': 'Missing optional dependency odbc; install it first: npm i odbc (requires local unixODBC and the DM ODBC driver; there is no official macOS driver)',
+  '缺少可选依赖 ibm_db，请先安装并编译：npm i ibm_db（DB2 数据源需要，需本机 C++ 工具链）': 'Missing optional dependency ibm_db; install and build it first: npm i ibm_db (required for DB2 data sources, needs a local C++ toolchain)',
+  'ES 直查暂不支持聚合查询，请改用「同步数据源」物化后再查询': 'Direct ES queries do not support aggregation yet; materialize the data with a sync data source first',
+  'ES 查询缺少 FROM 索引': 'The ES query is missing its FROM index',
+  'ES 直查暂支持简单列投影，复杂表达式请改用同步物化': 'Direct ES queries only support simple column projection; use synced materialization for complex expressions',
+  '文件数据源仅允许访问数据集本地表（ds_*）': 'File data sources may only read the dataset local table (ds_*)',
+  '文件数据源仅允许单条查询': 'File data sources only allow a single query',
+  '缺少可选依赖 hive-driver，请先安装：npm i hive-driver（Hive/Impala 数据源需要）': 'Missing optional dependency hive-driver; install it first: npm i hive-driver (required for Hive/Impala data sources)',
+  'Kerberos 认证需要可选原生依赖 kerberos，请先安装并编译：npm i kerberos（hive-driver 使用 mongodb/kerberos）': 'Kerberos auth needs the optional native dependency kerberos; install and build it first: npm i kerberos (used by hive-driver for mongodb/kerberos)',
+  'MaxCompute 未返回实例 ID': 'MaxCompute did not return an instance ID',
+  'ETL 定义缺少节点': 'The ETL definition is missing nodes',
 };
 
 // 带插值的模板消息。键保留源码里的 ${...} 表达式原文（表达式内容不参与匹配，
@@ -366,6 +384,19 @@ const MESSAGE_TEMPLATES = {
   // 与 response.js 里显式写死的 messageEn 保持一致（那两处不经查表，直接透传）
   '文件上传错误: ${err.message}': 'File upload error: ${err.message}',
   '请求路径不存在: ${req.originalUrl}': 'Route not found: ${req.originalUrl}',
+
+
+  // new Error(`中文模板`) 抛出的一类
+  'config.json 解析失败: ${e.message}': 'Failed to parse config.json: ${e.message}',
+  '禁止访问数据源目标：${reason} 地址 ${u.hostname}': 'Access to the data source target is blocked: ${reason}, address ${u.hostname}',
+  '期望状态码 ${expected}，实际 ${res.statusCode}': 'Expected status code ${expected}, got ${res.statusCode}',
+  '禁止访问数据源目标：${reason} 地址 ${address}': 'Access to the data source target is blocked: ${reason}, address ${address}',
+  '不支持的 DB_TYPE: ${t}': 'Unsupported DB_TYPE: ${t}',
+  'MaxCompute 查询失败: ${st.message || st.errorMsg || status}': 'MaxCompute query failed: ${st.message || st.errorMsg || status}',
+
+  '不支持的 DB_TYPE="${dbType}"，可选: ${STORE_TYPES.join(\' / \')}': 'Unsupported DB_TYPE="${dbType}", options: ${STORE_TYPES.join(\' / \')}',
+  '不支持的类型 "${type}"，可选: ${STORE_TYPES.join(\'/\')}': 'Unsupported type "${type}", options: ${STORE_TYPES.join(\'/\')}',
+  '连接串需为 TYPE@URL，例如 sqlite@data/kanban.db': 'The connection string must be TYPE@URL, for example sqlite@data/kanban.db',
 };
 
 module.exports = { MESSAGES, SUCCESS_MESSAGES, MESSAGE_TEMPLATES };

@@ -75,11 +75,35 @@ function inventory() {
       }
     }
     // errorHandler / notFound 里直接赋给 message 的字面量（不经 HttpError/ok）
-    for (const m of src.matchAll(/\bmessage\s*[=:]\s*(['"`])([^'"`]*)\1/g)) {
-      const key = m[1] === '`' ? m[2] : m[2];
-      if (!CJK.test(key)) continue;
-      if (m[1] === '`') templates.set(key, (templates.get(key) || 0) + 1);
-      else statics.set(key, (statics.get(key) || 0) + 1);
+    // 同样按引号类型分开匹配，避免反引号模板里的内层引号把键截断
+    for (const { re, isTemplate } of [
+      { re: /\bmessage\s*[=:]\s*`([^`]*)`/g, isTemplate: true },
+      { re: /\bmessage\s*[=:]\s*'([^']*)'/g, isTemplate: false },
+      { re: /\bmessage\s*[=:]\s*"([^"]*)"/g, isTemplate: false },
+    ]) {
+      for (const m of src.matchAll(re)) {
+        const key = m[1];
+        if (!CJK.test(key)) continue;
+        const bucket = isTemplate ? templates : statics;
+        bucket.set(key, (bucket.get(key) || 0) + 1);
+      }
+    }
+    // new Error('中文') —— datasource provider 把连接失败原因 throw 出去，
+    // testConfig 捕获后原样塞进 data.message，用户在「测试连接」弹窗里会看到。
+    // 只扫 message: / message = 会整批漏掉这一类，实测漏过 24 条（含「连接超时」「缺少 URL」）。
+    // 反引号模板内部常含单双引号（如 ${STORE_TYPES.join(' / ')}），必须按引号类型分开匹配，
+    // 否则会在第一个内层引号处截断，把模板误记成半个键。
+    for (const { re, isTemplate } of [
+      { re: /new Error\(\s*`([^`]*)`/g, isTemplate: true },
+      { re: /new Error\(\s*'([^']*)'/g, isTemplate: false },
+      { re: /new Error\(\s*"([^"]*)"/g, isTemplate: false },
+    ]) {
+      for (const m of src.matchAll(re)) {
+        const key = m[1];
+        if (!CJK.test(key)) continue;
+        const bucket = isTemplate ? templates : statics;
+        bucket.set(key, (bucket.get(key) || 0) + 1);
+      }
     }
   }
   return { statics, templates, successes };
