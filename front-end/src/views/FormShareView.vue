@@ -3,7 +3,7 @@
     <div class="share-shell__card">
       <div class="share-shell__brand">
         <div class="share-shell__logo">K</div>
-        <span>KanRay 表单</span>
+        <span>{{ t('form.shareView.brand') }}</span>
       </div>
 
       <div v-if="!ready" class="share-shell__loading">
@@ -11,7 +11,7 @@
       </div>
 
       <div v-else-if="notFound" class="share-shell__empty">
-        <el-empty description="链接无效或已被删除" />
+        <el-empty :description="t('form.shareView.notFound')" />
       </div>
 
       <div v-else-if="!opened" class="share-shell__gate">
@@ -23,23 +23,23 @@
             type="password"
             show-password
             size="large"
-            placeholder="请输入访问密码"
+            :placeholder="t('form.shareView.passwordPlaceholder')"
             @keyup.enter="verify"
           />
-          <el-button type="primary" size="large" :loading="verifying" @click="verify">进入</el-button>
+          <el-button type="primary" size="large" :loading="verifying" @click="verify">{{ t('form.shareView.enter') }}</el-button>
         </div>
-        <el-button v-else-if="meta.published" type="primary" size="large" @click="verify">开始填写</el-button>
+        <el-button v-else-if="meta.published" type="primary" size="large" @click="verify">{{ t('form.shareView.startFill') }}</el-button>
       </div>
 
       <div v-else-if="form" class="share-shell__form">
         <div class="share-fill__header">
           <h1 class="share-shell__title">{{ form.name }}</h1>
-          <el-tag type="success" effect="plain" size="small">已发布</el-tag>
+          <el-tag type="success" effect="plain" size="small">{{ t('form.shareView.publishedBadge') }}</el-tag>
         </div>
         <FormRenderer ref="renderer" :fields="form.schema.fields" :description="form.description" />
         <div class="share-shell__actions">
-          <el-button type="primary" size="large" :loading="submitting" @click="submit">提交</el-button>
-          <el-button size="large" @click="$router.replace('/')">取消</el-button>
+          <el-button type="primary" size="large" :loading="submitting" @click="submit">{{ t('form.shareView.submit') }}</el-button>
+          <el-button size="large" @click="$router.replace('/')">{{ t('form.shareView.cancel') }}</el-button>
         </div>
       </div>
     </div>
@@ -48,11 +48,13 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { formShareApi, FORM_SHARE_TOKEN_KEY } from '@/api/formShare'
 import FormRenderer from '@/components/form/FormRenderer.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const token = String(route.params.token || '')
 
@@ -67,10 +69,10 @@ const submitting = ref(false)
 
 const notFound = computed(() => !meta.value.found)
 const gateMsg = computed(() => {
-  if (meta.value.expired) return '这份表单的分享链接已过期'
-  if (meta.value.inactive) return '这份表单的分享已被关闭'
-  if (!meta.value.published) return '该表单尚未发布'
-  if (meta.value.requiresPassword) return '该表单需要密码才能填写'
+  if (meta.value.expired) return t('form.shareView.gateExpired')
+  if (meta.value.inactive) return t('form.shareView.gateInactive')
+  if (!meta.value.published) return t('form.shareView.gateNotPublished')
+  if (meta.value.requiresPassword) return t('form.shareView.gateNeedsPassword')
   return ''
 })
 
@@ -92,7 +94,7 @@ function verifyNeeded() {
 
 async function verify() {
   if (meta.value.requiresPassword && !password.value.trim()) {
-    return ElMessage.warning('请输入密码')
+    return ElMessage.warning(t('form.shareView.errPasswordRequired'))
   }
   verifying.value = true
   try {
@@ -110,11 +112,12 @@ async function verify() {
 
 async function submit() {
   const ok = await renderer.value.validate().catch(() => false)
-  if (!ok) return ElMessage.warning('请完善必填项')
+  if (!ok) return ElMessage.warning(t('form.shareView.errRequiredMissing'))
   submitting.value = true
   try {
     const res = await formShareApi.submit(token, renderer.value.model)
-    ElMessage.success(`${form.value.submitConfig?.successText || '提交成功'}${res?.id ? `（序号 ${res.id}）` : ''}`)
+    const text = form.value.submitConfig?.successText || t('form.fill.successFallback')
+    ElMessage.success(res?.id ? t('form.fill.successWithId', { text, id: res.id }) : text)
     renderer.value.resetFields()
   } finally {
     submitting.value = false
