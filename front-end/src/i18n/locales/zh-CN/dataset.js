@@ -10,8 +10,6 @@ export default {
   },
   type: {
     form: '表单填报',
-    sql: 'SQL',
-    excel: 'Excel',
   },
   rowCount: '({count} 行)',
   list: {
@@ -128,13 +126,8 @@ export default {
     },
   },
   field: {
-    name: '字段名',
     type: '类型',
-    comment: '注释',
-    nullable: '可空',
     primaryKey: '主键',
-    rows: '行',
-    source: '来源',
   },
   dataSource: {
     title: '数据源',
@@ -154,7 +147,6 @@ export default {
     editTitle: '编辑数据源',
     detail: '详情',
     test: '测试连接',
-    empty: '暂无数据源',
     testSuccess: '测试成功: {message}',
     testFailed: '测试失败: {message}',
     saveSuccess: '保存成功',
@@ -219,7 +211,6 @@ export default {
   },
 
   sql: {
-    title: 'SQL 构建',
     editorPlaceholder: 'SELECT ... -- 仅支持只读 SQL；表/字段从左侧插入',
     leftPanelTitle: '表 / 字段（点「插入」进编辑器）',
     runPreview: '执行预览（前 {count} 行）',
@@ -233,7 +224,6 @@ export default {
     importFieldsSuccess: '已导入 {count} 个字段',
   },
   schemaTree: {
-    title: '库表结构',
     searchPlaceholder: '搜索表 / 字段',
     roleMetric: '指标',
     roleDimension: '维度',

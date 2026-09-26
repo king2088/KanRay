@@ -10,8 +10,6 @@ export default {
   },
   type: {
     form: 'Form entry',
-    sql: 'SQL',
-    excel: 'Excel',
   },
   rowCount: '({count} rows)',
   list: {
@@ -128,13 +126,8 @@ export default {
     },
   },
   field: {
-    name: 'Field',
     type: 'Type',
-    comment: 'Comment',
-    nullable: 'Nullable',
     primaryKey: 'Primary key',
-    rows: 'Rows',
-    source: 'Source',
   },
   dataSource: {
     title: 'Data sources',
@@ -154,7 +147,6 @@ export default {
     editTitle: 'Edit data source',
     detail: 'Details',
     test: 'Test connection',
-    empty: 'No data sources yet',
     testSuccess: 'Connection succeeded: {message}',
     testFailed: 'Connection failed: {message}',
     saveSuccess: 'Saved',
@@ -219,7 +211,6 @@ export default {
   },
 
   sql: {
-    title: 'SQL',
     editorPlaceholder: 'SELECT ... -- read-only SQL; insert tables and fields from the left panel',
     leftPanelTitle: 'Tables / fields (click "Insert" to add to the editor)',
     runPreview: 'Run preview (first {count} rows)',
@@ -233,7 +224,6 @@ export default {
     importFieldsSuccess: 'Imported {count} fields',
   },
   schemaTree: {
-    title: 'Schema',
     searchPlaceholder: 'Search tables / fields',
     roleMetric: 'Metric',
     roleDimension: 'Dimension',
