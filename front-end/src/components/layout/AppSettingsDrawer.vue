@@ -40,6 +40,11 @@
         <el-radio-button value="small">小</el-radio-button>
       </el-radio-group>
 
+      <p class="settings__label">{{ t('common.settings.language') }}</p>
+      <el-radio-group :model-value="store.locale" @change="store.setLocale">
+        <el-radio-button v-for="opt in LOCALE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio-button>
+      </el-radio-group>
+
       <p class="settings__label">外观 / 折叠</p>
       <div class="settings__switches">
         <div class="settings__switch-row">
@@ -64,6 +69,8 @@
 <script setup>
 import { computed } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useI18n } from 'vue-i18n'
+import { LOCALE_OPTIONS } from '@/i18n/constants'
 
 const LAYOUTS = [
   { value: 'vertical', label: '垂直布局' },
@@ -73,6 +80,7 @@ const LAYOUTS = [
 const COLORS = ['#3fa49a', '#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#9c27b0']
 
 const store = useAppStore()
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.modelValue,
