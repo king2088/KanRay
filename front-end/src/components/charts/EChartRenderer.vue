@@ -29,7 +29,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch, computed, nextTick } from 'vue'
-import echarts from '@/utils/echarts'
+import echarts, { createChart } from '@/utils/echarts'
+import { i18n } from '@/i18n'
 import { OPTION_BUILDERS } from '@/config/chart-configs'
 import { getPalette } from '@/config/color-palettes'
 import ZRLine from 'zrender/lib/graphic/shape/Line.js'
@@ -108,12 +109,12 @@ const pctValue = computed(() => {
 function fmtNumber(n) {
   if (n === null || n === undefined) return '-'
   if (typeof n !== 'number') return String(n)
-  return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+  return n.toLocaleString(i18n.global.locale.value, { maximumFractionDigits: 2 })
 }
 
 function initChart() {
   if (!el.value || chart) return
-  chart = echarts.init(el.value)
+  chart = createChart(el.value)
   chart.on('finished', buildUnderlines)
   resizeObserver = new ResizeObserver(() => {
     if (!chart) return
@@ -485,6 +486,17 @@ async function handleChartTypeChange() {
   }
   render()
 }
+
+// 语言切换后 ECharts 内置文案（tooltip/图例/坐标轴）不会自动更新，须 dispose 后按新 locale 重建
+watch(() => i18n.global.locale.value, async () => {
+  await nextTick()
+  if (!el.value || !chart) return
+  chart.dispose()
+  chart = null
+  resizeObserver && resizeObserver.disconnect()
+  resizeObserver = null
+  initChart()
+})
 
 onMounted(() => {
   if (isEChartsType.value) {
