@@ -1,6 +1,6 @@
 <template>
   <div class="schema-tree">
-    <el-input v-model="query"  placeholder="搜索表 / 字段" clearable @input="onSearch" />
+    <el-input v-model="query"  :placeholder="t('dataset.schemaTree.searchPlaceholder')" clearable @input="onSearch" />
     <div class="schema-tree__body" ref="bodyEl">
       <el-tree-v2
         ref="treeRef"
@@ -20,13 +20,13 @@
           >
             <el-icon :size="14" class="schema-tree__icon"><SchemaNodeIcon :kind="data.kind" :raw-type="data.raw?.type" /></el-icon>
             <span class="schema-tree__label">{{ data.n }}</span>
-            <el-tag v-if="data.kind === 'field' && roleMeta(data.raw)?.metric"  effect="plain" type="primary">指标</el-tag>
-            <el-tag v-else-if="data.kind === 'field' && roleMeta(data.raw)?.dimension"  effect="plain" type="success">维度</el-tag>
-            <el-tag v-else-if="data.kind === 'field' && roleMeta(data.raw)?.time"  effect="plain" type="warning">时间</el-tag>
+            <el-tag v-if="data.kind === 'field' && roleMeta(data.raw)?.metric"  effect="plain" type="primary">{{ t('dataset.schemaTree.roleMetric') }}</el-tag>
+            <el-tag v-else-if="data.kind === 'field' && roleMeta(data.raw)?.dimension"  effect="plain" type="success">{{ t('dataset.schemaTree.roleDimension') }}</el-tag>
+            <el-tag v-else-if="data.kind === 'field' && roleMeta(data.raw)?.time"  effect="plain" type="warning">{{ t('dataset.schemaTree.roleTime') }}</el-tag>
             <span class="schema-tree__actions">
-              <el-button v-if="data.kind === 'table'" link  type="primary" @click.stop="emit('mount-table', data.id)">上架</el-button>
-              <el-button v-if="data.kind === 'table' && showFields" link  @click.stop="emit('open-table', data.id)">打开</el-button>
-              <el-button v-if="data.kind === 'field'" link  @click.stop="emit('pick-field', data.raw, $event)">插入</el-button>
+              <el-button v-if="data.kind === 'table'" link  type="primary" @click.stop="emit('mount-table', data.id)">{{ t('dataset.schemaTree.mount') }}</el-button>
+              <el-button v-if="data.kind === 'table' && showFields" link  @click.stop="emit('open-table', data.id)">{{ t('dataset.schemaTree.open') }}</el-button>
+              <el-button v-if="data.kind === 'field'" link  @click.stop="emit('pick-field', data.raw, $event)">{{ t('dataset.schemaTree.insert') }}</el-button>
             </span>
           </span>
         </template>
@@ -39,6 +39,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import SchemaNodeIcon from '@/components/SchemaNodeIcon.vue'
 import { toTree } from '@/utils/catalog'
+import { t } from '@/i18n'
 
 const props = defineProps({
   catalog: { type: Array, default: () => [] },

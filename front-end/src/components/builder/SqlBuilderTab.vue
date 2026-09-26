@@ -1,18 +1,18 @@
 <template>
   <div class="sql-builder">
     <div class="sql-builder__left">
-      <div class="sql-builder__panel-title">表 / 字段（点「插入」进编辑器）</div>
+      <div class="sql-builder__panel-title">{{ t('dataset.sql.leftPanelTitle') }}</div>
       <SchemaTree :catalog="schemas" @mount-table="insertTable" @pick-field="insertField" />
     </div>
     <div class="sql-builder__main">
-      <SqlCodeMirror v-model="localSql" :catalog="schemas" placeholder="SELECT ... -- 仅支持只读 SQL；表/字段从左侧插入" />
+      <SqlCodeMirror v-model="localSql" :catalog="schemas" :placeholder="t('dataset.sql.editorPlaceholder')" />
       <div class="sql-builder__toolbar">
-        <el-button type="primary" :loading="previewing" @click="runPreview">执行预览（前 {{ limit }} 行）</el-button>
-        <el-button :loading="importing" :disabled="!previewRows.length" @click="importFields">从结果导入字段</el-button>
+        <el-button type="primary" :loading="previewing" @click="runPreview">{{ t('dataset.sql.runPreview', { count: limit }) }}</el-button>
+        <el-button :loading="importing" :disabled="!previewRows.length" @click="importFields">{{ t('dataset.sql.importFields') }}</el-button>
         <span v-if="lastError" class="sql-builder__error">{{ lastError }}</span>
       </div>
       <div class="sql-builder__preview">
-        <el-table :data="previewRows" height="100%" empty-text="点击「执行预览」查看数据">
+        <el-table :data="previewRows" height="100%" :empty-text="t('dataset.sql.previewEmpty')">
           <el-table-column v-for="c in previewCols" :key="c" :prop="c" :label="c" min-width="120" show-overflow-tooltip />
         </el-table>
       </div>
@@ -24,6 +24,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { buildApi } from '@/api'
+import { t } from '@/i18n'
 import SchemaTree from './SchemaTree.vue'
 import SqlCodeMirror from './SqlCodeMirror.vue'
 
@@ -59,38 +60,38 @@ function insertTable(tableId) {
   const [schema, table] = tableId.split(':')
   sql.value += ` \`${schema}\`.\`${table}\` `
   emitChange()
-  ElMessage({ message: `已插入 ${schema}.${table}`, type: 'success', duration: 900 })
+  ElMessage({ message: t('dataset.sql.insertTableSuccess', { schema, table }), type: 'success', duration: 900 })
 }
 
 function insertField(field, event) {
   const token = event?.shiftKey ? `\`${field.name}\`` : `\`${field.schema}\`.\`${field.table}\`.\`${field.name}\``
   sql.value += ` ${token} `
   emitChange()
-  ElMessage({ message: `已插入 ${field.table}.${field.name}`, type: 'success', duration: 900 })
+  ElMessage({ message: t('dataset.sql.insertFieldSuccess', { table: field.table, name: field.name }), type: 'success', duration: 900 })
 }
 
 async function runPreview() {
   lastError.value = ''
-  if (!sql.value.trim()) return ElMessage.warning('请输入 SQL')
+  if (!sql.value.trim()) return ElMessage.warning(t('dataset.sql.sqlEmpty'))
   previewing.value = true
   try {
     const res = await buildApi.previewDetail(props.datasourceId, { type: 'sql', sql: sql.value }, limit)
     previewCols.value = res.rows.length ? Object.keys(res.rows[0]) : (res.fields || []).map((f) => f.name)
     previewRows.value = res.rows
   } catch (e) {
-    lastError.value = e.message || '预览失败'
+    lastError.value = e.message || t('dataset.sql.previewFailed')
     previewRows.value = []
   } finally { previewing.value = false }
 }
 
 async function importFields() {
-  if (!previewRows.value.length) return ElMessage.warning('先执行预览再导入字段')
+  if (!previewRows.value.length) return ElMessage.warning(t('dataset.sql.previewFirst'))
   importing.value = true
   try {
     const cols = Object.keys(previewRows.value[0])
     importedFields.value = cols.map((c) => ({ name: c, label: c, type: 'string' }))
     emitChange()
-    ElMessage.success(`已导入 ${cols.length} 个字段`)
+    ElMessage.success(t('dataset.sql.importFieldsSuccess', { count: cols.length }))
   } finally { importing.value = false }
 }
 
