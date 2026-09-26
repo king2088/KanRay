@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip, getCommonXAxis, getCommonYAxis, getCommonDataZoom, getSeriesLabel } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -52,7 +55,7 @@ const getChartOption = () => {
       data = data.map((v: number) => total ? Math.round((Number(v) / total) * 100) : 0)
     }
     return {
-      name: seriesNames[gi] || `系列${gi + 1}`,
+      name: seriesNames[gi] || t('bigscreen.chart.seriesIndex', { n: gi + 1 }),
       type: 'bar',
       stack: isGroupStacked ? `g${Math.floor(gi / 2)}` : 'total',
       barWidth: p.barWidth || null,

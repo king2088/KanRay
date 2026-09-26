@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { defaultColors, getCommonTitle, getCommonGrid, getCommonTooltip, getCommonXAxis, getCommonYAxis, getCommonDataZoom } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -56,7 +59,7 @@ const getChartOption = () => {
     grid: getCommonGrid(p),
     tooltip: {
       ...getCommonTooltip(p),
-      formatter: (params: any) => `${params.data[0]}: ${params.data[1]}<br/>值: ${params.data[2]}`
+      formatter: (params: any) => `${params.data[0]}: ${params.data[1]}<br/>${t('bigscreen.chart.tooltipValue', { value: params.data[2] })}`
     },
     xAxis: xAxisConfig,
     yAxis: yAxisConfig,
