@@ -34,7 +34,12 @@
       </template>
     </el-form>
     <div v-if="testResult" style="margin-top: 8px">
-      <el-alert :type="testResult.ok ? 'success' : 'error'" :title="testResult.message" show-icon />
+      <!-- provider 的结果文案在 data.message 里，没有信封兜底；用后端补的 messageEn 优先 -->
+      <el-alert
+        :type="testResult.ok ? 'success' : 'error'"
+        :title="localizeApiMessage(testResult.message, testResult.messageEn)"
+        show-icon
+      />
     </div>
     <template #footer>
       <el-button @click="$emit('update:modelValue', false)">{{ t('common.actions.cancel') }}</el-button>
@@ -48,7 +53,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { datasourceApi } from '@/api'
-import { t } from '@/i18n'
+import { t, localizeApiMessage } from '@/i18n'
 import DbIcon from '@/components/DbIcon.vue'
 
 const props = defineProps({ modelValue: Boolean, editRow: Object })
