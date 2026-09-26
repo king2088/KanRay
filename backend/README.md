@@ -61,18 +61,26 @@ Configuration priority: **environment variables > config.json > defaults**.
 | `PORT` | `3001` | 后端端口 |
 | `DB_TYPE` | `sqlite` | 存储后端类型：`sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
 | `DB_URL` | 空 | 非 sqlite 时的 JDBC 风格连接串 |
+| `DB_POOL_MAX` | `10` | 存储驱动连接池上限（最小 1）；多副本部署时总连接约等于副本数 × 该值 |
 | `DB_PATH` | `data/kanban.db` | sqlite 文件路径（支持绝对路径） |
 | `DATA_DIR` | `backend/data` | 运行时数据目录（也决定 `config.json` 首个读取位置） |
 | `UPLOAD_DIR` | `backend/uploads` | 上传文件目录 |
 | `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` | `admin@kanray.local` / `admin123` | 初始管理员 |
 | `JWT_SECRET` | `dev-secret-change-me` | JWT 密钥（生产必须注入） |
 | `ACCESS_TTL` / `REFRESH_TTL_DAYS` | `15m` / `7` | 令牌有效期 |
-| `MAX_FILE_SIZE` / `MAX_ROWS` | `20MB` / `200000` | 上传大小与行数上限 |
+| `MAX_FILE_SIZE` / `MAX_ROWS` | `20971520`（20 MiB，**字节数**）/ `200000` | 上传大小（字节）与行数上限。`MAX_FILE_SIZE` 走 `parseInt`，**必须填纯数字字节数**，写成 `20MB` 会得到 `NaN` |
 | `DATASOURCE_SECRET` | `kanban-dev-datasource-secret-32b!` | 数据源密码加密主密钥（生产必须替换，见下文） |
 | `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_MAX_CONCURRENT` / `SYNC_DEFAULT_INTERVAL_SECONDS` / `SYNC_LOCK_TTL_MS` | `60000` / `2` / `86400` / `1800000` | 同步调度参数；`SYNC_LOCK_TTL_MS` 为调度锁租约时长（毫秒） |
+| `SYNC_MODE` | `inline` | `inline` = 调度与执行都在 API 进程内（默认，单机/测试）；`worker` = 调度只入队、由独立 worker 进程消费（多副本/生产）。非 `worker` 的任意取值都回退 `inline` |
+| `SYNC_WORKER_POLL_MS` | `2000` | worker 进程轮询 `sync_jobs` 的间隔（毫秒） |
+| `SYNC_JOB_RETENTION_DAYS` | `7` | 已完成（success/failed）同步任务的保留天数（最小 1），超期清理以免 `sync_jobs` 无界增长 |
 | `REDIS_URL` | 空（关闭） | Redis 缓存/锁开关，如 `redis://127.0.0.1:6379`；空则用内存缓存 + 数据库租约锁 |
 | `CACHE_TTL_MS` | `60000` | 数据源目录缓存 TTL（毫秒） |
 | `TIMEZONE` | `Asia/Shanghai` | 时区标识符（IANA），前端按此时区渲染时间 |
+| `QUERY_MAX_GROUPS` | `10000` | 聚合查询未显式指定 groupLimit 时的分组数上限（最小 1），防止超大分组结果全量物化 |
+| `HTTP_DATASOURCE_BLOCK_PRIVATE` | `false` | http 数据源是否拦截回环/私网段（防 SSRF）。默认关（本地 dev 可指向 localhost/局域网服务）；生产多用户部署建议开启。云元数据端点（`169.254/16`、`100.64/10`）任何环境都硬拦 |
+| `OPEN_API_RATE_PER_MIN` | `120` | 开放 API 每分钟请求数上限 |
+| `OPEN_API_MAX_ROWS` | `10000` | 开放 API 单次返回行数上限 |
 
 ### Core Environment Variables
 
@@ -81,18 +89,26 @@ Configuration priority: **environment variables > config.json > defaults**.
 | `PORT` | `3001` | Backend port |
 | `DB_TYPE` | `sqlite` | Storage backend type: `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
 | `DB_URL` | empty | JDBC-style connection string for non-sqlite backends |
+| `DB_POOL_MAX` | `10` | Storage-driver connection pool cap (minimum 1); with multiple replicas the total is roughly replicas × this value |
 | `DB_PATH` | `data/kanban.db` | SQLite file path (absolute paths supported) |
 | `DATA_DIR` | `backend/data` | Runtime data directory (also the first location `config.json` is read from) |
 | `UPLOAD_DIR` | `backend/uploads` | Upload directory |
 | `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` | `admin@kanray.local` / `admin123` | Initial administrator |
 | `JWT_SECRET` | `dev-secret-change-me` | JWT signing secret (must be injected in production) |
 | `ACCESS_TTL` / `REFRESH_TTL_DAYS` | `15m` / `7` | Token lifetimes |
-| `MAX_FILE_SIZE` / `MAX_ROWS` | `20MB` / `200000` | Upload size and row-count limits |
+| `MAX_FILE_SIZE` / `MAX_ROWS` | `20971520` (20 MiB, in **bytes**) / `200000` | Upload size (bytes) and row-count limits. `MAX_FILE_SIZE` goes through `parseInt`, so it **must be a plain byte number** — writing `20MB` yields `NaN` |
 | `DATASOURCE_SECRET` | `kanban-dev-datasource-secret-32b!` | Master key for data source password encryption (must be replaced in production, see below) |
 | `SYNC_SCHEDULER_INTERVAL_MS` / `SYNC_MAX_CONCURRENT` / `SYNC_DEFAULT_INTERVAL_SECONDS` / `SYNC_LOCK_TTL_MS` | `60000` / `2` / `86400` / `1800000` | Sync scheduler parameters; `SYNC_LOCK_TTL_MS` is the scheduler lock lease duration in milliseconds |
+| `SYNC_MODE` | `inline` | `inline` = scheduling and execution both happen in the API process (the default, single machine / testing); `worker` = scheduling only enqueues and a standalone worker process consumes (multiple replicas / production). Any value other than `worker` falls back to `inline` |
+| `SYNC_WORKER_POLL_MS` | `2000` | How often the worker process polls `sync_jobs`, in milliseconds |
+| `SYNC_JOB_RETENTION_DAYS` | `7` | Retention in days (minimum 1) for finished (success/failed) sync jobs, cleaned up so that `sync_jobs` cannot grow without bound |
 | `REDIS_URL` | empty (disabled) | Redis cache/lock switch, e.g. `redis://127.0.0.1:6379`; when empty an in-memory cache plus database lease locks are used |
 | `CACHE_TTL_MS` | `60000` | Data source catalog cache TTL in milliseconds |
 | `TIMEZONE` | `Asia/Shanghai` | IANA time zone identifier; the front end renders times in this zone |
+| `QUERY_MAX_GROUPS` | `10000` | Group-count cap for aggregation queries when `groupLimit` is not given explicitly (minimum 1), so that huge grouped results are not fully materialised |
+| `HTTP_DATASOURCE_BLOCK_PRIVATE` | `false` | Whether http data sources block loopback/private ranges (SSRF guard). Off by default (local dev may point at localhost / a LAN service); recommended on for multi-user production deployments. Cloud metadata endpoints (`169.254/16`, `100.64/10`) are always hard-blocked |
+| `OPEN_API_RATE_PER_MIN` | `120` | Open API requests-per-minute cap |
+| `OPEN_API_MAX_ROWS` | `10000` | Open API per-response row cap |
 
 ---
 
@@ -324,17 +340,22 @@ backend/
     utils/                   http-error / jwt / pagination
   config.example.json        配置示例
   scripts/
-    integration-test.js      集成测试（需后端已启动）
-    smoke-ds-dataset.mjs     数据源+数据集全链路 E2E 冒烟（HTTP 直测）
-    datasource-live/         9 个实测数据源 Docker Compose
-    datasource-live/verify-schema-scope.mjs   schema 结构验证工具
+    migrate-data.mjs          旧库 → 新库元数据/数据迁移（ESM + createRequire）
+    seed-form-demo.mjs       表单演示数据播种（「员工满意度调查」，幂等重灌）
+    seed-hydro-demo.mjs      水电站行业看板演示数据播种（幂等重灌）
+    smoke-ds-dataset.mjs     数据源+数据集全链路 E2E 冒烟（自己起后端做 HTTP 直测；mysql:13306 不通时 exit 0）
+    smoke-form.mjs           表单功能端到端 HTTP 冒烟（临时脚本，不入库）
+    bench/                    无外部依赖的并发压测（http-bench.js，输出延迟分位与吞吐）
+    datasource-live/         9 个实测数据源 Docker Compose（docker-compose.yml + live-e2e.mjs）
+    datasource-live/verify-schema-scope.mjs   各 provider schema 结构验证（容器未起时逐个 skip）
+    datasource-live/quickstart_conf/          Hive 连接配置样例（hive-site.xml）
   test/                      node:test 单元 / 集成 / LIVE 冒烟（RUN_LIVE=1）
   data/ kanban.db            默认 SQLite 文件（运行时生成）
 ```
 
 ## Directory Structure
 
-The tree above lists the backend layout: `src/server.js` and `src/app.js` are the entry point and middleware wiring, `src/config/index.js` resolves configuration, `src/db.js` and `src/db/` hold the storage facade with its dialects and per-database DDL, `src/datasources/` holds the driver registry and protocol-family providers, `src/engines/` the aggregation engine, `src/services/` the business layer, `src/jobs/` the sync scheduler, `src/routes/` the RESTful routers, `src/middleware/` authentication / authorization / the unified response, `src/i18n/` the Chinese-to-English lookup tables, `src/seeds.js` the initial administrator seeding and `src/utils/` shared helpers. `scripts/` holds the E2E smoke script and the `datasource-live/` Docker Compose stack, `test/` holds the node:test suites and `data/kanban.db` is the default SQLite file generated at runtime.
+The tree above lists the backend layout: `src/server.js` and `src/app.js` are the entry point and middleware wiring, `src/config/index.js` resolves configuration, `src/db.js` and `src/db/` hold the storage facade with its dialects and per-database DDL, `src/datasources/` holds the driver registry and protocol-family providers, `src/engines/` the aggregation engine, `src/services/` the business layer, `src/jobs/` the sync scheduler, `src/routes/` the RESTful routers, `src/middleware/` authentication / authorization / the unified response, `src/i18n/` the Chinese-to-English lookup tables, `src/seeds.js` the initial administrator seeding and `src/utils/` shared helpers. `scripts/` holds `migrate-data.mjs` (old-to-new database migration), the two `seed-*-demo.mjs` demo-data seeders, the `smoke-ds-dataset.mjs` / `smoke-form.mjs` end-to-end HTTP smoke scripts, the `bench/http-bench.js` load generator and the `datasource-live/` Docker Compose stack (with `verify-schema-scope.mjs` and `quickstart_conf/`), `test/` holds the node:test suites and `data/kanban.db` is the default SQLite file generated at runtime.
 
 ---
 
@@ -344,26 +365,35 @@ The tree above lists the backend layout: `src/server.js` and `src/app.js` are th
 npm start                          # 生产
 npm run dev                        # 开发热重载
 
-# 单元 + 集成（无外部依赖，仅 sqlite）
+# 仅 node:test 单元/集成（无外部依赖，仅 sqlite）
+npm run test:unit
+
+# test:unit + test:smoke + test:providers（后两者容器未起时逐个 skip 并 exit 0）
 npm test
 
 # 全部测试含 LIVE（需先起 docker compose，见下）
+npm run test:live
 RUN_LIVE=1 npm test
 
-node scripts/integration-test.js   # HTTP 集成测试（需后端已启动）
-node scripts/smoke-ds-dataset.mjs  # 数据源+数据集 E2E 冒烟（需后端已启动）
+# 仅 PostgreSQL LIVE 矩阵
+npm run test:pg
+
+node scripts/smoke-ds-dataset.mjs  # 数据源+数据集 E2E 冒烟（自己起后端；mysql:13306 不通时 exit 0）
+node scripts/smoke-form.mjs        # 表单功能 E2E 冒烟（自己起后端，临时 SQLite）
+node scripts/datasource-live/verify-schema-scope.mjs   # 各 provider schema 结构验证
+node scripts/bench/http-bench.js --url http://127.0.0.1:3001 --path /api/health   # 并发压测
 ```
 
 ## Common Commands
 
-`npm start` runs the production server and `npm run dev` runs it with hot reload. `npm test` covers unit and integration tests with no external dependency (SQLite only), while `RUN_LIVE=1 npm test` additionally runs the LIVE cases and needs the Docker Compose stack from below to be up first. The last two commands are the standalone HTTP integration test and the data source + dataset end-to-end smoke test.
+`npm start` runs the production server and `npm run dev` runs it with hot reload. `npm run test:unit` runs the node:test suites only (no external dependency, SQLite only), while `npm test` is `test:unit` chained with `test:smoke` and `test:providers` — the latter two self-exit 0 (skipping each case) when their containers are down, so they need no external dependency but are not literally unit-only. `npm run test:live` and `RUN_LIVE=1 npm test` additionally run the LIVE cases and need the Docker Compose stack from below to be up first; `npm run test:pg` narrows that to the PostgreSQL matrix. The last four commands are the two standalone end-to-end HTTP smoke scripts (each spawns its own backend), the provider schema-scope verifier, and the concurrency load generator.
 
 ### 测试说明（`test/`，node:test）
 
 | 模式 | 命令 | 覆盖 |
 | --- | --- | --- |
-| 单元/集成 | `npm test` | 全部不依赖外部库的用例：auth/RBAC/audit/engine/builder/驱动元数据/存储门面方言等 |
-| LIVE | `RUN_LIVE=1 npm test` | 追加连接真实容器：六库存储后端 + 十一种数据源 provider + 直连/同步链路 |
+| 单元/集成 | `npm run test:unit`（`npm test` 会在此基础上再串 `test:smoke` + `test:providers`，容器未起时它们逐个 skip 后 exit 0） | 全部不依赖外部库的用例：auth/RBAC/audit/engine/builder/驱动元数据/存储门面方言等 |
+| LIVE | `npm run test:live` / `RUN_LIVE=1 npm test`（仅 PG 矩阵用 `npm run test:pg`） | 追加连接真实容器：六库存储后端 + 十一种数据源 provider + 直连/同步链路 |
 
 LIVE 用例失败/跳过会打印原因（如容器未起、端口不通即 skip）。启动容器：
 
@@ -375,8 +405,8 @@ docker compose -f scripts/datasource-live/docker-compose.yml up -d
 
 | Mode | Command | Coverage |
 | --- | --- | --- |
-| Unit/integration | `npm test` | Every case that needs no external database: auth/RBAC/audit/engine/builder/driver metadata/storage facade dialects, etc. |
-| LIVE | `RUN_LIVE=1 npm test` | Additionally connects to real containers: six storage backends + eleven data source providers + direct-connect and sync pipelines |
+| Unit/integration | `npm run test:unit` (`npm test` chains `test:smoke` + `test:providers` on top of it; they skip each case and exit 0 when their containers are down) | Every case that needs no external database: auth/RBAC/audit/engine/builder/driver metadata/storage facade dialects, etc. |
+| LIVE | `npm run test:live` / `RUN_LIVE=1 npm test` (use `npm run test:pg` for the PostgreSQL matrix only) | Additionally connects to real containers: six storage backends + eleven data source providers + direct-connect and sync pipelines |
 
 LIVE cases print the reason when they fail or are skipped (for example, they skip when the containers are not up or the port is unreachable). Start the containers with the command above.
 

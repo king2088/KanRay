@@ -13,11 +13,11 @@ Kubernetes distribution (kind / minikube / k3s, etc.).
 
 ```
                     ┌──────────────────────── 命名空间 kanray ───────────────────────┐
-浏览器 ──NodePort:30080 / Ingress──▶ frontend (nginx:80)                              │
+浏览器 ──NodePort:30080 / Ingress──▶ frontend (nginx 容器 :8080，Service :80)         │
                                         │  /api/ 反代                                  │
                                         ▼                                             │
   backend (kanray-backend:1.0.0, :3001)  ◀────  API 路由 /api/health 探针             │
-  worker  (kanray-backend:1.0.0, worker/main.js)                                      │
+  worker  (kanray-backend:1.0.0, backend/src/worker/main.js)                          │
         │ 共享卷：kanray-data (/data) · kanray-uploads (/uploads)                     │
         ▼                                                                             │
   postgres:5432 (StatefulSet) ── 元数据 / 同步任务队列（sync_jobs 租约互斥）          │
@@ -109,18 +109,27 @@ deploy/k8s/
 │   ├── configmap.yaml        # 非敏感运行配置（DB_TYPE/SYNC_*/TIMEZONE/OPEN_API_*）
 │   └── secret.yaml.example   # Secret 键清单（实际值由 deploy.sh 幂等生成，不落盘）
 ├── postgres/                 # StatefulSet + Service（PostgreSQL 16）
+│   ├── statefulset.yaml
+│   └── service.yaml
 ├── redis/                    # StatefulSet + Service（Redis 7, AOF）
+│   ├── statefulset.yaml
+│   └── service.yaml
 ├── pv/
 │   ├── hostpath-pv.yaml      # 单节点测试用 hostPath PV（勿用于多节点生产）
 │   └── pvc.yaml              # kanray-data / kanray-uploads（backend 与 worker 共享）
 ├── backend/
-│   ├── deployment.yaml       # Deployment + Service（:3001, /api/health 探针）
+│   ├── deployment.yaml       # Deployment（:3001, /api/health 探针）
+│   ├── service.yaml          # Service（:3001）
 │   └── Dockerfile            # k8s 专属后端镜像（构建自仓库根）
-├── worker/                   # Deployment（同步 worker）
+├── worker/
+│   └── deployment.yaml       # Deployment（同步 worker）
 ├── frontend/
-│   ├── deployment.yaml       # Deployment + NodePort Service + 可选 Ingress
+│   ├── deployment.yaml       # Deployment（:8080）
+│   ├── service.yaml          # NodePort Service（port 80 → targetPort 8080，nodePort 30080）
+│   ├── ingress.yaml          # 可选 Ingress（生产入口示例，默认不 apply）
 │   ├── Dockerfile            # k8s 专属前端镜像
-│   └── nginx.conf            # k8s 版反代（直写 backend:3001，K8s Service 稳定）
+│   ├── nginx-main.conf       # nginx 主配置（COPY 为 /etc/nginx/nginx.conf；非 root 运行，临时文件路径迁到 /tmp）
+│   └── nginx.conf            # server 段（COPY 为 conf.d/default.conf）：listen 8080，/api/ → backend:3001（直写，K8s Service 稳定）
 └── scripts/
     ├── build-images.sh       # 构建 kanray-backend / kanray-frontend:*-k8s 镜像（可选 PUSH_REGISTRY）
     └── deploy.sh             # 部署命令行入口
@@ -137,7 +146,7 @@ The directory tree above is language-neutral, so it is shown only once.
   `REDIS_URL` / `ADMIN_INITIAL_PASSWORD`。
   首次 `deploy.sh up` 时自动生成随机值；需要复用既有密钥时，用同名环境变量传入
   （JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / POSTGRES_USER / POSTGRES_DB /
-  ADMIN_INITIAL_PASSWORD）。本部署目录**完全自包含**，不读取 `deploy/docker/` 下的任何文件。
+  DB_URL / REDIS_URL / ADMIN_INITIAL_PASSWORD）。本部署目录**完全自包含**，不读取 `deploy/docker/` 下的任何文件。
   轮换密钥：删除 Secret 后重新 `deploy.sh up`（注意会改动数据库口令）。
 - 部署镜像：默认 `kanray-backend:1.0.0` 与 `kanray-frontend:1.0.0-k8s`。`-k8s` 后缀用于与
   docker 部署镜像区分，避免本地同名 tag 互相覆盖。生产用注册表时设置 `PUSH_REGISTRY`
@@ -151,7 +160,7 @@ The directory tree above is language-neutral, so it is shown only once.
   Random values are generated automatically on the first `deploy.sh up`; to reuse existing secrets,
   pass them in as environment variables of the same name
   (JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / POSTGRES_USER / POSTGRES_DB /
-  ADMIN_INITIAL_PASSWORD). This deployment directory is **fully self-contained** and reads no file
+  DB_URL / REDIS_URL / ADMIN_INITIAL_PASSWORD). This deployment directory is **fully self-contained** and reads no file
   under `deploy/docker/`. To rotate secrets: delete the Secret and run `deploy.sh up` again (note that
   this changes the database password).
 - Deployment images: by default `kanray-backend:1.0.0` and `kanray-frontend:1.0.0-k8s`. The `-k8s`
@@ -176,7 +185,8 @@ The directory tree above is language-neutral, so it is shown only once.
    （需集群已装 Ingress Controller，注意改 `ingressClassName` 与域名）。
 5. **高可用**：backend 无状态可 `replicas>1`（留意 `DB_POOL_MAX` 总连接）；worker 多副本
    依赖 kanray-data/uploads 为 RWX，且 `SYNC_MAX_CONCURRENT` 是单进程并发上限，多副本时
-   总量=副本数×该值。数据卷备份与 `restartPolicy` 由存储层保证。
+   总量=副本数×该值。数据卷备份由存储层快照保证（见「运维」）。`restartPolicy` 是 Pod spec 字段，与存储层无关：
+   `backend/deployment.yaml` 与 `worker/deployment.yaml` 均未设置，取 K8s 默认值 `Always`，需要别的行为请自行在清单中改写。
 6. **配额与弹性**：清单已带 requests/limits，可按需调整并配置 HPA 与网络策略。
 
 ## Production Checklist
@@ -189,7 +199,7 @@ The directory tree above is language-neutral, so it is shown only once.
    - hostPath data exists only on one fixed node and has no redundancy; backups must be planned separately.
 3. **Database and cache (optional managed services)**: when switching to a cloud RDS / managed Redis, just point the Secret's `DB_URL` / `REDIS_URL` at the external instance and remove the `postgres/` and `redis/` manifests (and their PVCs).
 4. **Ingress**: NodePort is fine for testing. For production, prefer a LoadBalancer or enable `frontend/ingress.yaml` (the cluster must already have an Ingress Controller; remember to change `ingressClassName` and the host name).
-5. **High availability**: the stateless backend can run `replicas>1` (watch the total connection count implied by `DB_POOL_MAX`); multiple worker replicas require kanray-data/uploads to be RWX, and `SYNC_MAX_CONCURRENT` is a per-process concurrency cap, so with multiple replicas the total equals replicas × that value. Data volume backups and `restartPolicy` are guaranteed by the storage layer.
+5. **High availability**: the stateless backend can run `replicas>1` (watch the total connection count implied by `DB_POOL_MAX`); multiple worker replicas require kanray-data/uploads to be RWX, and `SYNC_MAX_CONCURRENT` is a per-process concurrency cap, so with multiple replicas the total equals replicas × that value. Data volume backups are handled by storage-layer snapshots (see "Operations"). `restartPolicy` is a pod-spec field and has nothing to do with the storage layer: neither `backend/deployment.yaml` nor `worker/deployment.yaml` sets one, so it takes the Kubernetes default `Always` — change it in the manifests yourself if you need different behaviour.
 6. **Quotas and elasticity**: the manifests already carry requests/limits; adjust them as needed and configure an HPA and network policies.
 
 ## 运维

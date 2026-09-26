@@ -18,7 +18,8 @@ deploy/docker/
 ├── backend/Dockerfile         # 后端 + worker 镜像（独立自包含，不依赖 deploy/k8s）
 └── frontend/
     ├── Dockerfile             # 前端 Nginx 镜像
-    └── nginx.conf             # 反代配置（/api/ → backend:3001，resolver 动态解析）
+    ├── nginx-main.conf        # nginx 主配置（COPY 为 /etc/nginx/nginx.conf；非 root 运行，临时文件路径迁到 /tmp）
+    └── nginx.conf             # server 段（COPY 为 conf.d/default.conf）：listen 8080，/api/ → backend:3001，resolver 动态解析
 ```
 
 The directory tree above is language-neutral, so it is listed only once.
