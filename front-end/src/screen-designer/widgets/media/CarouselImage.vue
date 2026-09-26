@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -53,7 +56,7 @@ setInterval(checkWatch, 1000)
     </template>
     <div v-else class="placeholder">
       <el-icon :size="40"><Picture /></el-icon>
-      <span>双击添加轮播图片</span>
+      <span>{{ t('bigscreen.widget.carouselImageHint') }}</span>
     </div>
   </div>
 </template>

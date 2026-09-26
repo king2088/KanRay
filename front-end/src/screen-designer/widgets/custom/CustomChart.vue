@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -83,9 +86,9 @@ onUnmounted(() => {
   <div class="custom-chart" ref="containerRef">
     <div v-if="!props.props?.html && !props.props?.css && !props.props?.js" class="placeholder">
       <el-icon :size="40"><Edit /></el-icon>
-      <span>自定义组件</span>
-      <span class="hint">双击组件打开代码编辑器</span>
-      <span class="hint">支持 HTML + CSS + JavaScript</span>
+      <span>{{ t('bigscreen.widget.customChartTitle') }}</span>
+      <span class="hint">{{ t('bigscreen.widget.customChartHint') }}</span>
+      <span class="hint">{{ t('bigscreen.widget.customChartSupport') }}</span>
     </div>
   </div>
 </template>

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: any
@@ -27,7 +30,7 @@ const objectFit = computed(() => props.props?.objectFit || 'cover')
     ></video>
     <div v-else class="placeholder">
       <el-icon :size="40"><VideoCamera /></el-icon>
-      <span>配置视频地址</span>
+      <span>{{ t('bigscreen.widget.videoHint') }}</span>
     </div>
   </div>
 </template>
