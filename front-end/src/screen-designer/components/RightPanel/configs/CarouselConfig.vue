@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import './config-common.css'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ component: any }>()
 const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>()
@@ -29,9 +32,9 @@ function removeCarouselImage(idx: number) {
 
 <template>
   <div class="rc-section">
-    <div class="rc-section-title">轮播图片</div>
+    <div class="rc-section-title">{{ t('bigscreen.config.carousel.title') }}</div>
     <el-form label-width="70px" size="default">
-      <el-form-item label="图片列表">
+      <el-form-item :label="t('bigscreen.config.carousel.imageList')">
         <div class="rc-carousel-images">
           <div v-for="(img, idx) in (component.props.images || [])" :key="idx" class="rc-carousel-img-item">
             <img :src="img" />
@@ -39,20 +42,20 @@ function removeCarouselImage(idx: number) {
           </div>
           <div class="rc-add-img-btn" @click="triggerCarouselUpload">
             <el-icon :size="20"><Plus /></el-icon>
-            <span>添加</span>
+            <span>{{ t('bigscreen.config.action.add') }}</span>
           </div>
         </div>
         <input ref="carouselUploadRef" type="file" accept="image/*" multiple class="rc-hidden-input" @change="handleCarouselUpload" />
       </el-form-item>
-      <el-form-item label="轮播间隔">
+      <el-form-item :label="t('bigscreen.config.carousel.interval')">
         <el-input-number :model-value="component.props.interval ?? 3000" @update:model-value="emit('updateProps', 'interval', $event)" :min="1000" :max="10000" :step="500" controls-position="right" class="rc-w100" />
       </el-form-item>
-      <el-form-item label="填充模式">
+      <el-form-item :label="t('bigscreen.config.common.fillMode')">
         <el-select :model-value="component.props.objectFit || 'cover'" @update:model-value="emit('updateProps', 'objectFit', $event)" class="rc-w100">
-          <el-option label="覆盖" value="cover" />
-          <el-option label="包含" value="contain" />
-          <el-option label="拉伸" value="fill" />
-          <el-option label="原始" value="none" />
+          <el-option :label="t('bigscreen.config.common.cover')" value="cover" />
+          <el-option :label="t('bigscreen.config.common.contain')" value="contain" />
+          <el-option :label="t('bigscreen.config.common.stretch')" value="fill" />
+          <el-option :label="t('bigscreen.config.common.none')" value="none" />
         </el-select>
       </el-form-item>
     </el-form>

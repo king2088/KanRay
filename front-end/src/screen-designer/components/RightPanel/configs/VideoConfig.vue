@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import './config-common.css'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ component: any }>()
 const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>()
@@ -14,26 +17,26 @@ watch(() => props.component?.id, () => {
 
 <template>
   <div class="rc-section">
-    <div class="rc-section-title">视频配置</div>
+    <div class="rc-section-title">{{ t('bigscreen.config.video.title') }}</div>
     <el-form label-width="70px" size="default">
-      <el-form-item label="视频地址">
-        <el-input v-model="videoSrc" @blur="emit('updateProps', 'src', videoSrc)" placeholder="输入URL后按回车确认" />
+      <el-form-item :label="t('bigscreen.config.video.url')">
+        <el-input v-model="videoSrc" @blur="emit('updateProps', 'src', videoSrc)" :placeholder="t('bigscreen.config.video.urlHint')" />
       </el-form-item>
-      <el-form-item label="自动播放">
+      <el-form-item :label="t('bigscreen.config.video.autoplay')">
         <el-switch :model-value="component.props.autoplay === true" @update:model-value="emit('updateProps', 'autoplay', $event)" />
       </el-form-item>
-      <el-form-item label="循环播放">
+      <el-form-item :label="t('bigscreen.config.video.loop')">
         <el-switch :model-value="component.props.loop === true" @update:model-value="emit('updateProps', 'loop', $event)" />
       </el-form-item>
-      <el-form-item label="静音">
+      <el-form-item :label="t('bigscreen.config.video.muted')">
         <el-switch :model-value="component.props.muted === true" @update:model-value="emit('updateProps', 'muted', $event)" />
       </el-form-item>
-      <el-form-item label="填充模式">
+      <el-form-item :label="t('bigscreen.config.common.fillMode')">
         <el-select :model-value="component.props.objectFit || 'cover'" @update:model-value="emit('updateProps', 'objectFit', $event)" class="rc-w100">
-          <el-option label="覆盖" value="cover" />
-          <el-option label="包含" value="contain" />
-          <el-option label="拉伸" value="fill" />
-          <el-option label="原始" value="none" />
+          <el-option :label="t('bigscreen.config.common.cover')" value="cover" />
+          <el-option :label="t('bigscreen.config.common.contain')" value="contain" />
+          <el-option :label="t('bigscreen.config.common.stretch')" value="fill" />
+          <el-option :label="t('bigscreen.config.common.none')" value="none" />
         </el-select>
       </el-form-item>
     </el-form>

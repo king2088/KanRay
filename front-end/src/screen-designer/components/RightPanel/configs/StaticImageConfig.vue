@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import './config-common.css'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ component: any }>()
 const emit = defineEmits<{ (e: 'updateProps', key: string, value: any): void }>()
@@ -21,24 +24,24 @@ function handleImageUpload(e: Event) {
 
 <template>
   <div class="rc-section">
-    <div class="rc-section-title">图片配置</div>
+    <div class="rc-section-title">{{ t('bigscreen.config.staticImage.title') }}</div>
     <el-form label-width="70px" size="default">
-      <el-form-item label="图片">
+      <el-form-item :label="t('bigscreen.config.staticImage.image')">
         <div class="rc-image-upload-area" @click="triggerImageUpload">
           <img v-if="component.props.src" :src="component.props.src" class="rc-preview-img" />
           <div v-else class="rc-upload-placeholder">
             <el-icon :size="24"><Upload /></el-icon>
-            <span>点击上传图片</span>
+            <span>{{ t('bigscreen.config.staticImage.clickUpload') }}</span>
           </div>
         </div>
         <input ref="imageUploadRef" type="file" accept="image/*" class="rc-hidden-input" @change="handleImageUpload" />
       </el-form-item>
-      <el-form-item label="填充模式">
+      <el-form-item :label="t('bigscreen.config.common.fillMode')">
         <el-select :model-value="component.props.objectFit || 'cover'" @update:model-value="emit('updateProps', 'objectFit', $event)" class="rc-w100">
-          <el-option label="覆盖" value="cover" />
-          <el-option label="包含" value="contain" />
-          <el-option label="拉伸" value="fill" />
-          <el-option label="原始" value="none" />
+          <el-option :label="t('bigscreen.config.common.cover')" value="cover" />
+          <el-option :label="t('bigscreen.config.common.contain')" value="contain" />
+          <el-option :label="t('bigscreen.config.common.stretch')" value="fill" />
+          <el-option :label="t('bigscreen.config.common.none')" value="none" />
         </el-select>
       </el-form-item>
     </el-form>
