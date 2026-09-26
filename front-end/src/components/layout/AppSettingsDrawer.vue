@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="t('layout.menu.systemSettings')" size="320px" append-to-body>
+  <el-drawer v-model="visible" :title="t('layout.menu.systemSettings')" size="400px" append-to-body>
     <div class="settings">
       <p class="settings__label">{{ t('common.settings.layoutMode') }}</p>
       <div class="settings__layouts">
