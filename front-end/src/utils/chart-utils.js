@@ -1,29 +1,18 @@
-// 图表类型定义（第一阶段支持）
-export const CHART_TYPES = [
-  { value: 'bar', label: '柱状图', icon: 'Histogram' },
-  { value: 'line', label: '折线图', icon: 'TrendCharts' },
-  { value: 'pie', label: '饼图', icon: 'PieChart' },
-  { value: 'doughnut', label: '环形图', icon: 'Odometer' },
-  { value: 'horizontalBar', label: '条形图', icon: 'Menu' },
-  { value: 'table', label: '表格', icon: 'Grid' },
-  { value: 'stat', label: '数值统计卡', icon: 'DataLine' },
-]
-
 export const AGG_OPTIONS = [
-  { value: 'sum', label: '求和' },
-  { value: 'avg', label: '平均值' },
-  { value: 'count', label: '计数' },
-  { value: 'count_distinct', label: '去重计数' },
-  { value: 'max', label: '最大值' },
-  { value: 'min', label: '最小值' },
+  { value: 'sum', labelKey: 'chart.agg.sum' },
+  { value: 'avg', labelKey: 'chart.agg.avg' },
+  { value: 'count', labelKey: 'chart.agg.count' },
+  { value: 'count_distinct', labelKey: 'chart.agg.count_distinct' },
+  { value: 'max', labelKey: 'chart.agg.max' },
+  { value: 'min', labelKey: 'chart.agg.min' },
 ]
 
 export const DERIVED_OPTIONS = [
-  { value: 'share', label: '占比' },
-  { value: 'mom', label: '环比' },
-  { value: 'yoy', label: '同比' },
-  { value: 'cumsum', label: '累计' },
-  { value: 'rank', label: '排名' },
+  { value: 'share', labelKey: 'chart.derived.share' },
+  { value: 'mom', labelKey: 'chart.derived.mom' },
+  { value: 'yoy', labelKey: 'chart.derived.yoy' },
+  { value: 'cumsum', labelKey: 'chart.derived.cumsum' },
+  { value: 'rank', labelKey: 'chart.derived.rank' },
 ]
 
 export const PALETTE = [

@@ -1,16 +1,16 @@
 const TREE_ICON = { schema: 'Database', table: 'Grid', field: 'Type' }
 export const STRING_OPS = [
-  { value: 'eq', label: '=' }, { value: 'ne', label: '≠' }, { value: 'contains', label: '包含' },
+  { value: 'eq', label: '=' }, { value: 'ne', label: '≠' }, { value: 'contains', labelKey: 'chart.stringOps.contains' },
   { value: 'lt', label: '<' }, { value: 'lte', label: '≤' }, { value: 'gt', label: '>' }, { value: 'gte', label: '≥' },
   { value: 'in', label: '∈' },
 ]
 export const AGG_OPTIONS = [
-  { value: 'sum', label: '求和 SUM' },
-  { value: 'avg', label: '平均 AVG' },
-  { value: 'count', label: '计数 COUNT' },
-  { value: 'count_distinct', label: '去重计数' },
-  { value: 'max', label: '最大 MAX' },
-  { value: 'min', label: '最小 MIN' },
+  { value: 'sum', labelKey: 'chart.aggSql.sum' },
+  { value: 'avg', labelKey: 'chart.aggSql.avg' },
+  { value: 'count', labelKey: 'chart.aggSql.count' },
+  { value: 'count_distinct', labelKey: 'chart.aggSql.count_distinct' },
+  { value: 'max', labelKey: 'chart.aggSql.max' },
+  { value: 'min', labelKey: 'chart.aggSql.min' },
 ]
 export function toTree(schemas) {
   return (schemas || []).map((s) => ({
