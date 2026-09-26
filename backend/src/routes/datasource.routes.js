@@ -16,17 +16,9 @@ const providers = require('../datasources/providers');
 const buildSql = require('../datasources/build-sql');
 const { decryptConfig, getDriverMeta } = datasourceService;
 const { isValidUuid7 } = require('../utils/uuidv7');
-const { enOf } = require('../i18n');
+const { withMessageEn } = require('../i18n');
 
 const router = express.Router();
-
-// provider 的 testConnection 把结果文案放在 data.message（如「连接成功」）。
-// 这里统一补一份 messageEn，22 个 provider 就不必各自带英文。
-function withEnMessage(result) {
-  if (!result || typeof result !== 'object' || typeof result.message !== 'string') return result;
-  const en = enOf(result.message);
-  return en ? { ...result, messageEn: en } : result;
-}
 
 // GET /api/datasources/drivers —— 22 种驱动元数据
 router.get('/drivers', requireUser, requirePermission('datasource', 'read'), (req, res) => {
@@ -50,7 +42,7 @@ router.post('/test', requireUser, requirePermission('datasource', 'create'), asy
   const { type, config } = req.body || {};
   if (!type) throw new HttpError(400, '缺少数据源类型');
   const result = await datasourceService.testConfig({ type, config });
-  ok(res, withEnMessage(result));
+  ok(res, withMessageEn(result));
 });
 
 // POST /api/datasources —— 创建
@@ -92,7 +84,7 @@ router.post('/:id/test', requireUser, requirePermission('datasource', 'update'),
   const id = req.params.id;
   await access.assertResource('datasource', id, req.user, rbac);
   const result = await datasourceService.testSaved(id, req);
-  ok(res, withEnMessage(result));
+  ok(res, withMessageEn(result));
 });
 
 // GET /api/datasources/:id/schemas

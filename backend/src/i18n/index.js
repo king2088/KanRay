@@ -50,4 +50,19 @@ function enOf(message) {
   return undefined;
 }
 
-module.exports = { enOf, MESSAGES, SUCCESS_MESSAGES, MESSAGE_TEMPLATES };
+/**
+ * 给「文案不在响应信封里」的结果对象补 messageEn。
+ *
+ * provider 的 testConnection 把结果文案放在 data.message（如「连接成功」），
+ * errorHandler/ok 只处理信封上的 message，覆盖不到这里。22 个 provider 各自
+ * 带一份英文既重复又容易漏改，因此在出口统一补一次。
+ * @param {object} result provider 返回的结果
+ * @returns {object} 补上 messageEn 的新对象；查不到英文时原样返回
+ */
+function withMessageEn(result) {
+  if (!result || typeof result !== 'object' || typeof result.message !== 'string') return result;
+  const en = enOf(result.message);
+  return en ? { ...result, messageEn: en } : result;
+}
+
+module.exports = { enOf, withMessageEn, MESSAGES, SUCCESS_MESSAGES, MESSAGE_TEMPLATES };

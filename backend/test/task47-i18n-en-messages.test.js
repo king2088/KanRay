@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { enOf, MESSAGES, SUCCESS_MESSAGES, MESSAGE_TEMPLATES } = require('../src/i18n');
+const { enOf, withMessageEn, MESSAGES, SUCCESS_MESSAGES, MESSAGE_TEMPLATES } = require('../src/i18n');
 
 const SRC = path.join(__dirname, '..', 'src');
 const CJK = /[\u4e00-\u9fff]/;
@@ -213,4 +213,31 @@ test('源码里每条消息都能查到英文', () => {
   for (const zh of statics.keys()) if (!enOf(zh)) failed.push(zh);
   for (const zh of successes.keys()) if (!enOf(zh)) failed.push(zh);
   assert.deepEqual(failed, [], `${failed.length} 条源码消息 enOf 查不到英文`);
+});
+
+// provider 的连通性结果把文案放在 data.message，不在响应信封上，
+// errorHandler/ok 的查表覆盖不到，必须由 withMessageEn 在出口补。
+test('withMessageEn 给 provider 结果补 messageEn', () => {
+  const out = withMessageEn({ ok: true, message: '连接成功' });
+  assert.equal(out.messageEn, 'Connection successful');
+  assert.equal(out.ok, true);
+});
+
+test('withMessageEn 处理模板型 provider 文案', () => {
+  const out = withMessageEn({ ok: false, message: '集群状态: degraded' });
+  assert.equal(out.messageEn, 'Cluster status: degraded');
+});
+
+test('withMessageEn 对未收录文案不改对象（省略 messageEn）', () => {
+  const input = { ok: false, message: '某个未收录的 provider 文案' };
+  assert.deepEqual(withMessageEn(input), input);
+  assert.equal('messageEn' in withMessageEn(input), false);
+});
+
+test('withMessageEn 不修改入参，也不破坏无 message 的结果', () => {
+  const input = { ok: true, message: '连接成功' };
+  withMessageEn(input);
+  assert.equal('messageEn' in input, false, '不得就地改调用方的对象');
+  assert.deepEqual(withMessageEn({ ok: true }), { ok: true });
+  assert.equal(withMessageEn(null), null);
 });
