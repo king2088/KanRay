@@ -13,13 +13,13 @@
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item command="profile">
-          <el-icon><User /></el-icon>个人中心
+          <el-icon><User /></el-icon>{{ t('layout.menu.userCenter') }}
         </el-dropdown-item>
         <el-dropdown-item v-if="auth.hasPermission('user', 'read')" command="admin">
-          <el-icon><Setting /></el-icon>系统管理
+          <el-icon><Setting /></el-icon>{{ t('layout.menu.admin') }}
         </el-dropdown-item>
         <el-dropdown-item divided command="logout">
-          <el-icon><SwitchButton /></el-icon>退出登录
+          <el-icon><SwitchButton /></el-icon>{{ t('layout.menu.logout') }}
         </el-dropdown-item>
       </el-dropdown-menu>
     </template>
@@ -31,6 +31,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ProfileDialog from './ProfileDialog.vue'
+import { t } from '@/i18n'
 
 const auth = useAuthStore()
 const router = useRouter()

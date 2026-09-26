@@ -38,7 +38,7 @@
           <template #title>{{ child.title }}</template>
         </el-menu-item>
       </template>
-      <div v-else class="app-menu__empty">该模块暂无子菜单</div>
+      <div v-else class="app-menu__empty">{{ t('common.empty.noSubMenu') }}</div>
     </template>
   </el-menu>
 </template>
@@ -47,6 +47,7 @@
 import { computed } from 'vue'
 import { visibleMenus } from '@/router/menu'
 import { useAuthStore } from '@/stores/auth'
+import { t } from '@/i18n'
 
 const props = defineProps({
   collapsed: { type: Boolean, default: false },
