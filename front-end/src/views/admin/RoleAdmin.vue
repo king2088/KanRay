@@ -3,26 +3,26 @@
     <template v-if="canView">
       <div class="page-header">
         <div class="page-header__main">
-          <h2 class="page-title">角色管理</h2>
-          <div class="page-desc">维护角色及其权限点，界定不同成员的访问范围</div>
+          <h2 class="page-title">{{ t('admin.role.title') }}</h2>
+          <div class="page-desc">{{ t('admin.role.pageDesc') }}</div>
         </div>
         <div class="page-header__actions">
-          <el-button type="primary" @click="openCreate">新建角色</el-button>
+          <el-button type="primary" @click="openCreate">{{ t('admin.role.create') }}</el-button>
         </div>
       </div>
 
       <div class="page-card">
         <div class="page-card__header">
-          <div class="page-card__header-title">角色列表</div>
+          <div class="page-card__header-title">{{ t('admin.role.listTitle') }}</div>
           <div class="page-card__header-right">
-            <el-tag type="info" effect="plain">共 {{ pagedTotal }} 条</el-tag>
+            <el-tag type="info" effect="plain">{{ t('admin.role.totalCount', { count: pagedTotal }) }}</el-tag>
           </div>
         </div>
 
       <el-table :data="pagedRows" stripe v-loading="loading">
-      <el-table-column prop="name" label="角色名称" min-width="160" />
-      <el-table-column prop="code" label="标识" width="150" />
-      <el-table-column label="权限点" min-width="220">
+      <el-table-column prop="name" :label="t('admin.role.name')" min-width="160" />
+      <el-table-column prop="code" :label="t('admin.role.code')" width="150" />
+      <el-table-column :label="t('admin.role.permissions')" min-width="220">
         <template #default="{ row }">
           <el-popover placement="top-start" :width="360" trigger="hover">
             <template #reference>
@@ -36,16 +36,16 @@
           </el-popover>
         </template>
       </el-table-column>
-      <el-table-column label="类型" width="90">
+      <el-table-column :label="t('admin.role.type')" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.is_builtin ? 'warning' : 'success'" >{{ row.is_builtin ? '内置' : '自定义' }}</el-tag>
+          <el-tag :type="row.is_builtin ? 'warning' : 'success'">{{ row.is_builtin ? t('admin.role.builtin') : t('admin.role.custom') }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="180" />
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column prop="description" :label="t('admin.role.description')" min-width="180" />
+      <el-table-column :label="t('admin.role.actions')" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" :disabled="!isCustom(row)" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" :disabled="!isCustom(row)" @click="remove(row)">删除</el-button>
+          <el-button link type="primary" :disabled="!isCustom(row)" @click="openEdit(row)">{{ t('admin.role.edit') }}</el-button>
+          <el-button link type="danger" :disabled="!isCustom(row)" @click="remove(row)">{{ t('admin.role.delete') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -64,17 +64,17 @@
     </div>
     </div>
 
-    <el-dialog v-model="dialogOpen" :title="editing ? '编辑角色' : '新建角色'" width="560px" class="role-dialog">
+    <el-dialog v-model="dialogOpen" :title="editing ? t('admin.role.dialogEditTitle') : t('admin.role.dialogCreateTitle')" width="560px" class="role-dialog">
       <el-form label-position="top">
-        <el-form-item label="标识（小写字母/数字/下划线）">
-          <el-input v-model="form.code" :disabled="editing" placeholder="如 finance" />
+        <el-form-item :label="t('admin.role.codeLabel')">
+          <el-input v-model="form.code" :disabled="editing" :placeholder="t('admin.role.codePlaceholder')" />
         </el-form-item>
-        <el-form-item label="名称"><el-input v-model="form.name" maxlength="50" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="form.description" maxlength="200" /></el-form-item>
-        <el-form-item label="权限配置">
+        <el-form-item :label="t('admin.role.nameLabel')"><el-input v-model="form.name" maxlength="50" /></el-form-item>
+        <el-form-item :label="t('admin.role.descLabel')"><el-input v-model="form.description" maxlength="200" /></el-form-item>
+        <el-form-item :label="t('admin.role.permConfig')">
           <div class="perm-collapse-wrap">
             <el-collapse v-if="permGroups.length">
-              <el-collapse-item v-for="group in permGroups" :key="group.key" :name="group.key" :title="`${permGroupLabel(group.key)} · ${group.perms.length} 项`">
+              <el-collapse-item v-for="group in permGroups" :key="group.key" :name="group.key" :title="`${permGroupLabel(group.key)} · ${t('admin.role.permCount', { count: group.perms.length })}`">
                 <el-checkbox-group v-model="form.permissions">
                   <el-checkbox v-for="p in group.perms" :key="p.code" :value="p.code">{{ p.name }}</el-checkbox>
                 </el-checkbox-group>
@@ -84,20 +84,22 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submit">{{ editing ? '保存' : '创建' }}</el-button>
+        <el-button @click="dialogOpen = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="submit">{{ editing ? t('admin.role.save') : t('admin.role.submitCreate') }}</el-button>
       </template>
     </el-dialog>
     </template>
-    <el-empty v-if="!canView" description="无权限访问该页面" />
+    <el-empty v-if="!canView" :description="t('admin.role.noPermission')" />
   </div>
 </template>
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const canView = computed(() => auth.hasPermission('role', 'read'))
 
@@ -151,19 +153,9 @@ const permGroups = computed(() => {
   return Object.keys(map).sort().map((key) => ({ key, perms: map[key] }))
 })
 
-const permGroupLabelMap = {
-  dataset: '数据集',
-  chart: '图表',
-  dashboard: '看板',
-  datasource: '数据源',
-  sqllab: 'SQL 实验室',
-  user: '用户管理',
-  role: '角色',
-  audit: '操作审计',
-  system: '系统',
-}
+// 模块码取自后端权限码前缀（dataset/chart/.../apikey），展示文案走词典。
 function permGroupLabel(key) {
-  return permGroupLabelMap[key] || key
+  return t(`admin.role.moduleLabels.${key}`)
 }
 
 async function load() {
@@ -192,16 +184,16 @@ function openEdit(row) {
 }
 
 async function submit() {
-  if (!String(form.value.code || '').match(/^[a-z0-9_-]{2,32}$/)) return ElMessage.warning('角色标识不合法（2-32位小写字母/数字/下划线）')
-  if (!form.value.name.trim()) return ElMessage.warning('请输入角色名称')
+  if (!String(form.value.code || '').match(/^[a-z0-9_-]{2,32}$/)) return ElMessage.warning(t('admin.role.codeInvalid'))
+  if (!form.value.name.trim()) return ElMessage.warning(t('admin.role.nameRequired'))
   saving.value = true
   try {
     if (editing.value) {
       await adminApi.updateRole(editingId.value, { name: form.value.name, description: form.value.description, permissions: form.value.permissions })
-      ElMessage.success('角色已更新')
+      ElMessage.success(t('admin.role.updateSuccess'))
     } else {
       await adminApi.createRole({ code: form.value.code, name: form.value.name, description: form.value.description, permissions: form.value.permissions })
-      ElMessage.success('角色创建成功')
+      ElMessage.success(t('admin.role.createSuccess'))
     }
     dialogOpen.value = false
     load()
@@ -211,9 +203,13 @@ async function submit() {
 }
 
 async function remove(row) {
-  await ElMessageBox.confirm(`删除角色 ${row.name}？`, '提示', { type: 'warning' })
+  await ElMessageBox.confirm(
+      t('admin.role.deleteConfirm', { name: row.name }),
+      t('admin.role.confirmTitle'),
+      { type: 'warning' },
+    )
   await adminApi.deleteRole(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.role.deleteSuccess'))
   load()
 }
 

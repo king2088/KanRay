@@ -3,44 +3,44 @@
     <template v-if="canView">
       <div class="page-header">
         <div class="page-header__main">
-          <h2 class="page-title">用户管理</h2>
-          <div class="page-desc">管理平台账号，分配角色并控制登录状态</div>
+          <h2 class="page-title">{{ t('admin.user.title') }}</h2>
+          <div class="page-desc">{{ t('admin.user.pageDesc') }}</div>
         </div>
         <div class="page-header__actions">
-          <el-button type="primary" @click="openCreate">新建用户</el-button>
+          <el-button type="primary" @click="openCreate">{{ t('admin.user.createDialog') }}</el-button>
         </div>
       </div>
 
       <div class="page-card">
         <div class="page-card__header">
-          <div class="page-card__header-title">用户列表</div>
+          <div class="page-card__header-title">{{ t('admin.user.listTitle') }}</div>
           <div class="page-card__header-right">
-            <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+            <el-tag type="info" effect="plain">{{ t('admin.user.totalCount', { count: total }) }}</el-tag>
           </div>
         </div>
 
       <el-table :data="rows" stripe v-loading="loading">
-      <el-table-column type="index" label="序号" width="70" align="center" />
-      <el-table-column prop="email" label="邮箱" min-width="180" />
-      <el-table-column prop="name" label="昵称" min-width="120" />
-      <el-table-column label="角色" min-width="160">
+      <el-table-column type="index" :label="t('admin.user.index')" width="70" align="center" />
+      <el-table-column prop="email" :label="t('admin.user.email')" min-width="180" />
+      <el-table-column prop="name" :label="t('admin.user.nickname')" min-width="120" />
+      <el-table-column :label="t('admin.user.roles')" min-width="160">
         <template #default="{ row }">
           <el-tag v-for="r in row.roles" :key="r"  style="margin-right: 4px">{{ roleNameMap[r] || r }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="90">
+      <el-table-column :label="t('admin.user.status')" width="90">
         <template #default="{ row }">
           <el-switch v-model="row.is_active" :disabled="row.id === auth.user?.id" @change="toggleActive(row)" />
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" width="170">
+      <el-table-column :label="t('admin.user.createdAt')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.created_at, appStore.timezone) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="230" fixed="right">
+      <el-table-column :label="t('admin.user.actions')" width="230" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEditRoles(row)">分配角色</el-button>
-          <el-button link type="primary" @click="openResetPw(row)">重置密码</el-button>
-          <el-button v-if="row.id !== auth.user?.id" link type="danger" @click="remove(row)">删除</el-button>
+          <el-button link type="primary" @click="openEditRoles(row)">{{ t('admin.user.assignRoles') }}</el-button>
+          <el-button link type="primary" @click="openResetPw(row)">{{ t('admin.user.resetPassword') }}</el-button>
+          <el-button v-if="row.id !== auth.user?.id" link type="danger" @click="remove(row)">{{ t('admin.user.delete') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -60,57 +60,58 @@
     </div>
 
     <!-- 新建用户 -->
-    <el-dialog v-model="createOpen" title="新建用户" width="440px">
+    <el-dialog v-model="createOpen" :title="t('admin.user.createDialog')" width="440px">
       <el-form label-position="top">
-        <el-form-item label="邮箱"><el-input v-model="createForm.email" placeholder="you@example.com" /></el-form-item>
-        <el-form-item label="昵称"><el-input v-model="createForm.name" maxlength="50" /></el-form-item>
-        <el-form-item label="密码"><el-input v-model="createForm.password" type="password" show-password placeholder="至少8位，含字母和数字" /></el-form-item>
-        <el-form-item label="角色">
+        <el-form-item :label="t('admin.user.fieldEmail')"><el-input v-model="createForm.email" placeholder="you@example.com" /></el-form-item>
+        <el-form-item :label="t('admin.user.fieldNickname')"><el-input v-model="createForm.name" maxlength="50" /></el-form-item>
+        <el-form-item :label="t('admin.user.fieldPassword')"><el-input v-model="createForm.password" type="password" show-password :placeholder="t('admin.user.passwordPlaceholder')" /></el-form-item>
+        <el-form-item :label="t('admin.user.fieldRoles')">
           <el-checkbox-group v-model="createForm.roleIds">
             <el-checkbox v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitCreate">创建</el-button>
+        <el-button @click="createOpen = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="submitCreate">{{ t('common.actions.create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 分配角色 -->
-    <el-dialog v-model="rolesOpen" title="分配角色" width="440px">
+    <el-dialog v-model="rolesOpen" :title="t('admin.user.assignDialog')" width="440px">
       <el-form label-position="top">
-        <el-form-item label="用户邮箱"><el-input :model-value="activeUser?.email" disabled /></el-form-item>
-        <el-form-item label="角色">
+        <el-form-item :label="t('admin.user.dialogUserEmail')"><el-input :model-value="activeUser?.email" disabled /></el-form-item>
+        <el-form-item :label="t('admin.user.fieldRoles')">
           <el-checkbox-group v-model="assignRoleIds">
             <el-checkbox v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rolesOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitAssign">保存</el-button>
+        <el-button @click="rolesOpen = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="submitAssign">{{ t('admin.user.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 重置密码 -->
-    <el-dialog v-model="pwOpen" title="重置密码" width="420px">
+    <el-dialog v-model="pwOpen" :title="t('admin.user.resetDialog')" width="420px">
       <el-form label-position="top">
-        <el-form-item label="用户邮箱"><el-input :model-value="activeUser?.email" disabled /></el-form-item>
-        <el-form-item label="新密码"><el-input v-model="newPassword" type="password" show-password placeholder="至少8位，含字母和数字" /></el-form-item>
+        <el-form-item :label="t('admin.user.dialogUserEmail')"><el-input :model-value="activeUser?.email" disabled /></el-form-item>
+        <el-form-item :label="t('admin.user.fieldNewPassword')"><el-input v-model="newPassword" type="password" show-password :placeholder="t('admin.user.passwordPlaceholder')" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="pwOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitResetPw">重置</el-button>
+        <el-button @click="pwOpen = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="submitResetPw">{{ t('admin.user.reset') }}</el-button>
       </template>
     </el-dialog>
     </template>
-    <el-empty v-if="!canView" description="无权限访问该页面" />
+    <el-empty v-if="!canView" :description="t('admin.user.noPermission')" />
   </div>
 </template>
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/datetime'
@@ -171,13 +172,13 @@ function openCreate() {
 
 async function submitCreate() {
   const f = createForm.value
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) return ElMessage.warning('邮箱格式不正确')
-  if (!f.name.trim()) return ElMessage.warning('请输入昵称')
-  if (!String(f.password || '').match(/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/)) return ElMessage.warning('密码至少8位且包含字母和数字')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) return ElMessage.warning(t('admin.user.emailInvalid'))
+  if (!f.name.trim()) return ElMessage.warning(t('admin.user.nicknameRequired'))
+  if (!String(f.password || '').match(/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/)) return ElMessage.warning(t('admin.user.passwordRule'))
   saving.value = true
   try {
     await adminApi.createUser({ email: f.email.trim(), name: f.name.trim(), password: f.password, roleIds: f.roleIds })
-    ElMessage.success('用户创建成功')
+    ElMessage.success(t('admin.user.createSuccess'))
     createOpen.value = false
     load()
   } finally {
@@ -195,7 +196,7 @@ async function submitAssign() {
   saving.value = true
   try {
     await adminApi.updateUser(activeUser.value.id, { roleIds: assignRoleIds.value })
-    ElMessage.success('角色已更新')
+    ElMessage.success(t('admin.user.rolesUpdated'))
     rolesOpen.value = false
     load()
   } finally {
@@ -206,7 +207,7 @@ async function submitAssign() {
 async function toggleActive(row) {
   try {
     await adminApi.updateUser(row.id, { is_active: row.is_active })
-    ElMessage.success('已更新')
+    ElMessage.success(t('admin.user.updated'))
   } catch (e) {
     row.is_active = !row.is_active
   }
@@ -219,11 +220,11 @@ function openResetPw(row) {
 }
 
 async function submitResetPw() {
-  if (!String(newPassword.value || '').match(/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/)) return ElMessage.warning('密码至少8位且包含字母和数字')
+  if (!String(newPassword.value || '').match(/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/)) return ElMessage.warning(t('admin.user.passwordRule'))
   saving.value = true
   try {
     await adminApi.updateUser(activeUser.value.id, { password: newPassword.value })
-    ElMessage.success('密码已重置')
+    ElMessage.success(t('admin.user.passwordReset'))
     pwOpen.value = false
   } finally {
     saving.value = false
@@ -231,9 +232,13 @@ async function submitResetPw() {
 }
 
 async function remove(row) {
-  await ElMessageBox.confirm(`删除用户 ${row.email}？`, '提示', { type: 'warning' })
+  await ElMessageBox.confirm(
+      t('admin.user.deleteConfirm', { email: row.email }),
+      t('admin.user.confirmTitle'),
+      { type: 'warning' },
+    )
   await adminApi.deleteUser(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.user.deleteSuccess'))
   load()
 }
 
