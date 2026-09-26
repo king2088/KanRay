@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonGrid, getCommonTooltip, getCommonXAxis, getCommonYAxis, getCommonDataZoom, getSeriesLabel } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -35,7 +38,7 @@ const getChartOption = () => {
       if (parsed.xAxis) categoryData = parsed.xAxis
       if (parsed.series) {
         series = parsed.series.map((s: any) => ({
-          name: s.name || '系列',
+          name: s.name || t('bigscreen.chart.seriesFallback'),
           type: 'line',
           data: s.data || s,
           smooth: p.smooth === true,

@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import 'echarts-liquidfill'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -75,12 +78,12 @@ function getDefaultGauge(_p: any, val: number) {
   const c = getC()
   return {
     series: [{
-      name: c.name || '完成率',
+      name: c.name || t('bigscreen.chart.completionRate'),
       type: 'gauge',
       center: ['50%', '60%'],
       radius: c.radius,
       detail: { formatter: '{value}%', fontSize: c.detailSize, color: '#ccc' },
-      data: [{ value: val, name: c.name || '完成率' }],
+      data: [{ value: val, name: c.name || t('bigscreen.chart.completionRate') }],
       title: { fontSize: c.titleSize, offsetCenter: [0, '80%'] },
       axisLine: { lineStyle: { width: c.lineWidth, color: [[0.7, '#67e0e3'], [1, '#37a2da']] } },
       axisTick: { distance: -(c.lineWidth * 0.8), length: 4, lineStyle: { color: 'auto', width: 1 } },
@@ -548,7 +551,7 @@ function getLiquidFill(_p: any, val: number) {
   return {
     series: [{
       type: 'liquidFill',
-      name: '完成率',
+      name: t('bigscreen.chart.completionRate'),
       data: [val / 100],
       radius: '80%',
       center: ['50%', '50%'],

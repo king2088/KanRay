@@ -3,7 +3,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
+import { useI18n } from 'vue-i18n'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonTooltip, getSeriesLabel } from './chartUtils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -79,7 +82,7 @@ const getChartOption = () => {
         left: 'center',
         top: '42%',
         style: {
-          text: p.centerTitle || '总计',
+          text: p.centerTitle || t('bigscreen.chart.centerTotal'),
           textAlign: 'center',
           fill: p.centerTitleColor || '#fff',
           fontSize: p.centerTitleSize || 14
