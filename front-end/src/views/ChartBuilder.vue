@@ -225,7 +225,10 @@ const previewLoading = ref(false)
 const saving = ref(false)
 let editingId = null
 
-const currentChartLabel = computed(() => getChartType(chartType.value)?.label || chartType.value)
+const currentChartLabel = computed(() => {
+  const def = getChartType(chartType.value)
+  return def?.labelKey ? t(def.labelKey) : chartType.value
+})
 
 const finalOptions = computed(() => ({
   ...displayConfig.value,

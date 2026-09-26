@@ -149,17 +149,20 @@ const typeCount = computed(() => new Set(charts.value.map((c) => c.chartType)).s
 const usedIds = new Set()
 const usedCount = computed(() => charts.value.filter((c) => usedIds.has(c.id)).length)
 
-const typeLabel = (v) => getChartType(v)?.label || v
+const typeLabel = (v) => {
+  const def = getChartType(v)
+  return def?.labelKey ? t(def.labelKey) : v
+}
 const typeTag = (v) => {
-  const t = getChartType(v)
-  if (!t) return 'info'
-  const cat = t.category
+  const def = getChartType(v)
+  if (!def) return 'info'
+  const cat = def.category
   return { bar: '', line: 'success', pie: 'warning', horizontalBar: '', table: 'info', stat: 'danger', indicator: 'danger', scatter: 'success', map: 'info', other: 'info' }[cat] || 'info'
 }
 const typeTone = (v) => {
-  const t = getChartType(v)
-  if (!t) return 'blue'
-  const cat = t.category
+  const def = getChartType(v)
+  if (!def) return 'blue'
+  const cat = def.category
   return { bar: 'blue', line: 'green', pie: 'orange', horizontalBar: 'purple', table: 'gray', stat: 'red', indicator: 'red', scatter: 'green', map: 'blue', other: 'blue' }[cat] || 'blue'
 }
 
