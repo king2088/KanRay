@@ -197,7 +197,7 @@
             <template v-else>
               <el-form-item label="衍生类型" required>
                 <el-select v-model="metricForm.derivative" style="width: 100%">
-                  <el-option v-for="d in DERIVED_OPTIONS" :key="d.value" :label="d.label" :value="d.value" />
+                  <el-option v-for="d in DERIVED_OPTIONS" :key="d.value" :label="t(d.labelKey)" :value="d.value" />
                 </el-select>
               </el-form-item>
               <el-form-item label="引用指标" required>
@@ -256,6 +256,7 @@ import { datasetApi, metricApi } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
 import { DERIVED_OPTIONS } from '@/utils/chart-utils'
+import { t } from '@/i18n'
 
 const route = useRoute()
 const id = String(route.params.id)

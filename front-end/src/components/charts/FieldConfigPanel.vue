@@ -73,7 +73,7 @@
               <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
             </el-select>
             <el-select v-model="m.agg" style="width: 95px">
-              <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="a.label" :value="a.value" />
+              <el-option v-for="a in AGG_OPTIONS" :key="a.value" :label="t(a.labelKey)" :value="a.value" />
             </el-select>
           </template>
           <el-icon class="remove-icon" @click="removeItem(metrics, mi)"><Delete /></el-icon>
@@ -88,7 +88,7 @@
         </div>
         <div v-else-if="m.type === 'derived'" class="metric-subrow">
           <el-select v-model="m.kind" style="width: 104px" placeholder="类型">
-            <el-option v-for="k in DERIVED_OPTIONS" :key="k.value" :label="k.label" :value="k.value" />
+            <el-option v-for="k in DERIVED_OPTIONS" :key="k.value" :label="t(k.labelKey)" :value="k.value" />
           </el-select>
           <el-select v-model="m.ref" style="flex: 1" placeholder="引用指标">
             <el-option
@@ -131,6 +131,7 @@
 import { computed } from 'vue'
 import { Plus, Delete, DataLine } from '@element-plus/icons-vue'
 import { AGG_OPTIONS, DERIVED_OPTIONS } from '@/utils/chart-utils'
+import { t } from '@/i18n'
 
 const props = defineProps({
   fields: { type: Array, default: () => [] },
