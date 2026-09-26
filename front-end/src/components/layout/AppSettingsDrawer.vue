@@ -1,7 +1,7 @@
 <template>
-  <el-drawer v-model="visible" title="系统设置" size="320px" append-to-body>
+  <el-drawer v-model="visible" :title="t('layout.menu.systemSettings')" size="320px" append-to-body>
     <div class="settings">
-      <p class="settings__label">布局模式</p>
+      <p class="settings__label">{{ t('common.settings.layoutMode') }}</p>
       <div class="settings__layouts">
         <div
           v-for="opt in LAYOUTS"
@@ -15,11 +15,11 @@
             <i class="layout-option__menu" :class="`layout-option__menu--${opt.value}`" />
             <span class="layout-option__placeholder" />
           </div>
-          <span class="layout-option__name">{{ opt.label }}</span>
+          <span class="layout-option__name">{{ t(opt.titleKey) }}</span>
         </div>
       </div>
 
-      <p class="settings__label">主题色</p>
+      <p class="settings__label">{{ t('common.settings.themeColor') }}</p>
       <div class="settings__swatches">
         <div
           v-for="c in COLORS"
@@ -33,11 +33,11 @@
         </div>
       </div>
 
-      <p class="settings__label">组件尺寸</p>
+      <p class="settings__label">{{ t('common.settings.componentSize') }}</p>
       <el-radio-group :model-value="store.size" @change="store.setSize">
-        <el-radio-button value="large">大</el-radio-button>
-        <el-radio-button value="default">中</el-radio-button>
-        <el-radio-button value="small">小</el-radio-button>
+        <el-radio-button value="large">{{ t('common.settings.sizeLarge') }}</el-radio-button>
+        <el-radio-button value="default">{{ t('common.settings.sizeDefault') }}</el-radio-button>
+        <el-radio-button value="small">{{ t('common.settings.sizeSmall') }}</el-radio-button>
       </el-radio-group>
 
       <p class="settings__label">{{ t('common.settings.language') }}</p>
@@ -45,22 +45,22 @@
         <el-radio-button v-for="opt in LOCALE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio-button>
       </el-radio-group>
 
-      <p class="settings__label">外观 / 折叠</p>
+      <p class="settings__label">{{ t('common.settings.appearance') }}</p>
       <div class="settings__switches">
         <div class="settings__switch-row">
-          <span class="settings__switch-text">主题模式</span>
+          <span class="settings__switch-text">{{ t('common.settings.themeMode') }}</span>
           <el-radio-group :model-value="store.themeMode" @change="store.setThemeMode">
-            <el-radio-button value="light">浅色</el-radio-button>
-            <el-radio-button value="dark">暗黑</el-radio-button>
-            <el-radio-button value="auto">自动</el-radio-button>
+            <el-radio-button value="light">{{ t('common.settings.themeLight') }}</el-radio-button>
+            <el-radio-button value="dark">{{ t('common.settings.themeDark') }}</el-radio-button>
+            <el-radio-button value="auto">{{ t('common.settings.themeAuto') }}</el-radio-button>
           </el-radio-group>
         </div>
-        <p class="settings__hint">自动将跟随电脑 / 系统的外观切换</p>
+        <p class="settings__hint">{{ t('common.settings.autoThemeHint') }}</p>
         <div v-if="store.layout === 'vertical'" class="settings__switch-row">
-          <span class="settings__switch-text">折叠侧栏</span>
+          <span class="settings__switch-text">{{ t('common.settings.collapseSidebar') }}</span>
           <el-switch :model-value="store.collapsed" @change="store.toggleCollapsed()" />
         </div>
-        <p v-else class="settings__hint">折叠仅适用于垂直布局</p>
+        <p v-else class="settings__hint">{{ t('common.settings.collapseVerticalOnly') }}</p>
       </div>
     </div>
   </el-drawer>
@@ -73,9 +73,9 @@ import { useI18n } from 'vue-i18n'
 import { LOCALE_OPTIONS } from '@/i18n/constants'
 
 const LAYOUTS = [
-  { value: 'vertical', label: '垂直布局' },
-  { value: 'horizontal', label: '水平布局' },
-  { value: 'mixed', label: '混合布局' },
+  { value: 'vertical', titleKey: 'common.settings.layoutVertical' },
+  { value: 'horizontal', titleKey: 'common.settings.layoutHorizontal' },
+  { value: 'mixed', titleKey: 'common.settings.layoutMixed' },
 ]
 const COLORS = ['#3fa49a', '#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#9c27b0']
 
