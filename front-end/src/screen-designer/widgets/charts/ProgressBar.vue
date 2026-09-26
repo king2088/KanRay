@@ -1,6 +1,9 @@
-<!-- 进度条 (progress) - 基础进度条组件 -->
+<!-- Progress bar (progress) -->
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   componentType?: string
@@ -17,7 +20,7 @@ const percentage = computed(() => Math.min((value.value / maxValue.value) * 100,
 <template>
   <div class="progress-bar">
     <div class="progress-label" v-if="props.props?.showLabel !== false">
-      {{ props.props?.label || '进度' }} {{ percentage.toFixed(0) }}%
+      {{ props.props?.label || t('bigscreen.chart.progressLabel') }} {{ percentage.toFixed(0) }}%
     </div>
     <div class="progress-track" :style="{ height: (props.props?.trackHeight || 20) + 'px' }">
       <div class="progress-fill" :style="{
