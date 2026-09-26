@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -20,7 +22,7 @@ const componentsStore = useComponentsStore()
 const historyStore = useHistoryStore()
 
 const dashboardId = ref(route.params.id as string)
-const screenName = ref('新建大屏')
+const screenName = ref(t('bigscreen.editor.untitled'))
 
 const codeDialogVisible = ref(false)
 const codeDialogHtml = ref('')
@@ -58,7 +60,7 @@ onMounted(async () => {
 
   try {
     const screen = await bigScreenApi.get(dashboardId.value)
-    screenName.value = screen.name || '新建大屏'
+    screenName.value = screen.name || t('bigscreen.editor.untitled')
     const config = typeof screen.config === 'string' ? JSON.parse(screen.config || '{}') : (screen.config || {})
     const list = typeof screen.components === 'string' ? JSON.parse(screen.components || '[]') : (screen.components || [])
     if (config && Object.keys(config).length) canvasStore.setConfig(config)
@@ -86,11 +88,11 @@ onMounted(async () => {
     historyStore.pushState(componentsStore.components)
   } catch (e: any) {
     if (e?.status === 404) {
-      ElMessage.error('大屏不存在或已被删除')
+      ElMessage.error(t('bigscreen.editor.notFound'))
       router.replace('/big-screen')
       return
     }
-    ElMessage.error(e?.message || '加载大屏失败')
+    ElMessage.error(e?.message || t('bigscreen.editor.loadFailed'))
     componentsStore.resetComponents([])
     historyStore.pushState([])
   }

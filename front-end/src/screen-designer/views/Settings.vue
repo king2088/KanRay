@@ -1,5 +1,7 @@
 <script setup lang="ts">
+const { t } = useI18n()
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 
 const settings = ref({
@@ -11,7 +13,7 @@ const settings = ref({
 
 const saveSettings = () => {
   localStorage.setItem('sd_settings', JSON.stringify(settings.value))
-  ElMessage.success('设置保存成功')
+  ElMessage.success(t('bigscreen.settings.saveSuccess'))
 }
 
 const loadSettings = () => {
@@ -27,17 +29,17 @@ loadSettings()
 
 <template>
   <div class="settings">
-    <h1>全局设置</h1>
+    <h1>{{ t('bigscreen.settings.title') }}</h1>
     <el-form label-width="120px">
-      <el-form-item label="主题">
+      <el-form-item :label="t('bigscreen.settings.themeLabel')">
         <el-select v-model="settings.theme" style="width: 200px;">
-          <el-option label="深色主题" value="dark" />
-          <el-option label="浅色主题" value="light" />
-          <el-option label="科技蓝" value="tech-blue" />
-          <el-option label="暗夜紫" value="night-purple" />
+          <el-option :label="t('bigscreen.settings.themeDark')" value="dark" />
+          <el-option :label="t('bigscreen.settings.themeLight')" value="light" />
+          <el-option :label="t('bigscreen.settings.themeTechBlue')" value="tech-blue" />
+          <el-option :label="t('bigscreen.settings.themeNightPurple')" value="night-purple" />
         </el-select>
       </el-form-item>
-      <el-form-item label="默认分辨率">
+      <el-form-item :label="t('bigscreen.settings.defaultResolution')">
         <el-select v-model="settings.defaultResolution" style="width: 200px;">
           <el-option label="1920×1080" value="1920x1080" />
           <el-option label="3840×2160" value="3840x2160" />
@@ -45,14 +47,14 @@ loadSettings()
           <el-option label="1536×864" value="1536x864" />
         </el-select>
       </el-form-item>
-      <el-form-item label="自动保存">
+      <el-form-item :label="t('bigscreen.settings.autoSave')">
         <el-switch v-model="settings.autoSave" />
       </el-form-item>
-      <el-form-item label="保存间隔(秒)" v-if="settings.autoSave">
+      <el-form-item :label="t('bigscreen.settings.saveInterval')" v-if="settings.autoSave">
         <el-input-number v-model="settings.autoSaveInterval" :min="10" :max="300" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="saveSettings">保存设置</el-button>
+        <el-button type="primary" @click="saveSettings">{{ t('bigscreen.settings.saveSettings') }}</el-button>
       </el-form-item>
     </el-form>
   </div>
