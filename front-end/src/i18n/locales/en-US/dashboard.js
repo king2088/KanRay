@@ -110,7 +110,7 @@ export default {
     defaultName: 'Untitled dashboard-{suffix}',
     created: 'Dashboard created',
     deleteConfirm: 'Delete dashboard "{name}"?',
-    deleteConfirmTitle: 'Confirm delete',
+    deleteConfirmTitle: 'Delete dashboard',
     deleteSuccess: 'Deleted',
   },
   shareView: {

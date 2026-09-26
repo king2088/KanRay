@@ -88,10 +88,10 @@ export default {
     min: 'Min MIN',
   },
   derived: {
-    share: 'Share',
-    mom: 'MoM',
-    yoy: 'YoY',
-    cumsum: 'Cumulative',
+    share: 'Proportion',
+    mom: 'Vs prev. period',
+    yoy: 'Vs same period last year',
+    cumsum: 'Running total',
     rank: 'Rank',
   },
   stringOps: {
@@ -244,7 +244,7 @@ export default {
     remove: 'Delete',
     previewTitle: 'Chart preview',
     deleteConfirm: 'Delete chart "{name}"?',
-    deleteConfirmTitle: 'Confirm delete',
+    deleteConfirmTitle: 'Delete chart',
     deleteSuccess: 'Deleted',
   },
   schema: {
