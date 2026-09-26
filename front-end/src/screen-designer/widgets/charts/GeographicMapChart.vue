@@ -1,7 +1,8 @@
-<!-- 地理坐标图 (geo-map) - 地理散点图 -->
+<!-- Geo scatter chart (geo-map) -->
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import * as echarts from 'echarts'
+import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonTooltip } from './chartUtils'
 
 const props = defineProps<{
@@ -95,7 +96,7 @@ const getChartOption = () => {
 
 const initChart = async () => {
   if (!chartRef.value) return
-  chart.value = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg' })
+  chart.value = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg', locale: currentEchartsLocale() })
 
   try {
     const response = await fetch('/map/china.json')
@@ -109,6 +110,15 @@ const initChart = async () => {
   resizeObserver = new ResizeObserver(() => chart.value?.resize())
   resizeObserver.observe(chartRef.value)
 }
+
+// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+const rebuildChart = () => {
+  resizeObserver?.disconnect()
+  chart.value?.dispose()
+  chart.value = null
+  initChart()
+}
+useChartLocale(rebuildChart)
 
 onMounted(() => setTimeout(initChart, 100))
 watch(() => [props.data, props.props], () => chart.value?.setOption(getChartOption(), true), { deep: true })
