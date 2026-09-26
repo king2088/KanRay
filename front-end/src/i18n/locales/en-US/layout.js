@@ -1,2 +1,26 @@
-// Copy filled in later i18n plans.
-export default {}
+export default {
+  menu: {
+    home: 'Home',
+    userCenter: 'Profile',
+    // 中文「系统管理」与「系统设置」是两个概念，英文不可都译作 System settings
+    admin: 'Administration',
+    logout: 'Sign out',
+    collapseSidebar: 'Collapse / expand sidebar',
+    systemSettings: 'System settings',
+  },
+  profile: {
+    title: 'Profile',
+    nickname: 'Display name',
+    email: 'Email',
+    role: 'Role',
+    permissions: 'Permissions',
+    changePassword: 'Change password',
+    oldPassword: 'Current password',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm new password',
+    passwordChanged: 'Password changed, please sign in again',
+    oldPasswordRequired: 'Please enter your current password',
+    newPasswordTooShort: 'New password must be at least 6 characters',
+    passwordMismatch: 'The new passwords do not match',
+  },
+}

@@ -1,2 +1,25 @@
-// 文案在后续国际化计划填充。
-export default {}
+export default {
+  menu: {
+    home: '首页',
+    userCenter: '个人中心',
+    admin: '系统管理',
+    logout: '退出登录',
+    collapseSidebar: '折叠 / 展开侧栏',
+    systemSettings: '系统设置',
+  },
+  profile: {
+    title: '个人中心',
+    nickname: '昵称',
+    email: '邮箱',
+    role: '角色',
+    permissions: '权限',
+    changePassword: '修改密码',
+    oldPassword: '原密码',
+    newPassword: '新密码',
+    confirmPassword: '确认新密码',
+    passwordChanged: '密码已修改，请重新登录',
+    oldPasswordRequired: '请输入原密码',
+    newPasswordTooShort: '新密码至少 6 位',
+    passwordMismatch: '两次输入的新密码不一致',
+  },
+}
