@@ -397,9 +397,9 @@ const defaultProps: Record<string, any> = {}
   }
 
   if (component.type === 'custom-chart') {
-    defaultProps.html = `<div class="demo">\n  <h2>Hello World</h2>\n  <p>双击在这里编写HTML</p>\n  <div class="chart-box"></div>\n</div>`
+    defaultProps.html = `<div class="demo">\n  <h2>Hello World</h2>\n  <p>${t('bigscreen.widget.emptyHint')}</p>\n  <div class="chart-box"></div>\n</div>`
     defaultProps.css = `.demo {\n  width: 100%;\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  color: #fff;\n  font-family: Arial, sans-serif;\n}\nh2 { margin: 0 0 8px; font-size: 28px; }\np { margin: 0 0 12px; font-size: 13px; opacity: 0.7; }\n.chart-box {\n  width: 80%;\n  height: 200px;\n  background: rgba(255,255,255,0.1);\n  border-radius: 6px;\n}`
-    defaultProps.js = `var chartBox = container.querySelector('.chart-box');\nif (chartBox) {\n  var chart = echarts.init(chartBox);\n  var labels = (data && data.labels) || [];\n  var values = (data && data.values) || [];\n  if (!values.length) {\n    chartBox.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;padding-top:80px;">暂无数据</div>';\n    return;\n  }\n  chart.setOption({\n    xAxis: { type: 'category', data: labels },\n    yAxis: { type: 'value' },\n    series: [{ data: values, type: 'bar', itemStyle: { color: '#409eff' } }],\n    grid: { left: 40, right: 20, top: 20, bottom: 30 }\n  });\n}`
+    defaultProps.js = `var chartBox = container.querySelector('.chart-box');\nif (chartBox) {\n  var chart = echarts.init(chartBox);\n  var labels = (data && data.labels) || [];\n  var values = (data && data.values) || [];\n  if (!values.length) {\n    chartBox.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;padding-top:80px;">${t('bigscreen.editor.noData')}</div>';\n    return;\n  }\n  chart.setOption({\n    xAxis: { type: 'category', data: labels },\n    yAxis: { type: 'value' },\n    series: [{ data: values, type: 'bar', itemStyle: { color: '#409eff' } }],\n    grid: { left: 40, right: 20, top: 20, bottom: 30 }\n  });\n}`
   }
 
   componentsStore.addComponent({
