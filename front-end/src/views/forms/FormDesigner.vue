@@ -3,29 +3,29 @@
     <div class="fd-header">
       <div class="fd-header__left">
         <el-button text @click="$router.push('/forms')">
-          <el-icon><Back /></el-icon>返回
+          <el-icon><Back /></el-icon>{{ t('form.designer.back') }}
         </el-button>
-        <el-input v-model="form.name" placeholder="表单名称" class="fd-name" maxlength="100" />
+        <el-input v-model="form.name" :placeholder="t('form.designer.namePlaceholder')" class="fd-name" maxlength="100" />
         <el-tag :type="statusType" effect="plain">{{ statusLabel }}</el-tag>
       </div>
       <div class="fd-header__actions">
         <el-button @click="openShare" :disabled="!canShare">
-          <el-icon style="margin-right: 4px"><Share /></el-icon>分享
+          <el-icon style="margin-right: 4px"><Share /></el-icon>{{ t('form.designer.share') }}
         </el-button>
         <el-button @click="$router.push(`/forms/${id}/fill`)">
-          <el-icon style="margin-right: 4px"><View /></el-icon>填写
+          <el-icon style="margin-right: 4px"><View /></el-icon>{{ t('form.designer.fill') }}
         </el-button>
         <el-button @click="$router.push(`/forms/${id}/submissions`)">
-          <el-icon style="margin-right: 4px"><Tickets /></el-icon>提交记录
+          <el-icon style="margin-right: 4px"><Tickets /></el-icon>{{ t('form.designer.submissions') }}
         </el-button>
         <el-button v-if="saveable" type="primary" :loading="saving" @click="save">
-          <el-icon style="margin-right: 4px"><Check /></el-icon>{{ form.tableName ? '保存' : '保存草稿' }}
+          <el-icon style="margin-right: 4px"><Check /></el-icon>{{ form.tableName ? t('form.designer.save') : t('form.designer.saveDraft') }}
         </el-button>
         <el-button v-if="!form.tableName" type="success" :loading="publishing" @click="publish">
-          <el-icon style="margin-right: 4px"><Promotion /></el-icon>发布
+          <el-icon style="margin-right: 4px"><Promotion /></el-icon>{{ t('form.designer.publish') }}
         </el-button>
         <el-button v-else-if="form.status === 'published'" type="warning" @click="close">
-          <el-icon style="margin-right: 4px"><CircleClose /></el-icon>关闭
+          <el-icon style="margin-right: 4px"><CircleClose /></el-icon>{{ t('form.designer.close') }}
         </el-button>
         <el-button type="danger" plain @click="remove">
           <el-icon style="margin-right: 4px"><Delete /></el-icon>
@@ -35,7 +35,7 @@
 
     <div class="fd-body">
       <aside class="fd-palette">
-        <div class="fd-pane-title">控件库</div>
+        <div class="fd-pane-title">{{ t('form.designer.paletteTitle') }}</div>
         <div class="fd-palette__items">
           <div
             v-for="item in palette"
@@ -49,10 +49,10 @@
             <span>{{ item.label }}</span>
           </div>
         </div>
-        <div class="fd-pane-title" style="margin-top: 16px">提示</div>
+        <div class="fd-pane-title" style="margin-top: 16px">{{ t('form.designer.hintTitle') }}</div>
         <div class="fd-palette__tip">
-          <p v-if="!form.tableName">拖拽控件到中间画布即可加入表单；发布后建表入库。</p>
-          <p v-else>已发布：可继续添加新字段；但删除或修改既有字段类型将受数据保护限制。</p>
+          <p v-if="!form.tableName">{{ t('form.designer.hintDraft') }}</p>
+          <p v-else>{{ t('form.designer.hintPublished') }}</p>
         </div>
       </aside>
 
@@ -63,11 +63,11 @@
       >
         <div class="fd-canvas__inner">
           <div class="fd-canvas__desc">
-            <el-input v-model="form.description" type="textarea" :rows="2" placeholder="表单说明（选填）" maxlength="1000" />
+            <el-input v-model="form.description" type="textarea" :rows="2" :placeholder="t('form.designer.descPlaceholder')" maxlength="1000" />
           </div>
           <div v-if="!fields.length" class="fd-canvas__empty" @click="addDefault">
             <el-icon style="font-size: 40px"><FolderAdd /></el-icon>
-            <p>从左侧拖拽控件到这里，或点击直接添加第一个字段</p>
+            <p>{{ t('form.designer.canvasEmpty') }}</p>
           </div>
           <div
             v-for="(field, index) in fields"
@@ -84,8 +84,8 @@
               <el-icon class="fd-field__drag"><Rank /></el-icon>
               <span class="fd-field__label">{{ field.label }}</span>
               <el-tag size="small" effect="plain" class="fd-field__type">{{ typeLabel(field.type) }}</el-tag>
-              <el-tag v-if="field.required && field.type !== 'static'" size="small" type="danger" effect="plain">必填</el-tag>
-              <span v-if="!field.validKey" class="fd-field__warn">key 非法</span>
+              <el-tag v-if="field.required && field.type !== 'static'" size="small" type="danger" effect="plain">{{ t('form.designer.required') }}</el-tag>
+              <span v-if="!field.validKey" class="fd-field__warn">{{ t('form.designer.keyInvalidTag') }}</span>
               <div class="fd-field__ops">
                 <el-button link size="default" :disabled="index === 0" @click.stop="move(index, -1)"><el-icon><Top /></el-icon></el-button>
                 <el-button link size="default" :disabled="index === fields.length - 1" @click.stop="move(index, 1)"><el-icon><Bottom /></el-icon></el-button>
@@ -97,16 +97,16 @@
                 <div class="fd-field__static">{{ field.content || field.label }}</div>
               </template>
               <template v-else-if="field.type === 'textarea'">
-                <el-input :placeholder="`请输入${field.label}`" disabled />
+                <el-input :placeholder="t('form.designer.enterLabel', { label: field.label })" disabled />
               </template>
               <template v-else-if="field.type === 'number'">
                 <el-input-number :model-value="0" controls-position="right" disabled style="width: 100%" />
               </template>
               <template v-else-if="field.type === 'date'">
-                <el-date-picker type="date" placeholder="选择日期" disabled style="width: 100%" />
+                <el-date-picker type="date" :placeholder="t('form.designer.datePlaceholder')" disabled style="width: 100%" />
               </template>
               <template v-else-if="field.type === 'select'">
-                <el-select :placeholder="`请选择${field.label}`" disabled style="width: 100%">
+                <el-select :placeholder="t('form.designer.chooseLabel', { label: field.label })" disabled style="width: 100%">
                   <el-option v-for="o in field.options" :key="o.value" :label="o.label" :value="o.value" />
                 </el-select>
               </template>
@@ -121,7 +121,7 @@
                 </el-checkbox-group>
               </template>
               <template v-else>
-                <el-input :placeholder="`请输入${field.label}`" disabled />
+                <el-input :placeholder="t('form.designer.enterLabel', { label: field.label })" disabled />
               </template>
             </div>
           </div>
@@ -130,65 +130,65 @@
 
       <aside class="fd-props">
         <el-tabs v-model="propTab">
-          <el-tab-pane label="字段属性" name="field">
-            <div v-if="!activeField" class="fd-props__empty">选中一个字段编辑属性</div>
+          <el-tab-pane :label="t('form.designer.propField')" name="field">
+            <div v-if="!activeField" class="fd-props__empty">{{ t('form.designer.propsEmpty') }}</div>
             <el-form v-else label-position="top" size="default">
-              <el-form-item label="标签" required>
-                <el-input v-model="activeField.label" maxlength="100" placeholder="显示名称" />
+              <el-form-item :label="t('form.designer.propLabel')" required>
+                <el-input v-model="activeField.label" maxlength="100" :placeholder="t('form.designer.labelPlaceholder')" />
               </el-form-item>
-              <el-form-item label="字段 key（入库列名）" required>
-                <el-input v-model="activeField.key" :disabled="fieldKeyLocked(activeField)" placeholder="字母/数字/下划线" />
+              <el-form-item :label="t('form.designer.propKey')" required>
+                <el-input v-model="activeField.key" :disabled="fieldKeyLocked(activeField)" :placeholder="t('form.designer.keyPlaceholder')" />
                 <div class="fd-props__hint" :class="{ 'fd-props__hint--err': !activeField.validKey }">
-                  {{ activeField.validKey ? '物理表列名，发布后不可改' : '仅允许字母/数字/下划线，且不能以数字开头' }}
+                  {{ activeField.validKey ? t('form.designer.keyHintLocked') : t('form.designer.keyInvalid') }}
                 </div>
               </el-form-item>
-              <el-form-item label="控件类型">
+              <el-form-item :label="t('form.designer.propType')">
                 <el-select v-model="activeField.type" :disabled="fieldKeyLocked(activeField)" @change="onTypeChange">
                   <el-option v-for="t in palette" :key="t.type" :label="t.label" :value="t.type" />
                 </el-select>
               </el-form-item>
               <template v-if="activeField.type === 'static'">
-                <el-form-item label="说明内容">
-                  <el-input v-model="activeField.content" type="textarea" :rows="3" maxlength="5000" placeholder="正文说明文字" />
+                <el-form-item :label="t('form.designer.propContent')">
+                  <el-input v-model="activeField.content" type="textarea" :rows="3" maxlength="5000" :placeholder="t('form.designer.contentPlaceholder')" />
                 </el-form-item>
               </template>
               <template v-else>
-                <el-form-item label="必填">
+                <el-form-item :label="t('form.designer.propRequired')">
                   <el-switch v-model="activeField.required" />
                 </el-form-item>
-                <el-form-item v-if="activeField.type === 'text' || activeField.type === 'textarea'" label="占位提示">
+                <el-form-item v-if="activeField.type === 'text' || activeField.type === 'textarea'" :label="t('form.designer.propPlaceholder')">
                   <el-input v-model="activeField.placeholder" maxlength="200" />
                 </el-form-item>
-                <el-form-item label="宽度">
+                <el-form-item :label="t('form.designer.propWidth')">
                   <el-radio-group v-model="activeField.span">
-                    <el-radio-button :value="1">半行</el-radio-button>
-                    <el-radio-button :value="2">整行</el-radio-button>
+                    <el-radio-button :value="1">{{ t('form.designer.widthHalf') }}</el-radio-button>
+                    <el-radio-button :value="2">{{ t('form.designer.widthFull') }}</el-radio-button>
                   </el-radio-group>
                 </el-form-item>
-                <el-form-item v-if="'select:radio:checkbox'.includes(activeField.type)" label="选项">
+                <el-form-item v-if="'select:radio:checkbox'.includes(activeField.type)" :label="t('form.designer.propOptions')">
                   <div class="fd-options">
                     <div v-for="(opt, i) in activeField.options" :key="i" class="fd-options__row">
-                      <el-input v-model="opt.label" size="default" placeholder="显示" style="width: 45%" />
-                      <el-input v-model="opt.value" size="default" placeholder="值" style="width: 45%" />
+                      <el-input v-model="opt.label" size="default" :placeholder="t('form.designer.optionLabelPlaceholder')" style="width: 45%" />
+                      <el-input v-model="opt.value" size="default" :placeholder="t('form.designer.optionValuePlaceholder')" style="width: 45%" />
                       <el-button link size="default" type="danger" @click="activeField.options.splice(i, 1)"><el-icon><Delete /></el-icon></el-button>
                     </div>
                     <el-button size="default" plain @click="activeField.options.push({ label: '', value: '' })">
-                      <el-icon style="margin-right: 2px"><Plus /></el-icon>添加选项
+                      <el-icon style="margin-right: 2px"><Plus /></el-icon>{{ t('form.designer.addOption') }}
                     </el-button>
                   </div>
                 </el-form-item>
               </template>
             </el-form>
           </el-tab-pane>
-          <el-tab-pane label="表单设置" name="form">
+          <el-tab-pane :label="t('form.designer.propForm')" name="form">
             <el-form label-position="top" size="default">
-              <el-form-item label="提交成功提示">
-                <el-input v-model="form.submitConfig.successText" maxlength="100" placeholder="提交成功" />
+              <el-form-item :label="t('form.designer.successTextLabel')">
+                <el-input v-model="form.submitConfig.successText" maxlength="100" :placeholder="t('form.designer.successTextPlaceholder')" />
               </el-form-item>
-              <el-form-item label="登录用户重复提交">
-                <el-switch v-model="form.submitConfig.allowRepeat" active-text="允许" inactive-text="每人一次" />
+              <el-form-item :label="t('form.designer.allowRepeatLabel')">
+                <el-switch v-model="form.submitConfig.allowRepeat" :active-text="t('form.designer.allowRepeatOn')" :inactive-text="t('form.designer.allowRepeatOff')" />
               </el-form-item>
-              <div class="fd-props__hint">匿名/免登录链接分享者不受「每人一次」限制。</div>
+              <div class="fd-props__hint">{{ t('form.designer.allowRepeatHint') }}</div>
             </el-form>
           </el-tab-pane>
         </el-tabs>
@@ -207,27 +207,26 @@ import {
   Back, Check, Delete, Bottom, Top, Fold, Promotion, CircleClose,
   Share, View, Tickets, Rank, FolderAdd, Plus, EditPen, Edit, Tickets as TicketsIcon,
 } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { formApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
-import { KEY_RE } from '@/utils/form-meta'
+import { KEY_RE, FIELD_TYPES, typeLabel as typeFieldLabel } from '@/utils/form-meta'
 import FormShareDialog from '@/components/form/FormShareDialog.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const id = String(route.params.id)
 const canShare = computed(() => auth.hasPermission('form', 'share'))
 
-const palette = [
-  { type: 'text', label: '单行文本', icon: EditPen },
-  { type: 'textarea', label: '多行文本', icon: Edit },
-  { type: 'number', label: '数字', icon: Fold },
-  { type: 'date', label: '日期', icon: Fold },
-  { type: 'select', label: '下拉选择', icon: Fold },
-  { type: 'radio', label: '单选', icon: Fold },
-  { type: 'checkbox', label: '多选', icon: Fold },
-  { type: 'static', label: '说明文字', icon: TicketsIcon },
-]
+// 图标只保留映射，展示文案统一由 utils/form-meta 的 typeLabel 提供。
+const FIELD_ICONS = {
+  text: EditPen, textarea: Edit, number: Fold, date: Fold,
+  select: Fold, radio: Fold, checkbox: Fold, static: TicketsIcon,
+}
+// computed 而非常量：控件面板标签要跟随界面语言切换重算。
+const palette = computed(() => FIELD_TYPES.map((type) => ({ type, label: typeFieldLabel(type), icon: FIELD_ICONS[type] })))
 
 const form = reactive({
   id: 0, name: '', description: '', status: 'draft', tableName: null,
@@ -242,7 +241,11 @@ const publishing = ref(false)
 const shareDialog = ref({ open: false, formId: 0, name: '' })
 let uidSeq = 1
 
-const statusLabel = computed(() => ({ draft: '草稿', published: '已发布', closed: '已关闭' })[form.status] || form.status)
+const statusLabel = computed(() => ({
+  draft: t('form.list.draft'),
+  published: t('form.list.published'),
+  closed: t('form.list.closed'),
+})[form.status] || form.status)
 const statusType = computed(() => ({ draft: 'info', published: 'success', closed: 'warning' })[form.status] || 'info')
 const lockedFields = computed(() => !!form.tableName)
 const saveable = computed(() => !publishing.value)
@@ -252,8 +255,12 @@ function fieldKeyLocked(field) {
 const activeField = computed(() => fields.value.find((f) => f.__uid === selected.value))
 
 let newFieldKeys = new Set()
+// 固定的中文种子：keyFor 会剥掉非 ASCII 字符，所以无论界面语言是什么，
+// 新字段的入库列名都稳定回退为 field_*，不会因为展示文案被翻译而变化。
+const KEY_SEED = '字段'
+
 function keyFor(label, field) {
-  const base = (label || '字段').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'field'
+  const base = (label || KEY_SEED).replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'field'
   const safeBase = /^[a-zA-Z_]/.test(base) ? base : `f_${base}`
   let k = kFor(safeBase, field)
   while ((fields.value.some((f) => f !== field && f.key === k)) || newFieldKeys.has(k)) {
@@ -267,21 +274,25 @@ function kFor(base) {
   conflict += 1
   return `${base}_${(Date.now() + conflict).toString(36)}`.slice(0, 40)
 }
+function newDefaultOption() {
+  return { label: t('form.designer.defaultOption'), value: 'opt1' }
+}
+
 function makeField(type, baseLabel) {
   const f = {
     __uid: `f${uidSeq++}`,
-    key: '', label: baseLabel || '新字段', type,
+    key: '', label: baseLabel || t('form.designer.newField'), type,
     required: false, placeholder: '', span: 2, group: null,
-    options: type === 'select' || type === 'radio' || type === 'checkbox' ? [{ label: '选项一', value: 'opt1' }] : [],
+    options: type === 'select' || type === 'radio' || type === 'checkbox' ? [newDefaultOption()] : [],
     content: '', validKey: true,
   }
-  f.key = keyFor(f.label, f)
+  f.key = keyFor(KEY_SEED, f)
   f.validKey = KEY_RE.test(f.key)
   return f
 }
 
-function typeLabel(t) {
-  return palette.find((p) => p.type === t)?.label || t
+function typeLabel(type) {
+  return typeFieldLabel(type)
 }
 
 function onPaletteDrag(event, item) {
@@ -293,7 +304,7 @@ function onPaletteDrag(event, item) {
 function onCanvasDrop(event) {
   const type = event.dataTransfer?.getData('palette-type')
   if (!type) return
-  const label = event.dataTransfer.getData('palette-label') || '新字段'
+  const label = event.dataTransfer.getData('palette-label') || t('form.designer.newField')
   const f = makeField(type, label)
   fields.value.push(f)
   selected.value = f.__uid
@@ -301,7 +312,7 @@ function onCanvasDrop(event) {
 }
 
 function addDefault() {
-  const f = makeField('text', '单行文本')
+  const f = makeField('text', typeFieldLabel('text'))
   fields.value.push(f)
   selected.value = f.__uid
   propTab.value = 'field'
@@ -338,7 +349,7 @@ function onTypeChange(type) {
   if (!f) return
   const needsOptions = 'select:radio:checkbox'.includes(type)
   const hasOptions = Array.isArray(f.options) && f.options.length
-  if (needsOptions && !hasOptions) f.options = [{ label: '选项一', value: 'opt1' }]
+  if (needsOptions && !hasOptions) f.options = [newDefaultOption()]
   if (!needsOptions) f.options = []
   if (type === 'static') f.content = f.content || f.label
 }
@@ -359,14 +370,14 @@ function serialize() {
 }
 
 function preflight() {
-  if (!form.name.trim()) return ElMessage.warning('请先填写表单名称') || false
+  if (!form.name.trim()) return ElMessage.warning(t('form.designer.nameRequired')) || false
   for (const f of fields.value) {
-    if (!f.validKey || !f.key.trim()) return ElMessage.warning(`字段「${f.label}」的 key 不合法`) || false
+    if (!f.validKey || !f.key.trim()) return ElMessage.warning(t('form.designer.keyInvalidField', { label: f.label })) || false
   }
   const seen = new Set()
   for (const f of fields.value) {
     if (f.type === 'static') continue
-    if (seen.has(f.key)) return ElMessage.warning(`字段 key 重复：${f.key}`) || false
+    if (seen.has(f.key)) return ElMessage.warning(t('form.designer.keyDuplicate', { key: f.key })) || false
     seen.add(f.key)
   }
   return true
@@ -378,7 +389,7 @@ async function save() {
   try {
     const updated = await formApi.update(id, serialize())
     applyForm(updated)
-    ElMessage.success('已保存')
+    ElMessage.success(t('form.designer.saved'))
   } finally {
     saving.value = false
   }
@@ -391,7 +402,7 @@ async function publish() {
     try {
       const updated = await formApi.publish(id)
       applyForm(updated)
-      ElMessage.success('发布成功，已建表并注册为数据集')
+      ElMessage.success(t('form.designer.publishedSuccess'))
     } finally {
       publishing.value = false
     }
@@ -400,23 +411,27 @@ async function publish() {
 
 async function close() {
   try {
-    await ElMessageBox.confirm('关闭后登录用户将无法提交；可通过重新发布恢复。确定关闭？', '关闭表单', { type: 'warning' })
+    await ElMessageBox.confirm(t('form.designer.closeConfirm'), t('form.designer.closeConfirmTitle'), { type: 'warning' })
   } catch (e) {
     return
   }
   const updated = await formApi.close(id)
   applyForm(updated)
-  ElMessage.success('已关闭')
+  ElMessage.success(t('form.designer.closeSuccess'))
 }
 
 async function remove() {
   try {
-    await ElMessageBox.confirm(`确定删除表单「${form.name}」？其数据表与全部提交记录将一并删除，不可恢复。`, '删除确认', { type: 'error' })
+    await ElMessageBox.confirm(
+      t('form.designer.deleteFormConfirm', { name: form.name }),
+      t('form.designer.deleteConfirmTitle'),
+      { type: 'error' },
+    )
   } catch (e) {
     return
   }
   await formApi.remove(id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('form.designer.deleteSuccess'))
   router.push('/forms')
 }
 
