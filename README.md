@@ -43,7 +43,7 @@ Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 d
 
 ## Core Features
 
-## 核心流程（四步）
+## 核心流程（五步）
 
 1. **数据管理 → 上传数据**：上传一个 Excel/CSV，系统自动识别字段类型并预览
    English: **Data management → Upload data**: upload an Excel/CSV file, and the system detects the field types automatically and shows a preview
@@ -62,7 +62,7 @@ Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 d
 
    English: **Form center**: design and publish a submission form → share it with a password or publicly → submissions are written back to the dataset and flow onward into the chart / dashboard analysis chain
 
-## Core Workflow (four steps)
+## Core Workflow (Five Steps)
 
 ## 支持的数据库
 
