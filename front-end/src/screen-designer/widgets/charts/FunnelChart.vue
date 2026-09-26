@@ -1,7 +1,8 @@
-<!-- 漏斗图 (funnel) - 垂直漏斗图 -->
+<!-- Funnel chart (funnel) - vertical funnel -->
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
+import { currentEchartsLocale, useChartLocale } from '@/utils/useChartLocale'
 import { defaultColors, getCommonTitle, getCommonLegend, getCommonTooltip } from './chartUtils'
 
 const props = defineProps<{
@@ -61,11 +62,20 @@ const getChartOption = () => {
 
 const initChart = () => {
   if (!chartRef.value) return
-  chart = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg' })
+  chart = echarts.init(chartRef.value, undefined, { renderer: props.props?.renderer || 'svg', locale: currentEchartsLocale() })
   chart.setOption(getChartOption())
   resizeObserver = new ResizeObserver(() => { chart?.resize() })
   resizeObserver.observe(chartRef.value)
 }
+
+// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+const rebuildChart = () => {
+  resizeObserver?.disconnect()
+  chart?.dispose()
+  chart = null
+  initChart()
+}
+useChartLocale(rebuildChart)
 
 onMounted(() => { setTimeout(initChart, 100) })
 
