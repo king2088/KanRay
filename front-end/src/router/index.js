@@ -1,4 +1,6 @@
+import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import { i18n, t } from '@/i18n'
 
 const routes = [
   {
@@ -100,8 +102,20 @@ router.beforeEach(async (to) => {
   return true
 })
 
+function routeTitle(route) {
+  const key = route.meta?.titleKey
+  const translated = key ? t(key) : ''
+  const label = translated && translated !== key ? translated : route.meta?.title
+  return label ? `${label} · KanRay` : 'KanRay'
+}
+
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} · KanRay` : 'KanRay'
+  document.title = routeTitle(to)
+})
+
+// 切换语言后重算当前页标题（各路由的 titleKey 在计划 2 补齐）
+watch(i18n.global.locale, () => {
+  document.title = routeTitle(router.currentRoute.value)
 })
 
 export default router
