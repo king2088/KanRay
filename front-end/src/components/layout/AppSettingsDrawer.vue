@@ -185,7 +185,7 @@ const emit = defineEmits(['update:modelValue'])
   left: 26px;
   right: 4px;
   bottom: 4px;
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: 2px;
 }

@@ -962,7 +962,7 @@ onUnmounted(() => {
 .palette-item__label { color: var(--app-text-primary); }
 
 /* canvas toolbar (zoom + undo/redo/autoLayout) */
-.etl-canvas-toolbar { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 0; background: var(--el-bg-color, #fff); border: 1px solid var(--el-border-color); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 4px; }
+.etl-canvas-toolbar { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 0; background: var(--app-surface); border: 1px solid var(--el-border-color); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 4px; }
 .etl-toolbar-group { display: flex; flex-direction: column; gap: 2px; }
 .etl-toolbar-divider { width: 60%; height: 1px; background: var(--el-border-color-light, #e4e7ed); margin: 4px 0; }
 .etl-canvas-toolbar__btn { width: 28px; height: 28px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 15px; color: var(--app-text-primary, #303133); display: flex; align-items: center; justify-content: center; transition: background .15s; padding: 0; }
@@ -970,7 +970,7 @@ onUnmounted(() => {
 .etl-canvas-toolbar__btn:disabled { opacity: .35; cursor: not-allowed; }
 
 /* node / edge context menu */
-.etl-ctx-menu { position: fixed; z-index: 3000; min-width: 110px; background: var(--el-bg-color, #fff); border: 1px solid var(--el-border-color); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 4px; }
+.etl-ctx-menu { position: fixed; z-index: 3000; min-width: 110px; background: var(--app-surface); border: 1px solid var(--el-border-color); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 4px; }
 .etl-ctx-menu__item { padding: 6px 10px; font-size: 13px; color: var(--el-color-danger); border-radius: 4px; cursor: pointer; user-select: none; text-align: left; }
 .etl-ctx-menu__item:hover { background: var(--app-hover, #f5f7fa); }
 
@@ -986,7 +986,7 @@ onUnmounted(() => {
 .drawer-table :deep(.el-input__wrapper), .drawer-table :deep(.el-select) { width: 100%; }
 .drawer-join-op { color: var(--app-text-secondary); }
 .drawer-metric-seq { color: var(--app-text-secondary); font-family: Consolas, 'Courier New', monospace; }
-.drawer-preview-table { width: 100%; border: 1px solid var(--el-border-color); border-radius: 6px; overflow: hidden; background: var(--el-bg-color); }
+.drawer-preview-table { width: 100%; border: 1px solid var(--el-border-color); border-radius: 6px; overflow: hidden; background: var(--app-surface); }
 .drawer-preview-table :deep(.el-table-v2) { --el-table-header-bg-color: var(--el-fill-color-light); }
 .drawer-preview-table :deep(.el-table-v2__header-row-cell), .drawer-preview-table :deep(.el-table-v2__row-cell) { padding: 0 8px; }
 .drawer-preview-table :deep(.el-table-v2__row.drawer-preview-zebra) { background-color: var(--el-fill-color-light); }

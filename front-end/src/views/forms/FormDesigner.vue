@@ -483,12 +483,9 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: var(--el-bg-color);
+  background: var(--app-header-bg);
   border-bottom: 1px solid var(--el-border-color-lighter);
   gap: 8px;
-}
-html.dark .fd-header {
-  background: var(--app-card-solid);
 }
 .fd-header__left,
 .fd-header__actions {
@@ -506,7 +503,7 @@ html.dark .fd-header {
 }
 .fd-palette {
   width: 200px;
-  background: var(--el-bg-color);
+  background: var(--app-surface);
   border-right: 1px solid var(--el-border-color-lighter);
   padding: 14px;
   overflow-y: auto;
@@ -555,7 +552,7 @@ html.dark .fd-header {
 .fd-canvas__inner {
   max-width: 760px;
   margin: 0 auto;
-  background: var(--app-card-solid);
+  background: var(--app-surface);
   border: 1px dashed var(--el-border-color);
   border-radius: 12px;
   padding: 20px;
@@ -575,7 +572,7 @@ html.dark .fd-header {
   border-radius: 8px;
   margin-bottom: 12px;
   padding: 8px 12px;
-  background: var(--el-bg-color);
+  background: var(--app-surface);
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -618,7 +615,7 @@ html.dark .fd-header {
 }
 .fd-props {
   width: 300px;
-  background: var(--el-bg-color);
+  background: var(--app-surface);
   border-left: 1px solid var(--el-border-color-lighter);
   padding: 14px;
   overflow-y: auto;

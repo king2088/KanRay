@@ -331,7 +331,7 @@ async function removeTemplate(tpl) {
 }
 
 .tm-card {
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: 10px;
   overflow: hidden;

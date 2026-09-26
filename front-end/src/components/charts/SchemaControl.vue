@@ -242,7 +242,7 @@ watch(() => props.value, () => { hoverLabel.value = activeGridLabel() })
   justify-content: center;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
   border-radius: 4px;
-  background: var(--app-glass-soft);
+  background: var(--app-surface-2);
   cursor: pointer;
   color: #c8ccd4;
 }

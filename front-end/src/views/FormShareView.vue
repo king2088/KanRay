@@ -136,15 +136,12 @@ onMounted(metaLoad)
 .share-shell__card {
   width: 100%;
   max-width: 720px;
-  background: var(--app-card-solid);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: 16px;
   box-shadow: var(--app-shadow-card);
   padding: 28px 36px 36px;
   align-self: flex-start;
-}
-html.dark .share-shell__card {
-  background-image: var(--app-header-bg);
 }
 .share-shell__brand {
   display: flex;

@@ -308,7 +308,7 @@ function removeItem(arr, i) {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   padding: 6px 10px;

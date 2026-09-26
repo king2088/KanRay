@@ -206,7 +206,7 @@ onMounted(load)
 
 .editor-toolbar {
   height: var(--app-header-height);
-  background: var(--app-card);
+  background: var(--app-header-bg);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   display: flex;

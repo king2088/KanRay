@@ -162,15 +162,13 @@ onMounted(loadMeta)
 .share-gate-card {
   width: 360px;
   padding: 32px;
-  background: var(--app-glass-strong);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: 12px;
-  box-shadow: var(--app-glass-edge), var(--app-shadow-card);
+  box-shadow: var(--app-shadow-card);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  backdrop-filter: blur(20px) saturate(150%);
 }
 
 .share-gate-card__title {
@@ -201,7 +199,7 @@ onMounted(loadMeta)
 
 .share-bar {
   height: 56px;
-  background: var(--app-glass);
+  background: var(--app-header-bg);
   border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;

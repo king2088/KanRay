@@ -188,7 +188,7 @@ function onPaletteDrag(e, chart) {
 .chart-library-panel {
   width: 260px;
   flex-shrink: 0;
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   padding: 12px;

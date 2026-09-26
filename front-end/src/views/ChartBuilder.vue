@@ -531,7 +531,7 @@ onMounted(async () => {
 
 .builder-toolbar {
   height: var(--app-header-height);
-  background: var(--app-card);
+  background: var(--app-header-bg);
   border-bottom: 1px solid var(--app-border-light);
   display: flex;
   align-items: center;
@@ -584,7 +584,7 @@ onMounted(async () => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: var(--app-card);
+  background: var(--app-surface);
   border-right: 1px solid var(--app-border-light);
   flex-shrink: 0;
 }
@@ -614,7 +614,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--app-card);
+  background: var(--app-surface);
   margin: 16px;
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
@@ -736,7 +736,7 @@ onMounted(async () => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: var(--app-card-solid);
+  background: var(--app-surface);
   border-left: 1px solid var(--app-border-light);
   padding: 4px 16px 0;
   flex-shrink: 0;
@@ -746,12 +746,12 @@ onMounted(async () => {
 .builder-right :deep(.el-textarea__inner),
 .builder-right :deep(.el-select__wrapper),
 .builder-right :deep(.el-checkbox__inner) {
-  background-color: var(--app-card-solid);
+  background-color: var(--app-surface);
 }
 
 .builder-right :deep(.el-input.is-focus .el-input__wrapper),
 .builder-right :deep(.el-select .el-select__wrapper.is-focused) {
-  background-color: var(--app-card-solid);
+  background-color: var(--app-surface);
   box-shadow: 0 0 0 1px var(--app-primary) inset !important;
 }
 
@@ -807,7 +807,7 @@ onMounted(async () => {
 
 .right-config-view {
   padding: 0 10px 16px;
-  background: var(--app-card-solid);
+  background: var(--app-surface);
 }
 
 

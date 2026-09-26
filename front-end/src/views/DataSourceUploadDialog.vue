@@ -245,7 +245,7 @@ function doClose() {
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   padding: 14px 16px;
-  background: var(--app-card);
+  background: var(--app-surface);
 }
 
 .file-panel__info {

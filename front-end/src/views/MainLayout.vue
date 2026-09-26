@@ -121,7 +121,7 @@ const currentTitle = computed(() => routeLabel(route) || 'KanRay')
 
 /* ---------- 侧边栏（浅色扁平） ---------- */
 .app-aside {
-  background: var(--app-card);
+  background: var(--app-surface);
   border-right: 1px solid var(--app-border-light);
   transition: width 0.2s;
   display: flex;

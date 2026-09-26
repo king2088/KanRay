@@ -1,8 +1,9 @@
 /* ============================================================
-   KanRay · 全局基础样式（雾面玻璃 · Frosted Glass）
-   冷调雾青主色 + 半透明白玻璃面板，背底为一层极轻的水彩晕染，
-   让玻璃面板既能透过又保持阅读清晰；保持扁平与克制，不启用
-   高饱和科技感配色。
+   KanRay · 全局基础样式
+   冷调雾青主色 + 扁平不透明面板。玻璃（毛玻璃）效果**只保留在
+   header**：顶栏半透明并对背底水彩做 backdrop-filter 模糊，其余
+   面板 / 侧栏 / 卡片 / 表格 / 弹窗浮层一律实底不透明，保证内容
+   互不透出、层次清晰。保持扁平与克制，不启用高饱和科技感配色。
    ============================================================ */
 
 :root {
@@ -27,21 +28,21 @@
     radial-gradient(1000px 700px at 78% 108%, rgba(190, 168, 216, 0.18), transparent 60%),
     radial-gradient(720px 480px at 8% 96%, rgba(168, 205, 190, 0.2), transparent 55%);
 
-  /* 玻璃面板：主面板 / 强调面板 / 内嵌填充 三档透明度 */
-  --app-glass: rgba(255, 255, 255, 0.62);
-  --app-glass-strong: rgba(255, 255, 255, 0.78);
-  --app-glass-soft: rgba(255, 255, 255, 0.45);
-  /* 头部稍透，让顶部晕染色彩清晰透出（可见毛玻璃） */
-  --app-glass-header: rgba(255, 255, 255, 0.5);
+  /* ---- 不透明表面：全站默认，一律实底 ---- */
+  --app-surface: #ffffff;        /* 卡片 / 面板 / 侧栏 / 弹窗 / 抽屉 / popper */
+  --app-surface-2: #f5f7fa;      /* 次级面：输入框底、表头、分组带 */
+  --app-surface-3: #fafbfd;      /* 三级面：hover / 备用 */
+  /* 表格实底：含固定列 / 吸顶表头，一律不透明，避免内容从下方透出 */
+  --app-table-bg: #ffffff;
+  --app-table-header-bg: #f2f5f9;
+
+  /* ---- header 专用玻璃：仅吸顶顶栏与各页顶部工具条使用 ---- */
+  --app-header-glass: rgba(255, 255, 255, 0.62);
   /* 头部玻璃平板：微弱上亮下暗的玻璃高光 + 半透明底，让背后色彩清晰透出 */
   --app-header-bg:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
-    var(--app-glass-header);
-
-  /* 兼容旧引用（--app-card → 玻璃面板） */
-  --app-card: var(--app-glass);
-  /* 不透明面板：图表构建器右侧配置栏等需要实底以保证可读 */
-  --app-card-solid: #ffffff;
+    var(--app-header-glass);
+  --app-header-edge: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
   --app-text-primary: #2f3a52;
   --app-text-regular: #55637a;
@@ -51,8 +52,7 @@
   --app-border-light: rgba(31, 45, 61, 0.07);
   --app-hover: rgba(31, 45, 61, 0.06);
 
-  /* 玻璃高光边 + 柔焦阴影（冷调，非纯灰） */
-  --app-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  /* 柔焦阴影（冷调，非纯灰） */
   --app-shadow-card: 0 10px 34px rgba(34, 48, 71, 0.08), 0 2px 8px rgba(34, 48, 71, 0.05);
 
   /* 主色点缀用极浅的雾青底 */
@@ -62,14 +62,17 @@
   --app-header-height: 52px;
   --app-sidebar-width: 220px;
 
-  /* Element Plus 基础色对齐玻璃体系 */
+  /* Element Plus 基础色对齐本主题。
+     下列表面变量必须是实色：应用代码从未显式赋值，而 el-menu / el-card /
+     el-collapse / 按钮 / 标签 / 树 等表面底色的唯一来源就是它们。 */
   --el-color-primary: #3fa49a;
   --el-border-color: rgba(31, 45, 61, 0.14);
   --el-border-color-light: rgba(31, 45, 61, 0.10);
   --el-border-color-lighter: rgba(31, 45, 61, 0.07);
-  --el-fill-color-blank: rgba(255, 255, 255, 0.45);
-  --el-bg-color: rgba(255, 255, 255, 0.55);
-  --el-bg-color-overlay: rgba(255, 255, 255, 0.78);
+  --el-fill-color-blank: #ffffff;
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #ffffff;
+  --el-fill-color-lighter: #fafafa;
   --el-text-color-primary: #2f3a52;
   --el-text-color-regular: #55637a;
   --el-text-color-secondary: #7c8ba1;
@@ -181,7 +184,7 @@ body {
 
 .page-card__footer {
   border-top: 1px solid var(--app-border-light);
-  background: var(--app-card);
+  background: var(--app-surface);
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -203,7 +206,7 @@ body {
 
 /* 白卡片容器 */
 .page-card {
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   overflow: hidden;
@@ -238,7 +241,7 @@ body {
 .stat-strip {
   display: flex;
   align-items: stretch;
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   margin-bottom: 16px;
@@ -284,34 +287,29 @@ body {
 }
 
 /* ============================================================
-   玻璃材质：主面板 / 浮层统一毛玻璃
-   backdrop-filter 仅作用于面板层级（静态），不逐格做模糊，
-   兼顾阅读清晰与滚动性能。
+   玻璃材质：只作用于 header
+   backdrop-filter 仅给吸顶顶栏与各页顶部工具条，让内容从其下方
+   滚过形成毛玻璃；其余面板一律实底，不做逐格模糊。
    ============================================================ */
 
-.app-aside,
 .app-header,
-.page-card,
-.el-card,
-.stat-strip,
-.el-collapse,
+.view-bar,
+.builder-toolbar,
+.editor-toolbar,
+.fd-header,
 .share-bar {
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: var(--app-header-edge);
 }
 
+/* 卡片 / 弹窗 / 抽屉：实底 + 柔焦投影 */
 .page-card,
 .el-card,
 .stat-strip,
 .el-dialog,
 .el-drawer {
-  box-shadow: var(--app-glass-edge), var(--app-shadow-card);
-}
-
-.app-aside,
-.app-header,
-.share-bar {
-  box-shadow: var(--app-glass-edge);
+  box-shadow: var(--app-shadow-card);
 }
 
 /* 弹窗 / 抽屉 / 消息：一律实底不透明（避免背后内容透出），阴影保留层级 */
@@ -319,20 +317,20 @@ body {
 .el-message-box,
 .el-message,
 .el-drawer {
-  background: var(--app-card-solid);
+  background: var(--app-surface);
 }
 
 /* 所有 .el-popper 浮层（Popover/下拉/Select/Tooltip 等）：
    覆盖 Element Plus 的半透明底色变量为实底，且不高优先级改写 tooltip 深色底 */
 .el-popper[class] {
-  --el-popover-bg-color: var(--app-card-solid);
-  --el-popper-bg-color: var(--app-card-solid);
-  --el-bg-color-overlay: var(--app-card-solid);
+  --el-popover-bg-color: var(--app-surface);
+  --el-popper-bg-color: var(--app-surface);
+  --el-bg-color-overlay: var(--app-surface);
 }
 
 .el-popper.el-popover {
-  background: var(--app-card-solid);
-  background-color: var(--app-card-solid);
+  background: var(--app-surface);
+  background-color: var(--app-surface);
 }
 
 /* ============================================================
@@ -345,12 +343,28 @@ body {
 }
 
 .el-table {
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.55);
+  --el-table-header-bg-color: var(--app-table-header-bg);
   --el-table-header-text-color: var(--app-text-regular);
   --el-table-border-color: var(--app-border-light);
   --el-table-row-hover-bg-color: rgba(63, 164, 154, 0.10);
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: rgba(255, 255, 255, 0.28);
+  --el-table-bg-color: var(--app-table-bg);
+  --el-table-tr-bg-color: var(--app-table-bg);
+  --el-table-expanded-cell-bg-color: var(--app-table-bg);
+}
+/* 固定列（fixed）与吸顶表头必须实底，否则横向滚动时内容会从下方透出 */
+.el-table td.el-table__cell,
+.el-table th.el-table__cell,
+.el-table__fixed,
+.el-table__body-wrapper .el-table__cell {
+  background-color: var(--app-table-bg);
+}
+.el-table th.el-table__cell,
+.el-table .el-table-fixed-column--left,
+.el-table .el-table-fixed-column--right {
+  background-color: var(--app-table-header-bg);
+}
+.el-table tr:hover > td.el-table__cell {
+  background-color: rgba(63, 164, 154, 0.10);
 }
 .el-table th.el-table__cell {
   font-weight: 600;
@@ -365,11 +379,11 @@ body {
   color: var(--app-text-secondary);
 }
 
-/* 表单控件底色改为内嵌玻璃（略透），聚焦仍用主色描边 */
+/* 表单控件底色：实底内嵌面，聚焦仍用主色描边 */
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper {
-  background-color: var(--app-glass-soft);
+  background-color: var(--app-surface-2);
   box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
   transition: box-shadow 0.2s, background-color 0.2s;
 }
@@ -381,16 +395,16 @@ body {
 .el-select .el-input.is-focus .el-input__wrapper,
 .el-select .el-select__wrapper.is-focused {
   box-shadow: 0 0 0 1px var(--app-primary) inset !important;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: var(--app-surface);
 }
 html.dark .el-input.is-focus .el-input__wrapper,
 html.dark .el-select .el-input.is-focus .el-input__wrapper,
 html.dark .el-select .el-select__wrapper.is-focused {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--app-surface-3);
 }
 
 .el-checkbox__inner {
-  background-color: var(--app-glass-soft);
+  background-color: var(--app-surface-2);
 }
 
 /* 选项卡标题区底透明，仅保留下缘细线 */
@@ -409,7 +423,7 @@ html.dark .el-select .el-select__wrapper.is-focused {
   gap: 8px;
   max-width: 280px;
   padding: 8px 12px;
-  background: var(--app-glass-strong);
+  background: var(--app-surface);
   border: 1px solid var(--app-primary);
   border-radius: var(--app-radius);
   box-shadow: var(--app-shadow-card);
@@ -496,16 +510,19 @@ html.dark {
     radial-gradient(1000px 700px at 78% 108%, rgba(128, 96, 168, 0.13), transparent 60%),
     radial-gradient(720px 480px at 8% 96%, rgba(96, 120, 160, 0.12), transparent 55%);
 
-  --app-glass: rgba(23, 34, 48, 0.55);
-  --app-glass-strong: rgba(28, 40, 56, 0.74);
-  --app-glass-soft: rgba(28, 40, 56, 0.45);
-  --app-glass-header: rgba(23, 34, 48, 0.42);
-  /* 头部玻璃平板（暗色）：微弱上亮下暗，保持通透 */
+  --app-surface: #18222e;        /* 卡片 / 面板 / 侧栏 / 弹窗 / 抽屉 / popper */
+  --app-surface-2: #1f2b3a;      /* 次级面：输入框底、表头、分组带 */
+  --app-surface-3: #243244;      /* 三级面：hover / 备用 */
+  /* 表格实底（暗色） */
+  --app-table-bg: #18222e;
+  --app-table-header-bg: #1f2b3a;
+
+  /* header 专用玻璃（暗色）：微弱上亮下暗，保持通透 */
+  --app-header-glass: rgba(23, 34, 48, 0.55);
   --app-header-bg:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
-    var(--app-glass-header);
-  --app-card: var(--app-glass);
-  --app-card-solid: #18222e;
+    var(--app-header-glass);
+  --app-header-edge: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
   --app-text-primary: #e7eef7;
   --app-text-regular: #c3cdd9;
@@ -515,16 +532,16 @@ html.dark {
   --app-border-light: rgba(150, 180, 214, 0.11);
   --app-hover: rgba(150, 180, 214, 0.10);
 
-  --app-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --app-shadow-card: 0 12px 36px rgba(2, 8, 18, 0.4), 0 2px 8px rgba(2, 8, 18, 0.3);
   --app-tint-primary: rgba(87, 196, 180, 0.16);
 
   --el-border-color: rgba(150, 180, 214, 0.20);
   --el-border-color-light: rgba(150, 180, 214, 0.14);
   --el-border-color-lighter: rgba(150, 180, 214, 0.10);
-  --el-fill-color-blank: rgba(28, 40, 56, 0.5);
-  --el-bg-color: rgba(23, 34, 48, 0.55);
-  --el-bg-color-overlay: rgba(28, 40, 56, 0.78);
+  --el-fill-color-blank: #18222e;
+  --el-bg-color: #18222e;
+  --el-bg-color-overlay: #1c2836;
+  --el-fill-color-lighter: #1f2b3a;
   --el-text-color-primary: #e7eef7;
   --el-text-color-regular: #c3cdd9;
   --el-text-color-secondary: #8fa0b6;
@@ -532,12 +549,12 @@ html.dark {
 
   color-scheme: dark;
 
-  /* 表格：表头 / 行 hover / 单元格底色与边框 */
-  --el-fill-color-lighter: rgba(150, 180, 214, 0.08);
-  --el-table-header-bg-color: rgba(150, 180, 214, 0.10);
+  /* 表格：表头 / 行 hover / 单元格底色与边框（实底，不透明） */
+  --el-table-header-bg-color: var(--app-table-header-bg);
   --el-table-row-hover-bg-color: rgba(87, 196, 180, 0.12);
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: rgba(23, 34, 48, 0.35);
+  --el-table-bg-color: var(--app-table-bg);
+  --el-table-tr-bg-color: var(--app-table-bg);
+  --el-table-expanded-cell-bg-color: var(--app-table-bg);
   --el-table-header-text-color: var(--app-text-primary);
   --el-table-text-color: var(--app-text-regular);
   --el-table-border-color: var(--app-border-light);
@@ -551,11 +568,24 @@ html.dark {
 }
 
 html.dark .el-table {
-  --el-table-header-bg-color: rgba(150, 180, 214, 0.10);
+  --el-table-header-bg-color: var(--app-table-header-bg);
   --el-table-row-hover-bg-color: rgba(87, 196, 180, 0.12);
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: rgba(23, 34, 48, 0.35);
+  --el-table-bg-color: var(--app-table-bg);
+  --el-table-tr-bg-color: var(--app-table-bg);
+  --el-table-expanded-cell-bg-color: var(--app-table-bg);
   --el-table-border-color: var(--app-border);
+}
+html.dark .el-table td.el-table__cell,
+html.dark .el-table th.el-table__cell {
+  background-color: var(--app-table-bg);
+}
+html.dark .el-table th.el-table__cell,
+html.dark .el-table .el-table-fixed-column--left,
+html.dark .el-table .el-table-fixed-column--right {
+  background-color: var(--app-table-header-bg);
+}
+html.dark .el-table tr:hover > td.el-table__cell {
+  background-color: rgba(87, 196, 180, 0.12);
 }
 
 html.dark .cell-name__icon--green { background: var(--app-tint-green); }
@@ -592,7 +622,6 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   --scr-surface-2:     #f5f7fa;   /* 次级表面：左/右面板内边距背景、分组标题带 */
   --scr-surface-3:     #fafafa;   /* 三级表面：option/hover 备用表面 */
   --scr-fill:          #f0f0f0;   /* 分隔线/填充用细带 */
-  --scr-glass:         rgba(255,255,255,0.62);  /* 玻璃插件（原 --app-glass 值，设计器独立持有以免被 :root 玻璃覆盖干扰） */
 
   /* ---- 边框 ---- */
   --scr-border:        #dcdfe6;   /* 主边框（面板外缘） */
@@ -621,7 +650,6 @@ html.dark {
   --scr-surface-2:     rgba(150,180,214,0.10); /* 次级表面：分组标题带 */
   --scr-surface-3:     rgba(150,180,214,0.08); /* 三级表面 */
   --scr-fill:          rgba(150,180,214,0.12); /* 分隔线/填充用细带 */
-  --scr-glass:         rgba(23,34,48,0.55);    /* 玻璃插件（应用暗黑玻璃值） */
 
   /* ---- 边框 ---- */
   --scr-border:        rgba(150,180,214,0.20);  /* 主边框 */

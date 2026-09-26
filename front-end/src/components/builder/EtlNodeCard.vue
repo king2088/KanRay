@@ -40,7 +40,7 @@ const desc = computed(() => {
 </script>
 
 <style scoped>
-.etl-node-card { display: flex; gap: 8px; align-items: center; background: var(--app-card); border: 1px solid var(--app-border); border-radius: 8px; padding: 8px 10px; width: 180px; cursor: grab; transition: box-shadow .15s, border-color .15s; }
+.etl-node-card { display: flex; gap: 8px; align-items: center; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 8px; padding: 8px 10px; width: 180px; cursor: grab; transition: box-shadow .15s, border-color .15s; }
 .etl-node-card--selected, .etl-node-card:hover { border-color: var(--app-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
 .etl-node-card--error { border-color: var(--el-color-danger); }
 .etl-node-card__icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600; }

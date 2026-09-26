@@ -523,7 +523,7 @@ onMounted(load)
 .formula-help code {
   padding: 1px 5px;
   border-radius: 4px;
-  background: var(--app-bg-muted, rgba(0, 0, 0, 0.05));
+  background: var(--app-surface-2);
   font-size: 12px;
 }
 

@@ -533,7 +533,7 @@ onBeforeUnmount(() => {
 
 .grid-item {
   position: absolute;
-  background: var(--app-card);
+  background: var(--app-surface);
   border: var(--card-border-w, 1px) solid var(--app-border-light);
   border-radius: var(--card-radius, var(--app-radius));
   overflow: hidden;
@@ -568,7 +568,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   height: var(--hh, 34px);
   padding: 0 10px;
-  background: var(--app-card);
+  background: var(--app-surface);
   border-bottom: var(--card-underline, 1px solid var(--app-border-light));
   font-size: var(--card-fs, 13px);
 }
@@ -613,7 +613,7 @@ onBeforeUnmount(() => {
   top: 2px;
   right: 6px;
   padding: 1px 6px;
-  background: var(--app-card);
+  background: var(--app-surface);
   border: 1px solid var(--app-border-light);
   border-radius: var(--app-radius);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);

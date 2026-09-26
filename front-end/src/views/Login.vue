@@ -36,7 +36,7 @@ async function onSubmit() {
 </script>
 <style scoped>
 .auth-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(rgba(47, 72, 94, 0.26), rgba(47, 72, 94, 0.30)), url('/bg.jpg') center / cover no-repeat; }
-.auth-card { width: 380px; background: var(--app-glass-strong); border: 1px solid var(--app-border-light); border-radius: 12px; box-shadow: var(--app-glass-edge), var(--app-shadow-card); -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%); }
+.auth-card { width: 380px; background: var(--app-surface); border: 1px solid var(--app-border-light); border-radius: 12px; box-shadow: var(--app-shadow-card); }
 .auth-logo { display: flex; justify-content: center; margin-bottom: 12px; }
 .auth-logo img { width: 56px; height: 56px; border-radius: 14px; }
 .auth-title { text-align: center; margin: 0 0 18px; color: var(--app-text-primary); }
