@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
-    title="上传 Excel / CSV 文件"
+    :title="t('dataset.dataSource.uploadExcelCsv')"
     width="80%"
     align-center
     destroy-on-close
@@ -12,9 +12,9 @@
   >
     <div class="upload-dialog__body">
       <el-steps :active="step" align-center class="wizard-steps" finish-status="success">
-        <el-step title="选择文件" description="Excel / CSV" />
-        <el-step title="确认字段" description="类型校正" />
-        <el-step title="完成" description="准备就绪" />
+        <el-step :title="t('dataset.dataSource.upload.stepFile')" :description="t('dataset.dataSource.upload.stepFileDesc')" />
+        <el-step :title="t('dataset.dataSource.upload.stepFields')" :description="t('dataset.dataSource.upload.stepFieldsDesc')" />
+        <el-step :title="t('dataset.dataSource.upload.stepDone')" :description="t('dataset.dataSource.upload.stepDoneDesc')" />
       </el-steps>
 
       <!-- Step 1: 选择文件 -->
@@ -32,10 +32,10 @@
             <div class="upload-icon-wrap">
               <el-icon class="upload-icon" :size="46"><UploadFilled /></el-icon>
             </div>
-            <div class="el-upload__text">将 Excel / CSV 拖到此处，或<em>点击选择文件</em></div>
+            <div class="el-upload__text">{{ t('dataset.dataSource.upload.dragBefore') }}<em>{{ t('dataset.dataSource.upload.dragClick') }}</em></div>
             <template #tip>
               <div class="el-upload__tip">
-                支持 .xlsx / .xls / .csv 格式，单文件不超过 20MB、不超过 20 万行，第一行作为列名。
+                {{ t('dataset.dataSource.upload.dragTip') }}
               </div>
             </template>
           </el-upload>
@@ -49,20 +49,20 @@
               </div>
               <el-input
                 v-model="datasetName"
-                placeholder="数据集名称（可选，默认使用文件名）"
+                :placeholder="t('dataset.dataSource.upload.namePlaceholder')"
                 style="width: 320px; margin-left: auto"
                 maxlength="100"
               />
               <el-input
                 v-model="sheetName"
-                placeholder="工作表（缺省第一张，如 Sheet2 或 1）"
+                :placeholder="t('dataset.dataSource.upload.sheetPlaceholder')"
                 style="width: 220px"
                 clearable
               />
             </div>
             <div class="file-panel__actions">
               <el-button type="primary" :loading="parsing" @click="doPreview">
-                <el-icon style="margin-right: 6px"><MagicStick /></el-icon>下一步：解析并预览
+                <el-icon style="margin-right: 6px"><MagicStick /></el-icon>{{ t('dataset.dataSource.upload.nextParse') }}
               </el-button>
             </div>
           </div>
@@ -73,36 +73,36 @@
       <div v-if="step === 1" class="page-card">
         <div class="page-card__header">
           <div class="page-card__header-title">
-            确认字段类型
-            <el-tag type="info" effect="plain" style="margin-left: 8px">共 {{ preview.rowCount }} 行</el-tag>
+            {{ t('dataset.dataSource.upload.confirmFieldsTitle') }}
+            <el-tag type="info" effect="plain" style="margin-left: 8px">{{ t('dataset.dataSource.upload.rowCount', { count: preview.rowCount }) }}</el-tag>
           </div>
           <div class="page-card__header-right">
-            <el-button @click="step = 0">上一步</el-button>
+            <el-button @click="step = 0">{{ t('dataset.dataSource.upload.prevStep') }}</el-button>
             <el-button type="primary" :loading="creating" @click="doCreate">
-              <el-icon style="margin-right: 6px"><Check /></el-icon>创建数据集
+              <el-icon style="margin-right: 6px"><Check /></el-icon>{{ t('dataset.dataSource.upload.createDataset') }}
             </el-button>
           </div>
         </div>
         <div class="page-card__body">
           <el-table :data="previewHeader">
             <el-table-column type="index" label="#" width="54" align="center" />
-            <el-table-column prop="label" label="字段名（原始）" min-width="160" />
-            <el-table-column prop="key" label="内部字段名" min-width="160" show-overflow-tooltip />
-            <el-table-column label="字段类型" width="170" align="center">
+            <el-table-column prop="label" :label="t('dataset.dataSource.upload.colLabel')" min-width="160" />
+            <el-table-column prop="key" :label="t('dataset.dataSource.upload.colKey')" min-width="160" show-overflow-tooltip />
+            <el-table-column :label="t('dataset.dataSource.upload.colType')" width="170" align="center">
               <template #default="{ row }">
                 <el-select v-model="row.type">
-                  <el-option label="文本" value="string" />
-                  <el-option label="整数" value="integer" />
-                  <el-option label="小数" value="number" />
-                  <el-option label="日期" value="date" />
-                  <el-option label="布尔" value="boolean" />
+                  <el-option :label="t('dataset.fieldType.string')" value="string" />
+                  <el-option :label="t('dataset.fieldType.integer')" value="integer" />
+                  <el-option :label="t('dataset.fieldType.number')" value="number" />
+                  <el-option :label="t('dataset.fieldType.date')" value="date" />
+                  <el-option :label="t('dataset.fieldType.boolean')" value="boolean" />
                 </el-select>
               </template>
             </el-table-column>
           </el-table>
 
           <div class="preview-block">
-            <div class="preview-block__title">数据预览（前 {{ preview.previewRows.length }} 行）</div>
+            <div class="preview-block__title">{{ t('dataset.dataSource.upload.previewTitle', { count: preview.previewRows.length }) }}</div>
             <el-table :data="preview.previewRows" max-height="300">
               <el-table-column
                 v-for="h in previewHeader"
@@ -120,12 +120,16 @@
       <!-- Step 3: 完成 -->
       <div v-if="step === 2" class="page-card">
         <div class="page-card__body" style="padding: 40px">
-          <el-result icon="success" :title="`数据集「${createdName}」创建成功`" :sub-title="`共 ${createdRowCount} 行数据，已准备好用于图表构建`">
+          <el-result
+            icon="success"
+            :title="t('dataset.dataSource.upload.resultTitle', { name: createdName })"
+            :sub-title="t('dataset.dataSource.upload.resultSub', { count: createdRowCount })"
+          >
             <template #extra>
               <el-button type="primary" @click="goChart">
-                <el-icon style="margin-right: 6px"><DataAnalysis /></el-icon>去创建图表
+                <el-icon style="margin-right: 6px"><DataAnalysis /></el-icon>{{ t('dataset.dataSource.upload.goChart') }}
               </el-button>
-              <el-button @click="doClose">完成</el-button>
+              <el-button @click="doClose">{{ t('dataset.dataSource.upload.done') }}</el-button>
             </template>
           </el-result>
         </div>
@@ -140,6 +144,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UploadFilled, Document, MagicStick, Check, DataAnalysis } from '@element-plus/icons-vue'
 import { datasetApi } from '@/api'
+import { t } from '@/i18n'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'created'])
@@ -180,7 +185,7 @@ function onFileChange(file) {
 }
 
 async function doPreview() {
-  if (!selectedFile.value) return ElMessage.warning('请先选择文件')
+  if (!selectedFile.value) return ElMessage.warning(t('dataset.dataSource.upload.selectFileFirst'))
   parsing.value = true
   try {
     preview.value = await datasetApi.preview(selectedFile.value, sheetName.value.trim())
@@ -194,7 +199,7 @@ async function doPreview() {
 async function doCreate() {
   creating.value = true
   try {
-    const name = datasetName.value.trim() || (selectedFile.value ? selectedFile.value.name : '未命名')
+    const name = datasetName.value.trim() || (selectedFile.value ? selectedFile.value.name : t('dataset.dataSource.upload.untitled'))
     const ds = await datasetApi.create(selectedFile.value, name, sheetName.value.trim())
     createdId.value = ds.id
     createdName.value = ds.name
