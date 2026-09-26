@@ -20,8 +20,8 @@ const options = {
     },
     servers: [{ url: '/api/open/v1' }],
     tags: [
-      { name: '发现', description: '可见资源列表', 'x-en': 'Visible resource list' },
-      { name: '取数', description: '图表、数据集、看板数据出口', 'x-en': 'Data endpoints for charts, datasets and dashboards' },
+      { name: '发现', 'x-en-name': 'Discovery', description: '可见资源列表', 'x-en': 'Visible resource list' },
+      { name: '取数', 'x-en-name': 'Data', description: '图表、数据集、看板数据出口', 'x-en': 'Data endpoints for charts, datasets and dashboards' },
     ],
     components: {
       securitySchemes: {

@@ -22,6 +22,7 @@ const formSharesRouter = require('./routes/form-share.routes');
 const publicFormRoutes = require('./routes/public-form.routes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./openapi/swagger');
+const { toEnglishSpec } = require('./openapi/spec-en');
 const { configRouter } = require('./routes/system.routes');
 
 const app = express();
@@ -62,8 +63,20 @@ app.use('/api/big-screen-shares', bigScreenSharesRouter);
 app.use('/api/big-screen-templates', bigScreenTemplatesRouter);
 app.use('/api/public/big-screens', publicBigScreenRoutes);
 // 开放 API：spec JSON 与文档 UI（公开只读引用）
+// spec JSON 始终返回中文原版（对外契约不变）；文档 UI 支持 ?lang=en-US 出英文视图，
+// 因为 OpenAPI 没有多语言字段，英文文案都存在 x-en 扩展里，见 openapi/spec-en.js
 app.get('/api/open/v1/openapi.json', (req, res) => res.json(swaggerSpec));
-app.use('/api/open/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: '看板开放 API' }));
+const swaggerEnSpec = toEnglishSpec(swaggerSpec);
+const swaggerSetupZh = swaggerUi.setup(swaggerSpec, { customSiteTitle: '看板开放 API' });
+const swaggerSetupEn = swaggerUi.setup(swaggerEnSpec, { customSiteTitle: 'KanRay Open API' });
+// 静态资源（swagger-ui.css / -bundle.js / -init.js）挂在路径前缀上，必须用 app.use；
+// 只有 HTML 入口需要按语言挑 spec，用 app.get 精确匹配。
+app.use('/api/open/docs', swaggerUi.serve);
+app.get('/api/open/docs', (req, res, next) => {
+  const wantEn = String(req.query.lang || '').toLowerCase().startsWith('en')
+    || String(req.headers['accept-language'] || '').toLowerCase().startsWith('en');
+  (wantEn ? swaggerSetupEn : swaggerSetupZh)(req, res, next);
+});
 app.use('/api/open/v1', openApiRoutes);
 app.use('/api/admin/api-keys', adminApiKeysRouter);
 app.use('/api/auth/tokens', tokenRouter);
