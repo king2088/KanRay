@@ -2,23 +2,23 @@
   <div class="page-container" v-loading="loading">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">{{ ds?.name || '数据源详情' }}</h2>
-        <div class="page-desc">{{ ds?.type }} · {{ ds?.is_active ? '启用' : '停用' }}</div>
+        <h2 class="page-title">{{ ds?.name || t('dataset.dataSource.detail.title') }}</h2>
+        <div class="page-desc">{{ ds?.type }} · {{ ds?.is_active ? t('common.state.enabled') : t('common.state.disabled') }}</div>
       </div>
       <div class="page-header__actions">
-        <el-button @click="$router.back()">返回</el-button>
-        <el-button type="primary" :loading="testing" @click="doTest">测试连接</el-button>
+        <el-button @click="$router.back()">{{ t('common.actions.back') }}</el-button>
+        <el-button type="primary" :loading="testing" @click="doTest">{{ t('dataset.dataSource.dataSource.test') }}</el-button>
       </div>
     </div>
 
     <el-card v-if="ds" shadow="never" style="margin-bottom: 16px">
       <div style="display: flex; gap: 40px; font-size: 14px; color: var(--app-text-secondary)">
-        <div><strong>类型：</strong>{{ ds.type }}</div>
-        <div><strong>模式：</strong>{{ ds.mode === 'sync' ? '同步' : '直连' }}</div>
-        <div><strong>最近测试：</strong>
-          <el-tag v-if="ds.last_test_ok === true" type="success" >成功</el-tag>
-          <el-tag v-else-if="ds.last_test_ok === false" type="danger" >失败</el-tag>
-          <span v-else>未测试</span>
+        <div><strong>{{ t('dataset.dataSource.detail.typePrefix') }}</strong>{{ ds.type }}</div>
+        <div><strong>{{ t('dataset.dataSource.detail.modePrefix') }}</strong>{{ ds.mode === 'sync' ? t('dataset.dataSource.dataSource.form.modeSync') : t('dataset.dataSource.dataSource.form.modeDirect') }}</div>
+        <div><strong>{{ t('dataset.dataSource.detail.lastTestPrefix') }}</strong>
+          <el-tag v-if="ds.last_test_ok === true" type="success" >{{ t('common.state.success') }}</el-tag>
+          <el-tag v-else-if="ds.last_test_ok === false" type="danger" >{{ t('common.state.failed') }}</el-tag>
+          <span v-else>{{ t('dataset.dataSource.neverTested') }}</span>
           <span v-if="ds.last_test_msg"> — {{ ds.last_test_msg }}</span>
         </div>
       </div>
@@ -27,7 +27,7 @@
     <el-card v-if="ds && ds.type === 'excel'" shadow="never">
       <template #header>
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <span>文件数据源</span>
+          <span>{{ t('dataset.dataSource.stats.fileSources') }}</span>
           <el-tag type="success" >Excel / CSV</el-tag>
         </div>
       </template>
@@ -36,69 +36,69 @@
         <div class="file-meta__main">
           <div class="file-meta__name">{{ ds.config?.file || ds.name }}</div>
           <div class="file-meta__sub">
-            共 <strong>{{ (ds.config?.rowCount ?? 0).toLocaleString('zh-CN') }}</strong> 行 ·
-            <strong>{{ ds.config?.columnCount ?? 0 }}</strong> 列，已作为数据集导入，可直接用于图表构建
+            {{ t('dataset.dataSource.detail.fileMetaRows', { count: (ds.config?.rowCount ?? 0).toLocaleString(locale) }) }} ·
+            <strong>{{ ds.config?.columnCount ?? 0 }}</strong> {{ t('dataset.dataSource.detail.fileMetaCols', { count: ds.config?.columnCount ?? 0 }) }}
           </div>
         </div>
       </div>
-      <el-alert type="info" :closable="false" show-icon style="margin-top: 10px" title="Excel / CSV 文件数据源不支持 Schema 浏览，请在数据集列表中管理并预览数据" />
+      <el-alert type="info" :closable="false" show-icon style="margin-top: 10px" :title="t('dataset.dataSource.detail.excelNoSchemaTip')" />
     </el-card>
 
     <el-card v-if="ds && ds.type !== 'excel' && ds.mode === 'sync'" shadow="never" style="margin-bottom: 16px">
       <template #header>
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <span>同步任务</span>
-          <el-button type="primary" @click="openSyncDialog()">新建同步</el-button>
+          <span>{{ t('dataset.sync.title') }}</span>
+          <el-button type="primary" @click="openSyncDialog()">{{ t('dataset.sync.create') }}</el-button>
         </div>
       </template>
       <el-table :data="tasks" v-loading="tasksLoading" size="small">
-        <el-table-column label="源表" min-width="140">
+        <el-table-column :label="t('dataset.sync.colSourceTable')" min-width="140">
           <template #default="{ row }">{{ row.source_schema }}.{{ row.source_table }}</template>
         </el-table-column>
-        <el-table-column label="目标表" prop="local_table" min-width="160" show-overflow-tooltip />
-        <el-table-column label="策略" width="90">
-          <template #default="{ row }">{{ row.strategy === 'full' ? '全量' : '增量' }}</template>
+        <el-table-column :label="t('dataset.sync.colTargetTable')" prop="local_table" min-width="160" show-overflow-tooltip />
+        <el-table-column :label="t('dataset.sync.colStrategy')" width="90">
+          <template #default="{ row }">{{ row.strategy === 'full' ? t('dataset.sync.strategyFull') : t('dataset.sync.strategyIncremental') }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column :label="t('dataset.sync.colStatus')" width="110">
           <template #default="{ row }">
-            <el-tag v-if="row.last_sync_status === 'running'" type="warning" effect="light" >同步中</el-tag>
-            <el-tag v-else-if="row.last_sync_status === 'success'" type="success" effect="plain" >成功</el-tag>
-            <el-tag v-else-if="row.last_sync_status === 'failed'" type="danger" effect="plain" >失败</el-tag>
-            <el-tag v-else type="info" effect="plain" >未同步</el-tag>
+            <el-tag v-if="row.last_sync_status === 'running'" type="warning" effect="light" >{{ t('dataset.sync.statusRunning') }}</el-tag>
+            <el-tag v-else-if="row.last_sync_status === 'success'" type="success" effect="plain" >{{ t('common.state.success') }}</el-tag>
+            <el-tag v-else-if="row.last_sync_status === 'failed'" type="danger" effect="plain" >{{ t('common.state.failed') }}</el-tag>
+            <el-tag v-else type="info" effect="plain" >{{ t('dataset.sync.statusNeverSynced') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="最近同步" min-width="170">
+        <el-table-column :label="t('dataset.sync.colLastSync')" min-width="170">
           <template #default="{ row }">
-            <template v-if="row.last_sync_at">{{ formatDateTime(row.last_sync_at, appStore.timezone) }}<span v-if="row.last_sync_rows != null" style="color: var(--app-text-secondary)"> · {{ row.last_sync_rows }} 行</span></template>
+            <template v-if="row.last_sync_at">{{ formatDateTime(row.last_sync_at, appStore.timezone) }}<span v-if="row.last_sync_rows != null" style="color: var(--app-text-secondary)"> · {{ t('dataset.sync.rowsSuffix', { count: row.last_sync_rows }) }}</span></template>
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column label="下次" min-width="110">
+        <el-table-column :label="t('dataset.sync.colNext')" min-width="110">
           <template #default="{ row }">{{ nextSync(row) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column :label="t('dataset.sync.colActions')" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :loading="syncingId === row.id" :disabled="row.last_sync_status === 'running'" @click="runTask(row)">立即同步</el-button>
-            <el-button link @click="openLogs(row)">日志</el-button>
-            <el-button link type="danger" @click="removeTask(row)">删除</el-button>
+            <el-button link type="primary" :loading="syncingId === row.id" :disabled="row.last_sync_status === 'running'" @click="runTask(row)">{{ t('dataset.sync.runNow') }}</el-button>
+            <el-button link @click="openLogs(row)">{{ t('dataset.sync.logs') }}</el-button>
+            <el-button link type="danger" @click="removeTask(row)">{{ t('common.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!tasks.length && !tasksLoading" description="暂无同步任务。同步后数据落到本机存储，浏览树中可看到本地表。" :image-size="60" />
+      <el-empty v-if="!tasks.length && !tasksLoading" :description="t('dataset.sync.emptyTasks')" :image-size="60" />
     </el-card>
 
     <el-card v-if="ds && ds.type !== 'excel'" shadow="never">
       <template #header>
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <span>Schema 浏览</span>
-          <el-button  type="primary" @click="openBuilder()">新建构建</el-button>
+          <span>{{ t('dataset.schema.browseTitle') }}</span>
+          <el-button  type="primary" @click="openBuilder()">{{ t('dataset.schema.newBuilder') }}</el-button>
         </div>
       </template>
       <el-input
         v-if="schemas.length"
         v-model="treeQuery"
         
-        placeholder="搜索已加载的表 / 字段"
+:placeholder="t('dataset.schema.searchPlaceholder')"
         clearable
         class="schema-search"
       />
@@ -118,89 +118,89 @@
             <span class="tree-node__label">{{ data.label }}</span>
             <span v-if="data.type === 'column'" class="tree-node__type" :class="'type--' + typeBadge(data).type">{{ typeBadge(data).text }}</span>
             <span class="tree-node__actions">
-              <el-button v-if="data.type === 'table'" link @click.stop="openViewData(data)">查看数据</el-button>
-              <el-button v-if="data.type === 'table'" link type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">新建构建</el-button>
-              <el-button v-if="data.type === 'table'" link type="success" @click.stop="createDataset(data)">创建数据集</el-button>
+              <el-button v-if="data.type === 'table'" link @click.stop="openViewData(data)">{{ t('dataset.schema.viewData') }}</el-button>
+              <el-button v-if="data.type === 'table'" link type="primary" @click.stop="openBuilder(`${data.schema}:${data.label}`)">{{ t('dataset.schema.newBuilder') }}</el-button>
+              <el-button v-if="data.type === 'table'" link type="success" @click.stop="createDataset(data)">{{ t('dataset.schema.createDataset') }}</el-button>
             </span>
           </span>
         </template>
       </el-tree>
-      <el-empty v-else description="暂无 Schema 数据" />
+      <el-empty v-else :description="t('dataset.schema.empty')" />
     </el-card>
 
-    <el-dialog v-model="syncDialog" title="新建同步任务" width="560px" destroy-on-close>
+    <el-dialog v-model="syncDialog" :title="t('dataset.sync.dialogTitle')" width="560px" destroy-on-close>
       <el-form :model="syncForm" label-width="110px">
-        <el-form-item label="源 Schema" required>
-          <el-select v-model="syncForm.sourceSchema" placeholder="请选择" :loading="srcLoading" @change="onSourceSchema">
+        <el-form-item :label="t('dataset.sync.sourceSchema')" required>
+          <el-select v-model="syncForm.sourceSchema" :placeholder="t('dataset.dataSource.form.selectPlaceholder')" :loading="srcLoading" @change="onSourceSchema">
             <el-option v-for="s in srcSchemas" :key="s.name" :value="s.name" :label="s.name" />
           </el-select>
         </el-form-item>
-        <el-form-item label="源表" required>
-          <el-select v-model="syncForm.sourceTable" placeholder="请选择" :loading="srcLoading" filterable @change="onSourceTable">
+        <el-form-item :label="t('dataset.sync.colSourceTable')" required>
+          <el-select v-model="syncForm.sourceTable" :placeholder="t('dataset.dataSource.form.selectPlaceholder')" :loading="srcLoading" filterable @change="onSourceTable">
             <el-option v-for="t in srcTables" :key="t.name" :value="t.name" :label="t.name" />
           </el-select>
         </el-form-item>
-        <el-form-item label="目标表名" required>
-          <el-input v-model="syncForm.localTable" placeholder="本地落库表名" />
+        <el-form-item :label="t('dataset.sync.localTable')" required>
+          <el-input v-model="syncForm.localTable" :placeholder="t('dataset.sync.localTablePlaceholder')" />
         </el-form-item>
-        <el-form-item label="策略">
+        <el-form-item :label="t('dataset.sync.colStrategy')">
           <el-radio-group v-model="syncForm.strategy">
-            <el-radio value="incremental" >按水印增量</el-radio>
-            <el-radio value="full" >每次全量</el-radio>
+            <el-radio value="incremental" >{{ t('dataset.sync.strategyIncrementalRadio') }}</el-radio>
+            <el-radio value="full" >{{ t('dataset.sync.strategyFullRadio') }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <template v-if="syncForm.strategy === 'incremental'">
-          <el-form-item label="水印字段" required>
-            <el-select v-model="syncForm.watermarkField" placeholder="选择单调递增的时间/数值列" :loading="srcLoading">
+          <el-form-item :label="t('dataset.sync.watermarkField')" required>
+            <el-select v-model="syncForm.watermarkField" :placeholder="t('dataset.sync.watermarkPlaceholder')" :loading="srcLoading">
               <el-option v-for="c in srcColumns" :key="c.name" :value="c.name" :label="`${c.name}${c.type ? ' · ' + c.type : ''}`" />
             </el-select>
           </el-form-item>
-          <el-form-item label="主键" required>
-            <el-select v-model="syncForm.primaryKey" multiple placeholder="用于增量更新去重（upsert）" :loading="srcLoading">
+          <el-form-item :label="t('dataset.field.primaryKey')" required>
+            <el-select v-model="syncForm.primaryKey" multiple :placeholder="t('dataset.sync.primaryKeyPlaceholder')" :loading="srcLoading">
               <el-option v-for="c in srcColumns" :key="c.name" :value="c.name" :label="`${c.name}${c.type ? ' · ' + c.type : ''}`" />
             </el-select>
           </el-form-item>
-          <el-form-item label="删除对账">
+          <el-form-item :label="t('dataset.sync.reconcileDelete')">
             <el-switch v-model="syncForm.reconcileDelete" />
-            <span class="sync-form-tip">增量同步时比对主键，本地删除源端已删的行（大表每次多扫一遍主键）</span>
+            <span class="sync-form-tip">{{ t('dataset.sync.reconcileTip') }}</span>
           </el-form-item>
         </template>
-        <el-form-item label="刷新周期" required>
+        <el-form-item :label="t('dataset.sync.interval')" required>
           <el-input-number v-model="syncForm.intervalSeconds" :min="0" :step="60" style="width: 180px" />
-          <span class="sync-form-tip">秒；0 = 仅手动</span>
+          <span class="sync-form-tip">{{ t('dataset.sync.intervalTip') }}</span>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="syncDialog = false">取消</el-button>
-        <el-button type="primary" :loading="savingSync" @click="createTask">创建并同步</el-button>
+        <el-button @click="syncDialog = false">{{ t('common.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingSync" @click="createTask">{{ t('dataset.sync.createAndRun') }}</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="logDialog" title="同步日志" width="720px">
+    <el-dialog v-model="logDialog" :title="t('dataset.sync.logDialogTitle')" width="720px">
       <el-table :data="logRows" v-loading="logLoading" size="small" max-height="420">
-        <el-table-column label="时间" width="170">
+        <el-table-column :label="t('dataset.sync.logColTime')" width="170">
           <template #default="{ row }">{{ formatDateTime(row.started_at, appStore.timezone) }}</template>
         </el-table-column>
-        <el-table-column label="结果" width="90">
+        <el-table-column :label="t('dataset.sync.logColResult')" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'failed' ? 'danger' : row.status === 'success' ? 'success' : 'warning'" size="small" effect="plain">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="行数" prop="rows_synced" width="70" />
-        <el-table-column label="内容" prop="message" show-overflow-tooltip />
+        <el-table-column :label="t('dataset.sync.logColRows')" prop="rows_synced" width="70" />
+        <el-table-column :label="t('dataset.sync.logColMessage')" prop="message" show-overflow-tooltip />
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="viewDialog" :title="`查看数据 · ${viewInfo.schema}.${viewInfo.table}`" width="900px" destroy-on-close>
+    <el-dialog v-model="viewDialog" :title="t('dataset.schema.viewDialogTitle', { schema: viewInfo.schema, table: viewInfo.table })" width="900px" destroy-on-close>
       <el-table :key="viewFields.join('|')" :data="viewRows" v-loading="viewLoading" size="small" max-height="440" border>
         <el-table-column v-for="f in viewFields" :key="f" :prop="f" :label="f" min-width="140" show-overflow-tooltip />
       </el-table>
       <div class="view-pager">
         <span class="view-pager__info">
-          {{ viewInfo.total != null ? `共 ${viewInfo.total} 行` : '源表预览（最多 200 行/页）' }} · 第 {{ viewInfo.page }} 页
+          {{ viewInfo.total != null ? t('dataset.schema.viewTotal', { count: viewInfo.total }) : t('dataset.schema.viewSourcePreview') }} · {{ t('dataset.schema.viewPageOf', { page: viewInfo.page }) }}
         </span>
-        <el-button size="small" :disabled="viewInfo.page <= 1 || viewLoading" @click="loadViewPage(viewInfo.page - 1)">上一页</el-button>
-        <el-button size="small" :disabled="!viewHasMore || viewLoading" @click="loadViewPage(viewInfo.page + 1)">下一页</el-button>
+        <el-button size="small" :disabled="viewInfo.page <= 1 || viewLoading" @click="loadViewPage(viewInfo.page - 1)">{{ t('dataset.schema.prevPage') }}</el-button>
+        <el-button size="small" :disabled="!viewHasMore || viewLoading" @click="loadViewPage(viewInfo.page + 1)">{{ t('dataset.schema.nextPage') }}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -208,13 +208,17 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import SchemaNodeIcon from '@/components/SchemaNodeIcon.vue'
 import { datasourceApi, syncApi } from '@/api'
 import { formatDateTime } from '@/utils/datetime'
+import { fieldTypeLabel } from '@/utils/field-type-label'
+import { t } from '@/i18n'
 import { useAppStore } from '@/stores/app'
 
+const { locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
@@ -295,14 +299,20 @@ async function loadNode(node, resolve) {
 
 function typeBadge(data) {
   const raw = (data.rawType || '').toLowerCase()
-  return /int|float|double|decimal|numeric/.test(raw) ? { type: 'primary', text: '数值' } : /date|time/.test(raw) ? { type: 'warning', text: '时间' } : { type: 'success', text: '文本' }
+  if (/int|float|double|decimal|numeric/.test(raw)) return { type: 'primary', text: fieldTypeLabel('number') }
+  if (/date|time/.test(raw)) return { type: 'warning', text: fieldTypeLabel('date') }
+  return { type: 'success', text: fieldTypeLabel('string') }
 }
 
 async function doTest() {
   testing.value = true
   try {
     const res = await datasourceApi.testSaved(route.params.id)
-    ElMessage[res.ok ? 'success' : 'error'](`测试${res.ok ? '成功' : '失败'}: ${res.message}`)
+    ElMessage[res.ok ? 'success' : 'error'](
+      res.ok
+        ? t('dataset.dataSource.testSuccess', { message: res.message })
+        : t('dataset.dataSource.testFailed', { message: res.message })
+    )
     ds.value = await datasourceApi.get(route.params.id)
   } finally { testing.value = false }
 }
@@ -317,9 +327,9 @@ function createDataset(data) {
 }
 
 function nextSync(row) {
-  if (row.last_sync_status === 'running') return '同步中…'
-  if (!row.interval_seconds || row.interval_seconds <= 0) return '手动'
-  if (!row.last_sync_at) return '未同步'
+  if (row.last_sync_status === 'running') return t('dataset.sync.nextRunning')
+  if (!row.interval_seconds || row.interval_seconds <= 0) return t('dataset.sync.nextManual')
+  if (!row.last_sync_at) return t('dataset.sync.statusNeverSynced')
   const base = new Date(`${row.last_sync_at.replace(' ', 'T')}Z`)
   if (Number.isNaN(base.getTime())) return '—'
   const next = new Date(base.getTime() + row.interval_seconds * 1000)
@@ -377,10 +387,10 @@ async function loadSrcColumns() {
 
 async function createTask() {
   const f = syncForm.value
-  if (!f.sourceSchema || !f.sourceTable) return ElMessage.warning('请选择源 Schema 与源表')
-  if (!f.localTable.trim()) return ElMessage.warning('请填写目标表名')
-  if (f.strategy === 'incremental' && !f.watermarkField) return ElMessage.warning('增量策略需要水印字段')
-  if (f.strategy === 'incremental' && !f.primaryKey.length) return ElMessage.warning('增量策略需要主键字段')
+  if (!f.sourceSchema || !f.sourceTable) return ElMessage.warning(t('dataset.sync.errSourceRequired'))
+  if (!f.localTable.trim()) return ElMessage.warning(t('dataset.sync.errLocalTable'))
+  if (f.strategy === 'incremental' && !f.watermarkField) return ElMessage.warning(t('dataset.sync.errWatermark'))
+  if (f.strategy === 'incremental' && !f.primaryKey.length) return ElMessage.warning(t('dataset.sync.errPrimaryKey'))
   savingSync.value = true
   try {
     await syncApi.create(route.params.id, {
@@ -394,7 +404,7 @@ async function createTask() {
       intervalSeconds: f.intervalSeconds,
       runNow: true,
     })
-    ElMessage.success('已创建，正在进行首次同步')
+    ElMessage.success(t('dataset.sync.created'))
     syncDialog.value = false
     await loadTasks()
     schedulePoll()
@@ -405,16 +415,20 @@ async function runTask(row) {
   syncingId.value = row.id
   try {
     await syncApi.run(route.params.id, row.id)
-    ElMessage.success('已触发同步')
+    ElMessage.success(t('dataset.sync.runTriggered'))
     await loadTasks()
     schedulePoll()
   } finally { syncingId.value = null }
 }
 
 async function removeTask(row) {
-  await ElMessageBox.confirm(`删除同步任务 ${row.source_schema}.${row.source_table}？本地已落库的表不会被删除。`, '删除同步任务', { type: 'warning' })
+  await ElMessageBox.confirm(
+    t('dataset.sync.deleteConfirm', { schema: row.source_schema, table: row.source_table }),
+    t('dataset.sync.deleteConfirmTitle'),
+    { type: 'warning' }
+  )
   await syncApi.remove(route.params.id, row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('dataset.sync.deleteSuccess'))
   await loadTasks()
 }
 
