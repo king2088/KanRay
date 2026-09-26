@@ -295,7 +295,7 @@ async function runSync(cid) {
   if (!ds) throw new HttpError(404, '数据源不存在');
   const meta = driversMeta(ds.type);
   const provider = providersApi.getProvider(meta.family);
-  if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, meta.name + ' 暂不支持同步');
+  if (!provider || typeof provider.runQuery !== 'function') throw new HttpError(400, `${meta.name} 暂不支持同步`);
   const cfg = decryptConfig(JSON.parse(ds.config));
   const columns = await provider.listColumns(cfg, ds.type, sc.source_schema, sc.source_table);
   if (!columns || columns.length === 0) throw new HttpError(400, `源表 ${sc.source_table} 无可用列或不存在`);
