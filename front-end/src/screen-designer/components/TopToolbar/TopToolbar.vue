@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
 import { useCanvasStore } from '../../stores/canvas'
@@ -21,7 +22,11 @@ const canvasStore = useCanvasStore()
 const componentsStore = useComponentsStore()
 const historyStore = useHistoryStore()
 
-const dashboardName = ref('新建大屏')
+const { t } = useI18n()
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+const mod = isMac ? '⌘' : 'Ctrl'
+
+const dashboardName = ref(t('bigscreen.editor.untitled'))
 const previewMode = ref<'pc' | 'mobile'>('pc')
 const showSaveTemplate = ref(false)
 const savingTemplate = ref(false)
@@ -42,7 +47,7 @@ const captureThumbnail = async (): Promise<string> => {
 
     return canvas.toDataURL('image/jpeg', 0.6)
   } catch (err) {
-    console.warn('缩略图捕获失败:', err)
+    console.warn('Thumbnail capture failed:', err)
     return ''
   }
 }
@@ -83,14 +88,14 @@ const saveDashboard = async () => {
       components,
       thumbnail
     })
-    ElMessage.success('保存成功')
+    ElMessage.success(t('bigscreen.editor.saveSuccess'))
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    ElMessage.error(e?.message || t('bigscreen.editor.saveFailed'))
   }
 }
 
 const openSaveTemplate = () => {
-  templateForm.value = { name: dashboardName.value || '我的模板', description: '' }
+  templateForm.value = { name: dashboardName.value || t('bigscreen.editor.defaultTemplateName'), description: '' }
   showSaveTemplate.value = true
 }
 
@@ -105,7 +110,7 @@ const handleSave = async () => {
 const submitSaveTemplate = async () => {
   const name = templateForm.value.name.trim()
   if (!name) {
-    ElMessage.warning('请填写模板名称')
+    ElMessage.warning(t('bigscreen.editor.templateNameRequired'))
     return
   }
   savingTemplate.value = true
@@ -120,9 +125,9 @@ const submitSaveTemplate = async () => {
       thumbnail
     })
     showSaveTemplate.value = false
-    ElMessage.success('已保存为模板')
+    ElMessage.success(t('bigscreen.editor.saveTemplateSuccess'))
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存模板失败')
+    ElMessage.error(e?.message || t('bigscreen.editor.saveTemplateFailed'))
   } finally {
     savingTemplate.value = false
   }
@@ -149,7 +154,7 @@ onMounted(async () => {
     const d = await bigScreenApi.get(props.dashboardId)
     if (d?.name) dashboardName.value = d.name
   } catch (err) {
-    console.warn('加载大屏名称失败:', err)
+    console.warn('Failed to load screen name:', err)
   }
 })
 onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
@@ -181,18 +186,18 @@ const setPreviewMode = (mode: 'pc' | 'mobile') => {
 <template>
   <div class="top-toolbar">
     <div class="left">
-      <el-button link @click="goBack" title="返回列表">
+      <el-button link @click="goBack" :title="t('bigscreen.editor.backToList')">
         <el-icon><ArrowLeft /></el-icon>
       </el-button>
-      <el-input v-model="dashboardName" style="width: 180px; margin-left: 10px;" placeholder="大屏名称" />
+      <el-input v-model="dashboardName" style="width: 180px; margin-left: 10px;" :placeholder="t('bigscreen.editor.namePlaceholder')" />
     </div>
 
     <div class="center">
       <el-button-group>
-        <el-button :disabled="!historyStore.canUndo" @click="undo" title="撤销 (Ctrl+Z)">
+        <el-button :disabled="!historyStore.canUndo" @click="undo" :title="`${t('bigscreen.editor.undo')} (${mod}+Z)`">
           <el-icon><RefreshLeft /></el-icon>
         </el-button>
-        <el-button :disabled="!historyStore.canRedo" @click="redo" title="重做 (Ctrl+Shift+Z)">
+        <el-button :disabled="!historyStore.canRedo" @click="redo" :title="`${t('bigscreen.editor.redo')} (${isMac ? mod + '⇧' : 'Ctrl+Shift'}+Z)`">
           <el-icon><RefreshRight /></el-icon>
         </el-button>
       </el-button-group>
@@ -200,55 +205,55 @@ const setPreviewMode = (mode: 'pc' | 'mobile') => {
       <el-divider direction="vertical" />
 
       <el-button-group>
-        <el-button :type="previewMode === 'pc' ? 'primary' : ''" @click="setPreviewMode('pc')" title="PC预览 (1920×1080)">
+        <el-button :type="previewMode === 'pc' ? 'primary' : ''" @click="setPreviewMode('pc')" :title="t('bigscreen.editor.pcPreview', { width: 1920, height: 1080 })">
           PC
         </el-button>
-        <el-button :type="previewMode === 'mobile' ? 'primary' : ''" @click="setPreviewMode('mobile')" title="移动端预览 (375×812)">
-          移动端
+        <el-button :type="previewMode === 'mobile' ? 'primary' : ''" @click="setPreviewMode('mobile')" :title="t('bigscreen.editor.mobilePreview', { width: 375, height: 812 })">
+          {{ t('bigscreen.editor.mobile') }}
         </el-button>
       </el-button-group>
 
       <el-divider direction="vertical" />
 
       <el-button-group>
-        <el-button :type="canvasStore.config.layoutMode === 'adaptive' ? 'primary' : ''" @click="setLayoutMode('adaptive')" title="自适应模式">
-          自适应
+        <el-button :type="canvasStore.config.layoutMode === 'adaptive' ? 'primary' : ''" @click="setLayoutMode('adaptive')" :title="t('bigscreen.editor.adaptiveTitle')">
+          {{ t('bigscreen.editor.adaptive') }}
         </el-button>
-        <el-button :type="canvasStore.config.layoutMode === 'fixed' ? 'primary' : ''" @click="setLayoutMode('fixed')" title="固定分辨率">
-          固定
+        <el-button :type="canvasStore.config.layoutMode === 'fixed' ? 'primary' : ''" @click="setLayoutMode('fixed')" :title="t('bigscreen.editor.fixedTitle')">
+          {{ t('bigscreen.editor.fixed') }}
         </el-button>
       </el-button-group>
     </div>
 
     <div class="right">
-      <el-button @click="previewDashboard" title="预览">
+      <el-button @click="previewDashboard" :title="t('bigscreen.editor.preview')">
         <ScreenIcon name="eye" :size="15" />
-        预览
+        {{ t('bigscreen.editor.preview') }}
       </el-button>
 
-      <el-dropdown split-button type="primary" title="保存 (Ctrl+S)" trigger="click" @click="handleSave" @command="onSaveCommand">
+      <el-dropdown split-button type="primary" :title="t('bigscreen.editor.saveTitle', { shortcut: mod + '+S' })" trigger="click" @click="handleSave" @command="onSaveCommand">
         <ScreenIcon name="save" :size="15" />
-        保存
+        {{ t('bigscreen.editor.save') }}
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="save-as">另存为模板</el-dropdown-item>
+            <el-dropdown-item command="save-as">{{ t('bigscreen.editor.saveAsTemplate') }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
     </div>
 
-    <el-dialog v-model="showSaveTemplate" title="另存为模板" width="440px" @closed="templateForm.description = ''">
+    <el-dialog v-model="showSaveTemplate" :title="t('bigscreen.editor.saveAsTemplate')" width="440px" @closed="templateForm.description = ''">
       <el-form @submit.prevent="submitSaveTemplate">
-        <el-form-item label="模板名称" required>
-          <el-input v-model.trim="templateForm.name" placeholder="请输入模板名称" @keyup.enter="submitSaveTemplate" />
+        <el-form-item :label="t('bigscreen.editor.templateNameLabel')" required>
+          <el-input v-model.trim="templateForm.name" :placeholder="t('bigscreen.editor.templateNamePlaceholder')" @keyup.enter="submitSaveTemplate" />
         </el-form-item>
-        <el-form-item label="模板描述">
-          <el-input v-model.trim="templateForm.description" type="textarea" :rows="2" placeholder="可选，描述模板用途" maxlength="500" show-word-limit />
+        <el-form-item :label="t('bigscreen.editor.templateDescLabel')">
+          <el-input v-model.trim="templateForm.description" type="textarea" :rows="2" :placeholder="t('bigscreen.editor.templateDescPlaceholder')" maxlength="500" show-word-limit />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showSaveTemplate = false">取消</el-button>
-        <el-button type="primary" :loading="savingTemplate" @click="submitSaveTemplate">保存</el-button>
+        <el-button @click="showSaveTemplate = false">{{ t('bigscreen.codeEditor.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingTemplate" @click="submitSaveTemplate">{{ t('bigscreen.codeEditor.save') }}</el-button>
       </template>
     </el-dialog>
   </div>

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useCanvasStore } from '../../stores/canvas'
 import { useComponentsStore } from '../../stores/components'
+
+const { t } = useI18n()
 
 const canvasStore = useCanvasStore()
 const componentsStore = useComponentsStore()
@@ -10,53 +13,53 @@ const componentCount = computed(() => componentsStore.components.length)
 const showShortcuts = ref(false)
 
 const shortcuts = [
-  { keys: ['Ctrl', 'Z'], desc: '撤销', mac: '⌘ Z' },
-  { keys: ['Ctrl', 'Shift', 'Z'], desc: '重做', mac: '⌘ ⇧ Z' },
-  { keys: ['Ctrl', 'C'], desc: '复制', mac: '⌘ C' },
-  { keys: ['Ctrl', 'X'], desc: '剪切', mac: '⌘ X' },
-  { keys: ['Ctrl', 'V'], desc: '粘贴', mac: '⌘ V' },
-  { keys: ['Ctrl', 'D'], desc: '复制并粘贴', mac: '⌘ D' },
-  { keys: ['Ctrl', 'A'], desc: '全选', mac: '⌘ A' },
-  { keys: ['Delete'], desc: '删除选中', mac: '⌫' },
-  { keys: ['Escape'], desc: '取消选中', mac: 'ESC' },
-  { keys: ['↑','↓','←','→'], desc: '微调位置 (1px)', mac: '方向键' },
-  { keys: ['Ctrl', '↑','↓','←','→'], desc: '微调位置 (10px)', mac: '⌘ + 方向键' },
-  { keys: ['Ctrl', 'L'], desc: '锁定/解锁', mac: '⌘ L' },
-  { keys: ['Ctrl', 'H'], desc: '显示/隐藏', mac: '⌘ H' },
-  { keys: ['Ctrl', 'S'], desc: '保存', mac: '⌘ S' },
-  { keys: ['Ctrl', '0'], desc: '重置画布大小', mac: '⌘ 0' },
-  { keys: ['Ctrl', '+'], desc: '放大', mac: '⌘ +' },
-  { keys: ['Ctrl', '-'], desc: '缩小', mac: '⌘ -' },
-  { keys: ['Tab'], desc: '切换选中组件', mac: 'Tab' }
+  { keys: ['Ctrl', 'Z'], descKey: 'bigscreen.shortcuts.undo', mac: '⌘ Z' },
+  { keys: ['Ctrl', 'Shift', 'Z'], descKey: 'bigscreen.shortcuts.redo', mac: '⌘ ⇧ Z' },
+  { keys: ['Ctrl', 'C'], descKey: 'bigscreen.shortcuts.copy', mac: '⌘ C' },
+  { keys: ['Ctrl', 'X'], descKey: 'bigscreen.shortcuts.cut', mac: '⌘ X' },
+  { keys: ['Ctrl', 'V'], descKey: 'bigscreen.shortcuts.paste', mac: '⌘ V' },
+  { keys: ['Ctrl', 'D'], descKey: 'bigscreen.shortcuts.copyPaste', mac: '⌘ D' },
+  { keys: ['Ctrl', 'A'], descKey: 'bigscreen.shortcuts.selectAll', mac: '⌘ A' },
+  { keys: ['Delete'], descKey: 'bigscreen.shortcuts.deleteSelected', mac: '⌫' },
+  { keys: ['Escape'], descKey: 'bigscreen.shortcuts.deselect', mac: 'ESC' },
+  { keys: ['↑','↓','←','→'], descKey: 'bigscreen.shortcuts.nudge1', mac: 'Arrow keys' },
+  { keys: ['Ctrl', '↑','↓','←','→'], descKey: 'bigscreen.shortcuts.nudge10', mac: '⌘ + Arrow keys' },
+  { keys: ['Ctrl', 'L'], descKey: 'bigscreen.shortcuts.lockToggle', mac: '⌘ L' },
+  { keys: ['Ctrl', 'H'], descKey: 'bigscreen.shortcuts.visibilityToggle', mac: '⌘ H' },
+  { keys: ['Ctrl', 'S'], descKey: 'bigscreen.shortcuts.save', mac: '⌘ S' },
+  { keys: ['Ctrl', '0'], descKey: 'bigscreen.shortcuts.resetCanvas', mac: '⌘ 0' },
+  { keys: ['Ctrl', '+'], descKey: 'bigscreen.shortcuts.zoomIn', mac: '⌘ +' },
+  { keys: ['Ctrl', '-'], descKey: 'bigscreen.shortcuts.zoomOut', mac: '⌘ -' },
+  { keys: ['Tab'], descKey: 'bigscreen.shortcuts.cycleSelection', mac: 'Tab' }
 ]
 </script>
 
 <template>
   <div class="status-bar">
     <div class="left">
-      <span>缩放: {{ canvasStore.actualZoom }}%</span>
-      <span>画布: {{ canvasStore.config.width }} × {{ canvasStore.config.height }}</span>
-      <span>组件数: {{ componentCount }}</span>
+      <span>{{ t('bigscreen.statusBar.zoom', { value: canvasStore.actualZoom }) }}</span>
+      <span>{{ t('bigscreen.statusBar.canvasSize', { width: canvasStore.config.width, height: canvasStore.config.height }) }}</span>
+      <span>{{ t('bigscreen.statusBar.componentCount', { count: componentCount }) }}</span>
     </div>
     <div class="right">
-      <el-button size="default" text @click="showShortcuts = true" style="font-size: 12px; height: 24px; padding: 0 8px;">快捷键</el-button>
-      <span>已选择: {{ componentsStore.selectedIds.length }} 个组件</span>
+      <el-button size="default" text @click="showShortcuts = true" style="font-size: 12px; height: 24px; padding: 0 8px;">{{ t('bigscreen.statusBar.shortcuts') }}</el-button>
+      <span>{{ t('bigscreen.statusBar.selected', { count: componentsStore.selectedIds.length }) }}</span>
     </div>
   </div>
 
-  <el-dialog v-model="showShortcuts" title="快捷键列表" width="520px" :append-to-body="true" class="shortcuts-dialog">
+  <el-dialog v-model="showShortcuts" :title="t('bigscreen.statusBar.shortcutsTitle')" width="520px" :append-to-body="true" class="shortcuts-dialog">
     <div style="max-height: 400px; overflow-y: auto;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
         <thead>
           <tr style="border-bottom: 1px solid #eee;">
-            <th style="text-align: left; padding: 8px 12px; color: #999;">功能</th>
-            <th style="text-align: left; padding: 8px 12px; color: #999;">Windows</th>
-            <th style="text-align: left; padding: 8px 12px; color: #999;">Mac</th>
+            <th style="text-align: left; padding: 8px 12px; color: #999;">{{ t('bigscreen.statusBar.colFunction') }}</th>
+            <th style="text-align: left; padding: 8px 12px; color: #999;">{{ t('bigscreen.statusBar.colWindows') }}</th>
+            <th style="text-align: left; padding: 8px 12px; color: #999;">{{ t('bigscreen.statusBar.colMac') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(s, i) in shortcuts" :key="i" style="border-bottom: 1px solid #f5f5f5;">
-            <td style="padding: 6px 12px;">{{ s.desc }}</td>
+            <td style="padding: 6px 12px;">{{ t(s.descKey) }}</td>
             <td style="padding: 6px 12px;">
               <el-tag v-for="(k, ki) in s.keys" :key="ki" size="small" style="margin-right: 4px;" type="info">{{ k }}</el-tag>
             </td>

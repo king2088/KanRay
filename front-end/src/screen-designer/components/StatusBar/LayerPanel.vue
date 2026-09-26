@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useCanvasStore } from '../../stores/canvas'
 import { useComponentsStore } from '../../stores/components'
 
+const { t } = useI18n()
+
 const canvasStore = useCanvasStore()
 const componentsStore = useComponentsStore()
 
@@ -12,12 +14,12 @@ const componentCount = computed(() => componentsStore.components.length)
 <template>
   <div class="status-bar">
     <div class="left">
-      <span>缩放: {{ canvasStore.actualZoom }}%</span>
-      <span>画布: {{ canvasStore.config.width }} × {{ canvasStore.config.height }}</span>
-      <span>组件数: {{ componentCount }}</span>
+      <span>{{ t('bigscreen.statusBar.zoom', { value: canvasStore.actualZoom }) }}</span>
+      <span>{{ t('bigscreen.statusBar.canvasSize', { width: canvasStore.config.width, height: canvasStore.config.height }) }}</span>
+      <span>{{ t('bigscreen.statusBar.componentCount', { count: componentCount }) }}</span>
     </div>
     <div class="right">
-      <span>已选择: {{ componentsStore.selectedIds.length }} 个组件</span>
+      <span>{{ t('bigscreen.statusBar.selected', { count: componentsStore.selectedIds.length }) }}</span>
     </div>
   </div>
 </template>
