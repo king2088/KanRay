@@ -73,7 +73,7 @@ module.exports = [
   `CREATE TABLE data_sources (
     id NVARCHAR(36) PRIMARY KEY, name NVARCHAR(255) NOT NULL, type NVARCHAR(50) NOT NULL,
     config NVARCHAR(MAX) NOT NULL, is_active BIT NOT NULL DEFAULT 1, owner_id NVARCHAR(36),
-    mode NVARCHAR(20) NOT NULL DEFAULT 'direct', last_test_at DATETIME2, last_test_ok BIT, last_test_msg NVARCHAR(2000),
+    mode NVARCHAR(20) NOT NULL DEFAULT 'direct', last_test_at DATETIME2, last_test_ok BIT, last_test_msg NVARCHAR(2000), last_test_msg_en NVARCHAR(2000),
     created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
   )`,
   'CREATE INDEX idx_data_sources_owner ON data_sources(owner_id)',

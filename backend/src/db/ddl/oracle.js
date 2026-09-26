@@ -79,7 +79,7 @@ module.exports = [
     id VARCHAR2(36) PRIMARY KEY, name VARCHAR2(255) NOT NULL,
     type VARCHAR2(50) NOT NULL, config CLOB NOT NULL, is_active NUMBER(1) DEFAULT 1 NOT NULL,
     owner_id VARCHAR2(36), "mode" VARCHAR2(20) DEFAULT 'direct' NOT NULL, last_test_at TIMESTAMP,
-    last_test_ok NUMBER(1), last_test_msg VARCHAR2(2000), created_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
+    last_test_ok NUMBER(1), last_test_msg VARCHAR2(2000), last_test_msg_en VARCHAR2(2000), created_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
   )`,
   'CREATE INDEX idx_data_sources_owner ON data_sources(owner_id)',
