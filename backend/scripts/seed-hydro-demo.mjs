@@ -1,5 +1,5 @@
 // 水电站行业看板 demo（单一 MySQL 数据源）——幂等重灌，非破坏性
-// 用法: node backend/scripts/seed-hydro-demo.mjs [--base http://127.0.0.1:3001] [--ds-host host.docker.internal]（等号或空格形式均可）
+// 用法: node backend/scripts/seed-hydro-demo.mjs [--base http://127.0.0.1:3001] [--ds-host host.docker.internal] [-l en-US]
 // 1. mysql2 直连 13306/testdb: DROP+CREATE demo_hydro，灌 12 电站 x 365 天 = 4380 行确定性数据（14 字段）
 // 2. HTTP 清理「水电站」域（仅水电站数据/图表/看板，不影响电商/异构看板）
 // 3. 重建: 复用/新建 Live MySQL 数据源 -> 14 字段 builder 数据集 -> 16 图表 -> 1 看板
@@ -20,6 +20,12 @@ const ADMIN = { email: 'admin@kanray.local', password: 'admin123' };
 const MYSQL = { host: '127.0.0.1', port: 13306, user: 'root', password: 'Kanban@123', database: 'testdb' };
 const MYSQL_APP = { host: DS_HOST, port: 13306, database: 'testdb', user: 'root', password: 'Kanban@123' };
 const HYDRO_KEYWORDS = ['水电站', '流域发电', '省份装机']; // 用于识别水电站域资源名
+
+// 灌进库里的演示数据（电站名、图表名、看板名）保持中文，属「用户自填数据」不译；
+// -l/--locale 只切换脚本自身的校验项名称与汇总输出。
+const LOCALE = argVal('-l') || argVal('--locale') || 'zh-CN';
+const EN = LOCALE === 'en-US';
+const t = (zh, en) => (EN ? en : zh);
 
 const mulberry32 = (seed) => () => {
   seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
@@ -133,11 +139,11 @@ async function seedMysql() {
     }
     const expectedRows = DAY_COUNT * STATIONS.length;
     const [r] = await conn.query('SELECT COUNT(*) AS n FROM demo_hydro');
-    ok('MySQL demo_hydro 行数=4380', r[0].n === expectedRows, `期望 ${expectedRows} 实际 ${r[0].n}`);
+    ok('MySQL demo_hydro ' + t('行数=4380', 'row count=4380'), r[0].n === expectedRows, t(`期望 ${expectedRows} 实际 ${r[0].n}`, `expected ${expectedRows}, got ${r[0].n}`));
     const [agg] = await conn.query('SELECT station, COUNT(*) n FROM demo_hydro GROUP BY station');
-    ok('每站 365 天', agg.length === STATIONS.length && agg.every((x) => x.n === DAY_COUNT), JSON.stringify(agg.slice(0, 4)));
+    ok(t('每站 365 天', '365 days per station'), agg.length === STATIONS.length && agg.every((x) => x.n === DAY_COUNT), JSON.stringify(agg.slice(0, 4)));
     const [nulls] = await conn.query("SELECT COUNT(*) AS n FROM demo_hydro WHERE load_rate IS NULL OR revenue_yuan IS NULL OR water_level_m IS NULL OR inflow_m3s IS NULL OR maintenance_state IS NULL OR TRIM(maintenance_state) = ''");
-    ok('无空值', nulls[0].n === 0, `空值行 ${nulls[0].n}`);
+    ok(t('无空值', 'no NULL values'), nulls[0].n === 0, t(`空值行 ${nulls[0].n}`, `rows with NULL: ${nulls[0].n}`));
   } finally {
     await conn.end();
   }
@@ -174,7 +180,8 @@ async function clearHydro(token) {
   for (const id of hydroDsIds) {
     await api(`/api/datasets/${id}`, { method: 'DELETE', token });
   }
-  ok(`清理水电站域 (看板=${removedDash.length}, 图表=${removedCharts}, 数据集=${hydroDsIds.length}, 残留=0)`,
+  ok(t(`清理水电站域 (看板=${removedDash.length}, 图表=${removedCharts}, 数据集=${hydroDsIds.length}, 残留=0)`,
+        `Clean hydro domain (dashboards=${removedDash.length}, charts=${removedCharts}, datasets=${hydroDsIds.length}, leftover=0)`),
     removedDash.length + removedCharts + hydroDsIds.length > 0);
 }
 
@@ -204,7 +211,7 @@ const BUILD_DEFINITION = {
 // --mysql-only: 只灌 MySQL demo_hydro，不动元数据库（不清空、不重建）
 if (process.argv.includes('--mysql-only')) {
   await seedMysql();
-  console.log('mysql-only 完成');
+  console.log(t('mysql-only 完成', 'mysql-only done'));
   process.exit(results.some((r) => !r.pass) ? 1 : 0);
 }
 
@@ -213,8 +220,8 @@ async function main() {
 
   const login = (await api('/api/auth/login', { method: 'POST', body: ADMIN })).data;
   const token = login?.accessToken || login?.token;
-  if (!token) throw new Error('admin 登录失败');
-  ok('admin 登录', !!token);
+  if (!token) throw new Error(t('admin 登录失败', 'admin sign-in failed'));
+  ok(t('admin 登录', 'admin sign-in'), !!token);
 
   // 清理前记录非水电站看板，确保不被误删
   const preDash = listItems(await api('/api/dashboards', { token }));
@@ -230,19 +237,19 @@ async function main() {
       body: { name: 'Live MySQL', type: 'mysql', mode: 'direct', config: MYSQL_APP },
     })).data;
   }
-  ok('数据源 Live MySQL(81)', !!ds?.id, JSON.stringify(ds));
+  ok(t('数据源 Live MySQL(81)', 'data source Live MySQL(81)'), !!ds?.id, JSON.stringify(ds));
   const dsId = ds.id;
 
   // 测试连接
   const test = (await api(`/api/datasources/${dsId}/test`, { method: 'POST', token, body: {} })).data;
-  ok('数据源连接测试', !!(test?.ok || test?.success), JSON.stringify(test).slice(0, 200));
+  ok(t('数据源连接测试', 'data source connection test'), !!(test?.ok || test?.success), JSON.stringify(test).slice(0, 200));
 
   // 14 字段 builder 数据集
   const createdDs = (await api(`/api/datasources/${dsId}/build/save`, {
     method: 'POST', token,
     body: { name: '水电站发电明细', definition: BUILD_DEFINITION },
   })).data;
-  ok('创建 14 字段 builder 数据集', !!createdDs?.id, JSON.stringify(createdDs));
+  ok(t('创建 14 字段 builder 数据集', 'create 14-field builder dataset'), !!createdDs?.id, JSON.stringify(createdDs));
   const datasetId = createdDs.id;
 
   // 16 图表（f_# 按 BUILD_DEFINITION.fields 顺序映射）
@@ -272,7 +279,7 @@ async function main() {
   for (const def of CHART_DEFS) {
     const c = (await api('/api/charts', { method: 'POST', token, body: { ...def, datasetId } })).data;
     chartIds.push(c.id);
-    ok(`图表 ${def.name} 已创建`, !!c?.id && !!c?.config);
+    ok(t(`图表 ${def.name} 已创建`, `chart ${def.name} created`), !!c?.id && !!c?.config);
   }
 
   // 看板 + 16 widget layout
@@ -301,7 +308,7 @@ async function main() {
     { id: w(), type: 'chart', chartId: chartIds[15], w: 3, h: 3, hPx: 360, col: 10, top: 11 },
   ];
   const updated = (await api(`/api/dashboards/${dash.id}`, { method: 'PATCH', token, body: { layout } })).data;
-  ok('看板「水电站行业运营」+ 16 widget', !!updated?.id, JSON.stringify(updated));
+  ok(t('看板「水电站行业运营」+ 16 widget', 'dashboard 「水电站行业运营」 + 16 widgets'), !!updated?.id, JSON.stringify(updated));
 
   // 逐图表验证数据
   for (const [i, chartId] of chartIds.entries()) {
@@ -319,12 +326,12 @@ async function main() {
   // 校验：水电站看板已重建，且非水电站看板仍在
   const finalDash = listItems(await api('/api/dashboards', { token }));
   const hydroNow = finalDash.filter((d) => isHydroName(d.name)).map((d) => ({ id: d.id, name: d.name, widgets: (d.layout || []).length }));
-  ok('水电站看板存在且含 16 widget', hydroNow.length === 1 && hydroNow[0].widgets === 16, JSON.stringify(hydroNow));
+  ok(t('水电站看板存在且含 16 widget', 'hydro dashboard exists with 16 widgets'), hydroNow.length === 1 && hydroNow[0].widgets === 16, JSON.stringify(hydroNow));
   const preservedNow = finalDash.filter((d) => !isHydroName(d.name)).map((d) => d.name).sort();
-  ok('非水电站看板完整保留', JSON.stringify(preservedNow) === JSON.stringify(preservedBefore), `${preservedBefore} -> ${preservedNow}`);
+  ok(t('非水电站看板完整保留', 'non-hydro dashboards fully preserved'), JSON.stringify(preservedNow) === JSON.stringify(preservedBefore), `${preservedBefore} -> ${preservedNow}`);
 
   const failed = results.filter((r) => !r.pass).length;
-  console.log(`\n汇总: ${results.length - failed}/${results.length} PASS`);
+  console.log(`\n${t('汇总', 'Summary')}: ${results.length - failed}/${results.length} PASS`);
   process.exit(failed ? 1 : 0);
 }
 

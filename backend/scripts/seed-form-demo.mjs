@@ -1,9 +1,13 @@
 // 表单演示数据 seed —— 幂等重灌，非破坏性
-// 用法: node backend/scripts/seed-form-demo.mjs [--base http://127.0.0.1:3001]  （等号或空格形式均可）
+// 用法: node backend/scripts/seed-form-demo.mjs [--base http://127.0.0.1:3001] [-l en-US]
 // 1. 清掉旧「员工满意度调查」表单（级联删 ds_* 数据表 + dataset）
 // 2. 建表单 -> 4 字段(name/dept/score/suggestion) -> 发布(建表+注册数据集)
 // 3. 确定性灌 36 条提交（内部分发，提交人在 admin）
 // 4. 刷新数据集行数 -> 打印数据集列表校验 row_count/count 支持图表聚合
+//
+// 灌进库里的演示数据（表单名、字段标签、选项）一律保持中文：那属于「用户自填数据」，
+// 跟 i18n 词典无关，翻译它会让演示数据和真实中文使用者的形态对不上。
+// -l/--locale 只切换脚本自己的输出（校验项名称、进度、汇总、报错）。
 function argVal(flag) {
   const eq = process.argv.find((a) => a.startsWith(`${flag}=`));
   if (eq !== undefined) return eq.split('=').slice(1).join('=');
@@ -14,21 +18,25 @@ const BASE = argVal('--base') || 'http://127.0.0.1:3001';
 const ADMIN = { email: 'admin@kanray.local', password: 'admin123' };
 const FORM_NAME = '员工满意度调查';
 
+const LOCALE = argVal('-l') || argVal('--locale') || 'zh-CN';
+const EN = LOCALE === 'en-US';
+const t = (zh, en) => (EN ? en : zh);
+
 const results = [];
 const ok = (name, cond, extra = '') => {
   results.push(!!cond);
   console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${cond ? '' : `  ← ${extra}`}`);
 };
 async function j(res) {
-  const t = await res.text();
-  try { return JSON.parse(t); } catch { throw new Error(`非 JSON 响应 ${res.status}: ${t.slice(0, 200)}`); }
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { throw new Error(`${t('非 JSON 响应', 'Non-JSON response')} ${res.status}: ${text.slice(0, 200)}`); }
 }
 
 const mulberry32 = (seed) => () => {
   seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  let v = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  v = (v + Math.imul(v ^ (v >>> 7), 61 | v)) ^ v;
+  return ((v ^ (v >>> 14)) >>> 0) / 4294967296;
 };
 const rnd = mulberry32(20260101);
 
@@ -68,8 +76,8 @@ try {
   });
   let d = await j(r);
   token = d.data?.accessToken || d.accessToken || d.data?.token || d.token;
-  if (!token) throw new Error('登录失败: ' + JSON.stringify(d).slice(0, 200));
-  ok('P1  admin 登录', true, '');
+  if (!token) throw new Error(t('登录失败', 'Login failed') + ': ' + JSON.stringify(d).slice(0, 200));
+  ok(t('P1  admin 登录', 'P1  admin sign-in'), true, '');
 
   const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -80,7 +88,7 @@ try {
   for (const f of old) {
     await fetch(`${BASE}/api/forms/${f.id}`, { method: 'DELETE', headers: authH });
   }
-  ok('P2  清理旧演示数据', true, `删除 ${old.length} 个表单`);
+  ok(t('P2  清理旧演示数据', 'P2  Clean up old demo data'), true, t(`删除 ${old.length} 个表单`, `deleted ${old.length} form(s)`));
 
   // 建表单
   r = await fetch(`${BASE}/api/forms`, {
@@ -88,9 +96,9 @@ try {
     body: JSON.stringify({ name: FORM_NAME, description: '演示数据：6 个部门满意度调查（可用于图表聚合）' }),
   });
   d = await j(r);
-  if (r.status !== 200 || !d.data?.id) throw new Error('建表单失败: ' + JSON.stringify(d).slice(0, 200));
+  if (r.status !== 200 || !d.data?.id) throw new Error(t('建表单失败', 'Failed to create form') + ': ' + JSON.stringify(d).slice(0, 200));
   const formId = d.data.id;
-  ok('P3  创建表单', true, `id=${formId}`);
+  ok(t('P3  创建表单', 'P3  Create form'), true, `id=${formId}`);
 
   // 设计 schema
   const schema = {
@@ -107,15 +115,15 @@ try {
     body: JSON.stringify({ name: FORM_NAME, description: '演示数据：6 个部门满意度调查（可用于图表聚合）', submitConfig: { successText: '感谢反馈', allowRepeat: true }, schemaJson: schema }),
   });
   d = await j(r);
-  if (r.status !== 200) throw new Error('保存 schema 失败: ' + JSON.stringify(d).slice(0, 300));
-  ok('P4  保存 schema(4 字段)', true, '');
+  if (r.status !== 200) throw new Error(t('保存 schema 失败', 'Failed to save schema') + ': ' + JSON.stringify(d).slice(0, 300));
+  ok(t('P4  保存 schema(4 字段)', 'P4  Save schema (4 fields)'), true, '');
 
   // 发布
   r = await fetch(`${BASE}/api/forms/${formId}/publish`, { method: 'POST', headers: authH });
   d = await j(r);
-  if (r.status !== 200 || !d.data?.tableName || !d.data?.datasetId) throw new Error('发布失败: ' + JSON.stringify(d).slice(0, 400));
+  if (r.status !== 200 || !d.data?.tableName || !d.data?.datasetId) throw new Error(t('发布失败', 'Failed to publish') + ': ' + JSON.stringify(d).slice(0, 400));
   const { tableName, datasetId } = d.data;
-  ok('P5  发布建表+注册数据集', true, `table=${tableName} ds=${datasetId}`);
+  ok(t('P5  发布建表+注册数据集', 'P5  Publish: create table + register dataset'), true, `table=${tableName} ds=${datasetId}`);
 
   // 灌 36 条提交
   let submitted = 0;
@@ -130,16 +138,16 @@ try {
     };
     r = await fetch(`${BASE}/api/forms/${formId}/submissions`, { method: 'POST', headers: authH, body: JSON.stringify(payload) });
     d = await j(r);
-    if (r.status !== 200 || !d.data?.id) throw new Error(`第 ${i + 1} 条提交失败: ${r.status} ` + JSON.stringify(d).slice(0, 200));
+    if (r.status !== 200 || !d.data?.id)       throw new Error(t(`第 ${i + 1} 条提交失败`, `Submission ${i + 1} failed`) + `: ${r.status} ` + JSON.stringify(d).slice(0, 200));
     submitted += 1;
   }
-  ok('P6  灌入 36 条提交', submitted === 36, `got=${submitted}`);
+  ok(t('P6  灌入 36 条提交', 'P6  Insert 36 submissions'), submitted === 36, `got=${submitted}`);
 
   // 数据集元数据行数（提交时逐条自增维护；row-counts 懒计算只在 row_count=0 时补算）
   r = await fetch(`${BASE}/api/datasets/${datasetId}`, { headers: authH });
   d = await j(r);
   const rowCount = Number(d.data?.row_count);
-  ok('P7  数据集 row_count = 36', rowCount === 36, JSON.stringify({ row_count: d.data?.row_count }));
+  ok(t('P7  数据集 row_count = 36', 'P7  dataset row_count = 36'), rowCount === 36, JSON.stringify({ row_count: d.data?.row_count }));
 
   // 用数据集查询 API 验证可聚合（chart 链路同款）
   r = await fetch(`${BASE}/api/datasets/${datasetId}/query`, {
@@ -148,25 +156,25 @@ try {
   });
   d = await j(r);
   const agg = d.data?.rows || d.data || [];
-  ok('P8  数据集聚合查询可用(按部门)', Array.isArray(agg) && agg.length === DEPTS.length, JSON.stringify(d.data).slice(0, 200));
+  ok(t('P8  数据集聚合查询可用(按部门)', 'P8  dataset aggregation works (by department)'), Array.isArray(agg) && agg.length === DEPTS.length, JSON.stringify(d.data).slice(0, 200));
 
   // 打印前 6 行明细
   r = await fetch(`${BASE}/api/datasets/${datasetId}/rows?page=1&pageSize=6`, { headers: authH });
   d = await j(r);
-  console.log('\n数据预览（前 6 条）:');
+  console.log('\n' + t('数据预览（前 6 条）:', 'Data preview (first 6 rows):'));
   for (const row of (d.data?.rows || []).slice(0, 6)) {
-    console.log(`   #${row.id}  ${row.name}  ${row.dept}  评分=${row.score}  建议=${(row.suggestion || '').slice(0, 18) || '—'}`);
+    console.log(`   #${row.id}  ${row.name}  ${row.dept}  ${t('评分', 'score')}=${row.score}  ${t('建议', 'feedback')}=${(row.suggestion || '').slice(0, 18) || '—'}`);
   }
 
-  console.log('\n汇总:');
-  console.log(`   表单「${FORM_NAME}」 id=${formId}`);
-  console.log(`   数据表 ${tableName} · 数据集 #${datasetId}`);
-  console.log(`   共 ${submitted} 条提交`);
-  console.log(`   在界面查看：数据集 → ${FORM_NAME} → 数据预览 » 或用它建图表/看板`);
+  console.log('\n' + t('汇总:', 'Summary:'));
+  console.log(`   ${t('表单', 'Form')} 「${FORM_NAME}」 id=${formId}`);
+  console.log(`   ${t('数据表', 'Table')} ${tableName} · ${t('数据集', 'Dataset')} #${datasetId}`);
+  console.log(`   ${t(`共 ${submitted} 条提交`, `${submitted} submission(s) in total`)}`);
+  console.log(`   ${t('在界面查看：数据集 → ', 'Browse it at: Datasets → ')}${FORM_NAME} → ${t('数据预览 » 或用它建图表/看板', 'Data preview » or build charts/dashboards from it')}`);
 } catch (e) {
   console.error('SEED EXCEPTION: ' + (e.stack || e.message));
 }
 
 const failed = results.filter((x) => !x).length;
-console.log(`\n表单演示数据：${results.length - failed}/${results.length} 通过`);
+console.log(`\n${t('表单演示数据', 'Form demo data')}: ${results.length - failed}/${results.length} ${t('通过', 'passed')}`);
 process.exit(failed ? 1 : 0);
