@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="配置维度/指标"
+    :title="t('bigscreen.config.query.title')"
     width="920px"
     top="8vh"
     :close-on-click-modal="false"
@@ -10,10 +10,10 @@
   >
     <el-scrollbar max-height="60vh" class="dq-scroll">
       <div class="dq-cols">
-        <!-- 左列：数据集 + 可用字段 -->
+        <!-- Left column: dataset + available fields -->
         <div class="dq-left">
           <el-form label-width="60px" size="default">
-            <el-form-item label="数据集">
+            <el-form-item :label="t('dataset.list.title')">
               <el-select-v2 v-model="plot.datasetId" class="dq-w100" filterable :options="datasetOptions" @change="onDatasetChange">
                 <template #default="{ item }">
                   <DatasetOption :item="item" />
@@ -23,9 +23,9 @@
           </el-form>
 
           <template v-if="plot.datasetId">
-            <!-- 可用字段托盘 -->
+            <!-- Available field palette -->
             <div class="dq-palette">
-              <div class="dq-palette-title">可用字段（拖拽或点击添加）</div>
+              <div class="dq-palette-title">{{ t('bigscreen.config.query.availableFields') }}</div>
               <div
                 v-for="f in fields"
                 :key="f.name"
@@ -36,49 +36,45 @@
               >
                 <el-icon :size="14"><DataLine /></el-icon>
                 <span class="dq-chip-name">{{ f.label || f.name }}</span>
-                <el-tag size="small" effect="light" :style="typeTagStyle(f.type)" class="dq-chip-type">{{ typeLabel(f.type) }}</el-tag>
+                <el-tag size="small" effect="light" :style="typeTagStyle(f.type)" class="dq-chip-type">{{ fieldTypeLabel(f.type) }}</el-tag>
               </div>
             </div>
           </template>
         </div>
 
-        <!-- 右列：维度 / 指标 / 显示选项 -->
+        <!-- Right column: dimensions / metrics / display options -->
         <div class="dq-right">
           <template v-if="plot.datasetId">
-            <!-- 维度区 -->
+            <!-- Dimension zone -->
             <div class="dq-drop" @dragover.prevent @drop="onDrop($event, 'dimensions')">
-              <div class="dq-drop-title">
-                维度（分类 / X 轴）
-                <el-icon class="dq-add" @click="addBlank('dimensions')"><Plus /></el-icon>
+              <div class="dq-drop-title">{{ t('bigscreen.config.query.dimensionZone') }}<el-icon class="dq-add" @click="addBlank('dimensions')"><Plus /></el-icon>
               </div>
-              <div v-if="!dimensions.length" class="dq-hint">拖入字段作为维度</div>
+              <div v-if="!dimensions.length" class="dq-hint">{{ t('bigscreen.config.query.dropAsDimension') }}</div>
               <div v-for="(d, di) in dimensions" :key="di" class="dq-row">
-                <el-select v-model="d.field" placeholder="选择字段" style="flex: 1">
+                <el-select v-model="d.field" :placeholder="t('dataset.detail.fieldPlaceholder')" style="flex: 1">
                   <el-option v-for="f in fields" :key="f.name" :label="f.label || f.name" :value="f.name" />
                 </el-select>
                 <el-select
                   v-if="isDateField(d.field)"
                   v-model="d.granularity"
                   style="width: 80px"
-                  placeholder="粒度"
+                  :placeholder="t('bigscreen.config.query.granularity')"
                 >
-                  <el-option label="日" value="day" />
-                  <el-option label="月" value="month" />
-                  <el-option label="年" value="year" />
+                  <el-option :label="t('bigscreen.config.query.day')" value="day" />
+                  <el-option :label="t('bigscreen.config.query.month')" value="month" />
+                  <el-option :label="t('bigscreen.config.query.year')" value="year" />
                 </el-select>
                 <el-icon class="dq-remove" @click="removeItem(dimensions, di)"><Delete /></el-icon>
               </div>
             </div>
 
-            <!-- 指标区 -->
+            <!-- Metric zone -->
             <div class="dq-drop" @dragover.prevent @drop="onDrop($event, 'metrics')">
-              <div class="dq-drop-title">
-                指标（数值 / Y 轴）
-                <el-icon class="dq-add" @click="addBlank('metrics')"><Plus /></el-icon>
+              <div class="dq-drop-title">{{ t('bigscreen.config.query.metricZone') }}<el-icon class="dq-add" @click="addBlank('metrics')"><Plus /></el-icon>
               </div>
-              <div v-if="!metrics.length" class="dq-hint">拖入字段作为指标</div>
+              <div v-if="!metrics.length" class="dq-hint">{{ t('bigscreen.config.query.dropAsMetric') }}</div>
               <div v-for="(m, mi) in metrics" :key="mi" class="dq-row">
-                <el-select v-model="m.field" placeholder="选择字段" style="flex: 1">
+                <el-select v-model="m.field" :placeholder="t('dataset.detail.fieldPlaceholder')" style="flex: 1">
                   <el-option v-for="f in numericFields" :key="f.name" :label="f.label || f.name" :value="f.name" />
                 </el-select>
                 <el-select v-model="m.agg" style="width: 100px">
@@ -88,32 +84,32 @@
               </div>
             </div>
 
-            <!-- 显示选项 -->
+            <!-- Display options -->
             <el-form label-width="70px" size="default">
-              <el-form-item label="显示条数">
+              <el-form-item :label="t('bigscreen.config.query.rowLimit')">
                 <el-input-number v-model="groupLimit" :min="1" :max="500" style="width: 120px" />
               </el-form-item>
-              <el-form-item label="排序">
+              <el-form-item :label="t('bigscreen.config.common.sort')">
                 <el-select v-model="sortOption" style="width: 45%">
-                  <el-option label="不排序" value="" />
-                  <el-option label="按指标" value="metric" />
-                  <el-option label="按维度" value="dim" />
+                  <el-option :label="t('bigscreen.config.common.sortNone')" value="" />
+                  <el-option :label="t('bigscreen.config.query.sortByMetric')" value="metric" />
+                  <el-option :label="t('bigscreen.config.query.sortByDimension')" value="dim" />
                 </el-select>
                 <el-select v-model="sortOrder" style="width: 45%; margin-left: 8px">
-                  <el-option label="升序" value="asc" />
-                  <el-option label="降序" value="desc" />
+                  <el-option :label="t('bigscreen.config.common.asc')" value="asc" />
+                  <el-option :label="t('bigscreen.config.common.desc')" value="desc" />
                 </el-select>
               </el-form-item>
             </el-form>
           </template>
-          <div v-else class="dq-hint dq-empty">请先在左侧选择数据集</div>
+          <div v-else class="dq-hint dq-empty">{{ t('bigscreen.config.query.selectDatasetFirst') }}</div>
         </div>
       </div>
     </el-scrollbar>
 
     <template #footer>
-      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" @click="confirm">确定</el-button>
+      <el-button @click="$emit('update:modelValue', false)">{{ t('bigscreen.config.action.cancel') }}</el-button>
+      <el-button type="primary" @click="confirm">{{ t('bigscreen.config.action.ok') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -130,6 +126,7 @@ import { datasetApi } from '@/api'
 import { AGG_OPTIONS } from '@/utils/chart-utils'
 import { t } from '@/i18n'
 import { toDatasetOptions } from '@/utils/dataset-type'
+import { fieldTypeLabel } from '@/utils/field-type-label'
 import DatasetOption from '@/components/DatasetOption.vue'
 
 const props = defineProps<{
@@ -154,15 +151,14 @@ const plot = ref({
 const dimensions = ref<any[]>([])
 const metrics = ref<any[]>([])
 const groupLimit = ref(20)
-const sortOption = ref('')   // ''=不排序, 'metric'=按指标, 'dim'=按维度
+const sortOption = ref('')   // ''=none, 'metric'=byMetric, 'dim'=byDimension
 const sortOrder = ref('desc')
 
 const numericFields = computed(() => fields.value.filter((f) => NUMERIC_TYPES.includes(f.type)))
 
-const typeLabel = (t: string) =>
-  ({ string: '文本', integer: '整数', number: '小数', date: '日期', boolean: '布尔' } as any)[t] || t
-const typeTagStyle = (t: string) =>
-  NUMERIC_TYPES.includes(t)
+// Field type labels come from utils/field-type-label; the param is no longer named t to avoid shadowing the translator
+const typeTagStyle = (type: string) =>
+  NUMERIC_TYPES.includes(type)
     ? { background: '#E9F7EF', borderColor: '#B8E9CD', color: '#1F8A4C' }
     : {}
 
@@ -267,10 +263,10 @@ async function open() {
 }
 
 function confirm() {
-  if (!plot.value.datasetId) return ElMessage.warning('请选择数据集')
+  if (!plot.value.datasetId) return ElMessage.warning(t('bigscreen.config.query.selectDataset'))
   const dims = dimensions.value.filter((d) => d.field)
   const ms = metrics.value.filter((m) => m.field)
-  if (ms.length === 0) return ElMessage.warning('请至少添加一个指标')
+  if (ms.length === 0) return ElMessage.warning(t('bigscreen.config.query.needMetric'))
   emit('confirm', {
     datasetId: plot.value.datasetId,
     query: {
@@ -325,7 +321,7 @@ watch(() => props.modelValue, (v) => { if (v) open() })
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--app-card);
+  background: var(--scr-surface);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   padding: 6px 10px;
