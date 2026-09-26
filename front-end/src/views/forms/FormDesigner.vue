@@ -231,7 +231,7 @@ const palette = computed(() => FIELD_TYPES.map((type) => ({ type, label: typeFie
 const form = reactive({
   id: 0, name: '', description: '', status: 'draft', tableName: null,
   schema: { version: 1, fields: [] },
-  submitConfig: { successText: '提交成功', allowRepeat: true },
+  submitConfig: { successText: t('form.designer.successTextPlaceholder'), allowRepeat: true },
 })
 const fields = ref([])
 const selected = ref(null)
@@ -446,7 +446,8 @@ function applyForm(data) {
   form.status = data.status
   form.tableName = data.tableName
   form.schema = data.schema
-  form.submitConfig = { successText: '提交成功', allowRepeat: true, ...data.submitConfig }
+  // successText 是落库的作者侧文案：仅在服务端未返回时用词典默认值兜底，不会覆盖已存值。
+  form.submitConfig = { successText: t('form.designer.successTextPlaceholder'), allowRepeat: true, ...data.submitConfig }
   fields.value = (data.schema?.fields || []).map((f) => ({
     __uid: `s${f.key}`,
     ...f,
