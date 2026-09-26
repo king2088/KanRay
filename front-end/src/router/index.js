@@ -7,76 +7,76 @@ const routes = [
     path: '/login',
     name: 'login',
     component: () => import('../views/Login.vue'),
-    meta: { title: '登录' },
+    meta: { titleKey: 'layout.menu.routes.login' },
   },
   {
     path: '/register',
     name: 'register',
     component: () => import('../views/Register.vue'),
-    meta: { title: '注册' },
+    meta: { titleKey: 'layout.menu.routes.register' },
   },
   {
     path: '/s/:token',
     name: 'share-view',
     component: () => import('../views/ShareBoardView.vue'),
-    meta: { title: '分享查看', public: true },
+    meta: { titleKey: 'layout.menu.routes.shareView', public: true },
   },
   {
     path: '/big-screen/share/:token',
     name: 'big-screen-share',
     component: () => import('../screen-designer/views/Share.vue'),
-    meta: { title: '大屏分享', public: true },
+    meta: { titleKey: 'layout.menu.routes.bigScreenShare', public: true },
   },
   {
     path: '/f/:token',
     name: 'form-share-fill',
     component: () => import('../views/FormShareView.vue'),
-    meta: { title: '表单填写', public: true },
+    meta: { titleKey: 'layout.menu.routes.formShareFill', public: true },
   },
   {
     path: '/big-screen/design/:id',
     name: 'big-screen-design',
     component: () => import('../screen-designer/views/Designer.vue'),
-    meta: { title: '大屏设计器' },
+    meta: { titleKey: 'layout.menu.routes.bigScreenDesign' },
   },
   {
     path: '/big-screen/preview/:id',
     name: 'big-screen-preview',
     component: () => import('../screen-designer/views/Preview.vue'),
-    meta: { title: '大屏预览' },
+    meta: { titleKey: 'layout.menu.routes.bigScreenPreview' },
   },
   {
     path: '/big-screen/settings',
     name: 'big-screen-settings',
     component: () => import('../screen-designer/views/Settings.vue'),
-    meta: { title: '大屏设置' },
+    meta: { titleKey: 'layout.menu.routes.bigScreenSettings' },
   },
   {
     path: '/',
     component: () => import('../views/MainLayout.vue'),
     redirect: '/datasources',
     children: [
-      { path: 'datasources', name: 'datasources', component: () => import('../views/DataSourceList.vue'), meta: { title: '数据源' } },
-      { path: 'datasources/:id', name: 'datasource-detail', component: () => import('../views/DataSourceDetail.vue'), meta: { title: '数据源详情' } },
-      { path: 'datasources/:id/builder', name: 'datasource-builder', component: () => import('../views/DataSourceBuilder.vue'), meta: { title: '数据集构建器' } },
-      { path: 'datasets', name: 'datasets', component: () => import('../views/DatasetList.vue'), meta: { title: '数据集' } },
-      { path: 'datasets/:id', name: 'dataset-detail', component: () => import('../views/DatasetDetail.vue'), meta: { title: '数据集详情' } },
-      { path: 'charts', name: 'charts', component: () => import('../views/ChartList.vue'), meta: { title: '图表中心' } },
-      { path: 'charts/new', name: 'chart-builder', component: () => import('../views/ChartBuilder.vue'), meta: { title: '构建图表' } },
-      { path: 'charts/:id/edit', name: 'chart-edit', component: () => import('../views/ChartBuilder.vue'), meta: { title: '编辑图表' } },
-      { path: 'dashboards', name: 'dashboards', component: () => import('../views/DashboardList.vue'), meta: { title: '看板中心' } },
-      { path: 'dashboards/:id', name: 'dashboard-view', component: () => import('../views/DashboardView.vue'), meta: { title: '看板查看' } },
-      { path: 'dashboards/:id/edit', name: 'dashboard-edit', component: () => import('../views/DashboardEditor.vue'), meta: { title: '编辑看板' } },
-      { path: 'big-screen', name: 'big-screens', component: () => import('../views/BigScreenList.vue'), meta: { title: '大屏设计' } },
-      { path: 'forms', name: 'forms', component: () => import('../views/forms/FormList.vue'), meta: { title: '表单中心' } },
-      { path: 'forms/:id/design', name: 'form-design', component: () => import('../views/forms/FormDesigner.vue'), meta: { title: '表单设计' } },
-      { path: 'forms/:id/fill', name: 'form-fill', component: () => import('../views/forms/FormFill.vue'), meta: { title: '填报表单' } },
-      { path: 'forms/:id/submissions', name: 'form-submissions', component: () => import('../views/forms/FormSubmissions.vue'), meta: { title: '提交记录' } },
-      { path: 'admin/users', name: 'admin-users', component: () => import('../views/admin/UserAdmin.vue'), meta: { title: '用户管理' } },
-      { path: 'admin/roles', name: 'admin-roles', component: () => import('../views/admin/RoleAdmin.vue'), meta: { title: '角色管理' } },
-      { path: 'admin/audit', name: 'admin-audit', component: () => import('../views/admin/AuditView.vue'), meta: { title: '操作审计' } },
-      { path: 'admin/open-api', name: 'admin-open-api', component: () => import('../views/admin/OpenApiAdmin.vue'), meta: { title: '开放 API' } },
-      { path: 'open/tokens', name: 'open-tokens', component: () => import('../views/open/OpenTokens.vue'), meta: { title: '访问令牌' } },
+      { path: 'datasources', name: 'datasources', component: () => import('../views/DataSourceList.vue'), meta: { titleKey: 'layout.menu.routes.datasources' } },
+      { path: 'datasources/:id', name: 'datasource-detail', component: () => import('../views/DataSourceDetail.vue'), meta: { titleKey: 'layout.menu.routes.datasourceDetail' } },
+      { path: 'datasources/:id/builder', name: 'datasource-builder', component: () => import('../views/DataSourceBuilder.vue'), meta: { titleKey: 'layout.menu.routes.datasourceBuilder' } },
+      { path: 'datasets', name: 'datasets', component: () => import('../views/DatasetList.vue'), meta: { titleKey: 'layout.menu.routes.datasets' } },
+      { path: 'datasets/:id', name: 'dataset-detail', component: () => import('../views/DatasetDetail.vue'), meta: { titleKey: 'layout.menu.routes.datasetDetail' } },
+      { path: 'charts', name: 'charts', component: () => import('../views/ChartList.vue'), meta: { titleKey: 'layout.menu.routes.charts' } },
+      { path: 'charts/new', name: 'chart-builder', component: () => import('../views/ChartBuilder.vue'), meta: { titleKey: 'layout.menu.routes.chartBuilder' } },
+      { path: 'charts/:id/edit', name: 'chart-edit', component: () => import('../views/ChartBuilder.vue'), meta: { titleKey: 'layout.menu.routes.chartEdit' } },
+      { path: 'dashboards', name: 'dashboards', component: () => import('../views/DashboardList.vue'), meta: { titleKey: 'layout.menu.routes.dashboards' } },
+      { path: 'dashboards/:id', name: 'dashboard-view', component: () => import('../views/DashboardView.vue'), meta: { titleKey: 'layout.menu.routes.dashboardView' } },
+      { path: 'dashboards/:id/edit', name: 'dashboard-edit', component: () => import('../views/DashboardEditor.vue'), meta: { titleKey: 'layout.menu.routes.dashboardEdit' } },
+      { path: 'big-screen', name: 'big-screens', component: () => import('../views/BigScreenList.vue'), meta: { titleKey: 'layout.menu.routes.bigScreens' } },
+      { path: 'forms', name: 'forms', component: () => import('../views/forms/FormList.vue'), meta: { titleKey: 'layout.menu.routes.forms' } },
+      { path: 'forms/:id/design', name: 'form-design', component: () => import('../views/forms/FormDesigner.vue'), meta: { titleKey: 'layout.menu.routes.formDesign' } },
+      { path: 'forms/:id/fill', name: 'form-fill', component: () => import('../views/forms/FormFill.vue'), meta: { titleKey: 'layout.menu.routes.formFill' } },
+      { path: 'forms/:id/submissions', name: 'form-submissions', component: () => import('../views/forms/FormSubmissions.vue'), meta: { titleKey: 'layout.menu.routes.formSubmissions' } },
+      { path: 'admin/users', name: 'admin-users', component: () => import('../views/admin/UserAdmin.vue'), meta: { titleKey: 'layout.menu.routes.adminUsers' } },
+      { path: 'admin/roles', name: 'admin-roles', component: () => import('../views/admin/RoleAdmin.vue'), meta: { titleKey: 'layout.menu.routes.adminRoles' } },
+      { path: 'admin/audit', name: 'admin-audit', component: () => import('../views/admin/AuditView.vue'), meta: { titleKey: 'layout.menu.routes.adminAudit' } },
+      { path: 'admin/open-api', name: 'admin-open-api', component: () => import('../views/admin/OpenApiAdmin.vue'), meta: { titleKey: 'layout.menu.routes.adminOpenApi' } },
+      { path: 'open/tokens', name: 'open-tokens', component: () => import('../views/open/OpenTokens.vue'), meta: { titleKey: 'layout.menu.routes.openTokens' } },
     ],
   },
 ]
@@ -102,10 +102,15 @@ router.beforeEach(async (to) => {
   return true
 })
 
-function routeTitle(route) {
+// 裸标签（无「· KanRay」后缀），供 MainLayout 面包屑等处复用
+export function routeLabel(route) {
   const key = route.meta?.titleKey
   const translated = key ? t(key) : ''
-  const label = translated && translated !== key ? translated : route.meta?.title
+  return translated && translated !== key ? translated : route.meta?.title || ''
+}
+
+function routeTitle(route) {
+  const label = routeLabel(route)
   return label ? `${label} · KanRay` : 'KanRay'
 }
 

@@ -88,6 +88,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { activeMenuOf, groupOf } from '@/router/menu'
+import { routeLabel } from '@/router'
 import AppLogo from '@/components/layout/AppLogo.vue'
 import SideMenu from '@/components/layout/SideMenu.vue'
 import TopMenu from '@/components/layout/TopMenu.vue'
@@ -109,7 +110,7 @@ watch(
 function onSelectGroup(path) {
   activeGroup.value = path
 }
-const currentTitle = computed(() => route.meta.title || 'KanRay')
+const currentTitle = computed(() => routeLabel(route) || 'KanRay')
 </script>
 
 <style scoped>
