@@ -40,13 +40,13 @@
           v-for="(p, i) in COLOR_PALETTES"
           :key="i"
           :value="i"
-          :label="p.name"
+          :label="t(p.nameKey)"
         >
           <div class="palette-opt">
             <div class="palette-opt-swatches">
               <span v-for="c in p.colors" :key="c" class="palette-opt-swatch" :style="{ background: c }" />
             </div>
-            <span class="palette-opt-name">{{ p.name }}</span>
+            <span class="palette-opt-name">{{ t(p.nameKey) }}</span>
           </div>
         </el-option>
         <el-option :value="CUSTOM_PALETTE_INDEX" label="自定义">
@@ -78,6 +78,7 @@
 <script setup>
 import { computed } from 'vue'
 import { COLOR_PALETTES, DEFAULT_PALETTE, CUSTOM_PALETTE_INDEX } from '@/config/color-palettes'
+import { t } from '@/i18n'
 
 const props = defineProps({
   theme: { type: Object, default: () => ({}) },
