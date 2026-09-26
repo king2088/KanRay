@@ -120,7 +120,8 @@ watch(() => [props.props, props.data], () => {
   chart.value?.setOption(getOption())
 }, { deep: true })
 
-// ECharts 的 locale 在 init 时确定，setOption 改不了，切语言必须重建实例。
+// ECharts fixes its locale at init time and setOption cannot change it, so switching
+// language has to go through a full dispose + init.
 const rebuildChart = () => {
   resizeObserver?.disconnect()
   chart.value?.dispose()
