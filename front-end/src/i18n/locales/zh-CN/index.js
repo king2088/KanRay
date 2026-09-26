@@ -4,6 +4,7 @@ import layout from './layout.js'
 import chart from './chart.js'
 import datasource from './datasource.js'
 import dataset from './dataset.js'
+import dashboard from './dashboard.js'
 import form from './form.js'
 import bigscreen from './bigscreen.js'
 import admin from './admin.js'
@@ -13,5 +14,5 @@ import validation from './validation.js'
 
 export default {
   common, auth, layout, chart, datasource, dataset,
-  form, bigscreen, admin, openapi, audit, validation,
+  form, bigscreen, admin, dashboard, openapi, audit, validation,
 }
