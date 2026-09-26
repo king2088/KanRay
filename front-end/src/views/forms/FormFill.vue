@@ -17,15 +17,15 @@
 
         <div v-if="form.status === 'published' && canSubmit" class="form-fill__actions">
           <el-button type="primary" :loading="submitting" @click="submit">
-            <el-icon style="margin-right: 4px"><Check /></el-icon>提交
+            <el-icon style="margin-right: 4px"><Check /></el-icon>{{ t('form.fill.submit') }}
           </el-button>
-          <el-button @click="$router.push(`/forms/${form.id}/design`)">返回设计</el-button>
+          <el-button @click="$router.push(`/forms/${form.id}/design`)">{{ t('form.fill.backToDesign') }}</el-button>
         </div>
         <div v-else-if="form.status === 'closed'" class="form-fill__closed">
-          该表单已停止收集，无法继续提交。
+          {{ t('form.fill.closedHint') }}
         </div>
         <div v-else-if="form.status === 'draft'" class="form-fill__closed">
-          该表单尚未发布，无法提交。
+          {{ t('form.fill.notPublishedHint') }}
         </div>
       </div>
       <div v-else v-loading="loading" class="form-fill__loading" />
@@ -38,10 +38,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Check, ArrowLeft } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { formApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import FormRenderer from '@/components/form/FormRenderer.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 const id = String(route.params.id)
@@ -50,17 +52,26 @@ const renderer = ref(null)
 const loading = ref(true)
 const submitting = ref(false)
 
-const statusLabel = computed(() => ({ draft: '草稿', published: '已发布', closed: '已关闭' })[form.value?.status] || form.value?.status)
+const statusLabel = computed(() => ({
+  draft: t('form.list.draft'),
+  published: t('form.list.published'),
+  closed: t('form.list.closed'),
+})[form.value?.status] || form.value?.status)
 const statusType = computed(() => ({ draft: 'info', published: 'success', closed: 'warning' })[form.value?.status] || 'info')
 const canSubmit = computed(() => auth.hasPermission('form', 'submit'))
 
 async function submit() {
   const ok = await renderer.value.validate().catch(() => false)
-  if (!ok) return ElMessage.warning('请完善必填项')
+  if (!ok) return ElMessage.warning(t('form.fill.requiredMissing'))
   submitting.value = true
   try {
     const res = await formApi.submit(id, renderer.value.model)
-    ElMessage.success(`${form.value.submitConfig?.successText || '提交成功'}${res?.id ? `（序号 ${res.id}）` : ''}`)
+    ElMessage.success(
+      t('form.fill.successWithId', {
+        text: form.value.submitConfig?.successText || t('form.fill.successFallback'),
+        id: res?.id,
+      }),
+    )
     renderer.value.resetFields()
   } finally {
     submitting.value = false

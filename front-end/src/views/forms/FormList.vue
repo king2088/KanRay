@@ -2,33 +2,33 @@
   <div class="page-container">
     <div class="page-header">
       <div class="page-header__main">
-        <h2 class="page-title">表单中心</h2>
-        <div class="page-desc">拖拽设计表单，发布后自动建表；提交数据可被图表/看板直接查询</div>
+        <h2 class="page-title">{{ t('form.list.title') }}</h2>
+        <div class="page-desc">{{ t('form.list.pageDesc') }}</div>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" @click="create">
-          <el-icon style="margin-right: 4px"><Plus /></el-icon>新建表单
+          <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('form.list.create') }}
         </el-button>
       </div>
     </div>
 
     <div class="page-card">
       <div class="page-card__header">
-        <div class="page-card__header-title">表单列表</div>
+        <div class="page-card__header-title">{{ t('form.list.listTitle') }}</div>
         <div class="page-card__header-right">
           <el-input
             v-model="search"
-            placeholder="搜索表单名称"
+            :placeholder="t('form.list.searchPlaceholder')"
             clearable
             style="width: 240px"
             :prefix-icon="Search"
           />
-          <el-tag type="info" effect="plain">共 {{ total }} 条</el-tag>
+          <el-tag type="info" effect="plain">{{ t('form.list.totalCount', { count: total }) }}</el-tag>
         </div>
       </div>
 
-      <el-table :data="filtered" v-loading="loading" empty-text="还没有表单，点右上角新建">
-        <el-table-column prop="name" label="名称" min-width="200">
+      <el-table :data="filtered" v-loading="loading" :empty-text="t('form.list.empty')">
+        <el-table-column prop="name" :label="t('form.list.name')" min-width="200">
           <template #default="{ row }">
             <div class="cell-name">
               <div class="cell-name__icon"><el-icon><Tickets /></el-icon></div>
@@ -36,30 +36,30 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip>
+        <el-table-column prop="description" :label="t('form.list.description')" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="cell-muted">{{ row.description || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="110" align="center">
+        <el-table-column prop="status" :label="t('form.list.status')" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="180">
+        <el-table-column prop="updatedAt" :label="t('form.list.updatedAt')" width="180">
           <template #default="{ row }">
             <span class="cell-muted">{{ formatDateTime(row.updatedAt, appStore.timezone) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right" align="center">
+        <el-table-column :label="t('form.list.actions')" width="300" fixed="right" align="center">
           <template #default="{ row }">
             <el-button v-if="canShare" link type="primary" @click="openShare(row)">
-              <el-icon style="margin-right: 2px"><Share /></el-icon>分享
+              <el-icon style="margin-right: 2px"><Share /></el-icon>{{ t('form.list.share') }}
             </el-button>
-            <el-button link type="primary" @click="$router.push(`/forms/${row.id}/design`)">设计</el-button>
-            <el-button link type="primary" @click="$router.push(`/forms/${row.id}/fill`)">填写</el-button>
-            <el-button link type="primary" @click="$router.push(`/forms/${row.id}/submissions`)">记录</el-button>
-            <el-button link type="danger" @click="remove(row)">删除</el-button>
+            <el-button link type="primary" @click="$router.push(`/forms/${row.id}/design`)">{{ t('form.list.design') }}</el-button>
+            <el-button link type="primary" @click="$router.push(`/forms/${row.id}/fill`)">{{ t('form.list.fill') }}</el-button>
+            <el-button link type="primary" @click="$router.push(`/forms/${row.id}/submissions`)">{{ t('form.list.submissions') }}</el-button>
+            <el-button link type="danger" @click="remove(row)">{{ t('form.list.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -87,12 +87,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Share, Tickets } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { formApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/datetime'
 import FormShareDialog from '@/components/form/FormShareDialog.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const appStore = useAppStore()
@@ -113,7 +115,11 @@ const filtered = computed(() => {
 })
 
 function statusLabel(s) {
-  return { draft: '草稿', published: '已发布', closed: '已关闭' }[s] || s
+  return {
+    draft: t('form.list.draft'),
+    published: t('form.list.published'),
+    closed: t('form.list.closed'),
+  }[s] || s
 }
 function statusType(s) {
   return { draft: 'info', published: 'success', closed: 'warning' }[s] || 'info'
@@ -132,12 +138,12 @@ async function load() {
 
 async function create() {
   try {
-    const { value } = await ElMessageBox.prompt('给表单起个名字', '新建表单', {
-      inputValidator: (v) => (v && v.trim() ? true : '名称不能为空'),
-      inputPlaceholder: '如：员工满意度调查',
+    const { value } = await ElMessageBox.prompt(t('form.list.createPrompt'), t('form.list.createTitle'), {
+      inputValidator: (v) => (v && v.trim() ? true : t('form.list.nameRequired')),
+      inputPlaceholder: t('form.list.createPlaceholder'),
     })
     const f = await formApi.create(value)
-    ElMessage.success('已创建，开始设计吧')
+    ElMessage.success(t('form.list.created'))
     router.push(`/forms/${f.id}/design`)
   } catch (e) {
     if (e === 'cancel' || e?.action === 'cancel') return
@@ -150,12 +156,16 @@ function openShare(row) {
 
 async function remove(row) {
   try {
-    await ElMessageBox.confirm(`确定删除表单「${row.name}」？将同时删除其数据表与全部提交记录`, '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm(
+      t('form.list.deleteConfirm', { name: row.name }),
+      t('form.list.deleteConfirmTitle'),
+      { type: 'warning' },
+    )
   } catch (e) {
     return
   }
   await formApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('form.list.deleteSuccess'))
   load()
 }
 
