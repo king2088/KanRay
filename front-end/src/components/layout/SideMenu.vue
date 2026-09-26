@@ -11,16 +11,16 @@
       <template v-for="item in menus" :key="item.path">
         <el-menu-item v-if="!item.children.length" :index="item.path">
           <el-icon><component :is="item.icon" /></el-icon>
-          <template #title>{{ item.title }}</template>
+          <template #title>{{ t(item.titleKey) }}</template>
         </el-menu-item>
         <el-sub-menu v-else :index="item.path">
           <template #title>
             <el-icon><component :is="item.icon" /></el-icon>
-            <span>{{ item.title }}</span>
+            <span>{{ t(item.titleKey) }}</span>
           </template>
           <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
             <el-icon><component :is="child.icon" /></el-icon>
-            <template #title>{{ child.title }}</template>
+            <template #title>{{ t(child.titleKey) }}</template>
           </el-menu-item>
         </el-sub-menu>
       </template>
@@ -31,11 +31,11 @@
       <template v-if="groupParent">
         <div class="app-menu__group-title">
           <el-icon><component :is="groupParent.icon" /></el-icon>
-          <span>{{ groupParent.title }}</span>
+          <span>{{ t(groupParent.titleKey) }}</span>
         </div>
         <el-menu-item v-for="child in groupParent.children" :key="child.path" :index="child.path">
           <el-icon><component :is="child.icon" /></el-icon>
-          <template #title>{{ child.title }}</template>
+          <template #title>{{ t(child.titleKey) }}</template>
         </el-menu-item>
       </template>
       <div v-else class="app-menu__empty">{{ t('common.empty.noSubMenu') }}</div>

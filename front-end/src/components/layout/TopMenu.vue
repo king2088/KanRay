@@ -12,7 +12,7 @@
       >
         <span class="top-nav-item" :class="{ 'is-active': isItemActive(item) }">
           <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.title }}</span>
+          <span>{{ t(item.titleKey) }}</span>
           <el-icon class="top-nav-caret"><ArrowDown /></el-icon>
         </span>
         <template #dropdown>
@@ -23,7 +23,7 @@
               :command="child.path"
               :class="{ 'is-active': activeMenu === child.path }"
             >
-              {{ child.title }}
+              {{ t(child.titleKey) }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -37,7 +37,7 @@
         @click="emit('select-group', item.path)"
       >
         <el-icon><component :is="item.icon" /></el-icon>
-        <span>{{ item.title }}</span>
+        <span>{{ t(item.titleKey) }}</span>
       </span>
 
       <!-- 无子级的一级菜单直接跳转 -->
@@ -48,7 +48,7 @@
         :class="{ 'is-active': isItemActive(item) }"
       >
         <el-icon><component :is="item.icon" /></el-icon>
-        <span>{{ item.title }}</span>
+        <span>{{ t(item.titleKey) }}</span>
       </router-link>
     </template>
   </nav>
@@ -59,6 +59,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { visibleMenus } from '@/router/menu'
 import { useAuthStore } from '@/stores/auth'
+import { t } from '@/i18n'
 
 const props = defineProps({
   activeMenu: { type: String, required: true },

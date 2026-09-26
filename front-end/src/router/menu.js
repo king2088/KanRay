@@ -1,19 +1,19 @@
 export const MENU_ITEMS = [
-  { path: '/datasources', title: '数据源', icon: 'Coin' },
-  { path: '/datasets', title: '数据集', icon: 'FolderOpened' },
-  { path: '/charts', title: '图表中心', icon: 'PieChart' },
-  { path: '/dashboards', title: '看板中心', icon: 'Odometer' },
-  { path: '/big-screen', title: '大屏设计', icon: 'Monitor' },
-  { path: '/forms', title: '表单中心', icon: 'Tickets' },
-  { path: '/admin', title: '系统管理', icon: 'Setting' },
+  { path: '/datasources', titleKey: 'layout.menu.items.datasources', icon: 'Coin' },
+  { path: '/datasets', titleKey: 'layout.menu.items.datasets', icon: 'FolderOpened' },
+  { path: '/charts', titleKey: 'layout.menu.items.charts', icon: 'PieChart' },
+  { path: '/dashboards', titleKey: 'layout.menu.items.dashboards', icon: 'Odometer' },
+  { path: '/big-screen', titleKey: 'layout.menu.items.bigScreens', icon: 'Monitor' },
+  { path: '/forms', titleKey: 'layout.menu.items.forms', icon: 'Tickets' },
+  { path: '/admin', titleKey: 'layout.menu.items.admin', icon: 'Setting' },
 ]
 
 export const ADMIN_ITEMS = [
-  { path: '/admin/users', title: '用户管理', icon: 'User' },
-  { path: '/admin/roles', title: '角色管理', icon: 'Avatar' },
-  { path: '/admin/audit', title: '操作审计', icon: 'List' },
-  { path: '/admin/open-api', title: '开放 API', icon: 'Key' },
-  { path: '/open/tokens', title: '访问令牌', icon: 'Lock' },
+  { path: '/admin/users', titleKey: 'layout.menu.items.users', icon: 'User' },
+  { path: '/admin/roles', titleKey: 'layout.menu.items.roles', icon: 'Avatar' },
+  { path: '/admin/audit', titleKey: 'layout.menu.items.audit', icon: 'List' },
+  { path: '/admin/open-api', titleKey: 'layout.menu.items.openApi', icon: 'Key' },
+  { path: '/open/tokens', titleKey: 'layout.menu.items.tokens', icon: 'Lock' },
 ]
 
 export const ADMIN_PERMISSION_OF = {
