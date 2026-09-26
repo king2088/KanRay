@@ -1,39 +1,39 @@
 <template>
-  <el-dialog :model-value="modelValue" :title="`分享大屏：${name}`" width="680px" @update:model-value="$emit('update:modelValue', $event)">
+  <el-dialog :model-value="modelValue" :title="t('dashboard.bigScreenShare.title', { name })" width="680px" @update:model-value="$emit('update:modelValue', $event)">
     <div class="share-create">
-      <el-switch v-model="requirePassword" inline-prompt active-text="密码" inactive-text="公开" style="margin-right: 2px" />
-      <el-input v-model="password" type="password" show-password :disabled="!requirePassword" placeholder="访问密码（4-64 位）" style="width: 180px" />
-      <el-date-picker v-model="expiresAt" type="datetime" placeholder="过期时间（可选）" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width: 200px" />
-      <el-button type="primary" :loading="creating" @click="create">创建分享</el-button>
+      <el-switch v-model="requirePassword" inline-prompt :active-text="t('dashboard.share.password')" :inactive-text="t('dashboard.share.public')" style="margin-right: 2px" />
+      <el-input v-model="password" type="password" show-password :disabled="!requirePassword" :placeholder="t('dashboard.share.passwordPlaceholder')" style="width: 180px" />
+      <el-date-picker v-model="expiresAt" type="datetime" :placeholder="t('dashboard.share.expiresPlaceholder')" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width: 200px" />
+      <el-button type="primary" :loading="creating" @click="create">{{ t('dashboard.share.create') }}</el-button>
     </div>
 
-    <el-table :data="shares" v-loading="loading" empty-text="还没有分享链接">
-      <el-table-column label="访问" width="80" align="center">
+    <el-table :data="shares" v-loading="loading" :empty-text="t('dashboard.share.empty')">
+      <el-table-column :label="t('dashboard.share.colAccess')" width="80" align="center">
         <template #default="{ row }">
           <el-tag size="small" effect="plain" :type="row.hasPassword ? 'warning' : 'success'">
-            {{ row.hasPassword ? '密码' : '公开' }}
+            {{ row.hasPassword ? t('dashboard.share.password') : t('dashboard.share.public') }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="链接" min-width="260">
+      <el-table-column :label="t('dashboard.share.colLink')" min-width="260">
         <template #default="{ row }">
           <span class="share-link">{{ shareUrl(row) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="过期时间" width="150">
+      <el-table-column :label="t('dashboard.share.colExpires')" width="150">
         <template #default="{ row }">
           <span>{{ row.expiresAt || '-' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="70" align="center">
+      <el-table-column :label="t('dashboard.share.colStatus')" width="70" align="center">
         <template #default="{ row }">
           <el-switch :model-value="!!row.isActive" @change="(v) => toggleActive(row, v)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="140" align="center">
+      <el-table-column :label="t('dashboard.share.colActions')" width="140" align="center">
         <template #default="{ row }">
-          <el-button link type="primary" @click="copy(row)">复制链接</el-button>
-          <el-button link type="danger" @click="remove(row)">删除</el-button>
+          <el-button link type="primary" @click="copy(row)">{{ t('dashboard.share.copyLink') }}</el-button>
+          <el-button link type="danger" @click="remove(row)">{{ t('dashboard.share.remove') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -42,6 +42,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { t } from '@/i18n'
 import { ElMessage } from 'element-plus'
 import { bigScreenApi } from '@/api'
 
@@ -74,7 +75,7 @@ async function load() {
 
 async function create() {
   if (requirePassword.value && (!password.value || password.value.length < 4)) {
-    return ElMessage.warning('访问密码至少 4 位')
+    return ElMessage.warning(t('dashboard.share.errPasswordShort'))
   }
   creating.value = true
   try {
@@ -86,7 +87,7 @@ async function create() {
     password.value = ''
     expiresAt.value = null
     requirePassword.value = true
-    ElMessage.success(s.hasPassword ? '分享创建成功' : '分享创建成功（无需密码公开访问）')
+    ElMessage.success(s.hasPassword ? t('dashboard.share.created') : t('dashboard.share.createdPublic'))
   } finally {
     creating.value = false
   }
@@ -95,21 +96,21 @@ async function create() {
 async function toggleActive(row, v) {
   await bigScreenApi.updateShare(row.id, { isActive: v })
   row.isActive = v ? 1 : 0
-  ElMessage.success(v ? '已启用' : '已停用')
+  ElMessage.success(v ? t('dashboard.share.enabled') : t('dashboard.share.disabled'))
 }
 
 async function remove(row) {
   await bigScreenApi.deleteShare(row.id)
   shares.value = shares.value.filter((s) => s.id !== row.id)
-  ElMessage.success('分享已删除')
+  ElMessage.success(t('dashboard.share.deleted'))
 }
 
 async function copy(row) {
   try {
     await navigator.clipboard.writeText(shareUrl(row))
-    ElMessage.success('链接已复制')
+    ElMessage.success(t('dashboard.share.copied'))
   } catch (e) {
-    ElMessage.warning('复制失败，请手动复制')
+    ElMessage.warning(t('dashboard.share.copyFailed'))
   }
 }
 

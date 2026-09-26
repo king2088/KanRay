@@ -49,7 +49,7 @@
                       :command="w"
                       :disabled="item.w === w"
                     >
-                      宽 {{ w }} 列
+                      {{ t('dashboard.grid.widthColumns', { n: w }) }}
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -64,12 +64,12 @@
                       :command="v"
                       :disabled="cardHeightPx(item, gapValue) === v"
                     >
-                      高 {{ v }}px
+                      {{ t('dashboard.grid.heightPx', { n: v }) }}
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-              <el-tooltip :content="item.hideTitle ? '显示标题' : '隐藏标题'" placement="top" :show-after="500">
+              <el-tooltip :content="item.hideTitle ? t('dashboard.grid.showTitle') : t('dashboard.grid.hideTitle')" placement="top" :show-after="500">
                 <el-icon class="act-btn" size="15" @click.stop="toggleTitle(item)">
                   <component :is="item.hideTitle ? 'View' : 'Hide'" />
                 </el-icon>
@@ -87,7 +87,7 @@
                 :external-filters="externalFilters"
                 :height-scale="item.h"
               />
-              <el-empty v-else-if="!chartMap[item.chartId]" description="图表已删除" :image-size="60" />
+              <el-empty v-else-if="!chartMap[item.chartId]" :description="t('dashboard.grid.chartDeleted')" :image-size="60" />
             </template>
 
             <template v-else-if="item.type === 'text'">
@@ -116,7 +116,7 @@
             <el-empty
               v-else-if="item.type === 'container'"
               class="grid-empty"
-              description="拖入卡片，或选中后在右侧添加"
+              :description="t('dashboard.grid.dropCard')"
               :image-size="48"
             />
           </div>
@@ -133,7 +133,7 @@
       <el-empty
         v-else
         class="grid-empty"
-        :description="boardKey === 'root' ? '从右侧图表库点击或拖拽图表到此处' : '拖入卡片，或选中容器后在右侧添加'"
+        :description="emptyDescription"
         :image-size="60"
       />
     </div>
@@ -144,6 +144,7 @@
 import { computed, defineOptions, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ArrowUp, ArrowDown, Operation, Expand, Delete } from '@element-plus/icons-vue'
 import { chartApi } from '@/api'
+import { t } from '@/i18n'
 import ChartTile from './ChartTile.vue'
 import FilterComponent from './FilterComponent.vue'
 import {
@@ -186,6 +187,12 @@ const boardVars = computed(() => ({
   '--card-underline': cardStyleValue.value.titleUnderline ? '1px solid var(--app-border-light)' : 'none',
 }))
 
+const emptyDescription = computed(() =>
+  props.boardKey === 'root'
+    ? t('dashboard.grid.dropFromLibrary')
+    : t('dashboard.grid.dropCard')
+)
+
 /** 标题隐藏判定：看板级全局关闭 或 单卡显隐 */
 function headHidden(item) {
   return !cardStyleValue.value.showTitle || !!item.hideTitle
@@ -204,10 +211,10 @@ const bodyStyle = computed(() => {
 const widthOptions = computed(() => [4, 6, 8, 10, 12].filter((w) => w <= cols.value))
 
 function itemTitle(item) {
-  if (item.type === 'chart') return chartMap.value?.[item.chartId]?.name || '图表'
-  if (item.type === 'text') return '文本'
-  if (item.type === 'filter') return item.label || `筛选：${item.field}`
-  return '容器'
+  if (item.type === 'chart') return chartMap.value?.[item.chartId]?.name || t('dashboard.grid.itemChart')
+  if (item.type === 'text') return t('dashboard.grid.itemText')
+  if (item.type === 'filter') return item.label || t('dashboard.grid.itemFilter', { field: item.field })
+  return t('dashboard.grid.itemContainer')
 }
 
 /** 单元格矩形（px 计算；横向按列、纵向按像素 top） */
@@ -354,7 +361,7 @@ function buildGhost(item) {
   g.className = 'drag-ghost'
   g.innerHTML = '<span class="drag-ghost__grip"></span><span class="drag-ghost__title"></span>'
   const titleEl = g.querySelector('.drag-ghost__title')
-  titleEl.textContent = itemTitle(item) + (item.type === 'container' ? '（容器）' : '')
+  titleEl.textContent = itemTitle(item) + (item.type === 'container' ? t('dashboard.grid.containerSuffix') : '')
   document.body.appendChild(g)
   return g
 }
