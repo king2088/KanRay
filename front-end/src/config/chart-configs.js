@@ -1341,7 +1341,7 @@ function buildWaterfall(data, config, palette) {
   opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
   opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
   opt.series = [
-    { name: '占位', type: 'bar', stack: 'waterfall', itemStyle: { borderColor: 'transparent', color: 'transparent' }, emphasis: { itemStyle: { borderColor: 'transparent', color: 'transparent' } }, data: placeholder },
+    { name: tr('chart.series.waterfallPlaceholder'), type: 'bar', stack: 'waterfall', itemStyle: { borderColor: 'transparent', color: 'transparent' }, emphasis: { itemStyle: { borderColor: 'transparent', color: 'transparent' } }, data: placeholder },
     { name: metric.label, type: 'bar', stack: 'waterfall', data: values.map((v, i) => ({ value: Math.abs(v), itemStyle: { color: v >= 0 ? increaseColor : decreaseColor } })) },
   ]
   return opt

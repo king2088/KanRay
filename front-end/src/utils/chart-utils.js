@@ -1,3 +1,5 @@
+import { tr } from '../i18n/translate.js'
+
 export const AGG_OPTIONS = [
   { value: 'sum', labelKey: 'chart.agg.sum' },
   { value: 'avg', labelKey: 'chart.agg.avg' },
@@ -30,7 +32,7 @@ export function toEChartsOption(chartType, data, options = {}) {
   const metric = metrics[0]
 
   if (!dim || !metric || !rows || rows.length === 0) {
-    return { title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#909399' } } }
+    return { title: { text: tr('common.empty.noData'), left: 'center', top: 'middle', textStyle: { color: '#909399' } } }
   }
 
   const title = options.title ? { text: options.title, left: 'center' } : undefined

@@ -23,6 +23,21 @@ const SCAN_PATHS = [
   'router/menu.js',
   'views/Login.vue',
   'views/Register.vue',
+  // 计划 3：图表与看板域
+  'config/chart-configs.js',
+  'config/chart-types.js',
+  'config/color-palettes.js',
+  'utils/chart-utils.js',
+  'utils/catalog.js',
+  'utils/field-type-label.js',
+  'components/charts',
+  'components/dashboard',
+  'views/ChartList.vue',
+  'views/ChartBuilder.vue',
+  'views/DashboardList.vue',
+  'views/DashboardEditor.vue',
+  'views/DashboardView.vue',
+  'views/ShareBoardView.vue',
 ]
 
 let passed = 0
