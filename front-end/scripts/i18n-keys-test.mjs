@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { DEFAULT_LOCALE, DOMAINS, SUPPORT_LOCALES } from '../src/i18n/constants.js'
 import { flattenMessages } from '../src/i18n/flatten.js'
 import { isEnglish, pickLocaleText } from '../src/i18n/locale-util.js'
+import { setTranslator, tr } from '../src/i18n/translate.js'
 
 let passed = 0
 function t(name, fn) {
@@ -118,6 +119,24 @@ t('pickLocaleText 双缺失返回空串', () => {
 
 t('DEFAULT_LOCALE 在 SUPPORT_LOCALES 内', () => {
   assert.ok(SUPPORT_LOCALES.includes(DEFAULT_LOCALE))
+})
+
+t('tr 默认返回中文词典原文', () => {
+  setTranslator(null)
+  assert.equal(tr('common.settings.language'), '语言')
+  assert.equal(tr('common.http.requestFailed'), '请求失败')
+})
+
+t('tr 未知键回退为键名本身', () => {
+  setTranslator(null)
+  assert.equal(tr('common.nope.notExist'), 'common.nope.notExist')
+})
+
+t('setTranslator 注入后 tr 使用注入实现', () => {
+  setTranslator((key) => `EN:${key}`)
+  assert.equal(tr('common.settings.language'), 'EN:common.settings.language')
+  setTranslator(null)
+  assert.equal(tr('common.settings.language'), '语言', '传 null 应恢复默认翻译器')
 })
 
 console.log(`i18n 词典测试：${passed} 项通过`)

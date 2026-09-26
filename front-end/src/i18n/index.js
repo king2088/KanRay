@@ -3,6 +3,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import elEn from 'element-plus/es/locale/lang/en'
 import { DEFAULT_LOCALE, SUPPORT_LOCALES } from './constants.js'
 import { pickLocaleText } from './locale-util.js'
+import { setTranslator } from './translate.js'
 import zhCNMessages from './locales/zh-CN/index.js'
 import enUSMessages from './locales/en-US/index.js'
 
@@ -45,6 +46,9 @@ export function localizeApiMessage(textZh, textEn) {
 
 // 语言切换的唯一副作用入口：vue-i18n locale + <html lang>。
 // 组件库与页面标题各自 watch i18n.global.locale，不在此处耦合。
+// 把真实翻译器注入纯模块：默认（未初始化）时它们读 zh-CN 词典
+setTranslator(t)
+
 export function applyLocale(locale) {
   const target = SUPPORT_LOCALES.includes(locale) ? locale : DEFAULT_LOCALE
   i18n.global.locale.value = target
