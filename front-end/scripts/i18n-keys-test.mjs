@@ -304,11 +304,31 @@ t('左侧面板 widget 数量与词典键数一致（漏一个就报错）', () 
   // widget 条目形如 { nameKey: '...', type: 'xxx', icon: 'yyy' }
   const widgets = [...body.matchAll(/\{\s*nameKey:\s*'bigscreen\.widget\.[^']+'[^}]*?type:/g)]
   assert.equal(widgets.length, 97, `widget 条目数应为 97，实际 ${widgets.length}（新增 widget 必须同时补词典键）`)
-  // widget 段除 97 个组件名外，只允许这两个非组件键存在，用来反向发现陈旧键
-  const EXTRA_WIDGET_KEYS = ['configHint', 'emptyHint']
+  // widget 段除组件名外，只允许下面这些非组件键存在，用来反向发现陈旧键。
+  // 计划 8 起 widget 自身也渲染界面文案（空态提示、倒计时单位等），一并列在这里。
+  const EXTRA_WIDGET_KEYS = [
+    'configHint',
+    'emptyHint',
+    'staticTextFallback',
+    'customChartTitle',
+    'customChartHint',
+    'customChartSupport',
+    'carouselImageHint',
+    'videoHint',
+    'staticImageHint',
+    'countdownDay',
+    'countdownHour',
+    'countdownMinute',
+    'countdownSecond',
+  ]
   const zhWidgetKeys = Object.keys(locales['zh-CN'].bigscreen.widget)
   const enWidgetKeys = Object.keys(locales['en-US'].bigscreen.widget)
-  assert.equal(zhWidgetKeys.length, 99, `bigscreen.widget 键数应为 97+2，实际 ${zhWidgetKeys.length}`)
+  const expected = widgets.length + EXTRA_WIDGET_KEYS.length
+  assert.equal(
+    zhWidgetKeys.length,
+    expected,
+    `bigscreen.widget 键数应为 ${widgets.length} 个组件名 + ${EXTRA_WIDGET_KEYS.length} 个辅助键 = ${expected}，实际 ${zhWidgetKeys.length}`,
+  )
   assert.deepEqual(zhWidgetKeys, enWidgetKeys, 'widget 段中英文键集合不一致')
   for (const k of EXTRA_WIDGET_KEYS) {
     assert.ok(zhWidgetKeys.includes(k), `widget 段缺少非组件键 ${k}`)
