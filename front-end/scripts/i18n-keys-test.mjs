@@ -3,6 +3,7 @@
 // 2) 展平后 zh/en 键集合完全一致
 // 3) 无空值、无与键名同值的占位符
 // 4) pickLocaleText 语言选择与回退行为
+// 5) 内置角色取值：keyOf 前缀不与词典漂移、回退分支不调用 t
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
@@ -478,6 +479,47 @@ t('is_builtin 闸门承重：假值不查词典，真值（含数字 1）才查'
     roleDesc(fakeT, fakeTe, { code: 'viewer', description: '只读访问', is_builtin: 1 }),
     'T:admin.role.builtinLabels.viewer.desc',
   )
+})
+
+// keyOf 的前缀是字面量，本文件 fakeTe 里又独立写了一遍，Task 1 的检查里还有第三份，
+// 三处各自漂移时前面的用例全绿（fake 只认 admin/viewer，不读词典），内置角色就静默回退
+// 到数据库中文原文——正是这个功能要防的回归。所以这里接真实词典：t/te 直接查 zhFlat/enFlat。
+t('roleName/roleDesc 对真实词典命中（keyOf 前缀与词典未漂移）', () => {
+  for (const [locale, flat] of [['zh-CN', zhFlat], ['en-US', enFlat]]) {
+    const tt = (k) => flat[k] ?? k
+    const tte = (k) => k in flat
+    for (const code of builtinCodes) {
+      // 数据库原文一律用哨兵值：前缀一旦漂移，te 为假就回退成哨兵而非词典值，两种语言都会红。
+      // 若沿用真实中文名（'查看者'），zh-CN 的词典值恰好等于它，那一轮就抓不到漂移了。
+      assert.equal(
+        roleName(tt, tte, { code, name: 'DB-NAME', is_builtin: 1 }),
+        flat[`admin.role.builtinLabels.${code}.name`],
+        `${locale} 的 ${code} 未命中真实词典：keyOf 前缀可能已与词典漂移`,
+      )
+      assert.equal(
+        roleDesc(tt, tte, { code, description: 'DB-DESC', is_builtin: 1 }),
+        flat[`admin.role.builtinLabels.${code}.desc`],
+        `${locale} 的 ${code} 未命中真实词典：keyOf 前缀可能已与词典漂移`,
+      )
+    }
+  }
+})
+
+// label() 是短路求值：te 为假就不该调 t。index.js 刻意留着 missingWarn: true，
+// 一旦改成「判完闸门就无条件 t(...)」，每个未收录的自定义角色都会往控制台刷 missingWarn 噪声，
+// 而 fakeT 对任何输入都返回字符串、观察不到调用发生过，所以这里改用计数器钉住。
+t('te 为假时不调用 t（避免 missingWarn 噪声）', () => {
+  let calls = 0
+  const countingT = (k) => { calls++; return `T:${k}` }
+  // is_builtin 为真、code 不在 fakeTe 名单内：只有 te 一道条件为假，短路才生效
+  roleName(countingT, fakeTe, { code: 'unknown', name: '财务专员', is_builtin: 1 })
+  roleDesc(countingT, fakeTe, { code: 'unknown', description: 'x', is_builtin: 1 })
+  assert.equal(calls, 0, 'te 为假时仍调用了 t')
+  // 反向：命中时必须恰好调一次，否则「短路」也可能退化成从不调用
+  calls = 0
+  roleName(countingT, fakeTe, { code: 'admin', name: '管理员', is_builtin: 1 })
+  roleDesc(countingT, fakeTe, { code: 'viewer', description: '只读访问', is_builtin: 1 })
+  assert.equal(calls, 2, 'te 为真时 t 的调用次数不对')
 })
 
 console.log(`i18n 词典测试：${passed} 项通过`)
