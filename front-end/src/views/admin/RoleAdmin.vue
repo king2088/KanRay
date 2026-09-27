@@ -20,7 +20,9 @@
         </div>
 
       <el-table :data="pagedRows" stripe v-loading="loading">
-      <el-table-column prop="name" :label="t('admin.role.name')" min-width="160" />
+      <el-table-column :label="t('admin.role.name')" min-width="160">
+        <template #default="{ row }">{{ roleNameOf(row) }}</template>
+      </el-table-column>
       <el-table-column prop="code" :label="t('admin.role.code')" width="150" />
       <el-table-column :label="t('admin.role.permissions')" min-width="220">
         <template #default="{ row }">
@@ -41,7 +43,9 @@
           <el-tag :type="row.is_builtin ? 'warning' : 'success'">{{ row.is_builtin ? t('admin.role.builtin') : t('admin.role.custom') }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="description" :label="t('admin.role.description')" min-width="180" />
+      <el-table-column :label="t('admin.role.description')" min-width="180">
+        <template #default="{ row }">{{ roleDescOf(row) }}</template>
+      </el-table-column>
       <el-table-column :label="t('admin.role.actions')" width="160" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" :disabled="!isCustom(row)" @click="openEdit(row)">{{ t('admin.role.edit') }}</el-button>
@@ -97,6 +101,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { adminApi } from '@/api'
+import { roleDesc, roleName } from '@/i18n/role-label'
 import { useAuthStore } from '@/stores/auth'
 
 const { t, te } = useI18n()
@@ -167,6 +172,11 @@ async function load() {
 }
 
 const isCustom = (row) => !row.is_builtin
+
+// 列表展示走词典，内置角色出译文、自定义角色出数据库原文。
+// 编辑弹窗不动：内置角色的编辑按钮已禁用，弹窗只为自定义角色打开。
+const roleNameOf = (row) => roleName(t, te, row)
+const roleDescOf = (row) => roleDesc(t, te, row)
 
 function openCreate() {
   editing.value = false
