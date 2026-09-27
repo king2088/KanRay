@@ -161,9 +161,9 @@ async function load() {
   }
 }
 
-// row.roles 装的是角色 code（rbac.service.js:85），不是 id。
-// 原 roleNameMap 在 loadRoles 里把中文名定死，语言切换后不刷新；
-// 改为渲染时解析，t 的 locale 依赖自然触发重渲染。
+// row.roles 装的是角色 code（backend/src/services/rbac.service.js:85），不是 id。
+// 角色名必须在渲染期经 t 解析：load 时把库里的中文名冻结成 code→name 映射的写法
+// 在语言切换后不会刷新，不要改回那种形式。
 const roleByCode = (code) => roles.value.find((x) => x.code === code) || { code }
 const roleNameOf = (role) => roleName(t, te, role)
 
