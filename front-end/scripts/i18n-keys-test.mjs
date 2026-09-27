@@ -787,7 +787,9 @@ const MESSAGE_PAIR_FILES = [
   'api/bigScreenShare.js',
 ]
 
-const RAW_MESSAGE_AS_VALUE = /message:\s*[A-Za-z_$][\w$]*(\?)?\.message\b/
+// 允许多级与 this. 前缀：res.data.message / body.data.message / this.res.message
+// 都是同一类漏法，只匹配单层会给出「已经防住了」的假信心。
+const RAW_MESSAGE_AS_VALUE = /message:\s*(?:this\.)?[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*)*(?:\??\.)message\b/
 
 const MESSAGE_PASSTHROUGH = []
 const usedMessagePass = new Set()
