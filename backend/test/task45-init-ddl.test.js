@@ -47,6 +47,8 @@ test('初始化 DDL：核心表包含运行时依赖的关键列', () => {
     refresh_tokens: ['token_hash', 'expires_at', 'revoked_at'],
     sync_configs: ['watermark_field', 'watermark_kind', 'sync_interval_seconds', 'last_sync_status'],
     sync_jobs: ['trigger_type', 'lease_until', 'attempts'],
+    // metrics.decimals 的基表预埋由 task50-metric-decimals.test.js 专责（5 方言源码契约 + 旧库回填）
+    metrics: ['decimals'],
   };
   for (const [table, cols] of Object.entries(cases)) {
     const actual = freshCols(store, table);
@@ -69,13 +71,4 @@ test('初始化 DDL：各方言建表脚本包含关键表与列', () => {
       assert.ok(text.includes(token), `${d}.js 应包含 ${token}`);
     }
   }
-});
-
-test('初始化 DDL：metrics 表预埋 decimals 列', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kbddl-dec-'));
-  const store = createStore({ type: 'sqlite', sqlitePath: path.join(dir, 'init.db') });
-  ensureSchema(store);
-  const cols = freshCols(store, 'metrics');
-  assert.ok(cols.includes('decimals'), `metrics 表应预埋 decimals 列，实际列: ${cols.join(',')}`);
-  store.close();
 });
