@@ -279,13 +279,15 @@ function metricLabel(m) {
   return `${f ? f.label || f.name : m.field} (${agg})`
 }
 
-// 渲染读取的指标 key：指标库引用需用后端展开后的根 key（savedKeys 映射）
+// 渲染读取的指标 key：后端把「库指标 + 内联指标」一起重编号成 m0..mN，
+// 图表配置里的 key 未必还是响应里的 key —— 库指标走 savedKeys（不带 key 提交时只能靠它定位），
+// 其余走 keyMap（配置 key → 最终 key），都没有才退回配置 key。
 function metricRenderKey(m) {
   if (m.type === 'saved') {
     const k = previewData.value?.savedKeys?.[m.metricId]
     if (k) return k
   }
-  return m.key || m.field
+  return previewData.value?.keyMap?.[m.key] || m.key || m.field
 }
 
 // 响应里的指标元信息，key -> 该指标。decimals **只存在于这里**。

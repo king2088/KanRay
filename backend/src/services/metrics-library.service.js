@@ -267,11 +267,16 @@ const INLINE_KEY_TOKEN = /\$(m[0-9]+)/g;
  * 展开图表指标里的 { type:'saved', metricId }：
  *  - 递归拉取指标库定义（带环检测），派生/复合引用重写为展开后的 m<key>；
  *  - 全部指标（内联 + 指标库）按最终出现顺序重编号为 m0..mN，内联 expr/derived 引用同步重写；
- *  - 返回 { metrics, savedKeys }，savedKeys 记录每个 metricId 对应的最终根 key（供前端取渲染列）。
+ *  - 返回 { metrics, savedKeys, keyMap }。两张映射键不同、都以「最终 key」为值：
+ *      savedKeys —— metricId        → 最终根 key（库指标专用，提交时不带 key 只能靠它定位）
+ *      keyMap    —— 图表配置里的 key → 最终 key（含库指标那一条，键是其配置 key）
+ *    keyMap 存在的理由：重编号会改掉内联指标自己的 key（m2 可能变成 m1），
+ *    不下发映射前端就只能靠配置 key 猜列，混合图表（库指标+内联指标）会静默渲染成 '-'。
+ *    无库指标时不做任何重编号，keyMap 为空（前端退回 m.key）。
  */
 async function expandSavedMetrics(datasetId, metrics) {
   if (!(metrics || []).some((m) => m && m.type === 'saved')) {
-    return { metrics, savedKeys: {} };
+    return { metrics, savedKeys: {}, keyMap: {} };
   }
   const out = [];
   const resolved = new Map();
@@ -303,7 +308,8 @@ async function expandSavedMetrics(datasetId, metrics) {
     }
   }
   if (!out.length) throw new HttpError(400, '至少需要一个指标');
-  return { metrics: out, savedKeys };
+  // 映射本来就要算（重写 expr/derived 引用靠它），顺手下发，别再在前端猜最终 key
+  return { metrics: out, savedKeys, keyMap: Object.fromEntries(finalKeyByFrontKey) };
 }
 
 module.exports = {

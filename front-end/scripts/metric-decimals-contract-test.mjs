@@ -10,6 +10,8 @@
 //   7) DOM 渲染点的 decimals 来自**响应** metrics，而不是图表配置
 //      （历史 bug：语法全对、运行时恒 undefined，所有库指标都按「最多 2 位」渲染）
 //   8) 看板表头的库指标名也从响应 metrics 兜底（配置里既无 label 也无 field）
+//   9) metricRenderKey 走后端下发的 keyMap 映射（重编号后的最终 key）
+//  10) ChartBuilder / ChartTile 的 metricRenderKey 两份副本不漂移
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -193,6 +195,65 @@ t('看板表头：库指标名从响应 metrics 兜底', () => {
     '配置里的 label 仍应优先于字段名')
   assert.ok(ml.indexOf('fieldLabelOf') < ml.indexOf('metricMetaOf'),
     '兜底顺序应为 配置 label > 字段 label > 响应 label，勿打乱既有优先级')
+})
+
+// ---- metricRenderKey 的重编号映射（keyMap） ----
+//
+// 历史 bug：混合图表（库指标 + 内联指标）里内联那一列渲染成 '-'。后端把「内联 + 库指标」
+// 一起重编号成 m0..mN（有意为之，emitRef 按 out.length 分配 key），内联指标的 key 被换掉，
+// 而映射当时只在 expandSavedMetrics 内部用完就丢。savedKeys 只管库指标，于是前端拿着
+// 配置里的 m2 去找 metric:m2 —— 响应里那列叫 m1（撞上了库指标原来的 m1，纯属巧合）→ 找不到 → '-'。
+//
+// 这里钉两件事：
+//   9) 两个组件的 metricRenderKey 都要走 keyMap（库指标仍走 savedKeys，它管不带 key 提交的情况）
+//  10) 两个实现保持同逻辑——它们本来就互为副本，历史上已经漂移过一次，
+//      「与 ChartBuilder.metricRenderKey 同逻辑」的注释不构成任何保证。
+t('metricRenderKey：非库指标走 keyMap（配置 key → 最终 key）', () => {
+  for (const [name, src] of [['ChartBuilder', builder], ['ChartTile', tile]]) {
+    // 归一化可选链：ChartBuilder 写 m.x，ChartTile 写 m?.x，逻辑上等价
+    const b = bodyOf(stripComments(src), 'metricRenderKey').replace(/m\?\./g, 'm.')
+    // 库指标仍走 savedKeys：不带 key 提交时只有它能定位，不能被 keyMap 取代
+    assert.match(b, /type === 'saved'/, `${name}.metricRenderKey 应保留库指标的 savedKeys 分支`)
+    assert.match(b, /savedKeys[^\]]*\?\.\[m\.metricId\]/, `${name}.metricRenderKey 应查 savedKeys[m.metricId]`)
+    assert.match(b, /if \(k\) return k/, `${name}.metricRenderKey 应在命中 savedKeys 时直接返回`)
+    // 非库指标：先查 keyMap，再退回配置 key
+    // （(?:\.value)? 兼容 ChartTile 从 ref 读、ChartBuilder 直接读响应字段这两种写法）
+    assert.match(b, /keyMap(?:\.value)?\?\.\[m\.key\]/,
+      `${name}.metricRenderKey 未查 keyMap：后端重编号会改掉内联指标的 key，混合图表内联列会渲染成 '-'`)
+    assert.match(b, /\|\|\s*m\.key/,
+      `${name}.metricRenderKey 查不到 keyMap 时应退回 m.key（响应没带 keyMap 的老数据不能整表变 '-'）`)
+    assert.match(b, /\|\|\s*m\.field/,
+      `${name}.metricRenderKey 应保留 m.field 兜底（无 key 的库指标/按字段取值的旧配置）`)
+    // 顺序：savedKeys 命中必须早于 keyMap，否则库指标会被 keyMap 里同名的配置 key 抢走
+    assert.ok(b.indexOf('savedKeys') < b.indexOf('keyMap'),
+      `${name}.metricRenderKey 里 savedKeys 分支应在 keyMap 之前`)
+  }
+  // ChartBuilder 手上有整个响应，ChartTile 只在 run() 里存了两个 ref —— 两边都要真的存下 keyMap
+  assert.match(builder, /previewData\.value\?\.keyMap/,
+    'ChartBuilder 应直接从响应读 keyMap')
+  assert.ok(/const keyMap = ref\({}\)/.test(tile), 'ChartTile 缺少保存 keyMap 的 ref')
+  assert.ok(/keyMap\.value\s*=\s*res\.data\.keyMap\s*\|\|\s*\{\}/.test(tile),
+    'ChartTile 应在 run() 里把 res.data.keyMap 存进 ref（与 savedKeys 同一处）')
+  // keyMap 必须在 tableCols 构建**之前**赋值：那里调 metricRenderKey 建列，晚一步列名就错
+  const run = tile.slice(tile.search(/async function run\(\)/))
+  assert.ok(run.indexOf('keyMap.value =') < run.indexOf('tableCols.value = []'),
+    'ChartTile 的 keyMap 必须先于 tableCols 赋值，否则 metricRenderKey 取到空 ref，列名全错')
+})
+
+t('metricRenderKey：ChartBuilder 与 ChartTile 保持同逻辑（不漂移）', () => {
+  // 两份实现只该在「数据从哪来」上不同（响应字段 vs ref），逻辑必须逐字一致。
+  // 归一化掉这两处差异后比函数体：谁改了兜底顺序 / 少了 keyMap / 漏了 savedKeys 分支都会红。
+  const norm = (src) => bodyOf(stripComments(src), 'metricRenderKey')
+    .replace(/previewData\.value\?\.savedKeys\?\./, 'SAVEDKEYS?.')
+    .replace(/savedKeys\.value\?\./, 'SAVEDKEYS?.')
+    .replace(/previewData\.value\?\.keyMap\?\./, 'KEYMAP?.')
+    .replace(/keyMap\.value\?\./, 'KEYMAP?.')
+    .replace(/m\?\./g, 'm.')
+    .replace(/\s+/g, ' ')
+    .trim();
+  assert.equal(norm(builder), norm(tile),
+    'ChartBuilder.metricRenderKey 与 ChartTile.metricRenderKey 已漂移——两边是同一份逻辑的副本，'
+    + '只允许数据来源不同（响应字段 vs ref）')
 })
 
 if (failures.length) {
