@@ -1,14 +1,15 @@
-// 支持的语言。zh-CN 为默认，新增语言需同步补 locales/<locale>/ 下的 12 个域文件。
+// 支持的语言。zh-CN 为默认，新增语言需同步补 locales/<locale>/ 下的全部域文件（不含 index.js）。
 export const SUPPORT_LOCALES = ['zh-CN', 'en-US']
 
 export const DEFAULT_LOCALE = 'zh-CN'
 
-// 词典域划分，与 locales/<locale>/ 下的文件名一一对应
+// 词典域划分，与 locales/<locale>/ 下的域文件一一对应（index.js 为聚合器，不计入）
 export const DOMAINS = [
   'common',
   'auth',
   'layout',
   'chart',
+  'dashboard',
   'datasource',
   'dataset',
   'form',

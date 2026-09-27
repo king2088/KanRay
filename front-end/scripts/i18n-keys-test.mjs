@@ -1,5 +1,5 @@
 // i18n 基础设施自检：
-// 1) zh-CN / en-US 两个语言的 12 个域文件齐备且与 DOMAINS 一一对应
+// 1) zh-CN / en-US 两个语言的域文件齐备，且与 DOMAINS 一一对应（域清单以文件系统为准，不写死数量）
 // 2) 展平后 zh/en 键集合完全一致
 // 3) 无空值、无与键名同值的占位符
 // 4) pickLocaleText 语言选择与回退行为
@@ -26,17 +26,27 @@ for (const locale of SUPPORT_LOCALES) {
   locales[locale] = (await import(`../src/i18n/locales/${locale}/index.js`)).default
   for (const domain of DOMAINS) {
     const path = fileURLToPath(new URL(`../src/i18n/locales/${locale}/${domain}.js`, import.meta.url))
-    if (!existsSync(path)) continue
+    assert.ok(existsSync(path), `缺少 ${locale}/${domain}.js`)
     domainModules[`${locale}/${domain}`] = (await import(`../src/i18n/locales/${locale}/${domain}.js`)).default
   }
 }
 
-t('DOMAINS 为 12 个域', () => {
-  assert.equal(DOMAINS.length, 12)
-  assert.equal(new Set(DOMAINS).size, 12, 'DOMAINS 存在重复项')
+const domainName = (file) => file.slice(0, -extname(file).length)
+const domainsOnDisk = (locale) =>
+  readdirSync(fileURLToPath(new URL(`../src/i18n/locales/${locale}/`, import.meta.url)))
+    .filter((file) => extname(file) === '.js' && file !== 'index.js')
+    .map(domainName)
+    .sort()
+
+t('DOMAINS 与各语言目录下的域文件一一对应', () => {
+  for (const locale of SUPPORT_LOCALES) {
+    const onDisk = domainsOnDisk(locale)
+    assert.deepEqual([...DOMAINS].sort(), onDisk, `${locale} 的 DOMAINS 与域文件不一致`)
+  }
+  assert.equal(new Set(DOMAINS).size, DOMAINS.length, 'DOMAINS 存在重复项')
 })
 
-t('每个语言的 12 个域文件齐备', () => {
+t('每个语言的域文件齐备', () => {
   for (const locale of SUPPORT_LOCALES) {
     for (const domain of DOMAINS) {
       const path = fileURLToPath(new URL(`../src/i18n/locales/${locale}/${domain}.js`, import.meta.url))
