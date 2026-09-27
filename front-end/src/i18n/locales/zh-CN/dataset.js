@@ -75,6 +75,8 @@ export default {
     fieldLabel: '字段',
     fieldPlaceholder: '选择字段',
     aggLabel: '聚合',
+    decimalsLabel: '小数位',
+    decimalsPlaceholder: '保留的小数位数，0 表示取整',
     exprLabel: '指标公式',
     exprPlaceholder: '如：$<指标ID> / $<指标ID> * 100（$<指标ID> 引用下方引用指标）',
     formulaHelpBtn: '公式怎么写？查看帮助',

@@ -75,6 +75,8 @@ export default {
     fieldLabel: 'Field',
     fieldPlaceholder: 'Select a field',
     aggLabel: 'Aggregation',
+    decimalsLabel: 'Decimal places',
+    decimalsPlaceholder: 'Decimal places to keep; 0 rounds to a whole number',
     exprLabel: 'Metric formula',
     exprPlaceholder: 'e.g. $<id> / $<id> * 100 ($<id> references a metric from the list below)',
     formulaHelpBtn: 'How do I write a formula?',

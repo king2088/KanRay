@@ -152,6 +152,12 @@
               <div v-if="metricDialog.editing" class="type-lock-hint">{{ t('dataset.detail.typeLockHint') }}</div>
             </el-form-item>
 
+            <!-- decimals 必须放在三个 kind 分支之外，否则只有 base 类型能配小数位 -->
+            <el-form-item :label="t('dataset.detail.decimalsLabel')">
+              <el-input-number v-model="metricForm.decimals" :min="0" :max="10" :step="1" style="width: 180px" />
+              <div class="type-lock-hint">{{ t('dataset.detail.decimalsPlaceholder') }}</div>
+            </el-form-item>
+
             <template v-if="metricForm.kind === 'base'">
               <el-form-item :label="t('dataset.detail.fieldLabel')" required>
                 <el-select v-model="metricForm.field" style="width: 100%" :placeholder="t('dataset.detail.fieldPlaceholder')">
@@ -296,7 +302,7 @@ const helpExamples = computed(() => [
 ])
 
 function emptyMetricForm() {
-  return { name: '', kind: 'base', field: '', agg: 'sum', expr: '', derivative: 'share', refId: null }
+  return { name: '', kind: 'base', field: '', agg: 'sum', expr: '', derivative: 'share', refId: null, decimals: 0 }
 }
 
 function kindLabel(k) {
@@ -346,6 +352,7 @@ function openMetricDialog(row) {
       expr: row.definition?.expr || '',
       derivative: row.definition?.derivative || 'share',
       refId: row.definition?.refId ?? null,
+      decimals: row.decimals ?? 0,
     }
     metricDialog.value.editing = row
   } else {
@@ -374,10 +381,10 @@ async function saveMetric() {
   metricSaving.value = true
   try {
     if (metricDialog.value.editing) {
-      await metricApi.update(id, metricDialog.value.editing.id, { name: f.name.trim(), definition })
+      await metricApi.update(id, metricDialog.value.editing.id, { name: f.name.trim(), definition, decimals: f.decimals ?? 0 })
       ElMessage.success(t('dataset.metric.updated'))
     } else {
-      await metricApi.create(id, { name: f.name.trim(), kind: f.kind, definition })
+      await metricApi.create(id, { name: f.name.trim(), kind: f.kind, definition, decimals: f.decimals ?? 0 })
       ElMessage.success(t('dataset.metric.created'))
     }
     metricDialog.value.show = false
