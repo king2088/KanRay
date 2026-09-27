@@ -116,6 +116,19 @@ test('路由：update 只提交 decimals 不得被 .strict() 当未知键拒掉'
   await http('DELETE', `/api/datasets/${dsId}/metrics/${m.id}`);
 });
 
+test('路由：decimals 越界/非整数在 zod 层就 400，不进 service', async () => {
+  for (const bad of [-1, 11, 1.5]) {
+    const res = await http('POST', `/api/datasets/${dsId}/metrics`, {
+      name: `越界${bad}`, kind: 'base', definition: { field: 'amount', agg: 'avg' }, decimals: bad,
+    });
+    assert.equal(res.status, 400, JSON.stringify(res.body));
+    // service 拦的是「小数位…」，zod 拦的是「指标参数不正确」。只断言 400 没用——
+    // 把两处 schema 的 .max(10) 放宽成 .max(999)（或去掉 .int()）照样绿，
+    // 因为 service 那道 400 会兜住。必须钉住是哪一层拒的。
+    assert.equal(res.body.message, '指标参数不正确', JSON.stringify(res.body));
+  }
+});
+
 test('路由：图表查询引用库内 base/expr/derived 混排', async () => {
   const share = await lib.createMetric(dsId, { name: '销售占比', kind: 'derived', definition: { derivative: 'share', refId: mAmount.id } });
   const res = await http('POST', `/api/datasets/${dsId}/query`, {

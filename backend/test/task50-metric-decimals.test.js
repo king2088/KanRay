@@ -21,7 +21,7 @@
 // 为什么不复用 task45：task45 跑的是真 sqlite（只覆盖 sqlite 方言），
 // 这里的第 1 条是源码契约——mysql/postgres/mssql/oracle 没有 live 实例可跑，
 // 但列漏预埋会在生产建库时才炸，必须在 CI 就拦住。
-const { test } = require('node:test');
+const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -101,7 +101,7 @@ test('ensureSchema 为既有 metrics 库补齐 decimals 列，旧行回填 0 且
 
 // ---- service 层行为（decimals 是「怎么显示」，与 definition「怎么算」无关）----
 
-test('setup：建一个可算 avg 的数据集', async () => {
+before(async () => {
   await resetDb();
   const ds = await datasetService.createDataset(
     'metric-decimals-fixture',
@@ -137,17 +137,44 @@ test('createMetric：decimals 显式落库并可更新', async () => {
 });
 
 test('createMetric/updateMetric：decimals 必须是 0-10 的整数', async () => {
+  const base = { kind: 'base', definition: { field: 'rate', agg: 'avg' } };
   for (const bad of [-1, 11, 1.5, 'abc', NaN]) {
     await assert.rejects(
-      () => lib.createMetric(dsId, { name: '非法', kind: 'base', definition: { field: 'rate', agg: 'avg' }, decimals: bad }),
+      () => lib.createMetric(dsId, { ...base, name: '非法', decimals: bad }),
       /小数位/,
-      `decimals=${bad} 应被拒绝`,
+      `createMetric decimals=${bad} 应被拒绝`,
     );
+    // 走真实 update 路径（create 那条已由上面覆盖）：updateMetric 自己也调
+    // normalizeMetricDecimals，把这里换成裸 Number(decimals) 不会被任何用例抓到
+    const victim = await lib.createMetric(dsId, { ...base, name: `待改-${bad}`, decimals: 3 });
+    await assert.rejects(
+      () => lib.updateMetric(dsId, victim.id, { decimals: bad }),
+      /小数位/,
+      `updateMetric decimals=${bad} 应被拒绝`,
+    );
+    // 拒绝发生在写库之前：不能 clamp 后照写、也不能先写再抛
+    assert.equal((await lib.getMetricRecord(dsId, victim.id)).decimals, 3,
+      `updateMetric 拒绝 decimals=${bad} 后不应改动原值`);
   }
-  const m = await lib.createMetric(dsId, { name: '边界0', kind: 'base', definition: { field: 'rate', agg: 'avg' }, decimals: 0 });
-  const m10 = await lib.createMetric(dsId, { name: '边界10', kind: 'base', definition: { field: 'rate', agg: 'avg' }, decimals: 10 });
+  const m = await lib.createMetric(dsId, { ...base, name: '边界0', decimals: 0 });
+  const m10 = await lib.createMetric(dsId, { ...base, name: '边界10', decimals: 10 });
   assert.equal(m.decimals, 0);
   assert.equal(m10.decimals, 10);
+});
+
+test('createMetric：转不出数字的脏值也报 400（Number() 对它们抛裸 TypeError）', async () => {
+  // Symbol() / Object.create(null) 走 Number() 会 throw，不是返回 NaN。
+  // 不接住就是裸 TypeError 冒到 errorHandler，落成 500「服务器内部错误」还打一坨栈。
+  // 这两个值 HTTP 侧进不来（zod z.number() 先拒），但 service 是模块，别的调用方能直接传。
+  for (const bad of [Symbol('x'), Object.create(null)]) {
+    await assert.rejects(
+      () => lib.createMetric(dsId, {
+        kind: 'base', definition: { field: 'rate', agg: 'avg' }, name: `脏值-${typeof bad}`, decimals: bad,
+      }),
+      (e) => e.status === 400 && /小数位/.test(e.message),
+      `${typeof bad} 应被转成 400，而不是裸 TypeError`,
+    );
+  }
 });
 
 test('updateMetric：decimals 缺省时保留原值', async () => {
