@@ -3,6 +3,11 @@ export const SUPPORT_LOCALES = ['zh-CN', 'en-US']
 
 export const DEFAULT_LOCALE = 'zh-CN'
 
+// 浏览器语言检测不到受支持项时的回退：需求为「使用英文」。与 DEFAULT_LOCALE 区分开——
+// DEFAULT_LOCALE 兜的是「完全拿不到语言信息」（无 navigator / SSR / 测试环境）。
+// 必须始终是 SUPPORT_LOCALES 成员且为英文，由 i18n-locale-detect-test.mjs 断言。
+export const UNKNOWN_LOCALE_FALLBACK = 'en-US'
+
 // 词典域划分，与 locales/<locale>/ 下的域文件一一对应（index.js 为聚合器，不计入）
 export const DOMAINS = [
   'common',

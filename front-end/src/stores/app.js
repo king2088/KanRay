@@ -3,6 +3,11 @@ import { applyTheme, darkByMode, watchSystemTheme } from '@/utils/theme'
 import { configApi } from '@/api'
 import { applyLocale } from '@/i18n'
 import { DEFAULT_LOCALE, SUPPORT_LOCALES } from '@/i18n/constants'
+import {
+  buildSettingsPayload,
+  detectInitialLocale,
+  resolveStoredLocale,
+} from '@/i18n/locale-detect'
 
 const KEY = 'kanban-app-settings'
 const THEME_MODES = ['light', 'dark', 'auto']
@@ -14,17 +19,35 @@ const NEW_DEFAULT_PRIMARY = '#3fa49a'
 
 let unwatchAuto = null
 
+// 当前 locale 是否由用户手动选定。模块级闭包：既不进 Pinia state，也不落盘。
+// 落盘策略见 buildSettingsPayload —— 自动检测出的 locale 一律不写，
+// 否则用户仅改主题就会把检测结果固化成"用户选择"，自动检测随之永久失效。
+let localeExplicit = false
+
 function load() {
+  let raw = null
   try {
-    const s = JSON.parse(localStorage.getItem(KEY) || '{}')
+    raw = localStorage.getItem(KEY)
+  } catch (e) {
+    /* localStorage 不可用（隐私模式等）：按未保存处理 */
+  }
+  // 已落盘的合法 locale 视为用户明确选择（含旧版本写入的既有偏好，不予覆盖）
+  const stored = resolveStoredLocale(raw)
+  localeExplicit = stored !== null
+  try {
+    const s = JSON.parse(raw || '{}')
     if (s.primaryColor === LEGACY_DEFAULT_PRIMARY) s.primaryColor = NEW_DEFAULT_PRIMARY
     let themeMode = 'light'
     if (THEME_MODES.includes(s.themeMode)) themeMode = s.themeMode
     else if (s.dark === true) themeMode = 'dark'
     if (!SUPPORT_LOCALES.includes(s.locale)) s.locale = DEFAULT_LOCALE
-    return { ...DEFAULTS, ...s, dark: undefined, themeMode }
+    const merged = { ...DEFAULTS, ...s, dark: undefined, themeMode }
+    if (!localeExplicit) merged.locale = detectInitialLocale()
+    return merged
   } catch (e) {
-    return { ...DEFAULTS }
+    const fallback = { ...DEFAULTS }
+    if (!localeExplicit) fallback.locale = detectInitialLocale()
+    return fallback
   }
 }
 
@@ -32,17 +55,7 @@ export const useAppStore = defineStore('app', {
   state: () => load(),
   actions: {
     persist() {
-      localStorage.setItem(
-        KEY,
-        JSON.stringify({
-          layout: this.layout,
-          collapsed: this.collapsed,
-          themeMode: this.themeMode,
-          primaryColor: this.primaryColor,
-          size: this.size,
-          locale: this.locale,
-        }),
-      )
+      localStorage.setItem(KEY, JSON.stringify(buildSettingsPayload(this, localeExplicit)))
     },
     applyCurTheme() {
       applyTheme({ dark: darkByMode(this.themeMode), primaryColor: this.primaryColor })
@@ -103,6 +116,8 @@ export const useAppStore = defineStore('app', {
     setLocale(v) {
       if (!SUPPORT_LOCALES.includes(v)) return
       this.locale = applyLocale(v)
+      // 手动选定后才允许落盘，此后浏览器语言变化不再覆盖用户选择
+      localeExplicit = true
       this.persist()
     },
   },
