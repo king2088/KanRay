@@ -11,6 +11,7 @@ import { DEFAULT_LOCALE, DOMAINS, SUPPORT_LOCALES } from '../src/i18n/constants.
 import { flattenMessages } from '../src/i18n/flatten.js'
 import { isEnglish, pickLocaleText } from '../src/i18n/locale-util.js'
 import { setTranslator, tr } from '../src/i18n/translate.js'
+import { roleDesc, roleName } from '../src/i18n/role-label.js'
 
 let passed = 0
 function t(name, fn) {
@@ -421,6 +422,36 @@ t('内置角色在两语词典中都有名称与描述，且键集与 seeds.js �
       `${locale} 的 builtinLabels 键与 seeds.js 的角色 code 不一致`,
     )
   }
+})
+
+// t/te 用可控替身验证回退分支，不依赖真实 vue-i18n 实例。
+// fakeTe 只认 admin/viewer 两个已知 code，其余一律当作词典未收录。
+const fakeT = (k) => `T:${k}`
+const fakeTe = (k) => {
+  const m = k.match(/^admin\.role\.builtinLabels\.([a-z0-9_]+)\./)
+  return !!m && ['admin', 'viewer'].includes(m[1])
+}
+
+t('roleName 命中词典时返回译文', () => {
+  const role = { code: 'admin', name: '管理员', is_builtin: true }
+  assert.equal(roleName(fakeT, fakeTe, role), 'T:admin.role.builtinLabels.admin.name')
+})
+
+t('roleName 未收录时回退数据库名称', () => {
+  const role = { code: 'unknown', name: '财务专员', is_builtin: 1 }
+  assert.equal(roleName(fakeT, fakeTe, role), '财务专员')
+})
+
+t('roleName 缺 name 时兜底 code', () => {
+  assert.equal(roleName(fakeT, fakeTe, { code: 'x1', is_builtin: 1 }), 'x1')
+  assert.equal(roleName(fakeT, fakeTe, {}), '')
+})
+
+t('roleDesc 命中与回退', () => {
+  assert.equal(roleDesc(fakeT, fakeTe, { code: 'viewer', name: '查看者', is_builtin: true }),
+    'T:admin.role.builtinLabels.viewer.desc')
+  // 描述没有 code 兜底：缺就是空串，不把 code 当描述显示
+  assert.equal(roleDesc(fakeT, fakeTe, { code: 'c1', name: 'X' }), '')
 })
 
 console.log(`i18n 词典测试：${passed} 项通过`)

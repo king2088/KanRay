@@ -39,6 +39,11 @@ export function t(key, named) {
   return named === undefined ? i18n.global.t(key) : i18n.global.t(key, named)
 }
 
+// 键存在性判断，与 t 成对使用：先 te() 再 t()，未收录的键回退原值而不显示裸键名
+export function te(key) {
+  return i18n.global.te(key)
+}
+
 // 后端接口文案双字段取值，供 axios 拦截器集中使用
 export function localizeApiMessage(textZh, textEn) {
   return pickLocaleText(i18n.global.locale.value, textZh, textEn)
