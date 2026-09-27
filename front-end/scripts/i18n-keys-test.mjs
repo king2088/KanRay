@@ -530,15 +530,19 @@ t('te 为假时不调用 t（避免 missingWarn 噪声）', () => {
 //
 // 匹配前先四重收窄，因为范围不收就必然误伤：全部 .vue 里有 269 行含 .name（实测），绝大部分与角色无关
 // （图表系列名、数据字段名、大屏组件名、用户昵称……）。
-//   1) 只有触碰 RBAC 角色的 .vue 进围栏。判据逐条都是角色专有词，且刻意不以 roleName 本身为据：
-//      新增第 4 个接入点时如果整处忘了 roleName，仍要落进围栏。
+//   1) 只有触碰 RBAC 角色的 .vue 进围栏。其中最关键的是 /\.roles\b/：组件拿到角色数据最自然的
+//      方式就是 auth.user.roles / props.roles，而这种文件可能零 roleName、无 adminApi——
+//      只按 roleName 系判据筛，它会整片绕过围栏（实测：只写 v-for="r in auth.user.roles" +
+//      {{ r.name }} 的新组件，12 条判据一条都不匹配、测试全绿）。
+//      代价是范围略宽：将来任何带 .roles 的文件都会进围栏，命中后需按豁免登记确认。
 //   2) 剥注释：RoleAdmin.vue:146 的注释里就写着 permissions.name。
 //   3) 只剥单引号字符串：t('admin.role.name') 是取词典的正确写法，与 row.name 字面同形。
 //      刻意不剥双引号——Vue 模板里 "..." 绝大多数是属性值表达式而不是字符串字面量，
 //      剥掉它就等于把 :label="row.name" 这类展示位一起藏起来。
 //      同样不剥反引号：${...} 里是代码，剥掉等于把违规一起剥掉。
-//   4) 截掉 <style 之后：CSS 类名 .name 与字段读取无法区分。
+//   4) 挖空 <style> block：CSS 类名 .name 与字段读取无法区分。
 const ROLE_FILE_EVIDENCE = [
+  /\.roles\b/,
   /from\s*'@\/i18n\/role-label'/,
   /\broleIds\b/,
   /\bis_builtin\b/,
@@ -640,7 +644,35 @@ const ROLE_NAME_PASSTHROUGH = [
 const ROLE_FIELD_READ = /\.(?:name|description)\b/
 // load 时把库里的中文名冻结成 code→name 映射、渲染期再查表（UserAdmin.vue:164 的注释正是
 // 这么警告的）：这类写法在展示位根本不出现 .name，只索引一张名字表，语言切换后表里仍是旧中文。
+//
+// 两条边界，知情再用——它比看起来窄：
+//   - 要求 name/label 不在标识符首位，所以 nameMap[r]、names[r]、labelMap[c] 都不命中，
+//     只有 roleNameMap[r]、fieldNames[j] 这种命中。它的真正价值是给「映射构造处那次 .name
+//     读取」兜第二道网（那条由 ROLE_FIELD_READ 报），不是枚举所有冻结映射的写法。
+//   - 正则大小写不敏感、不区分领域，所以在围栏内的文件里 columnLabels[i]、allLabels[k]
+//     也会命中。门控把范围限在 RBAC 角色文件上，这是有意的取舍：宁可多报一次让人确认，
+//     也不能让角色名悄悄退回中文。
 const ROLE_NAME_LOOKUP = /\b[A-Za-z_$][\w$]*(?:name|label)[A-Za-z_$]*\s*\[/i
+
+// 归一化成「去掉纯格式差异后的形状」，只用于判断某行是不是某条豁免的格式变体：
+// 剥单引号、去空白、去纯分组用的花括号、去行尾逗号。命中归一化并不放行——仍然算违规，
+// 只是把消息从「你绕过了 roleName」换成「豁免失配」，因为对本来正确的代码说这句话
+// 会把人引去改不该改的地方。
+const shapeOf = (line) => stripStrings(line).replace(/[\s{}]/g, '').replace(/^[,;]+|[,;]+$/g, '')
+
+// 挖空 <style> block，而不是「从第一个 <style> 起全部截断」：<style> 排在 <script> 之前
+// 是合法 SFC 顺序，一刀截会让整个 script 段静默失明（那是漏报而不是误报，同样致命）。
+// 只认行首的 <style：顶层 block 都顶格写，而 <style> 作为字符串出现在脚本里时不会在行首
+// （CodeEditDialog.vue:469 的示例代码就是这样）。挖空用空格替换，行号不变。
+function blankStyleBlocks(src) {
+  const chars = src.split('')
+  for (const m of src.matchAll(/^[ \t]*<style(?=[\s>])/gm)) {
+    const end = src.indexOf('</style', m.index)
+    if (end === -1) continue
+    for (let i = m.index; i < end + '</style>'.length; i++) if (chars[i] !== '\n') chars[i] = ' '
+  }
+  return chars.join('')
+}
 
 // 剥注释时用空格替换而非删除，保住行号——报错要能指到具体哪一行。
 const blankOut = (m) => m.replace(/[^\n]/g, ' ')
@@ -673,17 +705,11 @@ const usedPassthrough = new Set()
 t('界面角色名/描述都经 roleName/roleDesc 解析（绕过直取 .name 会失败）', () => {
   const files = vueSources().map((f) => ({ ...f, body: stripComments(f.body) }))
   const gated = files.filter((f) => ROLE_FILE_EVIDENCE.some((re) => re.test(f.body)))
-  for (const rel of ROLE_FILES) {
-    assert.ok(
-      gated.some((f) => f.rel === rel),
-      `角色接入点未落进围栏扫描范围（ROLE_FILE_EVIDENCE 判据可能已失效）: ${rel}`,
-    )
-  }
+  const outOfScope = ROLE_FILES.filter((rel) => !gated.some((f) => f.rel === rel))
 
   const hits = []
   for (const { rel, body } of gated) {
-    // 截掉 <style 之后：CSS 类名 .name 与字段读取无法区分
-    body.split(/<style[\s>]/)[0].split('\n').forEach((line, i) => {
+    blankStyleBlocks(body).split('\n').forEach((line, i) => {
       const code = line.trim()
       const passthrough = ROLE_NAME_PASSTHROUGH.find((e) => e.file === rel && e.match === code)
       if (passthrough) {
@@ -692,14 +718,35 @@ t('界面角色名/描述都经 roleName/roleDesc 解析（绕过直取 .name �
       }
       const probe = stripStrings(line)
       const fix = '应在渲染期调用 roleName(t, te, role) / roleDesc(t, te, role)，自定义角色会自动回退数据库原文'
-      if (ROLE_FIELD_READ.test(probe)) {
-        hits.push(`${rel}:${i + 1}  绕过了 roleName/roleDesc 直取角色字段，英文界面下这里会显示库里的中文\n    ${code}\n    ${fix}`)
-      } else if (ROLE_NAME_LOOKUP.test(probe)) {
-        hits.push(`${rel}:${i + 1}  按名字表索引角色名（load 时冻结的 code→name 映射，语言切换后不会刷新）\n    ${code}\n    ${fix}`)
-      }
+      let why = null
+      if (ROLE_FIELD_READ.test(probe)) why = '绕过了 roleName/roleDesc 直取角色字段，英文界面下这里会显示库里的中文'
+      else if (ROLE_NAME_LOOKUP.test(probe)) why = '按名字表索引角色名（load 时冻结的 code→name 映射，语言切换后不会刷新）'
+      if (!why) return
+      const at = `${rel}:${i + 1}`
+      // 纯格式改动（加个尾逗号、给单行包一层花括号）会让已登记的合法行整行失配。这时先按「形状」
+      // 找回那条豁免：报「你绕过了 roleName」是在指控开发者改了本该正确的地方，而他们要的只是
+      // 更新豁免。归一化只换消息、不放行——该红还是红。
+      const stale = ROLE_NAME_PASSTHROUGH.find((e) => e.file === rel && shapeOf(e.match) === shapeOf(line))
+      hits.push(
+        stale
+          ? `${at}  这行与已登记的合法原文用法只差格式，ROLE_NAME_PASSTHROUGH 里的豁免已失配\n    ${code}\n    若只是格式改动，请把该行的新文本更新进豁免的 match；若这行确实在直取角色字段，${fix}`
+          : `${at}  ${why}\n    ${code}\n    ${fix}`,
+      )
     })
   }
-  assert.deepEqual(hits, [], `以下位置会让英文界面显示数据库里的中文角色名/描述:\n${hits.join('\n')}`)
+
+  // 范围问题必须和违规行号一起可见。哨兵排在命中之前时，「UserMenu 掉了 roleName 又渲染 r.name」
+  // 只会报「判据可能已失效」而把 :9 藏起来——读者被指去调测试的正则，而 bug 刚才是他引入的。
+  // 所以这里先抛真正的违规行号（范围失效也作为附注跟在同一条消息后面），hits 为空时再单独报范围。
+  const scopeNote = outOfScope.length
+    ? `\n（另有已知接入点没落进扫描范围：${outOfScope.join(', ')}。若刚新增了角色渲染点，请改用 roleName/roleDesc，或把新判据加进 ROLE_FILE_EVIDENCE）`
+    : ''
+  assert.deepEqual(hits, [], `以下位置会让英文界面显示数据库里的中文角色名/描述:\n${hits.join('\n')}${scopeNote}`)
+  assert.deepEqual(
+    outOfScope,
+    [],
+    `已知接入点未落进围栏扫描范围（ROLE_FILE_EVIDENCE 判据可能已失效）: ${outOfScope.join(', ')}`,
+  )
 })
 
 t('角色名原文用法的豁免都写明了原因', () => {
