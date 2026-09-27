@@ -1,10 +1,13 @@
 // 中文残留校验。
-// 1) i18n 内核文件（flatten/locale-util/index）不得含中文文案
-// 2) en-US 词典不得含中文
-// 3) SCAN_PATHS 由各国际化计划逐步追加已迁移完成的源文件
-// 例外：constants.js 的 LOCALE_OPTIONS 用语言母语名（'中文' / 'English'），
-//       刻意保留中文，因此不纳入 SCAN_PATHS，改为单独断言其完整性。
-// 行级豁免：仅用于「后端下发的枚举值原样比较」这类**不可翻译**的字面量。
+// 默认全扫 src/ 下所有 .js/.ts/.vue，只有 EXCLUDE_PATHS 里的路径才不扫。
+//
+// 此前是「追加式白名单」SCAN_PATHS（60 条手工维护的路径）。白名单的失效方式是
+// 静默漏项：api/ 一直没被加进去，于是三个公开分享模块里硬编码的「请求失败」
+// 「网络错误」一路进主干，英文界面直接弹中文——扫描测试全程全绿。
+// 改成默认全扫后，漏项要靠「显式排除」才能发生，而排除项由下面两条断言盯着：
+// 路径必须存在、且必须真的含中文（修好后就得把排除删掉，不留僵尸配置）。
+//
+// 行级豁免：仅用于「后端下发的枚举值原样比较」「预置演示数据」这类**不可翻译**的字面量。
 //       每条豁免必须写明原因，且代码若已改动（豁免失配）会直接失败，
 //       避免留下永不生效的僵尸配置。展示文案一律不允许豁免。
 import assert from 'node:assert/strict'
@@ -16,74 +19,32 @@ import { LOCALE_OPTIONS, SUPPORT_LOCALES } from '../src/i18n/constants.js'
 const SRC = fileURLToPath(new URL('../src/', import.meta.url))
 const CJK = /[一-鿿]/
 
-// 追加式清单：计划 2 起把已迁移的目录加进来
-const SCAN_PATHS = [
-  'i18n/flatten.js',
-  'i18n/locale-util.js',
-  'i18n/index.js',
-  'i18n/translate.js',
-  'components/layout',
-  'router/menu.js',
-  'views/Login.vue',
-  'views/Register.vue',
-  // 计划 3：图表与看板域
-  'config/chart-configs.js',
-  'config/chart-types.js',
-  'config/color-palettes.js',
-  'utils/chart-utils.js',
-  'utils/catalog.js',
-  'utils/field-type-label.js',
-  'components/charts',
-  'components/dashboard',
-  'views/ChartList.vue',
-  'views/ChartBuilder.vue',
-  'views/DashboardList.vue',
-  'views/DashboardEditor.vue',
-  'views/DashboardView.vue',
-  'views/ShareBoardView.vue',
-  // 计划 4：数据源 / 数据集 / 三种构建器
-  'utils/dataset-type.js',
-  'utils/etl-nodes.js',
-  'views/DataSourceList.vue',
-  'views/DataSourceFormDialog.vue',
-  'views/DataSourceUploadDialog.vue',
-  'views/DataSourceDetail.vue',
-  'views/DatasetList.vue',
-  'views/DatasetDetail.vue',
-  'views/DataSourceBuilder.vue',
-  'components/builder',
-  // 计划 5：表单域与管理后台
-  'views/forms',
-  'views/admin',
-  'views/open',
-  'components/form',
-  'utils/form-meta.js',
-  // 计划 6：大屏设计器内核（RightPanel 属计划 7、widgets 属计划 8，尚未迁移故不在此列）
-  'views/BigScreenList.vue',
-  'screen-designer/views',
-  'screen-designer/stores/canvas.ts',
-  'screen-designer/utils/storage.ts',
-  'screen-designer/core/components/registry.ts',
-  'screen-designer/core/templates/thumbnail.ts',
-  'screen-designer/core/templates/preset.ts',
-  'screen-designer/core/components/defaultData.ts',
-  'screen-designer/components/Canvas',
-  'screen-designer/components/TopToolbar',
-  'screen-designer/components/StatusBar',
-  'screen-designer/components/LeftPanel',
-  'screen-designer/components/CodeEditor',
-  'screen-designer/components/ScreenIcon.vue',
-  // 计划 7：右侧配置面板（RightPanel + DatasetQueryDialog + 18 个 configs 专属配置组件）
-  'screen-designer/components/RightPanel',
-  // 计划 8：大屏 widget（33 个图表 + 9 个非图表组件）
-  'screen-designer/widgets',
-  // api 目录：3 个公开分享模块各自 axios.create()，不经过 http.js 拦截器，
-  // 曾在里面硬编码 '请求失败' / '网络错误' 作兜底——英文界面直接弹中文。
-  'api',
+// 不扫描的路径。刻意保持极短——每加一条都要说明为何不可翻译。
+const EXCLUDE_PATHS = [
+  {
+    path: 'i18n/locales/zh-CN',
+    reason:
+      '中文词典本体，中文原文的权威来源就是这里。扫描它等于扫描中文界面自身，' +
+      '因此不纳入；它的对偶（en-US 词典不得含中文）由全扫天然覆盖。',
+  },
+  {
+    path: 'i18n/constants.js',
+    reason:
+      "LOCALE_OPTIONS 的 label 用语言母语名（'中文' / 'English'），按惯例不翻译；" +
+      '该数组的完整性由「语言母语名保持母语写法」断言单独守护，比靠 CJK 扫描更精确。',
+  },
 ]
 
 // 行级豁免清单：file + 代码片段 + 原因
 const CJK_EXEMPTIONS = [
+  {
+    file: 'utils/useChartLocale.js',
+    match: "console.error('[i18n]",
+    reason:
+      '这是一条 console.error 调试日志，只进开发者控制台、不进界面；' +
+      '界面上的语言切换反馈由词典负责。把日志也翻译会让本仓库开发者排查时更难读，' +
+      '因此保留中文。',
+  },
   {
     file: 'views/DataSourceFormDialog.vue',
     match: "category === '文件'",
@@ -386,13 +347,20 @@ function exemptionFor(relFile, line) {
   return null
 }
 
-function scan(relPath) {
-  const abs = join(SRC, relPath)
-  const files = statSync(abs).isFile() ? [abs] : walk(abs)
+const SOURCE_EXT = /\.(js|ts|vue)$/
+
+// 该相对路径是否落在某个排除项内
+function isExcluded(relFile) {
+  return EXCLUDE_PATHS.some((e) => relFile === e.path || relFile.startsWith(e.path + '/'))
+}
+
+// 扫一个目录/文件的所有源码行，命中未豁免的中文就记一条
+function scan(abs, applyExclusions) {
   const hits = []
-  for (const file of files) {
-    if (!/\.(js|ts|vue)$/.test(file)) continue
+  for (const file of walk(abs)) {
+    if (!SOURCE_EXT.test(file)) continue
     const relFile = relative(SRC, file)
+    if (applyExclusions && isExcluded(relFile)) continue
     const body = stripComments(readFileSync(file, 'utf8'))
     body.split('\n').forEach((line, i) => {
       if (!CJK.test(line)) return
@@ -403,28 +371,47 @@ function scan(relPath) {
   return hits
 }
 
-t('i18n 内核文件无中文残留', () => {
-  for (const p of SCAN_PATHS) {
-    const hits = scan(p)
-    assert.deepEqual(hits, [], `${p} 含中文:\n${hits.join('\n')}`)
-  }
+t('src 全目录无中文残留（仅显式排除的路径不扫）', () => {
+  const hits = scan(SRC, true)
+  assert.deepEqual(
+    hits,
+    [],
+    `以下位置有未翻译的中文:\n${hits.join('\n')}\n` +
+      '若确属不可翻译的数据/枚举/母语名，请登记进 CJK_EXEMPTIONS 或 EXCLUDE_PATHS 并写明原因。',
+  )
 })
 
-t('en-US 词典无中文残留', () => {
-  const hits = scan('i18n/locales/en-US')
-  assert.deepEqual(hits, [], `en-US 词典含中文:\n${hits.join('\n')}`)
+t('扫描范围未静默退化', () => {
+  // 扫描范围 = 全部源码 - 排除项。上面的扫描若因遍历/过滤写错会静默少扫文件，
+  // 那样就退回到「漏项但全绿」的老毛病，所以把覆盖规模钉住。
+  // 用下限而非精确清单：文件增减是正常演进，只要不出现数量级级别的塌缩就该放行。
+  const all = walk(SRC).filter((f) => SOURCE_EXT.test(f))
+  const scanned = all.filter((f) => !isExcluded(relative(SRC, f)))
+  const excludedFiles = all.length - scanned.length
+  assert.equal(
+    scanned.length,
+    all.length - excludedFiles,
+    '扫描集合应恰好等于「全部源码减去排除项」',
+  )
+  assert.ok(scanned.length >= 200, `扫描覆盖仅 ${scanned.length} 个文件，疑似扫描范围退化`)
 })
 
-t('SCAN_PATHS 中每个路径都存在', () => {
-  for (const p of SCAN_PATHS) {
-    assert.ok(existsSync(join(SRC, p)), `SCAN_PATHS 路径不存在: ${p}`)
+t('排除路径都存在且确有必要（无僵尸排除）', () => {
+  for (const e of EXCLUDE_PATHS) {
+    const abs = join(SRC, e.path)
+    assert.ok(existsSync(abs), `排除路径不存在（拼错则本该更严格地扫）: ${e.path}`)
+    assert.ok(e.reason && e.reason.length >= 20, `排除缺少充分原因: ${e.path}`)
+    // 排除只有在真的含中文时才有意义：该路径已无中文残留说明它被修好了，
+    // 这条排除就成了放过未来的僵尸配置，必须删掉。
+    const hits = scan(abs, false)
+    assert.ok(hits.length > 0, `排除已无必要（该路径已无中文残留），请删除这条排除: ${e.path}`)
   }
 })
 
 t('行级豁免都写明了原因', () => {
   for (const ex of CJK_EXEMPTIONS) {
     assert.ok(ex.reason && ex.reason.length >= 20, `豁免缺少充分原因: ${ex.file} ${ex.match}`)
-    const why = ['枚举', '后端', '演示', '预置'].some((w) => ex.reason.includes(w))
+    const why = ['枚举', '后端', '演示', '预置', '日志', '母语'].some((w) => ex.reason.includes(w))
     assert.ok(why, `豁免原因需说明为何不可翻译: ${ex.file}`)
     assert.ok(ex.fileScoped || ex.match, `豁免缺少匹配条件: ${ex.file}`)
   }

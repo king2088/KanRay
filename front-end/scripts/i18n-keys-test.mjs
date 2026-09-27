@@ -107,6 +107,19 @@ t('无「值等于键名」的占位符', () => {
   }
 })
 
+// 键集合一致 ≠ 模板可用。zh 加了 {name} 而 en 忘了加，英文界面会原样露出
+// 字面量 "{name}"——不报错、不空白，只在运行时显示一个花括号词组，最难发现。
+t('中英文模板占位符一致', () => {
+  const placeholders = (v) => [...new Set([...String(v).matchAll(/\{(\w+)\}/g)].map((m) => m[1]))].sort()
+  const bad = []
+  for (const key of Object.keys(zhFlat)) {
+    const zh = placeholders(zhFlat[key])
+    const en = placeholders(enFlat[key])
+    if (JSON.stringify(zh) !== JSON.stringify(en)) bad.push(`${key}: zh=[${zh.join(',')}] en=[${en.join(',')}]`)
+  }
+  assert.deepEqual(bad, [], `中英文占位符不一致，英文界面会露出未替换的字面量:\n${bad.join('\n')}`)
+})
+
 t('源码中引用的字面量翻译键都存在', () => {
   // 动态键（'a.b.' + x、变量）不参与校验：键名按 . 分段且每段非空，尾随 . 视为动态前缀。
   const root = fileURLToPath(new URL('../src', import.meta.url))
