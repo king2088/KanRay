@@ -333,6 +333,17 @@ body {
   background-color: var(--app-surface);
 }
 
+/* 水平布局顶部菜单的下拉项激活态：放在全局而非 TopMenu.vue 的 <style scoped>，
+   因为 el-dropdown-menu 渲染的浮层节点既不带 scoped 的 data-v-* 属性、也不在
+   带 data-v-* 的祖先内，scoped 与 :deep() 都匹配不到（class 能绑上但不上色）。
+   用 .top-menu__dropdown 限定，避免外泄到用户菜单/下拉选择器等其他弹层。
+   main.css 在 element-plus 样式之后引入，故激活项悬停时不会被 EP 的 hover 规则盖掉。 */
+.top-menu__dropdown .el-dropdown-menu__item.is-active {
+  color: var(--app-primary);
+  background: var(--app-primary-light);
+  font-weight: 600;
+}
+
 /* ============================================================
    Element Plus 细节（平滑玻璃化）
    ============================================================ */

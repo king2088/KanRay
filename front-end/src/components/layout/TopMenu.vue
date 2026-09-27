@@ -16,7 +16,8 @@
           <el-icon class="top-nav-caret"><ArrowDown /></el-icon>
         </span>
         <template #dropdown>
-          <el-dropdown-menu>
+          <!-- class 供 main.css 的非 scoped 规则定位：下拉浮层不带 scoped 的 data-v 属性 -->
+          <el-dropdown-menu class="top-menu__dropdown">
             <el-dropdown-item
               v-for="child in item.children"
               :key="child.path"
