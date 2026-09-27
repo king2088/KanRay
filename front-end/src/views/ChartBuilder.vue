@@ -77,7 +77,7 @@
                 <template #default="{ row }">{{ row[`dim:${d.field}`]?.value }}</template>
               </el-table-column>
               <el-table-column v-for="m in metrics" :key="m.key || m.field" :label="metricLabel(m)">
-                <template #default="{ row }">{{ row[`metric:${metricRenderKey(m)}`]?.value }}</template>
+                <template #default="{ row }">{{ formatNumber(row[`metric:${metricRenderKey(m)}`]?.value, m?.decimals) }}</template>
               </el-table-column>
             </el-table>
           </template>
@@ -85,7 +85,7 @@
             <!-- 进度组件 -->
             <div class="progress-container">
               <template v-if="chartType === 'progressBar'">
-                <div class="prog-stat-value">{{ fmtNumber(progressValue) }}%</div>
+                <div class="prog-stat-value">{{ formatNumber(progressValue) }}%</div>
                 <el-progress
                   :percentage="progressValue"
                   :stroke-width="displayConfig.progressBarMax ? 16 : 20"
@@ -117,7 +117,7 @@
                     <template #default>
                       <div style="text-align: center">
                         <div style="font-size: 12px">{{ metricLabel(m) }}</div>
-                        <div style="font-size: 14px; font-weight: 600">{{ fmtNumber(calcMultiRing(m)?.val) }}</div>
+                        <div style="font-size: 14px; font-weight: 600">{{ formatNumber(calcMultiRing(m)?.val, m?.decimals) }}</div>
                       </div>
                     </template>
                   </el-progress>
@@ -135,14 +135,14 @@
             <el-empty v-if="!statData" :description="t('chart.builder.noMetric')" />
             <div v-else class="stat-card">
               <div class="stat-label" style="font-size:14px;color:var(--app-text-secondary)">{{ statData.label }}</div>
-              <div class="stat-value">{{ fmtNumber(statData.value) }}</div>
+              <div class="stat-value">{{ formatNumber(statData.value, statData.decimals) }}</div>
             </div>
           </template>
           <template v-else-if="chartType === 'statTrend'">
             <div v-if="!statData" class="stat-card"><el-empty :description="t('chart.builder.noMetric')" /></div>
             <div v-else class="stat-card stat-trend-card">
               <div class="stat-label" style="font-size:14px;color:var(--app-text-secondary)">{{ statData.label }}</div>
-              <div class="stat-value">{{ fmtNumber(statData.value) }}</div>
+              <div class="stat-value">{{ formatNumber(statData.value, statData.decimals) }}</div>
             </div>
           </template>
           <template v-else>
@@ -187,6 +187,7 @@ import { datasetApi, chartApi, metricApi } from '@/api'
 import { t } from '@/i18n'
 import { lbl } from '@/utils/chart-schema-i18n'
 import { AGG_OPTIONS, DERIVED_OPTIONS } from '@/utils/chart-utils'
+import { formatNumber } from '@/utils/num-format'
 import { CHART_TYPES, getChartType } from '@/config/chart-types'
 import { getPalette, DEFAULT_PALETTE_INDEX } from '@/config/color-palettes'
 import { getDefaultConfig } from '@/config/chart-configs'
@@ -285,12 +286,6 @@ function metricRenderKey(m) {
     if (k) return k
   }
   return m.key || m.field
-}
-
-function fmtNumber(n) {
-  if (n === null || n === undefined) return '-'
-  if (typeof n !== 'number') return String(n)
-  return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
 }
 
 function progressMax() {
@@ -409,7 +404,7 @@ async function loadPreview() {
     previewRows.value = res.rows
     if (chartType.value === 'stat' || chartType.value === 'statTrend') {
       const m = metrics.value[0]
-      statData.value = { value: res.rows[0]?.[`metric:${metricRenderKey(m)}`]?.value, label: metricLabel(m) }
+      statData.value = { value: res.rows[0]?.[`metric:${metricRenderKey(m)}`]?.value, label: metricLabel(m), decimals: m?.decimals }
     }
   } finally {
     previewLoading.value = false
