@@ -79,6 +79,11 @@ t('ChartTile 能解析库指标的渲染 key', () => {
     'ChartTile 仍有直接用 m.field 拼 key 的取值点，会让库指标变成 metric:undefined')
 })
 
+t('ChartTile 在 run() 里保存响应中的 savedKeys', () => {
+  assert.ok(/savedKeys\.value\s*=/.test(tile), 'ChartTile 未把响应的 savedKeys 存进 ref')
+  assert.ok(/res\.data\.savedKeys|data\.value\s*=\s*res\.data/.test(tile), 'run() 里应能取到 res.data.savedKeys')
+})
+
 t('指标弹窗的 el-input-number 在三个 kind 的 v-if 之外', () => {
   const i = datasetView.indexOf('v-model="metricForm.decimals"')
   assert.ok(i >= 0, 'DatasetDetail.vue 缺少 decimals 控件')

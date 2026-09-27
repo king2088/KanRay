@@ -11,7 +11,7 @@
           show-overflow-tooltip
         >
           <template #header>{{ col.label }}</template>
-          <template #default="{ row }">{{ row[col.key] }}</template>
+          <template #default="{ row }">{{ col.isMetric ? formatNumber(row[col.key]?.value, col.decimals) : row[col.key]?.value }}</template>
         </el-table-column>
       </el-table>
       <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
@@ -20,7 +20,7 @@
     <!-- 数值卡 -->
     <template v-else-if="chartType === 'stat'">
       <div v-if="statValue !== null" class="stat-tile">
-        <div class="stat-value">{{ fmtNumber(statValue) }}</div>
+        <div class="stat-value">{{ formatNumber(statValue, metrics[0]?.decimals) }}</div>
         <div class="stat-label">{{ statLabel }}</div>
       </div>
       <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
@@ -30,7 +30,7 @@
     <template v-else-if="isProgressType">
       <div class="progress-tile">
         <template v-if="chartType === 'progressBar'">
-          <div class="prog-stat-value">{{ fmtNumber(progressValue) }}%</div>
+          <div class="prog-stat-value">{{ formatNumber(progressValue) }}%</div>
           <el-progress
             :percentage="progressValue"
             :stroke-width="displayConfig?.progressBarMax ? 16 : 20"
@@ -59,7 +59,7 @@
               <template #default>
                 <div style="text-align: center">
                   <div style="font-size: 10px">{{ metricLabel(m) }}</div>
-                  <div style="font-size: 12px; font-weight: 600">{{ fmtNumber(calcMultiRing(m)?.val) }}</div>
+                  <div style="font-size: 12px; font-weight: 600">{{ formatNumber(calcMultiRing(m)?.val, m?.decimals) }}</div>
                 </div>
               </template>
             </el-progress>
@@ -77,7 +77,7 @@
     <!-- 指标趋势图 -->
     <template v-else-if="chartType === 'statTrend'">
       <div v-if="statValue !== null" class="stat-tile stat-trend-tile">
-        <div class="stat-value">{{ fmtNumber(statValue) }}</div>
+        <div class="stat-value">{{ formatNumber(statValue, metrics[0]?.decimals) }}</div>
         <div class="stat-label">{{ statLabel }}</div>
       </div>
       <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
@@ -97,6 +97,7 @@ import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { chartApi as defaultChartApi, datasetApi as defaultDatasetApi } from '@/api'
 import { getChartType } from '@/config/chart-types'
 import EChartRenderer from '@/components/charts/EChartRenderer.vue'
+import { formatNumber } from '@/utils/num-format'
 
 const injected = inject('shareApiOverride', null)
 const chartApi = injected?.chartApi || defaultChartApi
@@ -109,6 +110,10 @@ const props = defineProps({
 })
 
 const data = ref(null)
+// 后端把库指标展开成根 key 后随响应下发（见 query-engine.js 的 savedKeys）。
+// 图表编辑器 ChartBuilder 用它把 {type:'saved'} 换成真实取值 key；看板原先没做，
+// 直接 `metric:${m.field}` 拼 key，而库指标没有 field，会得到 metric:undefined。
+const savedKeys = ref({})
 const loaded = ref(false)
 const rows = ref([])
 const tableCols = ref([])
@@ -128,15 +133,19 @@ const dims = computed(() => cfg.value.dimensions || [])
 const isProgressType = computed(() => ['progressBar', 'circularProgress', 'multiRingProgress', 'fluidProgress'].includes(chartType.value))
 const displayConfig = computed(() => chartOptions.value)
 const progressValue = computed(() => {
-  const val = data.value?.rows?.[0]?.[`metric:${metrics.value[0]?.field}`]?.value || 0
+  const val = data.value?.rows?.[0]?.[`metric:${metricRenderKey(metrics.value[0])}`]?.value || 0
   const max = displayConfig.value?.max || 100
   return max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0
 })
 
-function fmtNumber(n) {
-  if (n === null || n === undefined) return '-'
-  if (typeof n !== 'number') return String(n)
-  return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+// 渲染读取的指标 key：库指标引用需用后端展开后的根 key（savedKeys 映射），
+// 与 ChartBuilder.metricRenderKey 同逻辑
+function metricRenderKey(m) {
+  if (m?.type === 'saved') {
+    const k = savedKeys.value?.[m.metricId]
+    if (k) return k
+  }
+  return m?.key || m?.field
 }
 
 // 字段显示名：优先取数据集字段的 label（源列名），退回内部字段名。
@@ -162,7 +171,7 @@ function dimLabel(d) {
 }
 
 function calcMultiRing(m) {
-  const val = data.value?.rows?.[0]?.[`metric:${m.field}`]?.value || 0
+  const val = data.value?.rows?.[0]?.[`metric:${metricRenderKey(m)}`]?.value || 0
   const max = displayConfig.value?.max || 100
   return { val, pct: max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0 }
 }
@@ -190,14 +199,20 @@ async function run() {
   const res = await chartApi.data(chartId.value, usableFilters())
   data.value = res.data
   rows.value = res.data.rows || []
-  // 表格列
+  savedKeys.value = res.data.savedKeys || {}
+  // 表格列。isMetric 供模板区分：维度列保持裸 value，只有指标列走格式化
   tableCols.value = []
-  dims.value.forEach((d) => tableCols.value.push({ key: `dim:${d.field}`, label: dimLabel(d) }))
-  metrics.value.forEach((m) => tableCols.value.push({ key: `metric:${m.field}`, label: metricLabel(m) }))
+  dims.value.forEach((d) => tableCols.value.push({ key: `dim:${d.field}`, label: dimLabel(d), isMetric: false }))
+  metrics.value.forEach((m) => tableCols.value.push({
+    key: `metric:${metricRenderKey(m)}`,
+    label: metricLabel(m),
+    isMetric: true,
+    decimals: m?.decimals,
+  }))
   // 数值卡 / 进度
   if (metrics.value.length) {
     const first = res.data.rows[0]
-    statValue.value = first ? first[`metric:${metrics.value[0].field}`]?.value ?? null : null
+    statValue.value = first ? first[`metric:${metricRenderKey(metrics.value[0])}`]?.value ?? null : null
     statLabel.value = metricLabel(metrics.value[0])
   }
 }
