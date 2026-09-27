@@ -13,6 +13,7 @@ module.exports = [
   `CREATE TABLE IF NOT EXISTS metrics (
     id TEXT PRIMARY KEY, dataset_id TEXT NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
     name TEXT NOT NULL, kind TEXT NOT NULL, definition TEXT NOT NULL DEFAULT '',
+    decimals INTEGER NOT NULL DEFAULT 0,
     owner_id TEXT, created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
   )`,
   'CREATE INDEX IF NOT EXISTS idx_metrics_dataset ON metrics(dataset_id)',

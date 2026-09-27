@@ -70,3 +70,12 @@ test('初始化 DDL：各方言建表脚本包含关键表与列', () => {
     }
   }
 });
+
+test('初始化 DDL：metrics 表预埋 decimals 列', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kbddl-dec-'));
+  const store = createStore({ type: 'sqlite', sqlitePath: path.join(dir, 'init.db') });
+  ensureSchema(store);
+  const cols = freshCols(store, 'metrics');
+  assert.ok(cols.includes('decimals'), `metrics 表应预埋 decimals 列，实际列: ${cols.join(',')}`);
+  store.close();
+});

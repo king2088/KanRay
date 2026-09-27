@@ -15,6 +15,7 @@ module.exports = [
   `CREATE TABLE metrics (
     id NVARCHAR(36) PRIMARY KEY, dataset_id NVARCHAR(36) NOT NULL,
     name NVARCHAR(255) NOT NULL, kind NVARCHAR(20) NOT NULL, definition NVARCHAR(MAX) NOT NULL,
+    decimals INTEGER NOT NULL DEFAULT 0,
     owner_id NVARCHAR(36), created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(), updated_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     CONSTRAINT fk_metrics_dataset FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE
   )`,

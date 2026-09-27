@@ -119,6 +119,7 @@ function ensureSchema(store) {
   const needCols = {
     datasets: [['source_type', "TEXT NOT NULL DEFAULT 'excel'"], ['datasource_id', 'TEXT'], ['schema_name', 'TEXT'], ['table_name_ext', 'TEXT'], ['build_definition', 'TEXT'], ['owner_id', 'TEXT']],
     dashboards: [['gap_x', 'INTEGER NOT NULL DEFAULT 12'], ['gap_y', 'INTEGER NOT NULL DEFAULT 12'], ['card_style', "TEXT NOT NULL DEFAULT '{}'"], ['owner_id', 'TEXT']],
+    metrics: [['decimals', 'INTEGER NOT NULL DEFAULT 0']],
     charts: [['owner_id', 'TEXT']],
     data_sources: [['last_test_msg_en', 'TEXT']],
     sync_configs: [['reconcile_delete', 'INTEGER NOT NULL DEFAULT 1']],
