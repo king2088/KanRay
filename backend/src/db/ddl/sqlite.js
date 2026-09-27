@@ -69,6 +69,7 @@ module.exports = [
   'CREATE INDEX IF NOT EXISTS idx_data_sources_owner ON data_sources(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_data_sources_type ON data_sources(type)',
   'CREATE INDEX IF NOT EXISTS idx_datasets_owner ON datasets(owner_id)',
+  'CREATE INDEX IF NOT EXISTS idx_charts_dataset ON charts(dataset_id)',
   'CREATE INDEX IF NOT EXISTS idx_charts_owner ON charts(owner_id)',
   'CREATE INDEX IF NOT EXISTS idx_dashboards_owner ON dashboards(owner_id)',
   `CREATE TABLE IF NOT EXISTS big_screens (

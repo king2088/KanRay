@@ -86,6 +86,7 @@ module.exports = [
   'CREATE INDEX idx_data_sources_owner ON data_sources(owner_id)',
   'CREATE INDEX idx_data_sources_type ON data_sources(type)',
   'CREATE INDEX idx_datasets_owner ON datasets(owner_id)',
+  'CREATE INDEX idx_charts_dataset ON charts(dataset_id)',
   'CREATE INDEX idx_charts_owner ON charts(owner_id)',
   'CREATE INDEX idx_dashboards_owner ON dashboards(owner_id)',
   `CREATE TABLE big_screens (
