@@ -25,7 +25,7 @@
       <el-table-column prop="name" :label="t('admin.user.nickname')" min-width="120" />
       <el-table-column :label="t('admin.user.roles')" min-width="160">
         <template #default="{ row }">
-          <el-tag v-for="r in row.roles" :key="r"  style="margin-right: 4px">{{ roleNameMap[r] || r }}</el-tag>
+          <el-tag v-for="r in row.roles" :key="r"  style="margin-right: 4px">{{ roleNameOf(roleByCode(r)) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column :label="t('admin.user.status')" width="90">
@@ -116,8 +116,9 @@ import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/datetime'
 import { useAppStore } from '@/stores/app'
+import { roleName } from '@/i18n/role-label'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 
 const auth = useAuthStore()
 const appStore = useAppStore()
@@ -128,7 +129,6 @@ const page = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
 const roles = ref([])
-const roleNameMap = ref({})
 
 const createOpen = ref(false)
 const createForm = ref({ email: '', name: '', password: '', roleIds: [] })
@@ -161,10 +161,14 @@ async function load() {
   }
 }
 
+// row.roles 装的是角色 code（rbac.service.js:85），不是 id。
+// 原 roleNameMap 在 loadRoles 里把中文名定死，语言切换后不刷新；
+// 改为渲染时解析，t 的 locale 依赖自然触发重渲染。
+const roleByCode = (code) => roles.value.find((x) => x.code === code) || { code }
+const roleNameOf = (role) => roleName(t, te, role)
+
 async function loadRoles() {
-  const rs = await adminApi.roles()
-  roles.value = rs
-  rs.forEach((x) => { roleNameMap.value[x.code] = x.name })
+  roles.value = await adminApi.roles()
 }
 
 function openCreate() {
