@@ -24,9 +24,9 @@
           <template #default="{ row }">{{ actionLabel(row.action) }}</template>
         </el-table-column>
           <el-table-column prop="email" :label="t('admin.audit.user')" min-width="150" />
-          <el-table-column :label="t('admin.audit.resource')" width="130">
+          <el-table-column :label="t('admin.audit.resource')" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
-              <span v-if="row.resource_type">{{ resourceTypeLabel(row.resource_type) }}<template v-if="row.resource_id"> · {{ row.resource_id }}</template></span>
+              <span v-if="row.resource_type" class="cell-nowrap">{{ resourceTypeLabel(row.resource_type) }}<template v-if="row.resource_id"> · {{ row.resource_id }}</template></span>
               <span v-else>-</span>
             </template>
           </el-table-column>

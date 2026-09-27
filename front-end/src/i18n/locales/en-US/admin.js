@@ -152,7 +152,7 @@ export default {
     ip: 'IP',
     detail: 'Detail',
     empty: 'No audit records yet',
-    viewDetail: 'View detail',
+    viewDetail: 'Details',
     detailDialog: 'Action detail',
     noPermission: 'You do not have permission to view this page',
     unknownAction: 'Unknown action',

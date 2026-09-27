@@ -7,7 +7,9 @@
           <div class="page-desc">{{ t('admin.role.pageDesc') }}</div>
         </div>
         <div class="page-header__actions">
-          <el-button type="primary" @click="openCreate">{{ t('admin.role.create') }}</el-button>
+          <el-button type="primary" @click="openCreate">
+            <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('admin.role.create') }}
+          </el-button>
         </div>
       </div>
 
@@ -100,6 +102,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { Plus } from '@element-plus/icons-vue'
 import { adminApi } from '@/api'
 import { roleDesc, roleName } from '@/i18n/role-label'
 import { useAuthStore } from '@/stores/auth'

@@ -10,6 +10,9 @@
           <a class="doc-link" href="/api/open/docs" target="_blank" rel="noopener">
             <el-icon style="margin-right: 4px"><Document /></el-icon>{{ t('admin.openApi.docs') }}
           </a>
+          <el-button type="primary" @click="openCreate">
+            <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('admin.openApi.create') }}
+          </el-button>
         </div>
       </div>
 
@@ -21,41 +24,49 @@
               v-model="typeFilter"
               :placeholder="t('admin.openApi.allTypes')"
               clearable
-              style="width: 140px; margin-right: 8px"
+              style="width: 140px"
               @change="load"
             >
               <el-option label="API Key" value="static" />
               <el-option :label="t('admin.openApi.patOption')" value="pat" />
             </el-select>
-            <el-button type="primary" @click="openCreate">
-              <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('admin.openApi.create') }}
-            </el-button>
           </div>
         </div>
 
         <el-table :data="rows" stripe v-loading="loading">
           <el-table-column type="index" :label="t('admin.openApi.index')" width="60" align="center" />
           <el-table-column prop="name" :label="t('admin.openApi.name')" min-width="140" />
-          <el-table-column :label="t('admin.openApi.type')" width="120">
+          <el-table-column :label="t('admin.openApi.type')" min-width="180">
             <template #default="{ row }">
               <el-tag :type="row.type === 'pat' ? 'warning' : 'primary'" size="small" effect="plain">
                 {{ t(row.type === 'pat' ? 'admin.openApi.typeLabels.pat' : 'admin.openApi.typeLabels.apiKey') }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="t('admin.openApi.prefix')" width="150">
+          <el-table-column :label="t('admin.openApi.prefix')" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
-              <code class="mono">{{ row.keyPrefix }}...</code>
+              <code class="mono cell-nowrap">{{ row.keyPrefix }}...</code>
             </template>
           </el-table-column>
           <el-table-column :label="t('admin.openApi.owner')" width="120">
             <template #default="{ row }">{{ usersName(row.userId) }}</template>
           </el-table-column>
-          <el-table-column label="Scopes" min-width="180">
+          <el-table-column label="Scopes" min-width="200">
             <template #default="{ row }">
-              <el-tag v-for="s in scopesOf(row)" :key="s" size="small" style="margin-right: 4px">{{ scopeLabel(s) }}</el-tag>
-              <span v-if="row.type === 'pat'" class="muted">{{ t('admin.openApi.inheritPerms') }}</span>
-              <span v-else-if="scopesOf(row).length === 0" class="muted">{{ t('admin.openApi.none') }}</span>
+              <el-popover placement="top-start" :width="360" trigger="hover">
+                <template #reference>
+                  <div class="scope-tags" :class="{ 'is-overflow': overflowMap[row.id] }" :data-row-id="row.id">
+                    <el-tag v-for="s in scopesOf(row)" :key="s" size="small" class="scope-tag">{{ scopeLabel(s) }}</el-tag>
+                    <span v-if="row.type === 'pat'" class="scope-note">{{ t('admin.openApi.inheritPerms') }}</span>
+                    <span v-else-if="scopesOf(row).length === 0" class="scope-note">{{ t('admin.openApi.none') }}</span>
+                  </div>
+                </template>
+                <div class="scope-pop">
+                  <el-tag v-for="s in scopesOf(row)" :key="s" size="small" class="scope-tag">{{ scopeLabel(s) }}</el-tag>
+                  <span v-if="row.type === 'pat'" class="scope-note">{{ t('admin.openApi.inheritPerms') }}</span>
+                  <span v-else-if="scopesOf(row).length === 0" class="scope-note">{{ t('admin.openApi.none') }}</span>
+                </div>
+              </el-popover>
             </template>
           </el-table-column>
           <el-table-column :label="t('admin.openApi.status')" width="90">
@@ -131,7 +142,7 @@
   </div>
 </template>
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { adminApi } from '@/api'
@@ -174,6 +185,18 @@ function usersName(id) {
 }
 function scopesOf(row) {
   return row.scopes || []
+}
+
+// scopes 要单行显示，超出时右侧盖一个「…」。el-popover 的触发元素被隐藏溢出后
+// 不会自己判断要不要露内容，所以像 RoleAdmin 的权限标签那样实测宽度再决定。
+const overflowMap = ref({})
+function refreshOverflow() {
+  nextTick(() => {
+    document.querySelectorAll('.scope-tags').forEach((el) => {
+      const id = el.dataset.rowId
+      if (id !== undefined) overflowMap.value[id] = el.scrollWidth > el.clientWidth
+    })
+  })
 }
 
 function copySecret() {
@@ -241,6 +264,7 @@ async function load() {
   } finally {
     loading.value = false
   }
+  refreshOverflow()
 }
 async function loadUsers() {
   try {
@@ -264,5 +288,42 @@ onMounted(() => {
 }
 .doc-link:hover {
   text-decoration: underline;
+}
+
+/* scopes 单行显示，溢出时右侧盖「…」，完整内容进 popover */
+.scope-tags {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+  line-height: 24px;
+}
+.scope-tag {
+  margin: 0 4px 0 0;
+}
+.scope-note {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+.scope-tags.is-overflow::after {
+  content: '…';
+  position: absolute;
+  right: 2px;
+  top: 0;
+  line-height: 24px;
+  padding: 0 3px;
+  border-radius: 4px;
+  color: var(--app-text-secondary);
+  font-weight: 700;
+  background: var(--el-fill-color);
+}
+.scope-pop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 </style>

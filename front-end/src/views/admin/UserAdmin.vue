@@ -7,7 +7,9 @@
           <div class="page-desc">{{ t('admin.user.pageDesc') }}</div>
         </div>
         <div class="page-header__actions">
-          <el-button type="primary" @click="openCreate">{{ t('admin.user.createDialog') }}</el-button>
+          <el-button type="primary" @click="openCreate">
+            <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('admin.user.createDialog') }}
+          </el-button>
         </div>
       </div>
 
@@ -112,6 +114,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { Plus } from '@element-plus/icons-vue'
 import { adminApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/datetime'

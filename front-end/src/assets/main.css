@@ -457,6 +457,32 @@ body.is-dragging-card {
 }
 
 /* ============================================================
+   表格单元格：单行截断与等宽字体
+   ▸ 为什么需要 .cell-nowrap：Element Plus 的 .cell 默认
+     white-space: normal + overflow: hidden，长文本会**换行**把行撑高；
+     列上的 show-overflow-tooltip 只负责「真的溢出才弹提示」，
+     不提供任何截断样式（EP 只在 mouseenter 时用 Range 比对尺寸）。
+     要「一行显示 + 显示不完用 tooltip/popover」必须自己加 nowrap。
+   ▸ 用法：列上加 show-overflow-tooltip，单元格内元素加 .cell-nowrap。
+     提示内容由 EP 从 .cell 的 textContent 取，无需手写。
+   ============================================================ */
+
+.cell-nowrap {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 等宽字体：API Key / Token 前缀这类按字符对齐的标识。
+   此前 .mono 只出现在模板里、全项目没有任何规则定义，
+   靠浏览器默认的 <code> 字体碰巧生效。 */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+}
+
+/* ============================================================
    图表编辑器：表单控件统一高度（公共 CSS）
    ▸ 范围仅限编辑页 .chart-builder，其他页面不受影响
    ▸ 通过覆盖 Element Plus 尺寸变量实现；今后新增

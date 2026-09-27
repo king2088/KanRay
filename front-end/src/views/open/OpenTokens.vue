@@ -5,23 +5,23 @@
         <h2 class="page-title">{{ t('openapi.token.title') }}</h2>
         <div class="page-desc">{{ t('openapi.token.pageDesc', { path: '/api/open/v1' }) }}</div>
       </div>
+      <div class="page-header__actions">
+        <el-button type="primary" @click="createVisible = true">
+          <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('openapi.token.create') }}
+        </el-button>
+      </div>
     </div>
 
     <div class="page-card">
       <div class="page-card__header">
         <div class="page-card__header-title">{{ t('openapi.token.listTitle') }}</div>
-        <div class="page-card__header-right">
-          <el-button type="primary" @click="createVisible = true">
-            <el-icon style="margin-right: 4px"><Plus /></el-icon>{{ t('openapi.token.create') }}
-          </el-button>
-        </div>
       </div>
 
       <el-table :data="rows" stripe v-loading="loading">
         <el-table-column type="index" :label="t('openapi.token.index')" width="60" align="center" />
         <el-table-column prop="name" :label="t('openapi.token.name')" min-width="160" />
-        <el-table-column :label="t('openapi.token.prefix')" width="150">
-          <template #default="{ row }"><code class="mono">{{ row.keyPrefix }}...</code></template>
+        <el-table-column :label="t('openapi.token.prefix')" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }"><code class="mono cell-nowrap">{{ row.keyPrefix }}...</code></template>
         </el-table-column>
         <el-table-column :label="t('openapi.token.status')" width="90">
           <template #default="{ row }">

@@ -152,7 +152,7 @@ export default {
     ip: 'IP',
     detail: '明细',
     empty: '暂无审计记录',
-    viewDetail: '查看详情',
+    viewDetail: '详情',
     detailDialog: '操作明细',
     noPermission: '无权限访问该页面',
     unknownAction: '未知操作',
