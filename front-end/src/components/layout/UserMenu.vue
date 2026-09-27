@@ -6,7 +6,7 @@
       </el-avatar>
       <span class="user-name">{{ auth.user?.name || auth.user?.email }}</span>
       <span v-if="auth.user?.roles?.length" class="user-roles">
-        {{ auth.user.roles.map((r) => roleName(t, te, r)).join('、') }}
+        {{ auth.user.roles.map((r) => roleName(t, te, r)).join(t('common.listSeparator')) }}
       </span>
       <el-icon><ArrowDown /></el-icon>
     </span>

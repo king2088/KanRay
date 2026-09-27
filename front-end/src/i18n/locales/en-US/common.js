@@ -1,4 +1,5 @@
 export default {
+  listSeparator: ', ',
   actions: {
     confirm: 'Confirm',
     cancel: 'Cancel',
