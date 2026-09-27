@@ -20,7 +20,7 @@
     <!-- 数值卡 -->
     <template v-else-if="chartType === 'stat'">
       <div v-if="statValue !== null" class="stat-tile">
-        <div class="stat-value">{{ formatNumber(statValue, metrics[0]?.decimals) }}</div>
+        <div class="stat-value">{{ formatNumber(statValue, decimalsOf(metrics[0])) }}</div>
         <div class="stat-label">{{ statLabel }}</div>
       </div>
       <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
@@ -59,7 +59,7 @@
               <template #default>
                 <div style="text-align: center">
                   <div style="font-size: 10px">{{ metricLabel(m) }}</div>
-                  <div style="font-size: 12px; font-weight: 600">{{ formatNumber(calcMultiRing(m)?.val, m?.decimals) }}</div>
+                  <div style="font-size: 12px; font-weight: 600">{{ formatNumber(calcMultiRing(m)?.val, decimalsOf(m)) }}</div>
                 </div>
               </template>
             </el-progress>
@@ -77,7 +77,7 @@
     <!-- 指标趋势图 -->
     <template v-else-if="chartType === 'statTrend'">
       <div v-if="statValue !== null" class="stat-tile stat-trend-tile">
-        <div class="stat-value">{{ formatNumber(statValue, metrics[0]?.decimals) }}</div>
+        <div class="stat-value">{{ formatNumber(statValue, decimalsOf(metrics[0])) }}</div>
         <div class="stat-label">{{ statLabel }}</div>
       </div>
       <el-empty v-else :description="t('common.empty.noData')" :image-size="60" />
@@ -148,6 +148,26 @@ function metricRenderKey(m) {
   return m?.key || m?.field
 }
 
+// 响应里的指标元信息，key -> 该指标。decimals（以及库指标名）**只存在于这里**。
+// 图表配置里库指标只存 {type,key,metricId}，没有这两个字段——直接在配置上读
+// m.decimals 恒为 undefined，所有库指标都会退回「最多 2 位、不补零」。
+// 每次取数建一次 Map，避免每个单元格线性扫数组。
+const responseMetrics = computed(() => {
+  const map = new Map()
+  for (const m of data.value?.metrics || []) map.set(m.key, m)
+  return map
+})
+
+function metricMetaOf(m) {
+  return responseMetrics.value.get(metricRenderKey(m))
+}
+
+// 无条件透传，不做真值兜底：decimals 默认就是 0（falsy），判 `if (decimals)` 会把
+// 大多数库指标打成非库样式。查不到时返回 undefined = 非库指标 = 维持现状。
+function decimalsOf(m) {
+  return metricMetaOf(m)?.decimals
+}
+
 // 字段显示名：优先取数据集字段的 label（源列名），退回内部字段名。
 // f_8 这类别名只在完全没有 label 时兜底，不该出现在用户面前。
 function fieldLabelOf(name) {
@@ -159,9 +179,11 @@ function fieldLabelOf(name) {
 // 指标显示名：图表配置里已存了指标名（如「总营收(元)」），直接用它；
 // 缺失时退回数据集字段 label，最后才用内部字段名。
 // 不拼接 (sum)/(avg)：看板是读数的地方，指标名本身已说明口径。
+// 库指标配置里既没有 label 也没有 field（名字在指标库里），所以最后再查一次
+// 响应 metrics 的 label——否则看板表头会渲染成空串。
 function metricLabel(m) {
   if (!m) return ''
-  return m.label || fieldLabelOf(m.field)
+  return m.label || fieldLabelOf(m.field) || metricMetaOf(m)?.label || ''
 }
 
 // 维度显示名：与指标同源，配置里的 label 优先
@@ -207,7 +229,7 @@ async function run() {
     key: `metric:${metricRenderKey(m)}`,
     label: metricLabel(m),
     isMetric: true,
-    decimals: m?.decimals,
+    decimals: decimalsOf(m),
   }))
   // 数值卡 / 进度
   if (metrics.value.length) {

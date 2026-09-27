@@ -7,6 +7,9 @@
 //   4) 指标弹窗的 el-input-number 在三个 kind 的 v-if 之外（三种类型都要能配）
 //   5) decimals 贯通到 chart-configs 的 _stat/_statTrend/_progress 与环形图中心
 //   6) 中英 i18n key 成对存在
+//   7) DOM 渲染点的 decimals 来自**响应** metrics，而不是图表配置
+//      （历史 bug：语法全对、运行时恒 undefined，所有库指标都按「最多 2 位」渲染）
+//   8) 看板表头的库指标名也从响应 metrics 兜底（配置里既无 label 也无 field）
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -29,6 +32,24 @@ function t(name, fn) {
 
 function read(p) {
   return readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8')
+}
+
+// 去掉注释再做「不许出现某写法」的反向断言：源码里大段解释这个坑的注释里
+// 必然会出现 `m.decimals` 字面量，不剥掉的话断言会对着注释报错/被注释骗过。
+// 排除 `://`（ChartBuilder 的 sectionIcon 里有个 http:// 字符串）。
+function stripComments(src) {
+  return src
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/(?<![:"'`\\])\/\/.*$/gm, '')
+}
+
+// 取 `function name(...) { ... }` 的函数体（按行首 } 收尾，避免正则吃穿相邻函数）
+function bodyOf(src, name) {
+  const start = src.search(new RegExp(`^(?:async )?function ${name}\\(`, 'm'))
+  assert.ok(start >= 0, `未找到 ${name}()`)
+  const end = src.indexOf('\n}', start)
+  assert.ok(end > start, `${name}() 未正常收尾`)
+  return src.slice(start, end)
 }
 
 const builder = read('../src/views/ChartBuilder.vue')
@@ -111,6 +132,67 @@ t('中英 i18n key 成对存在', () => {
     assert.ok(new RegExp(`${key}:`).test(zh), `zh-CN/dataset.js 缺少 ${key}`)
     assert.ok(new RegExp(`${key}:`).test(en), `en-US/dataset.js 缺少 ${key}`)
   }
+})
+
+// 这个断言锁的不是「调用点写了 decimals 参数」——那件事上面已经锁了，语法全对也照样
+// 可以在运行时取到 undefined。真正的回归是：图表配置里库指标只存 {type,key,metricId}，
+// decimals 只随查询响应的 metrics 数组下发；从配置上读永远是 undefined，于是所有库指标
+// 都退回「最多 2 位、不补零」（76.99）。源码正则看不见运行时值，只能把「查响应」
+// 这件事本身钉死：定义 lookup + 每个渲染点都走它 + 不许再从配置读。
+t('DOM 渲染点的 decimals 从响应 metrics 查，不从图表配置读', () => {
+  for (const [name, src, resp] of [
+    ['ChartBuilder', builder, /previewData\.value\??\.metrics/],
+    ['ChartTile', tile, /data\.value\??\.metrics/],
+  ]) {
+    const code = stripComments(src)
+    const i = code.search(/^function metricMetaOf\(/m)
+    assert.ok(i >= 0, `${name}.vue 缺少 metricMetaOf()：查响应 metrics 的唯一入口`)
+    // lookup 的取值来源要在它附近：响应 metrics 数组，且按渲染 key（savedKeys 展开后的根 key）匹配
+    const chain = code.slice(Math.max(0, i - 500), i + 300)
+    assert.match(chain, resp, `${name}.metricMetaOf 未查响应里的 metrics 数组`)
+    assert.match(chain, /metricRenderKey/, `${name}.metricMetaOf 未按 metricRenderKey(m) 匹配响应的 key`)
+    // decimalsOf 必须是纯透传。decimals 的默认值就是 0（falsy），任何真值兜底
+    // （`decimals || null` / `decimals ?? 2` / `decimals ? decimals : ...`）都会把
+    // 大多数库指标打成非库样式，也违背后端 metrics.js:101-103 定的 `'decimals' in m` 规则。
+    const d = bodyOf(code, 'decimalsOf')
+    assert.match(d, /metricMetaOf\([^)]*\)\??\.decimals/,
+      `${name}.decimalsOf 应直接返回 metricMetaOf(m)?.decimals（查不到时为 undefined = 非库指标）`)
+    assert.doesNotMatch(d, /\|\||\?\?|\?[^)]*:/,
+      `${name}.decimalsOf 不该对 decimals 做兜底：0 是合法且最常见的取值，判真值会把库指标打成非库样式`)
+  }
+  // 逐个渲染点钉死：任何一处改回 m?.decimals 都会红（下面的变异验证就靠这条）
+  for (const [name, src, sites] of [
+    ['ChartBuilder', builder, [
+      /formatNumber\(row\[`metric:\$\{metricRenderKey\(m\)\}`\]\?\.value, decimalsOf\(m\)\)/,
+      /formatNumber\(calcMultiRing\(m\)\?\.val, decimalsOf\(m\)\)/,
+      /decimals: decimalsOf\(m\)/,
+    ]],
+    ['ChartTile', tile, [
+      /formatNumber\(statValue, decimalsOf\(metrics\[0\]\)\)/,
+      /formatNumber\(calcMultiRing\(m\)\?\.val, decimalsOf\(m\)\)/,
+      /decimals: decimalsOf\(m\)/,
+    ]],
+  ]) {
+    for (const re of sites) assert.match(src, re, `${name} 有一个渲染点没走 decimalsOf()`)
+    assert.doesNotMatch(stripComments(src), /m\??\.decimals/,
+      `${name} 仍有从图表配置直接读 m?.decimals 的调用点——配置里没有这个字段，运行时恒为 undefined`)
+  }
+  // 表格单元格的 decimals 来自 tableCols，而 tableCols 那行必须查响应
+  assert.match(stripComments(tile), /decimals:\s*decimalsOf\(m\),/,
+    'ChartTile 的 tableCols 单元格 decimals 应来自 decimalsOf(m)')
+})
+
+t('看板表头：库指标名从响应 metrics 兜底', () => {
+  // 库指标在配置里既没有 label 也没有 field（名字存在指标库/响应里），
+  // 原来 metricLabel 两级兜底都落空 → 看板表格表头渲染成空串（维度列却正常，
+  // 因为维度确有 field）。Editor 早就查了 library.value，所以只有看板空。
+  const ml = bodyOf(stripComments(tile), 'metricLabel')
+  assert.match(ml, /metricMetaOf\(m\)\??\.label/,
+    'ChartTile.metricLabel 未兜底查响应 metrics 的 label——库指标表头会是空串')
+  assert.ok(ml.indexOf('m.label') < ml.indexOf('fieldLabelOf'),
+    '配置里的 label 仍应优先于字段名')
+  assert.ok(ml.indexOf('fieldLabelOf') < ml.indexOf('metricMetaOf'),
+    '兜底顺序应为 配置 label > 字段 label > 响应 label，勿打乱既有优先级')
 })
 
 if (failures.length) {

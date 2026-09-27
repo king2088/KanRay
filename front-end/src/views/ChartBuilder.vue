@@ -77,7 +77,7 @@
                 <template #default="{ row }">{{ row[`dim:${d.field}`]?.value }}</template>
               </el-table-column>
               <el-table-column v-for="m in metrics" :key="m.key || m.field" :label="metricLabel(m)">
-                <template #default="{ row }">{{ formatNumber(row[`metric:${metricRenderKey(m)}`]?.value, m?.decimals) }}</template>
+                <template #default="{ row }">{{ formatNumber(row[`metric:${metricRenderKey(m)}`]?.value, decimalsOf(m)) }}</template>
               </el-table-column>
             </el-table>
           </template>
@@ -117,7 +117,7 @@
                     <template #default>
                       <div style="text-align: center">
                         <div style="font-size: 12px">{{ metricLabel(m) }}</div>
-                        <div style="font-size: 14px; font-weight: 600">{{ formatNumber(calcMultiRing(m)?.val, m?.decimals) }}</div>
+                        <div style="font-size: 14px; font-weight: 600">{{ formatNumber(calcMultiRing(m)?.val, decimalsOf(m)) }}</div>
                       </div>
                     </template>
                   </el-progress>
@@ -288,6 +288,27 @@ function metricRenderKey(m) {
   return m.key || m.field
 }
 
+// 响应里的指标元信息，key -> 该指标。decimals **只存在于这里**。
+// 图表配置里库指标只存 {type,key,metricId}，没有 decimals 字段——直接在配置上读
+// m.decimals 恒为 undefined，所有库指标都会退回「最多 2 位、不补零」（语法对、值全错）。
+// ECharts 那条路一直是对的：chart-configs.js 拿的是整个响应。
+// 每次取数建一次 Map，避免每个单元格线性扫数组。
+const responseMetrics = computed(() => {
+  const map = new Map()
+  for (const m of previewData.value?.metrics || []) map.set(m.key, m)
+  return map
+})
+
+function metricMetaOf(m) {
+  return responseMetrics.value.get(metricRenderKey(m))
+}
+
+// 无条件透传，不做真值兜底：decimals 默认就是 0（falsy），判 `if (decimals)` 会把
+// 大多数库指标打成非库样式。查不到时返回 undefined = 非库指标 = 维持现状。
+function decimalsOf(m) {
+  return metricMetaOf(m)?.decimals
+}
+
 function progressMax() {
   return displayConfig.value.typeSpecific?.max ?? displayConfig.value.max ?? 100
 }
@@ -404,7 +425,7 @@ async function loadPreview() {
     previewRows.value = res.rows
     if (chartType.value === 'stat' || chartType.value === 'statTrend') {
       const m = metrics.value[0]
-      statData.value = { value: res.rows[0]?.[`metric:${metricRenderKey(m)}`]?.value, label: metricLabel(m), decimals: m?.decimals }
+      statData.value = { value: res.rows[0]?.[`metric:${metricRenderKey(m)}`]?.value, label: metricLabel(m), decimals: decimalsOf(m) }
     }
   } finally {
     previewLoading.value = false
