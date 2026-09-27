@@ -77,6 +77,9 @@ const SCAN_PATHS = [
   'screen-designer/components/RightPanel',
   // 计划 8：大屏 widget（33 个图表 + 9 个非图表组件）
   'screen-designer/widgets',
+  // api 目录：3 个公开分享模块各自 axios.create()，不经过 http.js 拦截器，
+  // 曾在里面硬编码 '请求失败' / '网络错误' 作兜底——英文界面直接弹中文。
+  'api',
 ]
 
 // 行级豁免清单：file + 代码片段 + 原因

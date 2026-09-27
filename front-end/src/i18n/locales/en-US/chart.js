@@ -199,7 +199,7 @@ export default {
   },
   builder: {
     displayOptions: 'Display options',
-    displayCount: 'Display count',
+    displayCount: 'Count',
     sortBy: 'Sort by',
     sortNone: 'No sorting',
     sortMetric: 'By metric',

@@ -1,5 +1,5 @@
 // 数据源 / 数据集 / 可视化构建器。
-// fieldType 由计划 3 Task 6 建立（同时被图表与数据集域复用），此处保持不变。
+// fieldType 同时被图表与数据集域复用，改一处要同步另一处。
 export default {
   fieldType: {
     string: '文本',

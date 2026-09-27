@@ -216,7 +216,7 @@ import { datasourceApi, syncApi } from '@/api'
 import { formatDateTime } from '@/utils/datetime'
 import { fieldTypeLabel } from '@/utils/field-type-label'
 import { pickLocaleText } from '@/i18n/locale-util'
-import { t } from '@/i18n'
+import { localizeApiMessage, t } from '@/i18n'
 import { useAppStore } from '@/stores/app'
 
 const { locale } = useI18n()
@@ -313,10 +313,13 @@ async function doTest() {
   testing.value = true
   try {
     const res = await datasourceApi.testSaved(route.params.id)
+    // provider 的结果文案在 data.message 里、后端另给 messageEn，不取英文侧就会出现
+    // 「Connection succeeded: 连接成功」这种中英并排。与 DataSourceFormDialog 用同一个取值函数。
+    const detail = localizeApiMessage(res.message, res.messageEn)
     ElMessage[res.ok ? 'success' : 'error'](
       res.ok
-        ? t('dataset.dataSource.testSuccess', { message: res.message })
-        : t('dataset.dataSource.testFailed', { message: res.message })
+        ? t('dataset.dataSource.testSuccess', { message: detail })
+        : t('dataset.dataSource.testFailed', { message: detail })
     )
     ds.value = await datasourceApi.get(route.params.id)
   } finally { testing.value = false }

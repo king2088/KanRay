@@ -765,4 +765,97 @@ t('角色名原文用法的豁免全部命中（无僵尸配置）', () => {
   }
 })
 
+// ---- 后端文案双字段（message / messageEn）契约 ----
+//
+// 响应信封带两个字段：message 是中文原文，messageEn 是查表得到的英文译文（见后端
+// middleware/response.js 与 i18n/en-messages.js）。界面要显示哪一份由 localizeApiMessage
+// 按当前语言二选一；直接 { message: res.message } 会把中文原文塞进英文占位符，渲染成
+// 「Connection succeeded: 连接成功」——中英并排。曾真实发生在 DataSourceList.vue 与
+// DataSourceDetail.vue 各 2 处，且两处都长得完全一样，code review 不会看出来。
+//
+// 同样地，公开分享的 3 个 api 模块各自 axios.create()，不经过 http.js 拦截器，
+// messageEn 不会被自动取值，得在拦截器里自己调 localizeApiMessage。
+//
+// 判据只认对象字面量里的 `message: x.message` 形态：这是把后端文案当占位符值的唯一写法。
+// 日志上下文里原样传 message 不受此限，需要时登记进 MESSAGE_PASSTHROUGH。
+const MESSAGE_PAIR_FILES = [
+  'views/DataSourceList.vue',
+  'views/DataSourceDetail.vue',
+  'api/share.js',
+  'api/formShare.js',
+  'api/bigScreenShare.js',
+]
+
+const RAW_MESSAGE_AS_VALUE = /message:\s*[A-Za-z_$][\w$]*(\?)?\.message\b/
+
+const MESSAGE_PASSTHROUGH = []
+const usedMessagePass = new Set()
+
+// .js 也要扫：3 个 share 模块是 .js，且它们正是绕过 http.js 拦截器的那批。
+// 跳过 locales（词典值里出现 .message 是数据不是调用）。
+function messageSources() {
+  const out = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'locales') continue
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (extname(p) === '.vue' || extname(p) === '.js') {
+        out.push({ rel: p.replace(SRC, ''), body: readFileSync(p, 'utf8') })
+      }
+    }
+  }
+  walk(SRC)
+  return out
+}
+
+t('后端文案进界面经 localizeApiMessage 二选一（直取 message 会中英并排）', () => {
+  const hits = []
+  for (const { rel, body } of messageSources()) {
+    blankStyleBlocks(stripComments(body)).split('\n').forEach((line, i) => {
+      const probe = stripStrings(line)
+      if (!RAW_MESSAGE_AS_VALUE.test(probe)) return
+      const code = line.trim()
+      const pass = MESSAGE_PASSTHROUGH.find((e) => e.file === rel && e.match === code)
+      if (pass) {
+        usedMessagePass.add(pass)
+        return
+      }
+      hits.push(
+        `${rel}:${i + 1}  把后端 message 当占位符值传给了 t()，英文界面会与中文原文并排\n` +
+          `    ${code}\n` +
+          '    应改为 localizeApiMessage(res.message, res.messageEn)；兜底文案走 t(\'common.http.*\')，不要硬编码中文',
+      )
+    })
+  }
+  assert.deepEqual(hits, [], `以下位置会在英文界面下与中文原文并排显示:\n${hits.join('\n')}`)
+
+  // 哨兵：这 5 个文件是已知接入点。判据写错会让 messageSources() 扫不到它们而全绿，
+  // 所以反过来断言它们确实接了 localizeApiMessage——判据失效时这里先红。
+  for (const rel of MESSAGE_PAIR_FILES) {
+    const f = messageSources().find((x) => x.rel === rel)
+    assert.ok(f, `已知接入点不存在，哨兵失效: ${rel}`)
+    assert.ok(
+      f.body.includes('localizeApiMessage'),
+      `${rel} 没有接 localizeApiMessage。若这里确实不再渲染后端文案，请把该文件移出 MESSAGE_PAIR_FILES 并说明原因`,
+    )
+  }
+})
+
+t('后端文案豁免都写明了原因', () => {
+  for (const e of MESSAGE_PASSTHROUGH) {
+    assert.ok(
+      e.reason && e.reason.length >= 20,
+      `豁免缺少充分原因（须说明为何这里传递的就是后端中文原文）: ${e.file} ${e.match}`,
+    )
+    assert.ok(e.file && e.match, `豁免缺少文件或整行匹配内容: ${JSON.stringify(e.match)}`)
+  }
+})
+
+t('后端文案豁免全部命中（无僵尸配置）', () => {
+  for (const e of MESSAGE_PASSTHROUGH) {
+    assert.ok(usedMessagePass.has(e), `豁免已失效: ${e.file} ${e.match}`)
+  }
+})
+
 console.log(`i18n 词典测试：${passed} 项通过`)

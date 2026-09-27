@@ -10,14 +10,11 @@ export const DOMAINS = [
   'layout',
   'chart',
   'dashboard',
-  'datasource',
   'dataset',
   'form',
   'bigscreen',
   'admin',
   'openapi',
-  'audit',
-  'validation',
 ]
 
 // 语言切换器选项。label 为语言母语名，按惯例不翻译，故不入词典。

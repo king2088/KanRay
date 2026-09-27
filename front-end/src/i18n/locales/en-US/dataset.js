@@ -1,5 +1,5 @@
 // Data sources / datasets / visual builders.
-// fieldType comes from plan 3 task 6 and is shared with the chart domain.
+// fieldType is shared with the chart domain; change both together.
 export default {
   fieldType: {
     string: 'Text',
