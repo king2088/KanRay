@@ -6,7 +6,7 @@
       </el-avatar>
       <span class="user-name">{{ auth.user?.name || auth.user?.email }}</span>
       <span v-if="auth.user?.roles?.length" class="user-roles">
-        {{ auth.user.roles.map((r) => r.name).join('、') }}
+        {{ auth.user.roles.map((r) => roleName(t, te, r)).join('、') }}
       </span>
       <el-icon><ArrowDown /></el-icon>
     </span>
@@ -31,7 +31,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ProfileDialog from './ProfileDialog.vue'
-import { t } from '@/i18n'
+import { t, te } from '@/i18n'
+import { roleName } from '@/i18n/role-label'
 
 const auth = useAuthStore()
 const router = useRouter()
