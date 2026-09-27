@@ -144,7 +144,7 @@ function onSizeChange(size) {
 }
 
 // 权限码 → admin.perm.* 标签。后端 permissions.name 是中文数据，界面统一走词典，
-// 未收录的码原样回退为码本身。
+// 未收录的码原样回退为码本身。这段内联早于 i18n/role-label.js，保持原样不委托。
 const permNameOf = (code) => (te(`admin.perm.${code}`) ? t(`admin.perm.${code}`) : code)
 
 const permGroups = computed(() => {
@@ -173,7 +173,6 @@ async function load() {
 
 const isCustom = (row) => !row.is_builtin
 
-// 列表展示走词典，内置角色出译文、自定义角色出数据库原文。
 // 编辑弹窗不动：内置角色的编辑按钮已禁用，弹窗只为自定义角色打开。
 const roleNameOf = (row) => roleName(t, te, row)
 const roleDescOf = (row) => roleDesc(t, te, row)
@@ -213,7 +212,7 @@ async function submit() {
 
 async function remove(row) {
   await ElMessageBox.confirm(
-      t('admin.role.deleteConfirm', { name: row.name }),
+      t('admin.role.deleteConfirm', { name: roleName(t, te, row) }),
       t('admin.role.confirmTitle'),
       { type: 'warning' },
     )
