@@ -8,8 +8,12 @@ const FORMULA_REMAINDER = /^[0-9+\-*/().%\s]*$/;
 const LIB_EXPR_TOKEN = /\$([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/g;
 
 // 归一化并校验 decimals 列：缺省 → 0；必须是 0-LIB_MAX_DECIMALS 的整数。
-// LIB_MAX_DECIMALS 由 engines/metrics 提供，与 projectMetrics 的下发判定同源，
-// 避免「校验放行但下发丢弃」这类静默分叉；跨包的前端副本见 engines/metrics.js 顶部注释。
+// 上限从 engines/metrics import，与 projectMetrics 的下发判定同源：两边各存一份的话，
+// 最坏是「校验放行但下发丢弃」这类静默分叉——值合法，却渲染不出。
+// 仍各写一份字面量的只有 routes/dataset.routes.js 的两处 zod schema（.max(10)，本仓既有
+// 风格，没跟着 import）；改 LIB_MAX_DECIMALS 时它会先分叉，届时 task50「decimals 必须是
+// 0-10 的整数」那条 service 边界用例会红，不会静默。
+// Task 4 会在前端 utils/num-format.js 落一份跨包副本，届时改这里需同步那一份。
 // 该列是「指标怎么显示」，与 definition（怎么算）无关，故校验放在 create/update 入口。
 function normalizeMetricDecimals(v) {
   if (v === undefined || v === null || v === '') return 0;

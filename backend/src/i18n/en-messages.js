@@ -361,6 +361,7 @@ const MESSAGE_TEMPLATES = {
   '指标类型仅支持 base/expr/derived，收到: ${kind}': 'Metric type only supports base/expr/derived, received: ${kind}',
   '指标小数位必须是 0-${LIB_MAX_DECIMALS} 的整数，收到: ${v}': 'Metric decimals must be an integer from 0 to ${LIB_MAX_DECIMALS}, received: ${v}',
   '指标小数位必须是 0-${LIB_MAX_DECIMALS} 的整数，收到: ${typeof v}': 'Metric decimals must be an integer from 0 to ${LIB_MAX_DECIMALS}, received: ${typeof v}',
+  '第 ${i + 1} 个指标不能带 decimals（该字段由指标库配置）': 'Metric ${i + 1} must not carry decimals (this field is configured in the metric library)',
   '指标库存在未知类型: ${rec.kind}': 'Unknown type in metric library: ${rec.kind}',
   '指标库存在循环引用（id=${rid}）': 'Circular reference in metric library (id=${rid})',
   '指标库仅支持 base/expr/derived 三种类型，收到: ${kind}': 'The metric library only supports base/expr/derived, received: ${kind}',

@@ -12,6 +12,11 @@
 // decimals 的 HTTP 往返（POST/PUT 带上它不能被 .strict() 当未知键拒掉）在
 // task31b-metrics-library-edge.test.js —— 本文件刻意不引 src/app.js，
 // 免得为一个契约测试把 swagger-ui-express/限流/整份 schema 初始化都拖进来。
+// 图表配置那条路（内联指标不许带 decimals）同样要真路由，放在
+// metric-inline-decimals.test.js。
+//
+// 「响应投影全仓只有一份」是架构约束而非 decimals 的字段契约，独立在
+// metric-response-projection.test.js（那里才有 src/ 的源码走查）。
 //
 // 第 1 条断的是「require 后的模块输出」而不是源码文本，所以 DDL 重排版/改缩进不该误伤；
 // 一旦失败就说明列定义真的变了（列被删、类型/默认值、或 DEFAULT 与 NOT NULL 的语序被改）。
@@ -265,7 +270,13 @@ test('query-engine：走真实 aggregate 时响应里的指标定义带 decimals
   assert.equal(byLabel.get('看板基数').kind, 'base');
   assert.equal(byLabel.get('看板倍数').kind, 'expr');
   assert.equal(byLabel.get('看板占比').derivedKind, 'share');
-  assert.deepEqual(res.savedKeys, { [b.id]: 'm0', [e.id]: 'm1', [d.id]: 'm2' }, '响应应带 savedKeys 映射');
+  // 只钉「三个库指标各自都记到了最终 key」：具体编号由 emitRef 的重排顺序决定，
+  // 跟 decimals 没关系（savedKeys 的形状已由上面那条覆盖），把 m0/m1/m2 钉死等于
+  // 把「重编号」这个独立行为也焊进 decimals 的回归网。
+  assert.equal(Object.keys(res.savedKeys).length, 3, 'savedKeys 应记下这三个库指标');
+  for (const id of [b.id, e.id, d.id]) {
+    assert.ok(res.savedKeys[id], `savedKeys 应含 ${id} 对应的最终 key，实际: ${JSON.stringify(res.savedKeys)}`);
+  }
 });
 
 test('query-engine：内联（非指标库）指标不带 decimals，别被当成库指标', async () => {
@@ -307,6 +318,15 @@ test('normalizeMetrics：fieldsByName 为 null 的那条 base 分支也透传 de
   // 没有 decimals 的输入不产键（而不是补 0）
   const without = normalizeMetrics([{ field: 'rate', agg: 'avg' }], { dialect, fieldsByName: null });
   assert.ok(!('decimals' in without[0]), `无 decimals 时不应产键，实际: ${JSON.stringify(without[0])}`);
+
+  // 同一形状下再过一遍响应投影：SQL 数据集那条路上 provider 自己 normalize 再投影，
+  // 所以「内联不产键、库指标照常带」必须在这条形状上也成立。provider 的两处调用点
+  // 只有连了真库才跑得到（属那 18 个 skipped），这段就是可离线验的那一半。
+  assert.ok(!('decimals' in projectMetrics(without)[0]),
+    `SQL 形状的内联指标过投影后也不该产 decimals，实际: ${JSON.stringify(projectMetrics(without)[0])}`);
+  assert.equal(projectMetrics(withKind)[0].decimals, 1, 'SQL 形状的库指标过投影后应带上 decimals');
+  assert.equal(projectMetrics(withKind)[1].decimals, 2, 'SQL 形状的复合指标过投影后应带上 decimals');
+  assert.equal(projectMetrics(withKind)[2].decimals, 5, 'SQL 形状的衍生指标过投影后应带上 decimals');
 });
 
 test('被 SQL 改坏的越界 decimals 到不了响应里（真 aggregate 全链路）', async () => {
@@ -327,36 +347,22 @@ test('被 SQL 改坏的越界 decimals 到不了响应里（真 aggregate 全链
   assert.equal(res.rows.length, 2, '取值本身不受影响（decimals 只管显示）');
 });
 
-// ---- 投影只有一份：projectMetrics ----
-//
-// 指标响应投影（normalizeMetrics 产物 → /data 的 metrics[]）曾在三个文件里各抄一份：
-// query-engine.js 一份、sql-data-provider.js 两份。抄一份的代价是「给响应加字段」这件事
-// 要改三处，漏一处就是静默丢字段——decimals 已经在这上面栽过一次（SQL 数据集走 provider，
-// 库指标的 decimals 到不了前端）。现在统一走 projectMetrics。
-//
-// 下面的守卫是源码契约：SQL provider 的两处调用点只有连了真库才跑得到（本仓库那批属于
-// 18 个 skipped），没有活实例可测，所以「它们确实调了 projectMetrics」只能用源码断言钉住。
+test('projectMetrics：无 decimals 时键集合与旧投影完全一致', () => {
+  // 只断言键集合，不断言键序：JSON 键序无语义，为可读性重排不是回归，钉死会变成假回归。
+  // 键名与「多产键」仍是契约（既有测试和前端都按这几个键读）。
+  const keysOf = (o) => Object.keys(o).sort();
+  assert.deepEqual(keysOf(projectMetrics([{ key: 'm0', kind: 'base', field: 'm0', agg: 'avg', label: '负荷率(avg)' }])[0]),
+    ['agg', 'field', 'key', 'kind', 'label']);
+  assert.deepEqual(keysOf(projectMetrics([{ key: 'm1', kind: 'expr', field: 'm1', agg: 'expr', expr: '$m0*2', label: '倍数' }])[0]),
+    ['agg', 'expr', 'field', 'key', 'kind', 'label']);
+  assert.deepEqual(keysOf(projectMetrics([{ key: 'm2', kind: 'derived', field: 'm2', agg: 'share', derivedKind: 'share', ref: 'm1', label: '占比' }])[0]),
+    ['agg', 'derivedKind', 'field', 'key', 'kind', 'label', 'ref']);
 
-const SRC = path.join(__dirname, '..', 'src');
-const readSrc = (rel) => fs.readFileSync(path.join(SRC, rel), 'utf8');
-
-// 手写投影的指纹：三份拷贝里都有、且只在它们里面有的一行
-const HAND_ROLLED = /derivedKind:\s*m\.derivedKind/;
-
-test('projectMetrics：无 decimals 时逐键（含顺序）与旧投影完全一致', () => {
-  // 既有测试与前端都按这个形状读，改键名/改顺序/多产键都是回归，故连顺序一起断言
-  assert.deepEqual(Object.keys(projectMetrics([{ key: 'm0', kind: 'base', field: 'm0', agg: 'avg', label: '负荷率(avg)' }])[0]),
-    ['key', 'kind', 'field', 'agg', 'label']);
-  assert.deepEqual(Object.keys(projectMetrics([{ key: 'm1', kind: 'expr', field: 'm1', agg: 'expr', expr: '$m0*2', label: '倍数' }])[0]),
-    ['key', 'kind', 'field', 'agg', 'label', 'expr']);
-  assert.deepEqual(Object.keys(projectMetrics([{ key: 'm2', kind: 'derived', field: 'm2', agg: 'share', derivedKind: 'share', ref: 'm1', label: '占比' }])[0]),
-    ['key', 'kind', 'field', 'agg', 'label', 'derivedKind', 'ref']);
-
-  // decimals 插在 label 之后、expr/derived 之前（与 2c903b6 在 query-engine 里落的位次一致）
-  assert.deepEqual(Object.keys(projectMetrics([{ key: 'm0', kind: 'base', field: 'm0', agg: 'avg', label: 'L', decimals: 2 }])[0]),
-    ['key', 'kind', 'field', 'agg', 'label', 'decimals']);
-  assert.deepEqual(Object.keys(projectMetrics([{ key: 'm1', kind: 'derived', field: 'm1', agg: 'share', derivedKind: 'share', ref: 'm0', label: 'L', decimals: 2 }])[0]),
-    ['key', 'kind', 'field', 'agg', 'label', 'decimals', 'derivedKind', 'ref']);
+  // 带 decimals 的两种形状（base / derived）同样只钉键集合
+  assert.deepEqual(keysOf(projectMetrics([{ key: 'm0', kind: 'base', field: 'm0', agg: 'avg', label: 'L', decimals: 2 }])[0]),
+    ['agg', 'decimals', 'field', 'key', 'kind', 'label']);
+  assert.deepEqual(keysOf(projectMetrics([{ key: 'm1', kind: 'derived', field: 'm1', agg: 'share', derivedKind: 'share', ref: 'm0', label: 'L', decimals: 2 }])[0]),
+    ['agg', 'decimals', 'derivedKind', 'field', 'key', 'kind', 'label', 'ref']);
 
   // 内部字段（sqlExpr/alias）不得漏进响应
   const out = projectMetrics([{ key: 'm0', kind: 'base', field: 'm0', agg: 'avg', label: 'L', sqlExpr: 'AVG("x")', alias: '_m0' }])[0];
@@ -365,7 +371,15 @@ test('projectMetrics：无 decimals 时逐键（含顺序）与旧投影完全�
   assert.deepEqual(projectMetrics(undefined), [], 'undefined 输入不抛');
 });
 
-test('projectMetrics：decimals 整数才下发，脏值一律不产键', () => {
+test('projectMetrics 作为导出边界：直接喂脏值也不产键（生产路径走不到这里）', () => {
+  // 这条是导出边界上的兜底，不是「生产链路的脏值防线」——真正的关卡是 normalizeMetrics：
+  // 生产三个调用点（query-engine 一处、sql-data-provider 两处）传进来的都是它的产物，
+  // 早就过滤过一遍，所以下面这张表在生产里一个值都拦不到。它钉的是「万一将来多一个
+  // 不经 normalizeMetrics 的调用方，别把脏值当渲染精度发出去」。
+  //
+  // 也别把它读成「库指标的任何脏值都不下发」：库指标行的类型脏值在 metrics-library.service
+  // 的 parseRow 就被 Number() 归一了（'3'→3、'abc'→0），那两种照样下发；库指标实际能
+  // 被挡下的只有越界值（999 / -1），那条已由上面「真 aggregate 全链路」那条覆盖。
   const mk = (decimals) => {
     const m = { key: 'm0', kind: 'base', field: 'm0', agg: 'avg', label: 'L' };
     if (decimals !== 'ABSENT') m.decimals = decimals;
@@ -374,7 +388,8 @@ test('projectMetrics：decimals 整数才下发，脏值一律不产键', () => 
   for (const n of [0, 2, 10]) {
     assert.equal(mk(n).decimals, n, `decimals=${n} 应原样下发`);
   }
-  // decimals=0 必须真的产出这个键：它要与「内联指标没有 decimals」区分开
+  // decimals=0 必须真的产出这个键：前端要用 `'decimals' in m` 区分库/内联指标，
+  // 补 0 之外的「键是否存在」本身是契约的一部分。
   assert.ok('decimals' in mk(0), '库指标的 decimals=0 也要下发，否则前端无法与内联指标区分');
 
   // 脏值不能变成一个假的渲染精度：越界/非整数一律不产键（而不是原样透传）
@@ -383,48 +398,4 @@ test('projectMetrics：decimals 整数才下发，脏值一律不产键', () => 
       `脏值 decimals=${JSON.stringify(bad)} 不应下发，实际: ${JSON.stringify(mk(bad))}`);
   }
   assert.ok(!('decimals' in mk('ABSENT')), '缺省时不应产键');
-});
-
-test('SQL 形状的内联指标经 projectMetrics 也不带 decimals（无需真库即可钉住）', () => {
-  // SQL 数据集走 sql-data-provider：它自己 normalizeMetrics（fieldsByName: null）再投影。
-  // 真库跑不到，就用同一段输入喂共享投影，钉住「内联指标在 SQL 形状下也不产 decimals」。
-  const dialect = { agg: { sum: 'SUM', avg: 'AVG', count: 'COUNT', count_distinct: 'COUNT(DISTINCT', max: 'MAX', min: 'MIN' }, quoteIdent: (x) => `"${x}"` };
-  const norm = normalizeMetrics([{ key: 'm0', field: 'rate', agg: 'avg', label: '内联负荷率' }], { dialect, fieldsByName: null, dimensionCount: 1 });
-  const out = projectMetrics(norm);
-  assert.ok(!('decimals' in out[0]), `SQL 形状的内联指标不应带 decimals，实际: ${JSON.stringify(out[0])}`);
-  assert.deepEqual(Object.keys(out[0]), ['key', 'kind', 'field', 'agg', 'label']);
-
-  // 库指标在这条形状下仍要带上 decimals（2c903b6 的 SQL provider 漏的就是这个）
-  const libNorm = normalizeMetrics([{ key: 'm0', field: 'rate', agg: 'avg', label: '库指标', decimals: 4 }], { dialect, fieldsByName: null });
-  assert.equal(projectMetrics(libNorm)[0].decimals, 4);
-});
-
-test('指标响应投影只有一份，三个调用点都走它', () => {
-  const qe = readSrc('engines/query-engine.js');
-  const sqlp = readSrc('datasources/sql-data-provider.js');
-  const me = readSrc('engines/metrics.js');
-
-  assert.equal((me.match(new RegExp(HAND_ROLLED.source, 'g')) || []).length, 1,
-    'engines/metrics.js 里应恰好有一份手写投影（即共享的那份）');
-  for (const [name, src] of [['engines/query-engine.js', qe], ['datasources/sql-data-provider.js', sqlp]]) {
-    assert.equal((src.match(new RegExp(HAND_ROLLED.source, 'g')) || []).length, 0,
-      `${name} 里仍留着手写的指标投影，应改为调用 projectMetrics —— 给响应加字段要改三处就会漏`);
-  }
-
-  // 调用点数：引擎 1 处 + SQL provider 2 处（直查表 / 子查询源）
-  assert.equal((qe.match(/projectMetrics\(/g) || []).length, 1, 'query-engine 应恰好有一处调用');
-  assert.equal((sqlp.match(/projectMetrics\(/g) || []).length, 2, 'sql-data-provider 应恰好有两处调用');
-  assert.match(readSrc('engines/metrics.js'), /module\.exports\s*=\s*\{[^}]*\bprojectMetrics\b/s,
-    'projectMetrics 未导出，调用方 require 不到');
-});
-
-test('守卫本身有效：重新塞一份手写投影会被上面那条抓住', () => {
-  // 规则恒真的话，上面那条就是装饰品。拿真代码里被删掉的那份投影做反例。
-  const stale = `  const metrics = normMetrics.map((m) => ({
-    key: m.key,
-    kind: m.kind,
-    ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
-  }));`;
-  assert.ok(HAND_ROLLED.test(stale), '指纹正则认不出旧投影，源码守卫会失效');
-  assert.ok(!HAND_ROLLED.test('const metrics = projectMetrics(normMetrics);'), '新写法被误判');
 });

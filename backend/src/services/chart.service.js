@@ -123,6 +123,18 @@ async function validateChartPayload(body) {
   if (!Array.isArray(config.metrics) || config.metrics.length === 0) {
     throw new HttpError(400, '图表至少需要一个指标');
   }
+  // decimals 归指标库所有：内联指标带它等于客户端绕过 metrics 表的全部校验偷传显示精度，
+  // 而响应层靠「有没有这个键」区分库指标/内联指标（见 engines/metrics.js 的 projectMetrics），
+  // 于是这个判别式能被客户端说谎——内联指标会静默按某个精度渲染，且没有任何 UI 能解释。
+  // /datasets/:id/query 那条路不用管：它的 zod schema 会剥掉未知键，只有图表配置原样入库。
+  // 库指标（type: 'saved'）不受影响：它带不带着这个键，最终都按 metricId 去指标库取值。
+  // typeof 那道判断是为了非对象的脏配置（config.metrics 是客户端原样送进来的 JSON）：
+  // 字符串上用 `in` 会抛 TypeError 变成 500，而它今天的归宿是 /data 时的 400。
+  for (const [i, m] of config.metrics.entries()) {
+    if (m && typeof m === 'object' && m.type !== 'saved' && 'decimals' in m) {
+      throw new HttpError(400, `第 ${i + 1} 个指标不能带 decimals（该字段由指标库配置）`);
+    }
+  }
   return {
     name: String(body.name).trim().slice(0, 100),
     chartType,

@@ -50,8 +50,16 @@ function buildExprSql(expr, baseByKey) {
   });
 }
 
-// 指标显示小数位上限：后端唯一定义（metrics-library.service.js 从这里 import），
-// 前端 utils/num-format.js 另有一份跨包副本，改这里时需同步那一份。
+// 指标显示小数位上限：后端唯一定义——写入校验（metrics-library.service.js 的
+// normalizeMetricDecimals）与下发判定（下面的 decimalsPatch）都从这里 import。
+// 两边各存一份的话，最坏是「校验放行但下发丢弃」这类静默分叉：值合法，却渲染不出。
+//
+// 仍各写一份字面量的是 routes/dataset.routes.js 的两处 zod schema（.max(10)）。
+// 那是本仓的既有风格（没有 route 从别处 import 边界常量），为一个上限破例不划算；
+// 真把这里改到别的值，分叉会先被 service 边界用例（decimals=11 应被拒绝）当场变红，
+// 不会静默。
+//
+// Task 4 会在前端 utils/num-format.js 落一份跨包副本，届时改这里需同步那一份。
 const LIB_MAX_DECIMALS = 10;
 
 /**
@@ -63,9 +71,12 @@ const LIB_MAX_DECIMALS = 10;
  * 两条边界都不是洁癖：
  *  - 缺省时**不产键**而不是补 0 —— 响应层据此区分「库指标 / 图表内联指标」，
  *    无脑补 0 会让内联指标也被按 0 位小数渲染，等于给所有内联图表换上取整显示。
- *  - 越界脏值不产键而不是原样透传 —— 库里被直接 SQL 改坏的行（create/update 都校验过，
+ *  - 越界值不产键而不是原样透传 —— 库里被直接 SQL 改坏的行（create/update 都校验过，
  *    只有绕过应用才可能）若带着 decimals=999 一路走到前端，会变成一个荒谬的渲染精度；
  *    丢键只是退回前端默认格式，坏值留痕在库和 service 层。
+ *    别把这条读成「任何脏值都不下发」：库指标行的类型脏值在 metrics-library.service 的
+ *    parseRow 就被 Number() 归一了（'3'→3、'abc'→0），那两种照样下发；
+ *    库指标实际能在这里被挡下的只有越界值，非整数判定主要兜直接调本模块的调用方。
  */
 function decimalsPatch(raw) {
   const n = raw.decimals;
@@ -80,11 +91,16 @@ function decimalsPatch(raw) {
  * decimals 就这么在 SQL 数据集那条路上丢过一次（走 provider 的两份投影都没跟上）。
  * 新增响应字段只应改这里一处。
  *
- * 形状约定（既有测试与前端都按它读，改键名/改顺序/多产键都是回归）：
+ * 形状约定（改键名/多产键都是回归；JSON 键序无语义，为可读性重排不算回归，测试只断言键集合）：
  *   base    key/kind/field/agg/label
  *   expr    + expr
  *   derived + derivedKind/ref
- * decimals 由 decimalsPatch 决定放不放（合法才放），位置在 label 之后、expr/derived 之前。
+ * decimals 由 decimalsPatch 决定放不放（合法才放），排在 label 之后、expr/derived 之前
+ * （纯排版，不是有契约的位次）。
+ *
+ * 前端读法（Task 4 照此实现）：判「库指标 / 内联指标」必须用 `'decimals' in m`，
+ * 不能写 `if (m.decimals)`——decimals 的默认值就是 0，绝大多数库指标带的都是 0，
+ * 真值判断会把它们全误判成内联指标。
  *
  * @param {Array} metrics normalizeMetrics 的产物
  * @returns {Array} 响应用的指标定义数组
@@ -96,6 +112,11 @@ function projectMetrics(metrics) {
     field: m.field,
     agg: m.agg,
     label: m.label,
+    // 导出边界上的复查。真正的关卡是 normalizeMetrics（本函数的入参必经它），
+    // 生产三个调用点传进来的都已经过 decimalsPatch 过滤，所以这里判不出任何新东西——
+    // 全链路「什么算合法显示精度」只写在 decimalsPatch 一处。
+    // 留着是因为 projectMetrics 是导出函数：将来多一个不经 normalizeMetrics 的调用方时，
+    // 这一行是顺手的兜底，而不是又一张散在别处的白名单。
     ...decimalsPatch(m),
     ...(m.kind === 'expr' ? { expr: m.expr } : {}),
     ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
@@ -109,7 +130,8 @@ function projectMetrics(metrics) {
  * - derived 衍生指标：share/mom/yoy/cumsum/rank，无 SQL 表达式（sqlExpr=null），由 applyDerived 后处理
  *
  * decimals（显示小数位）在三个分支都原样透传；本函数按字面量重建指标、不 spread 原始输入，
- * 漏列的字段会静默消失，故新增字段必须逐分支补齐。
+ * 漏列的字段会静默消失，所以新增字段仍要逐分支补一行——但补的是 `...decimalsPatch(raw)`
+ * 这样的一次 spread，「什么算合法」只写在 decimalsPatch 一处，别在每个分支再手写一遍判定。
  * @param {Array} metrics
  * @param {object} opts { dialect, fieldsByName?, dimensionCount? }
  */
