@@ -522,4 +522,200 @@ t('te 为假时不调用 t（避免 missingWarn 噪声）', () => {
   assert.equal(calls, 2, 'te 为真时 t 的调用次数不对')
 })
 
+// 角色名接入点围栏：界面上出现的角色名/描述必须经 roleName/roleDesc 解析。
+// 前面所有断言都只管 role-label.js 这个纯函数本身。字面量键扫描看不穿 keyOf 拼出的动态前缀
+// （'admin.role.builtinLabels.' + code，见上面 :354-365），种子测试只保证词典完整、不保证每个
+// 渲染点都用了它。于是把某处改回 {{ row.name }} 会静默上线：英文界面下那一处又变回数据库里的
+// 中文，没有任何测试失败。这里补上「调用点」这一侧。
+//
+// 匹配前先四重收窄，因为范围不收就必然误伤：全部 .vue 里有 269 行含 .name（实测），绝大部分与角色无关
+// （图表系列名、数据字段名、大屏组件名、用户昵称……）。
+//   1) 只有触碰 RBAC 角色的 .vue 进围栏。判据逐条都是角色专有词，且刻意不以 roleName 本身为据：
+//      新增第 4 个接入点时如果整处忘了 roleName，仍要落进围栏。
+//   2) 剥注释：RoleAdmin.vue:146 的注释里就写着 permissions.name。
+//   3) 只剥单引号字符串：t('admin.role.name') 是取词典的正确写法，与 row.name 字面同形。
+//      刻意不剥双引号——Vue 模板里 "..." 绝大多数是属性值表达式而不是字符串字面量，
+//      剥掉它就等于把 :label="row.name" 这类展示位一起藏起来。
+//      同样不剥反引号：${...} 里是代码，剥掉等于把违规一起剥掉。
+//   4) 截掉 <style 之后：CSS 类名 .name 与字段读取无法区分。
+const ROLE_FILE_EVIDENCE = [
+  /from\s*'@\/i18n\/role-label'/,
+  /\broleIds\b/,
+  /\bis_builtin\b/,
+  /\badmin\.role\./,
+  /\badmin\.user\.roles\b/,
+  /\badminApi\.(?:roles|createRole|updateRole|deleteRole)\b/,
+  /\bhasPermission\(\s*'role'/,
+  /\broleName\s*\(/,
+  /\broleDesc\s*\(/,
+  /\broleNameOf\b/,
+  /\broleDescOf\b/,
+  /\broleByCode\b/,
+]
+
+// 已知接入点。判据（ROLE_FILE_EVIDENCE）写错会让围栏扫不到任何文件、测试全绿而角色名照样能
+// 绕过，所以用这三个文件当哨兵：任一落空就说明扫描范围本身失效了。
+const ROLE_FILES = [
+  'components/layout/UserMenu.vue',
+  'views/admin/RoleAdmin.vue',
+  'views/admin/UserAdmin.vue',
+]
+
+// 围栏内合法读原文的整行登记，每行给出原因。这些行显示或传递的确实是数据库原文，翻译了就存不回去。
+// match 存整行（trim 后）而不是片段：片段匹配会让 {{ row.name }} 蹭进 row.name 那条豁免，
+// 于是把名称列改回违规写法反倒变绿。整行匹配下改动任一行都会让豁免失效，由下面的僵尸检查兜住。
+const ROLE_NAME_PASSTHROUGH = [
+  {
+    file: 'components/layout/UserMenu.vue',
+    match: "{{ (auth.user?.name || auth.user?.email || 'U').slice(0, 1).toUpperCase() }}",
+    reason:
+      '顶栏头像的首字母取自当前用户自己的昵称/邮箱，不是角色名；同一处的角色串走的是 roleName(t, te, r)。',
+  },
+  {
+    file: 'components/layout/UserMenu.vue',
+    match: '<span class="user-name">{{ auth.user?.name || auth.user?.email }}</span>',
+    reason: '顶栏显示的是当前用户自己的昵称。用户昵称不翻译，更不该经 roleName。',
+  },
+  {
+    file: 'views/admin/RoleAdmin.vue',
+    match:
+      '<el-form-item :label="t(\'admin.role.nameLabel\')"><el-input v-model="form.name" maxlength="50" /></el-form-item>',
+    reason:
+      '编辑弹窗的名称输入框绑的是表单模型 form.name，不是角色行；该弹窗只为自定义角色打开，' +
+      '这里输入的就是要入库的原文。',
+  },
+  {
+    file: 'views/admin/RoleAdmin.vue',
+    match:
+      '<el-form-item :label="t(\'admin.role.descLabel\')"><el-input v-model="form.description" maxlength="200" /></el-form-item>',
+    reason: '同上，描述输入框绑表单模型 form.description，入库原文，不经 roleDesc。',
+  },
+  {
+    file: 'views/admin/RoleAdmin.vue',
+    match:
+      "form.value = { code: row.code, name: row.name, description: row.description || '', permissions: [...row.permissions] }",
+    reason:
+      '编辑弹窗只为自定义角色打开（编辑按钮 :disabled="!isCustom(row)"），灌进表单的必须是库里的原文，' +
+      '换成译文就再也存不回去。',
+  },
+  {
+    file: 'views/admin/RoleAdmin.vue',
+    match: "if (!form.value.name.trim()) return ElMessage.warning(t('admin.role.nameRequired'))",
+    reason: '表单非空校验，校验的是即将提交入库的原文，不是展示文案。',
+  },
+  {
+    file: 'views/admin/RoleAdmin.vue',
+    match:
+      'await adminApi.updateRole(editingId.value, { name: form.value.name, description: form.value.description, permissions: form.value.permissions })',
+    reason: 'updateRole 请求载荷必须传库里的原文，界面译文不该回写数据库。',
+  },
+  {
+    file: 'views/admin/RoleAdmin.vue',
+    match:
+      'await adminApi.createRole({ code: form.value.code, name: form.value.name, description: form.value.description, permissions: form.value.permissions })',
+    reason: 'createRole 请求载荷同理：入库存原文，显示时才经 roleName/roleDesc 解析。',
+  },
+  {
+    file: 'views/admin/UserAdmin.vue',
+    match:
+      '<el-form-item :label="t(\'admin.user.fieldNickname\')"><el-input v-model="createForm.name" maxlength="50" /></el-form-item>',
+    reason: '新建用户弹窗的昵称输入框绑的是用户表单 createForm.name；与角色同名但不是角色名。',
+  },
+  {
+    file: 'views/admin/UserAdmin.vue',
+    match: "if (!f.name.trim()) return ElMessage.warning(t('admin.user.nicknameRequired'))",
+    reason: '新建用户表单的昵称非空校验，f 是用户表单对象，不是角色。',
+  },
+  {
+    file: 'views/admin/UserAdmin.vue',
+    match:
+      'await adminApi.createUser({ email: f.email.trim(), name: f.name.trim(), password: f.password, roleIds: f.roleIds })',
+    reason:
+      'createUser 的 name 是用户昵称，与角色的 name 同名字段却是两回事；载荷里真正的角色是 roleIds。',
+  },
+]
+
+// 只要求前面有个点，不限定接收者：(row).name、roles[i].name、?.name 这些形态都要能抓到，
+// 否则「换个写法绕过」就等于绕过围栏。
+const ROLE_FIELD_READ = /\.(?:name|description)\b/
+// load 时把库里的中文名冻结成 code→name 映射、渲染期再查表（UserAdmin.vue:164 的注释正是
+// 这么警告的）：这类写法在展示位根本不出现 .name，只索引一张名字表，语言切换后表里仍是旧中文。
+const ROLE_NAME_LOOKUP = /\b[A-Za-z_$][\w$]*(?:name|label)[A-Za-z_$]*\s*\[/i
+
+// 剥注释时用空格替换而非删除，保住行号——报错要能指到具体哪一行。
+const blankOut = (m) => m.replace(/[^\n]/g, ' ')
+const stripComments = (src) =>
+  src
+    .replace(/<!--[\s\S]*?-->/g, blankOut)
+    .replace(/\/\*[\s\S]*?\*\//g, blankOut)
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, head) => head + blankOut(m.slice(head.length)))
+// 只剥单引号：i18n 键与 JS 字符串在本仓库一律用单引号，双引号在 Vue 模板里通常是属性值表达式
+// （:label="row.name"），剥掉就把真正的展示位藏起来了。转义引号一并容忍。
+const stripStrings = (line) => line.replace(/'(?:[^'\\]|\\.)*'/g, "''")
+
+// 收集逻辑与本文件上面两处源码扫描相同，刻意各写一份：复用要改动现有断言的收集代码。
+function vueSources() {
+  const out = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'locales') continue
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (extname(p) === '.vue') out.push({ rel: p.replace(SRC, ''), body: readFileSync(p, 'utf8') })
+    }
+  }
+  walk(SRC)
+  return out
+}
+
+const usedPassthrough = new Set()
+
+t('界面角色名/描述都经 roleName/roleDesc 解析（绕过直取 .name 会失败）', () => {
+  const files = vueSources().map((f) => ({ ...f, body: stripComments(f.body) }))
+  const gated = files.filter((f) => ROLE_FILE_EVIDENCE.some((re) => re.test(f.body)))
+  for (const rel of ROLE_FILES) {
+    assert.ok(
+      gated.some((f) => f.rel === rel),
+      `角色接入点未落进围栏扫描范围（ROLE_FILE_EVIDENCE 判据可能已失效）: ${rel}`,
+    )
+  }
+
+  const hits = []
+  for (const { rel, body } of gated) {
+    // 截掉 <style 之后：CSS 类名 .name 与字段读取无法区分
+    body.split(/<style[\s>]/)[0].split('\n').forEach((line, i) => {
+      const code = line.trim()
+      const passthrough = ROLE_NAME_PASSTHROUGH.find((e) => e.file === rel && e.match === code)
+      if (passthrough) {
+        usedPassthrough.add(passthrough)
+        return
+      }
+      const probe = stripStrings(line)
+      const fix = '应在渲染期调用 roleName(t, te, role) / roleDesc(t, te, role)，自定义角色会自动回退数据库原文'
+      if (ROLE_FIELD_READ.test(probe)) {
+        hits.push(`${rel}:${i + 1}  绕过了 roleName/roleDesc 直取角色字段，英文界面下这里会显示库里的中文\n    ${code}\n    ${fix}`)
+      } else if (ROLE_NAME_LOOKUP.test(probe)) {
+        hits.push(`${rel}:${i + 1}  按名字表索引角色名（load 时冻结的 code→name 映射，语言切换后不会刷新）\n    ${code}\n    ${fix}`)
+      }
+    })
+  }
+  assert.deepEqual(hits, [], `以下位置会让英文界面显示数据库里的中文角色名/描述:\n${hits.join('\n')}`)
+})
+
+t('角色名原文用法的豁免都写明了原因', () => {
+  for (const e of ROLE_NAME_PASSTHROUGH) {
+    assert.ok(
+      e.reason && e.reason.length >= 20,
+      `豁免缺少充分原因（须说明为何这里显示/传递的就是数据库原文）: ${e.file} ${e.match}`,
+    )
+    assert.ok(e.file && e.match, `豁免缺少文件或整行匹配内容: ${JSON.stringify(e.match)}`)
+  }
+})
+
+t('角色名原文用法的豁免全部命中（无僵尸配置）', () => {
+  for (const e of ROLE_NAME_PASSTHROUGH) {
+    assert.ok(usedPassthrough.has(e), `豁免已失效（代码已改动，或该文件已不再落进围栏范围）: ${e.file} ${e.match}`)
+  }
+})
+
 console.log(`i18n 词典测试：${passed} 项通过`)
