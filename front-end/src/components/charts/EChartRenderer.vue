@@ -15,7 +15,7 @@
   </div>
 
   <div v-else-if="builtOpt && (renderMode === 'stat' || renderMode === 'statTrend')" class="ec-non ec-stat-tile">
-    <div class="ec-stat-value">{{ fmtNumber(builtOpt._stat ? builtOpt._stat.value : builtOpt._statTrend.value) }}</div>
+    <div class="ec-stat-value">{{ formatNumber(builtOpt._stat ? builtOpt._stat.value : builtOpt._statTrend.value, builtOpt._stat ? builtOpt._stat.decimals : builtOpt._statTrend.decimals, i18n.global.locale.value) }}</div>
     <div class="ec-stat-label">{{ builtOpt._stat ? builtOpt._stat.label : builtOpt._statTrend.label }}</div>
   </div>
 
@@ -32,6 +32,7 @@ import { onBeforeUnmount, onMounted, ref, watch, computed, nextTick } from 'vue'
 import echarts, { createChart } from '@/utils/echarts'
 import { i18n } from '@/i18n'
 import { OPTION_BUILDERS } from '@/config/chart-configs'
+import { formatNumber } from '@/utils/num-format'
 import { getPalette } from '@/config/color-palettes'
 import ZRLine from 'zrender/lib/graphic/shape/Line.js'
 import ZRGroup from 'zrender/lib/graphic/Group.js'
@@ -105,12 +106,6 @@ const pctValue = computed(() => {
   const v = typeof p.value === 'number' ? p.value : Number(p.value) || 0
   return max > 0 ? Math.min(100, Math.round((v / max) * 100)) : 0
 })
-
-function fmtNumber(n) {
-  if (n === null || n === undefined) return '-'
-  if (typeof n !== 'number') return String(n)
-  return n.toLocaleString(i18n.global.locale.value, { maximumFractionDigits: 2 })
-}
 
 function initChart() {
   if (!el.value || chart) return

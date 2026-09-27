@@ -1,6 +1,7 @@
 import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-palettes'
 import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter, alignAuto, alignLeft, alignCenter, alignRight } from '../components/charts/control-icons'
 import { tr } from '@/i18n/translate'
+import { formatNumber } from '../utils/num-format'
 
 // ---- 主题默认值（明亮/背景/文字颜色由 ThemeConfigPanel 配置） ----
 export const DEFAULT_THEME = { mode: 'light', background: '', textColor: '' }
@@ -981,12 +982,6 @@ function applyLabelConfig(series, config, fallbackPosition) {
   return series
 }
 
-function fmtNum(n) {
-  if (n === null || n === undefined) return '-'
-  if (typeof n !== 'number') return String(n)
-  return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
-}
-
 // 按系列应用折线样式（线型/颜色/线宽/数据点/点大小），优先 seriesStyles[系列名]，未配置时用默认值
 function applyLineStyle(series, config) {
   series.lineStyle = { type: 'solid', width: 2, ...(series.lineStyle || {}) }
@@ -1136,8 +1131,8 @@ function buildPie(data, config, palette, type = 'pie') {
     const total = rows.reduce((a, r) => a + (Number(r[metric.field]) || 0), 0)
     const fontSize = config.centerFontSize || 22
     const subFontSize = config.centerSubFontSize || 12
-    const main = config.centerText || fmtNum(total)
-    const sub = config.centerSubtext || (config.centerText ? fmtNum(total) : '')
+    const main = config.centerText || formatNumber(total, metric?.decimals)
+    const sub = config.centerSubtext || (config.centerText ? formatNumber(total, metric?.decimals) : '')
     const graphic = [
       {
         type: 'text', left: 'center', top: '40%', z: 100, silent: true,
@@ -1485,14 +1480,14 @@ function buildProgress(data, config, type) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
   const value = rows?.[0]?.[metric?.field]
-  return { _progress: { value: value ?? 0, max: config.max ?? 100, label: metric?.label || '', type, config } }
+  return { _progress: { value: value ?? 0, max: config.max ?? 100, label: metric?.label || '', decimals: metric?.decimals, type, config } }
 }
 
 // ---- 指标卡 ----
 function buildStat(data, config) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
-  return { _stat: { value: rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), config } }
+  return { _stat: { value: rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), decimals: metric?.decimals, config } }
 }
 
 // ---- 指标趋势图 ----
@@ -1501,7 +1496,7 @@ function buildStatTrend(data, config) {
   const metric = metrics?.[0]
   const dim = data?.dimensions?.[0]
   const trend = rows?.map((r) => ({ label: String(r[`dim:${dim?.field}`]?.value ?? ''), value: r[metric?.field] })) || []
-  return { _statTrend: { value: trend[trend.length - 1]?.value ?? rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), trend, config } }
+  return { _statTrend: { value: trend[trend.length - 1]?.value ?? rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), decimals: metric?.decimals, trend, config } }
 }
 
 // ---- 地图返回占位 ----
