@@ -454,4 +454,30 @@ t('roleDesc 命中与回退', () => {
   assert.equal(roleDesc(fakeT, fakeTe, { code: 'c1', name: 'X' }), '')
 })
 
+// 前面 4 条里 is_builtin 为假/缺失的用例（unknown / x1 / c1 / {}）同时也让 fakeTe 返回 false，
+// 两个条件绑在一起，于是「只对内置角色查词典」这道闸门的实际效果观察不到：删掉 is_builtin
+// 或改成 === true，测试照样全绿，而自定义角色只要 code 与内置角色重名就会被翻译。
+// 这里把两个条件解耦：code 一律取 fakeTe 认的 admin/viewer（te 恒为 true），
+// 只让 is_builtin 变，于是闸门的真假两个分支都被断言到。
+t('is_builtin 闸门承重：假值不查词典，真值（含数字 1）才查', () => {
+  // 闸门假分支：code 命中词典也必须回退数据库原文。删掉闸门时这 4 条立刻变红。
+  assert.equal(roleName(fakeT, fakeTe, { code: 'admin', name: '财务专员' }), '财务专员')
+  assert.equal(roleName(fakeT, fakeTe, { code: 'admin', name: '财务专员', is_builtin: false }), '财务专员')
+  assert.equal(roleName(fakeT, fakeTe, { code: 'admin', name: '财务专员', is_builtin: 0 }), '财务专员')
+  assert.equal(
+    roleDesc(fakeT, fakeTe, { code: 'viewer', description: '自定义描述', is_builtin: 0 }),
+    '自定义描述',
+  )
+  // 闸门真分支必须是**真值判断**而非 === true：rolesOf() 的部分路径 is_builtin 是数字 1，
+  // 收紧成 === true 会让这些内置角色在英文界面掉回中文。这几条在 === true 下变红。
+  assert.equal(
+    roleName(fakeT, fakeTe, { code: 'admin', name: '管理员', is_builtin: 1 }),
+    'T:admin.role.builtinLabels.admin.name',
+  )
+  assert.equal(
+    roleDesc(fakeT, fakeTe, { code: 'viewer', description: '只读访问', is_builtin: 1 }),
+    'T:admin.role.builtinLabels.viewer.desc',
+  )
+})
+
 console.log(`i18n 词典测试：${passed} 项通过`)

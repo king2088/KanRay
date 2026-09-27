@@ -1,5 +1,5 @@
 // 角色文案取值纯函数：不依赖 Vue 实例，便于 node 测试直接引入。
-// t/te 由调用方注入——UserAdmin/RoleAdmin 传 useI18n() 的，
+// t/te 由调用方注入——UserAdmin/RoleAdmin 传 useI18n()，
 // UserMenu 传 @/i18n 的全局导出，两边签名一致。
 // 只对内置角色查词典；自定义角色直接用数据库里的原文，不做翻译。
 
