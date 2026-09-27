@@ -139,10 +139,26 @@ function fmtNumber(n) {
   return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
 }
 
+// 字段显示名：优先取数据集字段的 label（源列名），退回内部字段名。
+// f_8 这类别名只在完全没有 label 时兜底，不该出现在用户面前。
+function fieldLabelOf(name) {
+  if (!name) return ''
+  const f = datasetFields.value.find((x) => x.name === name)
+  return f?.label || name
+}
+
+// 指标显示名：图表配置里已存了指标名（如「总营收(元)」），直接用它；
+// 缺失时退回数据集字段 label，最后才用内部字段名。
+// 不拼接 (sum)/(avg)：看板是读数的地方，指标名本身已说明口径。
 function metricLabel(m) {
-  const f = m?.field
-  const agg = m?.agg
-  return `${f} (${agg || 'sum'})`
+  if (!m) return ''
+  return m.label || fieldLabelOf(m.field)
+}
+
+// 维度显示名：与指标同源，配置里的 label 优先
+function dimLabel(d) {
+  if (!d) return ''
+  return d.label || fieldLabelOf(d.field)
 }
 
 function calcMultiRing(m) {
@@ -176,8 +192,8 @@ async function run() {
   rows.value = res.data.rows || []
   // 表格列
   tableCols.value = []
-  dims.value.forEach((d) => tableCols.value.push({ key: `dim:${d.field}`, label: d.field }))
-  metrics.value.forEach((m) => tableCols.value.push({ key: `metric:${m.field}`, label: m.field }))
+  dims.value.forEach((d) => tableCols.value.push({ key: `dim:${d.field}`, label: dimLabel(d) }))
+  metrics.value.forEach((m) => tableCols.value.push({ key: `metric:${m.field}`, label: metricLabel(m) }))
   // 数值卡 / 进度
   if (metrics.value.length) {
     const first = res.data.rows[0]

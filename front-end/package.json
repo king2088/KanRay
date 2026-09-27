@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/grid-layout-test.mjs && node scripts/dbicons-test.mjs && node scripts/chart-data-test.mjs && node scripts/form-render-test.mjs && node scripts/dataset-type-test.mjs && node scripts/top-loading-test.mjs && node scripts/top-menu-active-test.mjs && node scripts/http-method-test.mjs && node scripts/api-error-toast-test.mjs && node scripts/chart-types-sync-test.mjs && node scripts/i18n-keys-test.mjs && node scripts/i18n-cjk-scan-test.mjs && node scripts/echarts-locale-test.mjs && node scripts/docs-i18n-fence-test.mjs"
+    "test": "node scripts/grid-layout-test.mjs && node scripts/dbicons-test.mjs && node scripts/chart-data-test.mjs && node scripts/form-render-test.mjs && node scripts/dataset-type-test.mjs && node scripts/top-loading-test.mjs && node scripts/top-menu-active-test.mjs && node scripts/dashboard-metric-label-test.mjs && node scripts/http-method-test.mjs && node scripts/api-error-toast-test.mjs && node scripts/chart-types-sync-test.mjs && node scripts/i18n-keys-test.mjs && node scripts/i18n-cjk-scan-test.mjs && node scripts/echarts-locale-test.mjs && node scripts/docs-i18n-fence-test.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
