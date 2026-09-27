@@ -40,7 +40,7 @@
       </el-table-column>
       <el-table-column :label="t('form.share.actions')" width="140" align="center">
         <template #default="{ row }">
-          <el-button link type="primary" @click="copy(row)">{{ t('form.share.copyLink') }}</el-button>
+          <el-button link type="primary" @click="copy(row)">{{ t('common.actions.copy') }}</el-button>
           <el-button link type="danger" @click="remove(row)">{{ t('form.share.delete') }}</el-button>
         </template>
       </el-table-column>
@@ -131,6 +131,10 @@ watch(
   (open) => {
     if (open && props.formId) load()
   },
+  // immediate: true 是必需的，不是保险：FormShareDialog 的父组件用 v-if 挂载，
+  // 组件挂载时 modelValue 已经是 true，watch 不带 immediate 就永远不会触发，
+  // load() 一次都不会执行，分享记录只能靠 create() 里的本地插入，关闭再打开就空了。
+  { immediate: true },
 )
 </script>
 

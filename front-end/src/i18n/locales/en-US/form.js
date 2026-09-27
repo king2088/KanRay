@@ -157,7 +157,6 @@ export default {
     never: 'Never',
     status: 'Status',
     actions: 'Actions',
-    copyLink: 'Copy link',
     delete: 'Delete',
     passwordTooShort: 'The access password needs at least 4 characters',
     createSuccess: 'Share link created',

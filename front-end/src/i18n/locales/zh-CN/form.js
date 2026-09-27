@@ -157,7 +157,6 @@ export default {
     never: '永久',
     status: '状态',
     actions: '操作',
-    copyLink: '复制链接',
     delete: '删除',
     passwordTooShort: '访问密码至少 4 位',
     createSuccess: '分享创建成功',

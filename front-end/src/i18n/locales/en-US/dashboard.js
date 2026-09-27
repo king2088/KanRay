@@ -14,7 +14,6 @@ export default {
     colStatus: 'Status',
     colActions: 'Actions',
     forever: 'Never',
-    copyLink: 'Copy link',
     remove: 'Delete',
     errPasswordShort: 'The access password needs at least 4 characters',
     created: 'Share created',

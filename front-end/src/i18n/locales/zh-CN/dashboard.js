@@ -14,7 +14,6 @@ export default {
     colStatus: '状态',
     colActions: '操作',
     forever: '永久',
-    copyLink: '复制链接',
     remove: '删除',
     errPasswordShort: '访问密码至少 4 位',
     created: '分享创建成功',
