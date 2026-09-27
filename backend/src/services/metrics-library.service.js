@@ -7,6 +7,20 @@ const { uuidv7, isValidUuid7 } = require('../utils/uuidv7');
 const FORMULA_REMAINDER = /^[0-9+\-*/().%\s]*$/;
 const LIB_EXPR_TOKEN = /\$([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/g;
 
+// 指标显示小数位上限：与前端 utils/num-format.js 的 LIB_MAX_DECIMALS 保持一致
+const LIB_MAX_DECIMALS = 10;
+
+// 归一化并校验 decimals 列：缺省 → 0；必须是 0-10 的整数。
+// 该列是「指标怎么显示」，与 definition（怎么算）无关，故校验放在 create/update 入口。
+function normalizeMetricDecimals(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (!Number.isInteger(n) || n < 0 || n > LIB_MAX_DECIMALS) {
+    throw new HttpError(400, `指标小数位必须是 0-${LIB_MAX_DECIMALS} 的整数，收到: ${v}`);
+  }
+  return n;
+}
+
 function parseRow(row) {
   let definition = {};
   try {
@@ -20,6 +34,7 @@ function parseRow(row) {
     name: row.name,
     kind: row.kind,
     definition,
+    decimals: Number.isInteger(Number(row.decimals)) ? Number(row.decimals) : 0,
     owner_id: row.owner_id,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -105,32 +120,37 @@ async function assertMetricDefinition(datasetId, kind, definition) {
   throw new HttpError(400, `指标库仅支持 base/expr/derived 三种类型，收到: ${kind}`);
 }
 
-async function createMetric(datasetId, { name, kind, definition }, ownerId) {
+async function createMetric(datasetId, { name, kind, definition, decimals }, ownerId) {
   const n = String(name || '').trim();
   if (!n) throw new HttpError(400, '指标名称不能为空');
   if (!['base', 'expr', 'derived'].includes(kind)) {
     throw new HttpError(400, `指标类型仅支持 base/expr/derived，收到: ${kind}`);
   }
   await assertMetricDefinition(datasetId, kind, definition);
+  const dec = normalizeMetricDecimals(decimals);
   const defJson = JSON.stringify(definition || {});
   const metricId = uuidv7();
   const result = await db
-    .prepare('INSERT INTO metrics (id, dataset_id, name, kind, definition, owner_id) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(metricId, datasetId, n, kind, defJson, ownerId || null);
+    .prepare('INSERT INTO metrics (id, dataset_id, name, kind, definition, decimals, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(metricId, datasetId, n, kind, defJson, dec, ownerId || null);
   return getMetricRecord(datasetId, metricId);
 }
 
-async function updateMetric(datasetId, id, { name, definition } = {}) {
+async function updateMetric(datasetId, id, { name, definition, decimals } = {}) {
   const rec = await getMetricRecord(datasetId, id);
   const nextName = name !== undefined && name !== null ? String(name).trim() : rec.name;
   if (!nextName) throw new HttpError(400, '指标名称不能为空');
   if (definition !== undefined && definition !== null) {
     await assertMetricDefinition(datasetId, rec.kind, definition);
   }
+  // decimals 不传时保留原值（局部更新语义），与 name/definition 一致
+  const nextDecimals = decimals === undefined || decimals === null
+    ? rec.decimals
+    : normalizeMetricDecimals(decimals);
   const defJson = JSON.stringify(definition !== undefined && definition !== null ? definition : rec.definition);
   const stamp = new Date().toISOString();
-  await db.prepare('UPDATE metrics SET name = ?, definition = ?, updated_at = ? WHERE id = ? AND dataset_id = ?')
-    .run(nextName, defJson, stamp, id, datasetId);
+  await db.prepare('UPDATE metrics SET name = ?, definition = ?, decimals = ?, updated_at = ? WHERE id = ? AND dataset_id = ?')
+    .run(nextName, defJson, nextDecimals, stamp, id, datasetId);
   return getMetricRecord(datasetId, id);
 }
 

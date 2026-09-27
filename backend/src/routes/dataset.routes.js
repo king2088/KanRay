@@ -211,6 +211,7 @@ const metricBodySchema = z.object({
   name: z.string().min(1, '指标名称不能为空'),
   kind: z.enum(['base', 'expr', 'derived']),
   definition: z.record(z.any()).optional(),
+  decimals: z.number().int().min(0).max(10).optional(),
 }).strict();
 
 router.post('/:id/metrics', requireUser, requirePermission('dataset', 'update'), async (req, res) => {
@@ -228,6 +229,7 @@ router.put('/:id/metrics/:metricId', requireUser, requirePermission('dataset', '
   const parsed = z.object({
     name: z.string().optional(),
     definition: z.record(z.any()).optional(),
+    decimals: z.number().int().min(0).max(10).optional(),
   }).strict().safeParse(req.body);
   if (!parsed.success) throw new HttpError(400, '指标参数不正确', parsed.error.flatten());
   ok(res, await metricsLibrary.updateMetric(id, metricId, parsed.data), '指标更新成功');

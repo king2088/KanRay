@@ -95,6 +95,27 @@ test('路由 CRUD：create/list/update/delete + 越权数据集 404', async () =
   assert.equal(nf.status, 404);
 });
 
+test('路由：create 提交 decimals 不得被 .strict() 当未知键拒掉', async () => {
+  const created = await http('POST', `/api/datasets/${dsId}/metrics`, {
+    name: '带小数位', kind: 'base', definition: { field: 'amount', agg: 'avg' }, decimals: 2,
+  });
+  // 少了 metricBodySchema 里的 decimals，这里就是 400「指标参数不正确」
+  assert.equal(created.status, 200, JSON.stringify(created.body));
+  assert.equal(created.body.data.decimals, 2);
+  await http('DELETE', `/api/datasets/${dsId}/metrics/${created.body.data.id}`);
+});
+
+test('路由：update 只提交 decimals 不得被 .strict() 当未知键拒掉', async () => {
+  // 自己建指标（不带上 decimals），别依赖上一个用例——否则它挂了这里只会 404，
+  // 测不出 update schema 自己有没有放行 decimals
+  const m = await lib.createMetric(dsId, { name: '改小数位', kind: 'base', definition: { field: 'qty', agg: 'sum' } });
+  const upd = await http('PUT', `/api/datasets/${dsId}/metrics/${m.id}`, { decimals: 3 });
+  // 少了 PUT 内联 schema 里的 decimals，这里就是 400「指标参数不正确」
+  assert.equal(upd.status, 200, JSON.stringify(upd.body));
+  assert.equal(upd.body.data.decimals, 3);
+  await http('DELETE', `/api/datasets/${dsId}/metrics/${m.id}`);
+});
+
 test('路由：图表查询引用库内 base/expr/derived 混排', async () => {
   const share = await lib.createMetric(dsId, { name: '销售占比', kind: 'derived', definition: { derivative: 'share', refId: mAmount.id } });
   const res = await http('POST', `/api/datasets/${dsId}/query`, {
