@@ -29,7 +29,7 @@ const path = require('node:path');
 
 const { createStore } = require('../src/db/index');
 const { ensureSchema } = require('../src/db/schema');
-const { resetDb } = require('./helpers/db');
+const { db, resetDb } = require('./helpers/db');
 const datasetService = require('../src/services/dataset.service');
 const lib = require('../src/services/metrics-library.service');
 
@@ -181,4 +181,22 @@ test('updateMetric：decimals 缺省时保留原值', async () => {
   const m = await lib.createMetric(dsId, { name: '保留', kind: 'base', definition: { field: 'rate', agg: 'avg' }, decimals: 3 });
   const upd = await lib.updateMetric(dsId, m.id, { name: '改名了' });
   assert.equal(upd.decimals, 3, '不传 decimals 时应保留原值而不是重置为 0');
+});
+
+test('updateMetric：越界脏值让更新响亮地 400，而不是被静默固化', async () => {
+  const m = await lib.createMetric(dsId, { name: '脏行', kind: 'base', definition: { field: 'rate', agg: 'avg' }, decimals: 2 });
+  // 模拟被直接 SQL 写坏的行：正常写入路径已被 zod + service 双重拦住，这里只能手动制造
+  await db.prepare('UPDATE metrics SET decimals = ? WHERE id = ?').run(999, m.id);
+
+  // parseRow 只判整数不判范围，读出来仍是 999。updateMetric 若直接沿用 rec.decimals，
+  // 就会把越界值原样写回——一次异常从此永久固化并在后续每次更新中自我复制。
+  await assert.rejects(
+    () => lib.updateMetric(dsId, m.id, { name: '改名试试' }),
+    /小数位/,
+    '越界脏值应让更新 400，而不是把 999 原样固化',
+  );
+  // 拒绝发生在写库之前：既没改 name，也没有把脏值夹成合法值（夹取会洗掉篡改证据）
+  const rec = await lib.getMetricRecord(dsId, m.id);
+  assert.equal(rec.name, '脏行', '拒绝后不应改动 name');
+  assert.equal(rec.decimals, 999, '拒绝后脏值应原样保留，便于发现数据被改过');
 });
