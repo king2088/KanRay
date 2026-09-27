@@ -349,27 +349,43 @@ t('左侧面板 widget 数量与词典键数一致（漏一个就报错）', () 
   assert.equal(/name:\s*'[\u4e00-\u9fff]/.test(body), false, 'LeftPanel 仍有未迁移的中文 name 字面量')
 })
 
-// 内置角色 code 从 seeds.js 提取，不写死数量：加第 5 个角色时本测试自动跟随。
+// 内置角色从 seeds.js 提取，数量不写死，只留 4 作提取哨兵：加第 5 个角色时本测试自动跟随。
 // 后端是 CommonJS 且依赖 better-sqlite3，只做源码文本提取，与 chart-types-sync-test.mjs 同法。
+// code 的字符集与 RoleAdmin.vue 的 /^[a-z0-9_-]{2,32}$/ 对齐：漏掉数字或连字符会让新增角色
+// 提取不到，哨兵照样通过，测试静默放行——这正是它要防的失败模式。
+// 引号两种都容忍（同 stripStrings）：后端哪天统一改成双引号，当前提取会掉到 0 个 code。
 const seedsSrc = readFileSync(
   fileURLToPath(new URL('../../backend/src/seeds.js', import.meta.url)),
   'utf8',
 )
 const rolesBlock = seedsSrc.match(/const ROLES = \[([\s\S]*?)\];/)
 assert.ok(rolesBlock, '未能从 seeds.js 提取 ROLES 数组字面量')
-const builtinCodes = [...rolesBlock[1].matchAll(/code:\s*'([a-z_]+)'/g)].map((m) => m[1])
+const builtinRoles = [...rolesBlock[1].matchAll(
+  /code:\s*(['"])([a-z0-9_-]+)\1,\s*name:\s*(['"])([^'"]*)\3,\s*description:\s*(['"])([^'"]*)\5/g,
+)].map((m) => ({ code: m[2], seedName: m[4], seedDesc: m[6] }))
+const builtinCodes = builtinRoles.map((r) => r.code)
+assert.ok(builtinCodes.length >= 4, `从 seeds.js 只提取到 ${builtinCodes.length} 个角色 code，疑似提取失败`)
 
-t('内置角色在两语词典中都有名称与描述', () => {
-  assert.ok(builtinCodes.length >= 4, `从 seeds.js 提取到 ${builtinCodes.length} 个角色 code，疑似提取失败`)
+t('内置角色在两语词典中都有名称与描述，且键集与 seeds.js 一致', () => {
   for (const locale of SUPPORT_LOCALES) {
     const labels = locales[locale].admin?.role?.builtinLabels
     assert.ok(labels, `${locale} 缺少 admin.role.builtinLabels`)
-    for (const code of builtinCodes) {
+    for (const { code, seedName, seedDesc } of builtinRoles) {
       const entry = labels[code]
       assert.ok(entry, `${locale} 缺少内置角色 ${code} 的译文`)
+      // typeof 承重：两语都写成 `viewer: 'Viewer'` 这类字符串条目时，zh/en 键对齐与
+      // 「无空值与空白值」都会放行（flatten 把字符串当叶子），只有这里拦得住。
       for (const field of ['name', 'desc']) {
         assert.equal(typeof entry[field], 'string', `${locale}.${code}.${field} 不是字符串`)
-        assert.ok(entry[field].trim().length > 0, `${locale}.${code}.${field} 为空值`)
+      }
+      // 空值不用再查：这些键早已作为 admin.role.builtinLabels.<code>.<field> 落进
+      // zhFlat/enFlat，由「无空值与空白值」先行拦截，消息还更精确。
+      assert.deepEqual(Object.keys(entry).sort(), ['desc', 'name'], `${locale}.${code} 的字段应恰为 name/desc`)
+      // zh-CN 必须与种子逐字节相同：界面改读词典后就不再读库了，
+      // 改一次种子文案而漏改词典，届时全绿却显示旧中文。
+      if (locale === 'zh-CN') {
+        assert.equal(entry.name, seedName, `zh-CN.${code}.name 与 seeds.js 种子文案不一致`)
+        assert.equal(entry.desc, seedDesc, `zh-CN.${code}.desc 与 seeds.js 种子文案不一致`)
       }
     }
     assert.deepEqual(
