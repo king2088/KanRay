@@ -50,15 +50,57 @@ function buildExprSql(expr, baseByKey) {
   });
 }
 
+// 指标显示小数位上限：与 metrics-library.service.js 的 LIB_MAX_DECIMALS 及
+// 前端 utils/num-format.js 的 LIB_MAX_DECIMALS 三处保持一致。
+// （service 那份是重复字面量，本可以反过来从这里 import，但它不在本次改动范围内。）
+const LIB_MAX_DECIMALS = 10;
+
 /**
- * 指标显示小数位（decimals）的透传补丁。
- * 库指标由 metrics-library 的 emitRef 带下来；图表内联指标没有「显示精度」这个概念，
- * 源头就没有这个键。缺省时**不产键**而不是补 0 —— 响应层据此区分「库指标 / 内联指标」，
- * 若无脑补 0，前端会把内联指标也按 0 位小数渲染，等于给所有内联图表换上取整显示。
- * 非整数（含 null/NaN/字符串）同样不产键：这里只透传，不做校验（校验在 create/update 入口）。
+ * decimals（指标库配置的显示小数位）的透传补丁：合法才产键，否则产空补丁。
+ *
+ * 合法性 = 0-LIB_MAX_DECIMALS 的整数。normalizeMetrics 与 projectMetrics 共用这一处判定，
+ * 全链路只有这一个「什么算合法显示精度」的定义。
+ *
+ * 两条边界都不是洁癖：
+ *  - 缺省时**不产键**而不是补 0 —— 响应层据此区分「库指标 / 图表内联指标」，
+ *    无脑补 0 会让内联指标也被按 0 位小数渲染，等于给所有内联图表换上取整显示。
+ *  - 越界脏值不产键而不是原样透传 —— 库里被直接 SQL 改坏的行（create/update 都校验过，
+ *    只有绕过应用才可能）若带着 decimals=999 一路走到前端，会变成一个荒谬的渲染精度；
+ *    丢键只是退回前端默认格式，坏值留痕在库和 service 层。
  */
 function decimalsPatch(raw) {
-  return Number.isInteger(raw.decimals) ? { decimals: raw.decimals } : {};
+  const n = raw.decimals;
+  return Number.isInteger(n) && n >= 0 && n <= LIB_MAX_DECIMALS ? { decimals: n } : {};
+}
+
+/**
+ * 指标响应投影：normalizeMetrics 的产物 → /data 响应里 metrics[] 的形状。全仓唯此一份。
+ *
+ * 为什么要抽出来：这层投影曾是三份手抄（query-engine 一份、sql-data-provider 两份），
+ * 每份各带一张显式白名单，于是「给指标响应加个字段」要改三处，漏一处就静默丢字段——
+ * decimals 就这么在 SQL 数据集那条路上丢过一次（走 provider 的两份投影都没跟上）。
+ * 新增响应字段只应改这里一处。
+ *
+ * 形状约定（既有测试与前端都按它读，改键名/改顺序/多产键都是回归）：
+ *   base    key/kind/field/agg/label
+ *   expr    + expr
+ *   derived + derivedKind/ref
+ * decimals 由 decimalsPatch 决定放不放（合法才放），位置在 label 之后、expr/derived 之前。
+ *
+ * @param {Array} metrics normalizeMetrics 的产物
+ * @returns {Array} 响应用的指标定义数组
+ */
+function projectMetrics(metrics) {
+  return (metrics || []).map((m) => ({
+    key: m.key,
+    kind: m.kind,
+    field: m.field,
+    agg: m.agg,
+    label: m.label,
+    ...decimalsPatch(m),
+    ...(m.kind === 'expr' ? { expr: m.expr } : {}),
+    ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
+  }));
 }
 
 /**
@@ -295,4 +337,4 @@ function applyDerived(rows, dimensions, defs) {
   return { rows, warnings };
 }
 
-module.exports = { normalizeMetrics, buildExprSql, aggSql, AGG_FUNCS, applyDerived, DERIVED_KINDS };
+module.exports = { normalizeMetrics, projectMetrics, buildExprSql, aggSql, AGG_FUNCS, applyDerived, DERIVED_KINDS };

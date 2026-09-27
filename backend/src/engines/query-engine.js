@@ -4,7 +4,7 @@ const HttpError = require('../utils/http-error');
 const { getDatasetOrThrow, getFieldsOrThrow } = require('../services/dataset.service');
 const sqlDataProvider = require('../datasources/sql-data-provider');
 const metricsLibrary = require('../services/metrics-library.service');
-const { normalizeMetrics, applyDerived, AGG_FUNCS } = require('./metrics');
+const { normalizeMetrics, projectMetrics, applyDerived, AGG_FUNCS } = require('./metrics');
 
 const TIME_GRANULARITY = {
   day: '%Y-%m-%d',
@@ -215,19 +215,7 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
 
   return {
     dimensions: dimensions.map((d) => ({ field: d.field, label: d.label, granularity: d.granularity })),
-    metrics: metrics.map((m) => ({
-      key: m.key,
-      kind: m.kind,
-      field: m.field,
-      agg: m.agg,
-      label: m.label,
-      // decimals（指标库配置的显示小数位）只在有值时下发：前端靠「有没有这个键」
-      // 区分库指标与图表内联指标，无脑补 0 会让内联指标也被按 0 位小数渲染。
-      // 同下方 expr/derived 用的是同一个条件展开的写法。
-      ...(Number.isInteger(m.decimals) ? { decimals: m.decimals } : {}),
-      ...(m.kind === 'expr' ? { expr: m.expr } : {}),
-      ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
-    })),
+    metrics: projectMetrics(metrics),
     rows: outputRows,
     ...(Object.keys(savedKeys).length ? { savedKeys } : {}),
     ...(warnings.length ? { warnings } : {}),

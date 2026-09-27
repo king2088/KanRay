@@ -4,7 +4,7 @@ const providers = require('./providers');
 const { getDriverMeta, decryptConfig } = require('../services/datasource.service');
 const cache = require('../cache');
 const config = require('../config');
-const { normalizeMetrics, applyDerived } = require('../engines/metrics');
+const { normalizeMetrics, projectMetrics, applyDerived } = require('../engines/metrics');
 
 const OPS = { eq: '=', ne: '!=', lt: '<', lte: '<=', gt: '>', gte: '>=', contains: 'LIKE', in: 'IN' };
 
@@ -178,15 +178,7 @@ async function query(dataset, queryObj) {
   const elapsedMs = Date.now() - start;
 
   const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field, granularity: d.granularity }));
-  const metrics = normMetrics.map((m) => ({
-    key: m.key,
-    kind: m.kind,
-    field: m.field,
-    agg: m.agg,
-    label: m.label,
-    ...(m.kind === 'expr' ? { expr: m.expr } : {}),
-    ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
-  }));
+  const metrics = projectMetrics(normMetrics);
 
   const outputRows = rows.map((r) => {
     const row = {};
@@ -278,15 +270,7 @@ async function aggregateOverSource(dataset, queryObj, { sql, params, dialect, pr
   const elapsedMs = Date.now() - start;
 
   const dimensions = (queryObj.dimensions || []).map((d) => ({ field: d.field, label: d.label || d.field, granularity: d.granularity }));
-  const metrics = normMetrics.map((m) => ({
-    key: m.key,
-    kind: m.kind,
-    field: m.field,
-    agg: m.agg,
-    label: m.label,
-    ...(m.kind === 'expr' ? { expr: m.expr } : {}),
-    ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
-  }));
+  const metrics = projectMetrics(normMetrics);
   const outputRows = rows.map((r) => {
     const row = {};
     dimensions.forEach((d, i) => {
