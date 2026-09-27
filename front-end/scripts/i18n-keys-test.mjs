@@ -13,6 +13,7 @@ import { flattenMessages } from '../src/i18n/flatten.js'
 import { isEnglish, pickLocaleText } from '../src/i18n/locale-util.js'
 import { setTranslator, tr } from '../src/i18n/translate.js'
 import { roleDesc, roleName } from '../src/i18n/role-label.js'
+import { datasourceTestMessage } from '../src/i18n/datasource-test-message.js'
 
 let passed = 0
 function t(name, fn) {
@@ -856,6 +857,54 @@ t('后端文案豁免全部命中（无僵尸配置）', () => {
   for (const e of MESSAGE_PASSTHROUGH) {
     assert.ok(usedMessagePass.has(e), `豁免已失效: ${e.file} ${e.match}`)
   }
+})
+
+// 用扁平词典构造一个最小的 locale 感知 t()：查键 + 替换 {message}。
+// 不拉 vue-i18n 进来（它要在 vite/浏览器环境初始化），而 datasourceTestMessage 只用到这两件事。
+const flatT = (flat) => (key, named) => {
+  const msg = flat[key]
+  if (msg === undefined) return key
+  return msg.replace(/\{(\w+)\}/g, (m, k) => (named?.[k] === undefined ? m : String(named[k])))
+}
+
+// 这几条是整串锁死：provider 的「连接成功」曾被拼进带 {message} 的模板，
+// 英文界面渲染成「Connection succeeded: Connection successful」、中文界面成「测试成功: 连接成功」——
+// 两边都冗余。带信息量的文案（「文件数据源已导入」「集群状态: degraded」）必须原样保留。
+const DS_CASES = [
+  // [provider 结果文案, ok, 期望整串（英文）, 期望整串（中文）]
+  ['Connection successful', true, 'Connection succeeded', '测试成功'],
+  ['File data source imported', true, 'Connection succeeded: File data source imported', '测试成功: 文件数据源已导入'],
+  ['Cluster status: degraded', false, 'Connection failed: Cluster status: degraded', '测试失败: 集群状态: degraded'],
+  ['Auth failed', false, 'Connection failed: Auth failed', '测试失败: Auth failed'],
+]
+
+t('连接测试文案：provider 复述结论时不附加详情，带信息量时照常附加', () => {
+  const te = flatT(enFlat)
+  const tz = flatT(zhFlat)
+  // 英文侧用 messageEn 原文，中文侧用 provider 原文
+  const zhOf = { 'Connection successful': '连接成功', 'File data source imported': '文件数据源已导入', 'Cluster status: degraded': '集群状态: degraded', 'Auth failed': 'Auth failed' }
+  for (const [en, ok, wantEn, wantZh] of DS_CASES) {
+    assert.equal(datasourceTestMessage(te, ok, en), wantEn, `英文界面: ok=${ok} ${en}`)
+    assert.equal(datasourceTestMessage(tz, ok, zhOf[en]), wantZh, `中文界面: ok=${ok} ${en}`)
+  }
+})
+
+t('连接测试文案：provider 没给文案时也只给结论，不留空冒号', () => {
+  const te = flatT(enFlat)
+  assert.equal(datasourceTestMessage(te, true, ''), 'Connection succeeded')
+  assert.equal(datasourceTestMessage(te, false, ''), 'Connection failed')
+  assert.equal(datasourceTestMessage(te, true, undefined), 'Connection succeeded')
+})
+
+// 跨语言混排的原点是「拿中文原文当英文占位符的值」。这里锁住两种语言各自成句、不互相掺杂。
+t('连接测试文案：两种语言都不与另一语言混排', () => {
+  const te = flatT(enFlat)
+  const tz = flatT(zhFlat)
+  const cjk = /[\u4e00-\u9fff]/
+  for (const [en, ok] of DS_CASES) {
+    assert.ok(!cjk.test(datasourceTestMessage(te, ok, en)), `英文界面混入了中文: ok=${ok} ${en}`)
+  }
+  assert.ok(!/Connection/.test(datasourceTestMessage(tz, true, '连接成功')), '中文界面混入了英文')
 })
 
 console.log(`i18n 词典测试：${passed} 项通过`)

@@ -131,6 +131,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { datasourceApi } from '@/api'
 import { localizeApiMessage, t } from '@/i18n'
+import { datasourceTestMessage } from '@/i18n/datasource-test-message'
 import DbIcon from '@/components/DbIcon.vue'
 import DataSourceFormDialog from './DataSourceFormDialog.vue'
 import DataSourceUploadDialog from './DataSourceUploadDialog.vue'
@@ -197,13 +198,9 @@ async function testOne(row) {
   try {
     const res = await datasourceApi.testSaved(row.id)
     // provider 的结果文案在 data.message 里、后端另给 messageEn，不取英文侧就会出现
-    // 「Connection succeeded: 连接成功」这种中英并排。与 DataSourceFormDialog 用同一个取值函数。
+    // 「Connection succeeded: 连接成功」这种中英并排。详情是否值得附加由助手判定。
     const detail = localizeApiMessage(res.message, res.messageEn)
-    ElMessage[res.ok ? 'success' : 'error'](
-      res.ok
-        ? t('dataset.dataSource.testSuccess', { message: detail })
-        : t('dataset.dataSource.testFailed', { message: detail })
-    )
+    ElMessage[res.ok ? 'success' : 'error'](datasourceTestMessage(t, res.ok, detail))
     load()
   } catch (e) { /* 拦截器已提示 */ }
   finally { testingId.value = null }

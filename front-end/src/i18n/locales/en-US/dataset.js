@@ -149,6 +149,11 @@ export default {
     test: 'Test connection',
     testSuccess: 'Connection succeeded: {message}',
     testFailed: 'Connection failed: {message}',
+    // 不带详情的结论模板。provider 报「连接成功」时用它，见 datasource-test-message.js
+    testSuccessPlain: 'Connection succeeded',
+    testFailedPlain: 'Connection failed',
+    // provider 的「连接成功」提示：只复述结论、无额外信息，附加到模板里会变冗余
+    providerConnected: 'Connection successful',
     saveSuccess: 'Saved',
     deleteConfirm: 'Delete data source "{name}"?',
     deleteConfirmTitle: 'Confirm delete',
