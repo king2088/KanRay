@@ -12,10 +12,19 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 let passed = 0
+const failures = []
+// 这个契约测试从 Task 5 起会**故意**红到 Task 8：它要把「哪几处还没接线」一次性列全。
+// 所以 t() 必须收集失败而不是抛首个就退出——否则每次都只看到第 1 条，
+// Task 6/7/8 的验收标准「确认失败点继续前移」根本无法成立。
 function t(name, fn) {
-  fn()
-  passed++
-  console.log('  ok -', name)
+  try {
+    fn()
+    passed++
+    console.log('  ok -', name)
+  } catch (e) {
+    failures.push({ name, e })
+    console.log('  FAIL -', name)
+  }
 }
 
 function read(p) {
@@ -98,5 +107,14 @@ t('中英 i18n key 成对存在', () => {
     assert.ok(new RegExp(`${key}:`).test(en), `en-US/dataset.js 缺少 ${key}`)
   }
 })
+
+if (failures.length) {
+  console.log(`\nmetric-decimals-contract: ${passed} 项通过，${failures.length} 项失败\n`)
+  for (const { name, e } of failures) {
+    console.log(`FAIL: ${name}`)
+    console.log(`      ${String(e.message).split('\n').join('\n      ')}\n`)
+  }
+  process.exit(1)
+}
 
 console.log(`metric-decimals-contract: ${passed} 项通过`)
