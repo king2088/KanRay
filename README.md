@@ -1,102 +1,61 @@
 # KanRay
 
-![大屏预览](docs/images/30-big-screen-preview.png)
+> English: [README_EN.md](./README_EN.md)
 
-![Big screen preview (English UI)](docs/images/en/30-big-screen-preview.png)
+![大屏预览](docs/images/30-big-screen-preview.png)
 
 KanRay 是一款开源的一站式 BI（商业智能）平台，面向业务与数据团队，覆盖「**数据接入 → 数据建模 → 可视化分析 → 数据看板/大屏 → 表单填报**」完整链路。无需编写代码或 SQL：上传 Excel/CSV 或直连/同步外部数据库后，即可通过拖拽式数据集构建器建模，可视化配置图表，快速搭建可交互、可分享、可联动筛选的数据看板与像素级自由布局的数据大屏；内置表单中心，可将任意字段组合发布为在线填报表单，提交数据自动回写数据集，闭环数据采集与分析。
 
-KanRay is an open-source, all-in-one BI (business intelligence) platform for business and data teams. It covers the whole chain of "**data ingestion → data modeling → visual analysis → dashboards / big screens → form submission**" — with no code and no SQL required. Upload an Excel/CSV file, or connect to / sync an external database, and you can model it with the drag-and-drop dataset builder, configure charts visually, and rapidly assemble interactive, shareable dashboards with cross-chart filtering as well as pixel-precise, freely laid out big screens. The built-in form center turns any combination of fields into an online submission form, and submitted data is written back to the dataset automatically, closing the loop between data collection and analysis.
-
 核心能力：**多用户与角色权限（RBAC）+ 22 种数据源接入 + 数据集构建器 + 图表与指标库 + 看板编排 + 大屏设计 + 表单填报 + 开放 API**。
-
-Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 data source types + a dataset builder + a chart and metric library + dashboard composition + big-screen design + form submission + an Open API**.
 
 > 技术栈：ExpressJS 5（后端） + Vue 3 + Element Plus + ECharts（前端），前后端分离。
 > **完整产品说明书见 [docs/README.md（文档中心）](docs/README.md)**——按角色覆盖从安装部署到日常使用的全流程。
 
-> Tech stack: ExpressJS 5 (backend) + Vue 3 + Element Plus + ECharts (frontend), with the frontend and backend decoupled.
-> **The complete product manual lives in [docs/README.md (Documentation Hub)](docs/README.md)** — it covers everything from installation and deployment to day-to-day use, organised by role.
-
 ## 核心功能
 
 - **数据集**：Excel(.xlsx/.xls/.csv) 上传、字段类型自动识别/手工调整、字段别名、数据分页预览、重命名/删除
-  English: **Datasets**: Excel (.xlsx/.xls/.csv) upload, automatic field type detection / manual adjustment, field aliases, paginated data preview, rename / delete
 - **数据集构建器**：纯 SQL / 拖拉拽 / ETL 三种形态将外部数据库表组合为可分析数据集（详见 [数据源与构建器](docs/03-数据源与构建器.md)）
-  English: **Dataset builder**: three modes — pure SQL / drag-and-drop / ETL — for combining external database tables into analysable datasets (see [Data sources & builder](docs/03-数据源与构建器.md))
 - **图表**：柱状/折线/饼图/环形/条形/表格/数值统计卡；多维度（第二维度作系列）、多指标、聚合方式（求和/平均/计数/去重计数/最大/最小）、时间粒度（日/月/年）、分组排序；内置**指标库**（原子/复合/衍生指标，可跨图表复用）
-  English: **Charts**: column / line / pie / doughnut / bar / table / numeric stat cards; multiple dimensions (the second dimension becomes the series), multiple metrics, aggregations (sum / average / count / distinct count / max / min), time granularity (day / month / year), grouping and sorting; a built-in **metric library** (atomic / composite / derived metrics, reusable across charts)
 - **看板**：12 列 flow-grid 布局、拖拽添加图表、标题/文本组件（HTML）、跨图表筛选联动、全屏预览、自动保存布局、分享看板（密码门禁 + JWT 鉴权 + 启停控制 + 过期策略）
-  English: **Dashboards**: 12-column flow-grid layout, drag-and-drop chart insertion, title / text components (HTML), cross-chart filter linking, full-screen preview, automatic layout saving, dashboard sharing (password gate + JWT authentication + enable/disable control + expiry policy)
 - **大屏设计**：自由画布式可视化大屏（像素级布局、组件自由缩放/对齐吸附），组件库含图表 / 表格 / 文本 / 媒体 / DataV 装饰，支持静态数据 / API 请求（定时刷新）/ 数据集绑定、PC 与移动端预览、系统预设与「我的模板」、JSON 导入导出、密码/公开分享大屏（详见 [大屏设计器使用手册](docs/07-大屏设计器使用手册.md)）
 
   ![大屏设计器](docs/images/29-big-screen-designer.png)
 
-  ![Big screen designer (English UI)](docs/images/en/29-big-screen-designer.png)
-
-  English: **Big-screen design**: free-canvas big screens (pixel-precise layout, freely resizable components with snapping and alignment), a component library covering charts / tables / text / media / DataV decorations, static data / API requests (scheduled refresh) / dataset binding, PC and mobile preview, system presets and "My templates", JSON import/export, and password-protected or public big-screen sharing (see [Big-screen designer manual](docs/07-大屏设计器使用手册.md))
 - **表单中心**：可视化表单字段设计（输入 / 文本域 / 下拉 / 多选 / 评分 / 分节说明等）、发布 / 关闭 / 订阅状态管理、密码或公开分享、在线填报与提交记录管理，提交数据自动回写数据集进入分析链路（详见 [表单中心使用手册](docs/08-表单中心使用手册.md)）
-  English: **Form center**: visual form field design (input / textarea / dropdown / multi-select / rating / section notes, etc.), publish / close / subscription status management, password-protected or public sharing, online filling and submission record management, with submitted data written back into datasets and into the analysis chain (see [Form center manual](docs/08-表单中心使用手册.md))
 - **多用户与权限**：邮箱+密码注册/登录，JWT 令牌（访问 + 刷新轮换）；内置管理员 / 数据工程师 / 分析师 / 看板编辑者 / 查看者角色，支持自定义角色；数据集/图表/看板按 owner 隔离，越权统一 403；首次启动自动创建 `admin@kanray.local / admin123`（请尽快改密）
-  English: **Users and permissions**: sign-up / sign-in with email + password, JWT tokens (access + refresh rotation); built-in administrator / data engineer / analyst / dashboard editor / viewer roles, plus custom roles; datasets / charts / dashboards are isolated by owner, with out-of-scope access uniformly returning 403; `admin@kanray.local / admin123` is created automatically on first launch (change this password as soon as possible)
 
   内置共 44 个权限点，覆盖数据集 / 图表 / 看板 / 大屏 / 数据源 / 表单 / API Key 等资源，按「资源:动作」命名；自定义角色可自由勾选组合。其中 `apikey:manage` 用于管理开放 API 的 API Key。
-  English: 44 built-in permission points covering datasets / charts / dashboards / big screens / data sources / forms / API keys, named as `resource:action`; custom roles can combine them freely. `apikey:manage` governs API key management for the Open API.
 - **开放 API**：`/api/open/v1` + API Key / PAT 长效凭证，提供图表/数据集/看板发现、取数、数据集自定义聚合、看板快照导出（JSON / CSV），Swagger 文档（详见 [开放 API 集成指南](docs/04-开放API集成指南.md)）
-  English: **Open API**: `/api/open/v1` with long-lived API Key / PAT credentials, offering chart / dataset / dashboard discovery, data retrieval, custom dataset aggregation, and dashboard snapshot export (JSON / CSV), plus Swagger documentation (see [Open API integration guide](docs/04-开放API集成指南.md))
-
-## Core Features
 
 ## 核心流程（五步）
 
 1. **数据管理 → 上传数据**：上传一个 Excel/CSV，系统自动识别字段类型并预览
-   English: **Data management → Upload data**: upload an Excel/CSV file, and the system detects the field types automatically and shows a preview
 2. **图表中心 → 新建图表**：选择数据集 → 选择图表类型 → 把字段拖入「维度 / 指标」→ 实时预览 → 保存
 
    ![图表构建器：拖入维度/指标并复用指标库](docs/images/21-chart-builder-metric-lib.png)
 
-   ![Reusing the metric library in the builder (English UI)](docs/images/en/21-chart-builder-metric-lib.png)
-
-   English: **Chart center → New chart**: pick a dataset → pick a chart type → drag fields into "Dimensions / Metrics" → live preview → save
 3. **看板中心**：输入名称新建看板 → 进入编辑 → 从上方拖入已保存的图表
-   English: **Dashboard center**: enter a name to create a dashboard → enter the editor → drag saved charts in from the panel above
 4. **看板预览**：添加筛选组件（选数据源 + 字段），切换筛选值，所有同数据源图表联动刷新
-   English: **Dashboard preview**: add a filter component (choose a data source + a field); switching the filter value refreshes every chart bound to the same data source
 5. **表单中心**：设计并发布填报表单 → 密码或公开分享 → 提交记录自动回写数据集，继续进入图表/看板分析链路
 
    ![表单设计器](docs/images/24-form-designer.png)
 
-   ![Form designer (English UI)](docs/images/en/24-form-designer.png)
-
-   English: **Form center**: design and publish a submission form → share it with a password or publicly → submissions are written back to the dataset and flow onward into the chart / dashboard analysis chain
-
-## Core Workflow (Five Steps)
-
 ## 支持的数据库
 
 作为**外部数据源**可接入 22 种数据库（直连或同步到本地离线分析）：
-
-22 database engines can be connected as **external data sources** (either queried directly, or synced locally for offline analysis):
 
 | 状态 | 数量 | 数据源 |
 | --- | --- | --- |
 | ✅ 本期实测 | 16 | MySQL、PostgreSQL、SQL Server、MariaDB、TiDB、ClickHouse、Elasticsearch、API/Web Service、Oracle、南大通用 GBASE、Presto、DB2、达梦 DM、Apache Hive、Apache Impala、阿里云 MaxCompute |
 | ◐ 协议兼容 | 6 | Apache Doris、StarRocks、Greenplum、人大金仓 KingbaseES、GaussDB、Amazon Redshift（复用 mysql/pg 协议族） |
 
-| Status | Count | Data source |
 | --- | --- | --- |
 | ✅ Verified in this release | 16 | MySQL, PostgreSQL, SQL Server, MariaDB, TiDB, ClickHouse, Elasticsearch, API/Web Service, Oracle, GBASE, Presto, DB2, DM (达梦), Apache Hive, Apache Impala, Alibaba Cloud MaxCompute |
 | ◐ Protocol-compatible | 6 | Apache Doris, StarRocks, Greenplum, KingbaseES (人大金仓), GaussDB, Amazon Redshift (reuse the mysql / pg protocol families) |
 
 数据源支持**直连**（`direct`，实时查询打源库）与**同步**（`sync`，按任务把远端表定时拉到本机存储后端）两种存储方式，全量/增量（水印）同步，支持增量主键对账删除。
 
-Data sources support two storage modes: **direct** (`direct`, which queries the source database in real time) and **sync** (`sync`, which pulls remote tables into the local storage backend on a schedule). Both full and incremental (watermark) syncs are available, and reconciliation-based deletion via incremental primary keys is supported.
-
 作为**存储后端**（元数据库：用户/角色/数据源/数据集/图表/看板/同步配置），可选 `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle`，默认 SQLite 零运维。
-
-As a **storage backend** (the metadata database, holding users / roles / data sources / datasets / charts / dashboards / sync configuration), you can choose `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle`; SQLite is the zero-ops default.
-
-## Supported Databases
 
 ## 快速开始
 
@@ -120,16 +79,6 @@ npm run dev
 
 访问 http://localhost:5173 ，Vite 会把 `/api` 代理到后端。
 
-## Quick Start
-
-### 1. Start the backend (port 3001)
-
-On first launch, `backend/data/kanban.db` is created automatically (SQLite — both the auth database and the metadata database default to a local file). To store metadata in MySQL / PostgreSQL / SQL Server / Oracle instead, see "Storage Backend Configuration" below.
-
-### 2. Start the frontend (port 5173)
-
-Open http://localhost:5173 — Vite proxies `/api` to the backend.
-
 ## 常用命令
 
 ```bash
@@ -142,8 +91,6 @@ cd backend && npm test           # 单元 + 集成测试（无外部依赖）
 cd front-end && npm run dev      # 开发（端口 5173）
 cd front-end && npm run build    # 生产构建
 ```
-
-## Common Commands
 
 ## 目录结构
 
@@ -174,8 +121,6 @@ front-end/                  Vue 3 前端
     utils/                  ECharts 按需引入 + 图表 option 构建
 ```
 
-## Directory Structure
-
 ## Docker 一键部署
 
 默认启动 PostgreSQL 生产栈（postgres + redis + backend + 同步 worker + frontend(nginx)），无需手动安装 Node/PostgreSQL/Redis：
@@ -192,21 +137,12 @@ cd deploy/docker
 ```
 
 - 访问地址：`http://localhost:8080`（可通过修改 `deploy/docker/.env` 中的 `KANRAY_PORT` 调整）
-  English: URL: `http://localhost:8080` (adjustable via `KANRAY_PORT` in `deploy/docker/.env`)
 - 管理员：`admin@kanray.local / admin123`（生产环境请修改 `deploy/docker/.env` 中的 `ADMIN_INITIAL_PASSWORD` 与密钥）
-  English: Administrator: `admin@kanray.local / admin123` (in production, change `ADMIN_INITIAL_PASSWORD` and the secrets in `deploy/docker/.env`)
 - Swagger 文档：`http://localhost:8080/api/open/docs`
-  English: Swagger docs: `http://localhost:8080/api/open/docs`
 - **Kubernetes 部署**：进入 `deploy/k8s/`，用 `deploy/k8s/scripts/build-images.sh` 构建镜像、`deploy/k8s/scripts/deploy.sh up` 部署（详见 `deploy/k8s/README.md`）。docker 与 k8s 两套部署各自独立、不共用文件
-  English: **Kubernetes deployment**: go to `deploy/k8s/`, build the images with `deploy/k8s/scripts/build-images.sh`, and deploy with `deploy/k8s/scripts/deploy.sh up` (see `deploy/k8s/README.md`). The docker and k8s deployments are fully independent and share no files
 - 本地开发默认 **SQLite 且不启用 Redis**：`cd backend && npm run dev` 即可，无需任何中间件
-  English: Local development defaults to **SQLite with Redis disabled**: just run `cd backend && npm run dev` — no middleware needed
 
 更多生产运维细节（多实例分布式部署、密钥管理、备份恢复等）见 [部署运维手册](docs/05-部署运维手册.md)。
-
-For further production operations detail (multi-instance distributed deployment, key management, backup and restore, etc.), see [Deployment & operations manual](docs/05-部署运维手册.md).
-
-## One-Click Docker Deployment
 
 ## 存储后端配置
 
@@ -214,21 +150,12 @@ For further production operations detail (multi-instance distributed deployment,
 
 配置优先级：**环境变量 > config.json > 默认值**（示例见 `backend/config.example.json`）。
 
-| 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `DB_TYPE` | `sqlite` | `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
+| 变量 | 默认值 | 说明 |
 | `DB_URL` | 空 | 非 sqlite 时的 JDBC 风格连接串（见下方示例） |
 | `DB_PATH` | `data/kanban.db` | sqlite 文件路径（支持绝对路径） |
 | `PORT` | `3001` | 后端端口 |
 | `DATA_DIR` / `UPLOAD_DIR` | `backend/data` / `backend/uploads` | 运行时数据目录 |
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `DB_TYPE` | `sqlite` | `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
-| `DB_URL` | empty | JDBC-style connection string for non-sqlite backends (see the examples below) |
-| `DB_PATH` | `data/kanban.db` | sqlite file path (absolute paths supported) |
-| `PORT` | `3001` | Backend port |
-| `DATA_DIR` / `UPLOAD_DIR` | `backend/data` / `backend/uploads` | Runtime data directories |
 
 **切换存储示例（PostgreSQL）**：
 
@@ -244,75 +171,26 @@ DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmo
 
 **各库连接串示例**：
 
+| --- | --- |
 | DB_TYPE | 连接串示例 |
-| --- | --- |
-| sqlite | `DB_PATH=data/kanban.db` |
-| mysql / mariadb | `mysql://root:Kanban%40123@127.0.0.1:13306/testdb` |
-| postgres | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/testdb` |
-| sqlserver | `mssql://sa:Kanban%40123@127.0.0.1:11433/testdb` |
-| oracle | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
-
-| DB_TYPE | Connection string example |
-| --- | --- |
-| sqlite | `DB_PATH=data/kanban.db` |
-| mysql / mariadb | `mysql://root:Kanban%40123@127.0.0.1:13306/testdb` |
-| postgres | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/testdb` |
-| sqlserver | `mssql://sa:Kanban%40123@127.0.0.1:11433/testdb` |
-| oracle | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
 
 生产注意事项与迁移工具等见 [部署运维手册](docs/05-部署运维手册.md) 及 [后端 README](backend/README.md)。
-
-## Storage Backend Configuration
-
-All **metadata** (users / roles / data sources / datasets / charts / dashboards / sync configuration) is read and written through a unified storage facade. The zero-ops default is SQLite; you can also switch to MySQL / MariaDB / PostgreSQL / SQL Server / Oracle.
-
-Configuration precedence: **environment variable > config.json > default value** (see `backend/config.example.json` for an example).
-
-**Switching storage (example: PostgreSQL)**:
-
-On first launch, idempotent table creation plus column back-filling for pre-existing databases is run against the selected database (`IF NOT EXISTS` / column-existence probing); after that it is used as normal.
-
-**Connection string examples per database**:
-
-For production notes and migration tooling, see [Deployment & operations manual](docs/05-部署运维手册.md) and the [backend README](backend/README.md).
 
 ## 已知限制
 
 - 数据生命周期 20 万行 / 20MB 以内（上传数据集）；同步落库表由 `max_rows` 控制，不受该上限约束
-  English: The data lifecycle limit is 200,000 rows / 20MB (for uploaded datasets); synced tables are governed by `max_rows` and are not bound by that limit
 - 看板布局为 flow-grid（按数组顺序流式排布），第二维度作系列时显示为多系列
-  English: Dashboard layout is flow-grid (items flow in array order), and a second dimension is rendered as multiple series
 - 存储后端为 Oracle 时每语句自动提交，批量写中途失败不会整体回滚（其余方言支持显式事务）
-  English: When the storage backend is Oracle, every statement is auto-committed, so a mid-batch write failure will not roll the whole batch back (the other dialects support explicit transactions)
 - 多实例部署前提：共享元数据库（非 sqlite）+ 一致的 `JWT_SECRET` / `DATASOURCE_SECRET` + 共享上传存储，建议配 `REDIS_URL`
-  English: Preconditions for multi-instance deployment: a shared metadata database (non-sqlite), a consistent `JWT_SECRET` / `DATASOURCE_SECRET`, and shared upload storage; setting `REDIS_URL` is recommended
 - 存量数据不做**自动迁移**：切换存储后端前请确认部署形态，或用 `backend/scripts/migrate-data.mjs` 迁移
-  English: Existing data is **not migrated automatically**: confirm your deployment topology before switching the storage backend, or migrate it with `backend/scripts/migrate-data.mjs`
 - Excel 文件数据源不支持同步存储方式
-  English: Excel file data sources do not support the sync storage mode
-
-## Known Limitations
 
 ## 支持与捐赠
 
 KanRay 由个人创作者独立开发维护，从架构设计、功能实现再到文档编写，都倾注了大量业余时间与心血。**个人开源实属不易**，你的每一份支持都是坚持下去的动力。
 
-KanRay is designed, built, and documented by a single independent creator, and every part of it — from the architecture to the features to these docs — has taken a great deal of spare time and effort. **Sustaining an open-source project alone is not easy**, and every bit of support you give is what keeps it going.
-
 如果你觉得 KanRay 对你有帮助，欢迎请我喝杯咖啡：
-
-If KanRay has been useful to you, feel free to buy me a coffee:
-
-<img src="docs/images/wechat.jpg" width="400" alt="微信赞赏">
-
-<img src="docs/images/alipay.jpg" width="400" alt="支付宝赞赏">
 
 > 你的捐赠将用于持续开发。同时欢迎通过 [提交 Issue / PR](https://github.com/) 的方式支持项目——代码贡献同样是开源最好的鼓励。
 
-> Your donation will go toward continued development. You are equally welcome to support the project by [opening an issue / PR](https://github.com/) — code contributions are just as good an encouragement for open source.
-
 感谢每一位使用与支持 KanRay 的朋友！
-
-Thank you to everyone who uses and supports KanRay!
-
-## Support and Sponsoring
