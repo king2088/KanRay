@@ -351,18 +351,30 @@ t('左侧面板 widget 数量与词典键数一致（漏一个就报错）', () 
 
 // 内置角色从 seeds.js 提取，数量不写死，只留 4 作提取哨兵：加第 5 个角色时本测试自动跟随。
 // 后端是 CommonJS 且依赖 better-sqlite3，只做源码文本提取，与 chart-types-sync-test.mjs 同法。
-// code 的字符集与 RoleAdmin.vue 的 /^[a-z0-9_-]{2,32}$/ 对齐：漏掉数字或连字符会让新增角色
-// 提取不到，哨兵照样通过，测试静默放行——这正是它要防的失败模式。
-// 引号两种都容忍（同 stripStrings）：后端哪天统一改成双引号，当前提取会掉到 0 个 code。
+// 先按「无嵌套花括号」切出每个对象字面量，再在对象内逐字段独立取值，三个理由：
+//   - 字段顺序无关。整块顺序匹配时，新增的第 5 个角色只要把 name 写在 code 前面就提不出来，
+//     哨兵照样通过、循环直接跳过，缺词典也不报——而 Task 2 的 role-label.js 用的是动态键
+//     'admin.role.builtinLabels.' + code，死键检查按 DYNAMIC_KEY_PREFIXES 那样排除了动态键，
+//     此后没有任何检查能兜住这个静默失败。
+//   - \b 前缀挡住 username: 这类把 name: 嵌在键名中间、不该被当字段的写法。
+//   - 引号两种都容忍（同 stripStrings）：后端哪天统一改成双引号，当前提取会掉到 0 个 code。
+// code 不设字符集白名单，数字、连字符乃至不合规写法都照提不误：白名单外的值会被静默跳过，
+// 那正是要消灭的失败模式。合法性由 RoleAdmin.vue 的 /^[a-z0-9_-]{2,32}$/ 在运行时把关。
 const seedsSrc = readFileSync(
   fileURLToPath(new URL('../../backend/src/seeds.js', import.meta.url)),
   'utf8',
 )
 const rolesBlock = seedsSrc.match(/const ROLES = \[([\s\S]*?)\];/)
 assert.ok(rolesBlock, '未能从 seeds.js 提取 ROLES 数组字面量')
-const builtinRoles = [...rolesBlock[1].matchAll(
-  /code:\s*(['"])([a-z0-9_-]+)\1,\s*name:\s*(['"])([^'"]*)\3,\s*description:\s*(['"])([^'"]*)\5/g,
-)].map((m) => ({ code: m[2], seedName: m[4], seedDesc: m[6] }))
+const seedField = (objSrc, key) =>
+  objSrc.match(new RegExp(`\\b${key}:\\s*(['"])([\\s\\S]*?)\\1`))?.[2] ?? null
+const builtinRoles = [...rolesBlock[1].matchAll(/\{[^{}]*\}/g)]
+  .map((o) => ({
+    code: seedField(o[0], 'code'),
+    seedName: seedField(o[0], 'name'),
+    seedDesc: seedField(o[0], 'description'),
+  }))
+  .filter((r) => r.code !== null)
 const builtinCodes = builtinRoles.map((r) => r.code)
 assert.ok(builtinCodes.length >= 4, `从 seeds.js 只提取到 ${builtinCodes.length} 个角色 code，疑似提取失败`)
 
@@ -383,6 +395,9 @@ t('内置角色在两语词典中都有名称与描述，且键集与 seeds.js �
       assert.deepEqual(Object.keys(entry).sort(), ['desc', 'name'], `${locale}.${code} 的字段应恰为 name/desc`)
       // zh-CN 必须与种子逐字节相同：界面改读词典后就不再读库了，
       // 改一次种子文案而漏改词典，届时全绿却显示旧中文。
+      // 这里刻意不用 DEFAULT_LOCALE：种子相等是「中文词典 = 库里的中文」这层关系，
+      // en-US 是译文、本就该与种子不同。跟着 DEFAULT_LOCALE 走的话哪天真把默认语言切成
+      // en-US，这条断言就会施加到英文上，稳定假失败。
       if (locale === 'zh-CN') {
         assert.equal(entry.name, seedName, `zh-CN.${code}.name 与 seeds.js 种子文案不一致`)
         assert.equal(entry.desc, seedDesc, `zh-CN.${code}.desc 与 seeds.js 种子文案不一致`)
