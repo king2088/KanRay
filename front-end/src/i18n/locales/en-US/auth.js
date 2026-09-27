@@ -5,7 +5,7 @@ export default {
     password: 'Password',
     submit: 'Sign in',
     noAccount: 'No account yet?',
-    toRegister: 'Create one',
+    toRegister: 'Sign up',
     emailAndPasswordRequired: 'Please enter your email and password',
   },
   register: {
