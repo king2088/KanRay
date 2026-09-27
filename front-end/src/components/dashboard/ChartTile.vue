@@ -115,9 +115,9 @@ const data = ref(null)
 // 直接 `metric:${m.field}` 拼 key，而库指标没有 field，会得到 metric:undefined。
 const savedKeys = ref({})
 // 库指标 + 内联指标混在一张图上时，后端把全部指标一起重编号成 m0..mN，内联指标的 key
-// 会被换掉（配置里的 m2 → 响应里的 m1）。keyMap 就是「配置 key → 最终 key」这张表，
+// 会被换掉（配置里的 m2 → 响应里的 m1）。renamedKeys 就是「配置 key → 最终 key」这张表，
 // 不查它就只能拿配置 key 猜列，混合图表的内联列会渲染成 '-'。
-const keyMap = ref({})
+const renamedKeys = ref({})
 const loaded = ref(false)
 const rows = ref([])
 const tableCols = ref([])
@@ -144,14 +144,14 @@ const progressValue = computed(() => {
 
 // 渲染读取的指标 key：后端把「库指标 + 内联指标」一起重编号成 m0..mN，
 // 图表配置里的 key 未必还是响应里的 key —— 库指标走 savedKeys（不带 key 提交时只能靠它定位），
-// 其余走 keyMap（配置 key → 最终 key），都没有才退回配置 key。
+// 其余走 renamedKeys（配置 key → 最终 key），都没有才退回配置 key。
 // 与 ChartBuilder.metricRenderKey 同逻辑（契约测试逐字比对着两份）
 function metricRenderKey(m) {
   if (m?.type === 'saved') {
     const k = savedKeys.value?.[m.metricId]
     if (k) return k
   }
-  return keyMap.value?.[m.key] || m?.key || m?.field
+  return renamedKeys.value?.[m.key] || m?.key || m?.field
 }
 
 // 响应里的指标元信息，key -> 该指标。decimals（以及库指标名）**只存在于这里**。
@@ -228,7 +228,7 @@ async function run() {
   data.value = res.data
   rows.value = res.data.rows || []
   savedKeys.value = res.data.savedKeys || {}
-  keyMap.value = res.data.keyMap || {}
+  renamedKeys.value = res.data.renamedKeys || {}
   // 表格列。isMetric 供模板区分：维度列保持裸 value，只有指标列走格式化
   tableCols.value = []
   dims.value.forEach((d) => tableCols.value.push({ key: `dim:${d.field}`, label: dimLabel(d), isMetric: false }))

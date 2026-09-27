@@ -101,22 +101,22 @@ async function aggregate(query) {
   const ds = await getDatasetOrThrow(query.datasetId);
 
   // 指标库引用展开（{ type:'saved', metricId }）：先展开再走下文，ensure 两数据源统一入口
-  // keyMap：图表配置里的 key → 展开后的最终 key。前端靠它在混合图表里找回内联指标的列
+  // renamedKeys：图表配置里的 key → 展开后的最终 key。前端靠它在混合图表里找回内联指标的列
   // （重编号把内联 m2 换成了 m1，光拿配置 key 去查列会查不到 → 渲染成 '-'）。
   let savedKeys = {};
-  let keyMap = {};
+  let renamedKeys = {};
   if ((query.metrics || []).some((m) => m && m.type === 'saved')) {
     const expanded = await metricsLibrary.expandSavedMetrics(query.datasetId, query.metrics);
     query = { ...query, metrics: expanded.metrics };
     savedKeys = expanded.savedKeys;
-    keyMap = expanded.keyMap;
+    renamedKeys = expanded.renamedKeys;
   }
 
   // SQL 数据集走 SqlDataProvider
   if (ds.source_type === 'sql') {
     const result = await sqlDataProvider.query(ds, query);
     if (Object.keys(savedKeys).length) result.savedKeys = savedKeys;
-    if (Object.keys(keyMap).length) result.keyMap = keyMap;
+    if (Object.keys(renamedKeys).length) result.renamedKeys = renamedKeys;
     return result;
   }
 
@@ -223,7 +223,7 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
     metrics: projectMetrics(metrics),
     rows: outputRows,
     ...(Object.keys(savedKeys).length ? { savedKeys } : {}),
-    ...(Object.keys(keyMap).length ? { keyMap } : {}),
+    ...(Object.keys(renamedKeys).length ? { renamedKeys } : {}),
     ...(warnings.length ? { warnings } : {}),
     elapsedMs,
     sql,
