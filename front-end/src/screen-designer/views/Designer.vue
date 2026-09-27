@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n()
 import { useI18n } from 'vue-i18n'
+import { toastApiError } from '@/api/error-toast'
 import { ref, onMounted, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -92,7 +93,7 @@ onMounted(async () => {
       router.replace('/big-screen')
       return
     }
-    ElMessage.error(e?.message || t('bigscreen.editor.loadFailed'))
+    toastApiError(t, e, 'bigscreen.editor.loadFailed')
     componentsStore.resetComponents([])
     historyStore.pushState([])
   }

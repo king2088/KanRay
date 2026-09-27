@@ -2,8 +2,8 @@
 const { t } = useI18n()
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toastApiError } from '@/api/error-toast'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { useCanvasStore } from '../stores/canvas'
 import { useComponentsStore } from '../stores/components'
 import { getComponent } from '../core/components/registry'
@@ -284,7 +284,7 @@ const submitPassword = async () => {
       await loadScreen(screen)
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || t('bigscreen.shareView.loadFailed'))
+    toastApiError(t, e, 'bigscreen.shareView.loadFailed')
   } finally {
     verifying.value = false
   }

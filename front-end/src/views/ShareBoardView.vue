@@ -58,6 +58,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { t } from '@/i18n'
 import { shareApi, SHARE_TOKEN_KEY } from '@/api/share'
+import { toastApiError } from '@/api/error-toast'
 import { useAuthStore } from '@/stores/auth'
 import { alignTree, normalizeLayout, normCardStyle, normGap } from '@/utils/grid-layout'
 import DashboardCanvas from '@/components/dashboard/DashboardCanvas.vue'
@@ -116,7 +117,7 @@ async function enter() {
     await buildBoard()
     boardReady.value = true
   } catch (e) {
-    ElMessage.error(e.message || t('dashboard.shareView.verifyFailed'))
+    toastApiError(t, e, 'dashboard.shareView.verifyFailed')
   } finally {
     verifying.value = false
   }

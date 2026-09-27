@@ -139,6 +139,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { toastApiError } from '@/api/error-toast'
 import { Plus, Search, Monitor, Folder, Share } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
@@ -183,7 +184,7 @@ async function fetchList() {
     items.value = list || []
     total.value = t || items.value.length
   } catch (e) {
-    ElMessage.error(e.message || t('bigscreen.list.loadListFailed'))
+    toastApiError(t, e, 'bigscreen.list.loadListFailed')
   } finally {
     loading.value = false
   }
@@ -208,7 +209,7 @@ async function submitCreate() {
     showCreate.value = false
     router.push(`/big-screen/design/${d.id}`)
   } catch (e) {
-    ElMessage.error(e.message || t('bigscreen.list.createFailed'))
+    toastApiError(t, e, 'bigscreen.list.createFailed')
   } finally {
     creating.value = false
   }
@@ -220,7 +221,7 @@ async function remove(row) {
     ElMessage.success(t('bigscreen.list.deleteSuccess'))
     fetchList()
   } catch (e) {
-    ElMessage.error(e.message || t('bigscreen.list.deleteFailed'))
+    toastApiError(t, e, 'bigscreen.list.deleteFailed')
   }
 }
 
@@ -239,7 +240,7 @@ async function loadMyTemplates() {
     const list = await bigScreenApi.listTemplates()
     myTemplates.value = list || []
   } catch (e) {
-    ElMessage.error(e?.message || t('bigscreen.list.templateLoadFailed'))
+    toastApiError(t, e, 'bigscreen.list.templateLoadFailed')
   }
 }
 
@@ -278,7 +279,7 @@ async function submitTemplateCreate() {
     showTemplateName.value = false
     router.push(`/big-screen/design/${d.id}`)
   } catch (e) {
-    ElMessage.error(e?.message || t('bigscreen.list.createFailed'))
+    toastApiError(t, e, 'bigscreen.list.createFailed')
   } finally {
     creating.value = false
   }
@@ -290,7 +291,7 @@ async function removeTemplate(tpl) {
     ElMessage.success(t('bigscreen.list.deleteSuccess'))
     loadMyTemplates()
   } catch (e) {
-    ElMessage.error(e?.message || t('bigscreen.list.deleteFailed'))
+    toastApiError(t, e, 'bigscreen.list.deleteFailed')
   }
 }
 </script>

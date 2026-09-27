@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { localizeApiMessage, t } from '@/i18n'
+import { markToasted } from './error-toast.js'
 
 export const BIG_SCREEN_SHARE_TOKEN_KEY = 'kanray_big_screen_share_token'
 
@@ -24,8 +25,12 @@ bigScreenShareHttp.interceptors.response.use(
     const { response } = err
     if (response?.status === 401) localStorage.removeItem(BIG_SCREEN_SHARE_TOKEN_KEY)
     const msg = localizeApiMessage(response?.data?.message, response?.data?.messageEn) || err?.message || t('common.http.networkError')
-    if (!(response?.status === 401)) ElMessage.error(msg)
-    return Promise.reject(new Error(msg))
+    const failure = new Error(msg)
+    if (!(response?.status === 401)) {
+      ElMessage.error(msg)
+      markToasted(failure)
+    }
+    return Promise.reject(failure)
   },
 )
 

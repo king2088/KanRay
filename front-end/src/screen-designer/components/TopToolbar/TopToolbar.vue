@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { toastApiError } from '@/api/error-toast'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
 import { useCanvasStore } from '../../stores/canvas'
@@ -90,7 +91,7 @@ const saveDashboard = async () => {
     })
     ElMessage.success(t('bigscreen.editor.saveSuccess'))
   } catch (e: any) {
-    ElMessage.error(e?.message || t('bigscreen.editor.saveFailed'))
+    toastApiError(t, e, 'bigscreen.editor.saveFailed')
   }
 }
 
@@ -127,7 +128,7 @@ const submitSaveTemplate = async () => {
     showSaveTemplate.value = false
     ElMessage.success(t('bigscreen.editor.saveTemplateSuccess'))
   } catch (e: any) {
-    ElMessage.error(e?.message || t('bigscreen.editor.saveTemplateFailed'))
+    toastApiError(t, e, 'bigscreen.editor.saveTemplateFailed')
   } finally {
     savingTemplate.value = false
   }

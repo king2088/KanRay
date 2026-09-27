@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { markToasted } from './error-toast.js'
 import { pinia } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import { topLoading } from '@/utils/top-loading'
@@ -43,14 +44,21 @@ http.interceptors.response.use(
     const body = res.data
     if (body && body.code === 0) return body.data
     const msg = localizeApiMessage(body?.message, body?.messageEn) || t('common.http.requestFailed')
-    if (!res.config?.silent) ElMessage.error(msg)
-    return Promise.reject(new Error(msg))
+    const failure = new Error(msg)
+    if (!res.config?.silent) {
+      ElMessage.error(msg)
+      markToasted(failure)
+    }
+    return Promise.reject(failure)
   },
   async (err) => {
     topLoading.done()
     const { response, config } = err
     if (!response) {
-      if (!config?.silent) ElMessage.error(err?.message || t('common.http.networkError'))
+      if (!config?.silent) {
+        ElMessage.error(err?.message || t('common.http.networkError'))
+        markToasted(err)
+      }
       return Promise.reject(err)
     }
     const body = response.data
@@ -77,7 +85,10 @@ http.interceptors.response.use(
       forceLogout()
       return Promise.reject(new Error(t('common.http.sessionExpired')))
     }
-    if (!config?.silent) ElMessage.error(localizeApiMessage(body?.message, body?.messageEn) || `${t('common.http.requestFailed')} (${response.status})`)
+    if (!config?.silent) {
+      ElMessage.error(localizeApiMessage(body?.message, body?.messageEn) || `${t('common.http.requestFailed')} (${response.status})`)
+      markToasted(err)
+    }
     return Promise.reject(err)
   }
 )

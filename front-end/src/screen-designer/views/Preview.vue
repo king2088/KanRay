@@ -2,6 +2,7 @@
 const { t } = useI18n()
 import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toastApiError } from '@/api/error-toast'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useCanvasStore } from '../stores/canvas'
@@ -272,7 +273,7 @@ onMounted(async () => {
     if (e?.status === 404) {
       ElMessage.error(t('bigscreen.editor.notFound'))
     } else {
-      ElMessage.error(e?.message || t('bigscreen.editor.loadFailed'))
+      toastApiError(t, e, 'bigscreen.editor.loadFailed')
     }
   }
 
