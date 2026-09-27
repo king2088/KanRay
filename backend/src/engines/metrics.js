@@ -51,6 +51,17 @@ function buildExprSql(expr, baseByKey) {
 }
 
 /**
+ * 指标显示小数位（decimals）的透传补丁。
+ * 库指标由 metrics-library 的 emitRef 带下来；图表内联指标没有「显示精度」这个概念，
+ * 源头就没有这个键。缺省时**不产键**而不是补 0 —— 响应层据此区分「库指标 / 内联指标」，
+ * 若无脑补 0，前端会把内联指标也按 0 位小数渲染，等于给所有内联图表换上取整显示。
+ * 非整数（含 null/NaN/字符串）同样不产键：这里只透传，不做校验（校验在 create/update 入口）。
+ */
+function decimalsPatch(raw) {
+  return Number.isInteger(raw.decimals) ? { decimals: raw.decimals } : {};
+}
+
+/**
  * 图表级指标归一化：产出可直接构造 SQL 的统一指标集合。
  * - base 普通指标：agg(field)，沿用原语义；fieldsByName 传入时校验字段存在
  * - expr 复合指标：公式 $key 引用其前的普通指标，展开为完整 SQL 表达式（同一 SELECT 层内自包含）
@@ -62,6 +73,9 @@ function buildExprSql(expr, baseByKey) {
  * - base 普通指标：agg(field)，沿用原语义；fieldsByName 传入时校验字段存在
  * - expr 复合指标：公式 $key 引用其前的普通指标，展开为完整 SQL 表达式（同一 SELECT 层内自包含）
  * - derived 衍生指标：share/mom/yoy/cumsum/rank，无 SQL 表达式（sqlExpr=null），由 applyDerived 后处理
+ *
+ * decimals（显示小数位）在三个分支都原样透传；本函数按字面量重建指标、不 spread 原始输入，
+ * 漏列的字段会静默消失，故新增字段必须逐分支补齐。
  * @param {Array} metrics
  * @param {object} opts { dialect, fieldsByName?, dimensionCount? }
  */
@@ -80,6 +94,7 @@ function normalizeMetrics(metrics, { dialect, fieldsByName, dimensionCount = 0 }
         agg: 'expr',
         expr: raw.expr,
         label: raw.label || raw.expr || `复合指标${i + 1}`,
+        ...decimalsPatch(raw),
         sqlExpr: buildExprSql(raw.expr, baseByKey),
         alias,
       });
@@ -109,6 +124,7 @@ function normalizeMetrics(metrics, { dialect, fieldsByName, dimensionCount = 0 }
         field: key,
         agg: derivedKind,
         label: raw.label || `${refEntry.label} · ${DERIVED_KIND_LABEL[derivedKind]}`,
+        ...decimalsPatch(raw),
         sqlExpr: null,
         alias: null,
       });
@@ -123,6 +139,7 @@ function normalizeMetrics(metrics, { dialect, fieldsByName, dimensionCount = 0 }
       const norm = {
         key, kind: 'base', field: f.name, agg,
         label: raw.label || `${f.label}(${agg})`,
+        ...decimalsPatch(raw),
         sqlExpr: aggSql(dialect, f.name, agg), alias,
       };
       out.push(norm);
@@ -136,6 +153,7 @@ function normalizeMetrics(metrics, { dialect, fieldsByName, dimensionCount = 0 }
     const norm = {
       key, kind: 'base', field, agg,
       label: raw.label || field || `指标${i + 1}`,
+      ...decimalsPatch(raw),
       sqlExpr: aggSql(dialect, field, agg), alias,
     };
     out.push(norm);

@@ -221,6 +221,10 @@ const dimensions = (query.dimensions || []).map((d) => normalizeDimension(d, fie
       field: m.field,
       agg: m.agg,
       label: m.label,
+      // decimals（指标库配置的显示小数位）只在有值时下发：前端靠「有没有这个键」
+      // 区分库指标与图表内联指标，无脑补 0 会让内联指标也被按 0 位小数渲染。
+      // 同下方 expr/derived 用的是同一个条件展开的写法。
+      ...(Number.isInteger(m.decimals) ? { decimals: m.decimals } : {}),
       ...(m.kind === 'expr' ? { expr: m.expr } : {}),
       ...(m.kind === 'derived' ? { derivedKind: m.derivedKind, ref: m.ref } : {}),
     })),

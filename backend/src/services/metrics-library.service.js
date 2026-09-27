@@ -231,7 +231,7 @@ async function emitRef(out, resolved, visiting, datasetId, id) {
   const d = rec.definition || {};
   let def;
   if (rec.kind === 'base') {
-    def = { type: 'base', field: d.field, agg: d.agg, label: rec.name };
+    def = { type: 'base', field: d.field, agg: d.agg, label: rec.name, decimals: rec.decimals };
   } else if (rec.kind === 'expr') {
     const tokens = [];
     String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, t) => {
@@ -242,10 +242,10 @@ async function emitRef(out, resolved, visiting, datasetId, id) {
     for (const t of tokens) {
       if (!keyByRef.has(t)) keyByRef.set(t, await emitRef(out, resolved, visiting, datasetId, t));
     }
-    def = { type: 'expr', expr: String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, t) => `$${keyByRef.get(String(t))}`), label: rec.name };
+    def = { type: 'expr', expr: String(d.expr || '').replace(LIB_EXPR_TOKEN, (all, t) => `$${keyByRef.get(String(t))}`), label: rec.name, decimals: rec.decimals };
   } else if (rec.kind === 'derived') {
     const refKey = await emitRef(out, resolved, visiting, datasetId, d.refId);
-    def = { type: 'derived', kind: d.derivative, ref: refKey, label: rec.name };
+    def = { type: 'derived', kind: d.derivative, ref: refKey, label: rec.name, decimals: rec.decimals };
   } else {
     throw new HttpError(400, `指标库存在未知类型: ${rec.kind}`);
   }
