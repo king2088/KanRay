@@ -67,7 +67,7 @@
         <el-form-item :label="t('admin.user.fieldPassword')"><el-input v-model="createForm.password" type="password" show-password :placeholder="t('admin.user.passwordPlaceholder')" /></el-form-item>
         <el-form-item :label="t('admin.user.fieldRoles')">
           <el-checkbox-group v-model="createForm.roleIds">
-            <el-checkbox v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</el-checkbox>
+            <el-checkbox v-for="r in roles" :key="r.id" :value="r.id">{{ roleNameOf(r) }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </el-form>
@@ -83,7 +83,7 @@
         <el-form-item :label="t('admin.user.dialogUserEmail')"><el-input :model-value="activeUser?.email" disabled /></el-form-item>
         <el-form-item :label="t('admin.user.fieldRoles')">
           <el-checkbox-group v-model="assignRoleIds">
-            <el-checkbox v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</el-checkbox>
+            <el-checkbox v-for="r in roles" :key="r.id" :value="r.id">{{ roleNameOf(r) }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </el-form>
