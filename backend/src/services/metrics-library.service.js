@@ -1,16 +1,15 @@
 const db = require('../db');
 const HttpError = require('../utils/http-error');
-const { AGG_FUNCS, DERIVED_KINDS } = require('../engines/metrics');
+const { AGG_FUNCS, DERIVED_KINDS, LIB_MAX_DECIMALS } = require('../engines/metrics');
 const { uuidv7, isValidUuid7 } = require('../utils/uuidv7');
 
 // 指标库公式引用写法：$<指标ID(uuid7)>（区别于图表内联公式的 $m<key>）
 const FORMULA_REMAINDER = /^[0-9+\-*/().%\s]*$/;
 const LIB_EXPR_TOKEN = /\$([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/g;
 
-// 指标显示小数位上限：与前端 utils/num-format.js 的 LIB_MAX_DECIMALS 保持一致
-const LIB_MAX_DECIMALS = 10;
-
 // 归一化并校验 decimals 列：缺省 → 0；必须是 0-LIB_MAX_DECIMALS 的整数。
+// LIB_MAX_DECIMALS 由 engines/metrics 提供，与 projectMetrics 的下发判定同源，
+// 避免「校验放行但下发丢弃」这类静默分叉；跨包的前端副本见 engines/metrics.js 顶部注释。
 // 该列是「指标怎么显示」，与 definition（怎么算）无关，故校验放在 create/update 入口。
 function normalizeMetricDecimals(v) {
   if (v === undefined || v === null || v === '') return 0;

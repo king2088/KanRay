@@ -337,4 +337,4 @@ function applyDerived(rows, dimensions, defs) {
   return { rows, warnings };
 }
 
-module.exports = { normalizeMetrics, projectMetrics, buildExprSql, aggSql, AGG_FUNCS, applyDerived, DERIVED_KINDS };
+module.exports = { normalizeMetrics, projectMetrics, buildExprSql, aggSql, AGG_FUNCS, applyDerived, DERIVED_KINDS, LIB_MAX_DECIMALS };
