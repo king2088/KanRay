@@ -354,12 +354,13 @@ t('左侧面板 widget 数量与词典键数一致（漏一个就报错）', () 
 // 先按「无嵌套花括号」切出每个对象字面量，再在对象内逐字段独立取值，三个理由：
 //   - 字段顺序无关。整块顺序匹配时，新增的第 5 个角色只要把 name 写在 code 前面就提不出来，
 //     哨兵照样通过、循环直接跳过，缺词典也不报——而 Task 2 的 role-label.js 用的是动态键
-//     'admin.role.builtinLabels.' + code，死键检查按 DYNAMIC_KEY_PREFIXES 那样排除了动态键，
-//     此后没有任何检查能兜住这个静默失败。
+//     'admin.role.builtinLabels.' + code：字面量键扫描看不穿这种拼接，死键检查又只覆盖 dataset
+//     域（DEAD_KEY_SCOPE），两处都不管 admin.role.*，此后没有任何检查兜得住这个静默失败。
 //   - \b 前缀挡住 username: 这类把 name: 嵌在键名中间、不该被当字段的写法。
 //   - 引号两种都容忍（同 stripStrings）：后端哪天统一改成双引号，当前提取会掉到 0 个 code。
 // code 不设字符集白名单，数字、连字符乃至不合规写法都照提不误：白名单外的值会被静默跳过，
 // 那正是要消灭的失败模式。合法性由 RoleAdmin.vue 的 /^[a-z0-9_-]{2,32}$/ 在运行时把关。
+// 切分本身认不了嵌套花括号与字符串内花括号，漏提取由下面的花括号数断言兜住。
 const seedsSrc = readFileSync(
   fileURLToPath(new URL('../../backend/src/seeds.js', import.meta.url)),
   'utf8',
@@ -377,6 +378,18 @@ const builtinRoles = [...rolesBlock[1].matchAll(/\{[^{}]*\}/g)]
   .filter((r) => r.code !== null)
 const builtinCodes = builtinRoles.map((r) => r.code)
 assert.ok(builtinCodes.length >= 4, `从 seeds.js 只提取到 ${builtinCodes.length} 个角色 code，疑似提取失败`)
+
+// 兜住切分的两个盲区：条目里出现嵌套 {}（meta: { color: 'red' }），或花括号出现在字符串值里
+// （description: '支持 {token} 语法'——双语化种子里很现实），该条目都会被 \{[^{}]*\} 静默丢掉；
+// 其他角色够数时 >= 4 哨兵照样通过，测试报成功，而新角色在英文界面显示中文。
+// 提取数必须与 '{' 总数相等：每个提取到的角色都独占一个起始花括号，故提取数 <= 花括号数，
+// 不等就说明有 '{' 没产出角色。只报两个计数、不推断差值是几条——一个条目同时踩两个盲区时
+// 差值会大于 1，报成「N 条未提取」就是精确但错误的数字。
+const openBraceCount = (rolesBlock[1].match(/\{/g) || []).length
+assert.equal(
+  builtinRoles.length, openBraceCount,
+  `seeds.js 的 ROLES 花括号数(${openBraceCount}) 与提取到的角色数(${builtinRoles.length}) 不符：有条目未被提取（多半含嵌套花括号，或花括号出现在字符串值里）`,
+)
 
 t('内置角色在两语词典中都有名称与描述，且键集与 seeds.js 一致', () => {
   for (const locale of SUPPORT_LOCALES) {
