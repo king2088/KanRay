@@ -99,6 +99,12 @@ export default {
     edit: 'Edit',
     delete: 'Delete',
     builtin: 'Built-in',
+    builtinLabels: {
+      admin: { name: 'Administrator', desc: 'Full access to all features' },
+      analyst: { name: 'Data Engineer / Analyst', desc: 'Manage data sources, datasets, charts, and dashboards; run SQL' },
+      editor: { name: 'Dashboard Editor', desc: 'Build charts and lay out dashboards; view datasets' },
+      viewer: { name: 'Viewer', desc: 'Read-only access' },
+    },
     custom: 'Custom',
     noPermission: 'You do not have permission to view this page',
     codeLabel: 'Code (lowercase letters / digits / underscore)',

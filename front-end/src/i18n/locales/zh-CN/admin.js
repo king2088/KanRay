@@ -99,6 +99,12 @@ export default {
     edit: '编辑',
     delete: '删除',
     builtin: '内置',
+    builtinLabels: {
+      admin: { name: '管理员', desc: '全部权限' },
+      analyst: { name: '数据工程师/分析师', desc: '管理数据源/数据集/图表/看板，可执行 SQL' },
+      editor: { name: '看板编辑者', desc: '构建图表与排版看板，可看数据集' },
+      viewer: { name: '查看者', desc: '只读' },
+    },
     custom: '自定义',
     noPermission: '无权限访问该页面',
     codeLabel: '标识（小写字母/数字/下划线）',

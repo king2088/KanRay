@@ -349,4 +349,34 @@ t('左侧面板 widget 数量与词典键数一致（漏一个就报错）', () 
   assert.equal(/name:\s*'[\u4e00-\u9fff]/.test(body), false, 'LeftPanel 仍有未迁移的中文 name 字面量')
 })
 
+// 内置角色 code 从 seeds.js 提取，不写死数量：加第 5 个角色时本测试自动跟随。
+// 后端是 CommonJS 且依赖 better-sqlite3，只做源码文本提取，与 chart-types-sync-test.mjs 同法。
+const seedsSrc = readFileSync(
+  fileURLToPath(new URL('../../backend/src/seeds.js', import.meta.url)),
+  'utf8',
+)
+const rolesBlock = seedsSrc.match(/const ROLES = \[([\s\S]*?)\];/)
+assert.ok(rolesBlock, '未能从 seeds.js 提取 ROLES 数组字面量')
+const builtinCodes = [...rolesBlock[1].matchAll(/code:\s*'([a-z_]+)'/g)].map((m) => m[1])
+
+t('内置角色在两语词典中都有名称与描述', () => {
+  assert.ok(builtinCodes.length >= 4, `从 seeds.js 提取到 ${builtinCodes.length} 个角色 code，疑似提取失败`)
+  for (const locale of SUPPORT_LOCALES) {
+    const labels = locales[locale].admin?.role?.builtinLabels
+    assert.ok(labels, `${locale} 缺少 admin.role.builtinLabels`)
+    for (const code of builtinCodes) {
+      const entry = labels[code]
+      assert.ok(entry, `${locale} 缺少内置角色 ${code} 的译文`)
+      for (const field of ['name', 'desc']) {
+        assert.equal(typeof entry[field], 'string', `${locale}.${code}.${field} 不是字符串`)
+        assert.ok(entry[field].trim().length > 0, `${locale}.${code}.${field} 为空值`)
+      }
+    }
+    assert.deepEqual(
+      Object.keys(labels).sort(), [...builtinCodes].sort(),
+      `${locale} 的 builtinLabels 键与 seeds.js 的角色 code 不一致`,
+    )
+  }
+})
+
 console.log(`i18n 词典测试：${passed} 项通过`)
