@@ -12,6 +12,8 @@
 //   8) 看板表头的库指标名也从响应 metrics 兜底（配置里既无 label 也无 field）
 //   9) metricRenderKey 走后端下发的 renamedKeys 映射（重编号后的最终 key）
 //  10) ChartBuilder / ChartTile 的 metricRenderKey 两份副本不漂移
+//  11) ECharts 路径（chart-configs.js + EChartRenderer）不再按 metric.field 给行取值：
+//      同字段多指标（库指标 sum(rate) + 内联 avg(rate)）曾被画成同一个值（实测 sum 被画成 avg）
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -254,6 +256,57 @@ t('metricRenderKey：ChartBuilder 与 ChartTile 保持同逻辑（不漂移）',
   assert.equal(norm(builder), norm(tile),
     'ChartBuilder.metricRenderKey 与 ChartTile.metricRenderKey 已漂移——两边是同一份逻辑的副本，'
     + '只允许数据来源不同（响应字段 vs ref）')
+})
+
+t('ECharts 路径不再按 metric.field 取行值（同字段多指标不再互相覆盖）', () => {
+  // 历史 bug：后端 query-engine.js:210-213 给每个指标写四个键，其中
+  // row[field] / row['metric:'+field] 是**按字段**的便捷副本，同字段的第二个指标
+  // 直接盖掉第一个（last-write-wins）。DOM 路径读 `metric:<key>` 天然免疫，
+  // 只有 ECharts 路径按 field 取值——一张图里放「库指标 sum(rate) + 内联 avg(rate)」
+  // 时两个系列都画成后写入的那个值（实测 sum 100.000006 被画成 avg 50.000003）。
+  //
+  // 为什么锁源码而不是行为：取值曾经只存在于 chart-configs.js，而它 import `@/i18n/translate`
+  // （别名），普通 node 测试 import 不了，所以只能写正则。抽成 utils/metric-value.js
+  // 之后行为由 metric-value-test.mjs 真跑；这里钉的是**接线**——所有取值点都必须过它。
+  // 只剩 metricValue 一个取值出口之后，任何一处写回 r[metric.field] 都会红。
+  const code = stripComments(configs)
+  // 白名单而不是黑名单：改完之后，ECharts 路径里**唯一**该出现的 `.field` 就是维度取值。
+  // 所以逐个列出 `<标识符>[?.[i]].field` 出现处的标识符，非维度一律红。
+  // （早先用黑名单正则漏掉了 r?.[metrics[i].field] 这种带下标的写法，变异验证时抓到了。）
+  const DIM_VARS = new Set(['dim', 'dimX', 'dimY', 'groupDim', 'sourceDim', 'targetDim'])
+  const offenders = []
+  code.split('\n').forEach((l, i) => {
+    // 捕获 `.field` 前的标识符：允许中间夹一个 [..]（metrics[i].field），
+    // 也允许可选链的 `?`（metric?.field —— 第一版正则漏了它，变异验证时又抓出来一次）
+    for (const m of l.matchAll(/([A-Za-z_$][A-Za-z0-9_$]*)(\s*\[[^\]]*\])?\??\.field/g)) {
+      if (!DIM_VARS.has(m[1])) offenders.push(`${i + 1}: ${l.trim()}`)
+    }
+  })
+  assert.equal(offenders.length, 0,
+    'chart-configs.js 出现了非维度的 .field 取值（指标值必须走 metricValue(row, metric)）：\n  '
+    + offenders.join('\n  '))
+  // 表格列的 key 同理：metric:<field> 也会撞，且撞出来的两列指向同一格
+  const rcode = stripComments(renderer)
+  assert.doesNotMatch(rcode, /`metric:\$\{[^}]*\.field\}`/,
+    'EChartRenderer 的表格列 key 仍是 `metric:${m.field}`，同字段两个指标会并成一列')
+  // 反向：取值点确实接到了 helper 上（漏接一处 = 该图表仍然画错，且上面那条查不出来）
+  assert.match(code, /import \{ metricValue \} from '\.\.\/utils\/metric-value'/,
+    'chart-configs.js 未 import utils/metric-value')
+  assert.match(rcode, /import \{ metricValue \} from '@\/utils\/metric-value'/,
+    'EChartRenderer.vue 未 import utils/metric-value')
+  // 26 = 本次改写的调用点个数（K 线图一行里有 4 个，所以必须数**出现次数**而不是行数，
+  // 早先按行数写成 23，变异验证把一个调用点换成 undefined 都没红）。
+  // 只做下限：以后 legit 地多加调用点不会红；少一个（漏接/被删）才会红。
+  assert.ok((code.match(/metricValue\(/g) || []).length >= 26,
+    `chart-configs.js 里 metricValue 的调用点少于 26 处（当前 ${(code.match(/metricValue\(/g) || []).length}），可能有取值点漏接`)
+  assert.match(rcode, /Number\(metricValue\(r, metric\)\)/,
+    'EChartRenderer 的地图分支未走 metricValue')
+  // 表格列的 label 兜底仍读 m.label || m.field —— 那是显示名不是行取值，不许被上面那条误伤
+  assert.match(rcode, /label: m\.label \|\| m\.field/,
+    'EChartRenderer 表格列的 label 兜底（m.label || m.field）被改掉了，它只是显示名')
+  // 维度不许跟着改：row[field] 对维度同样是 last-write-wins，但查询层已拒绝重复维度，
+  // 那不是这个 bug。顺手「统一」会让维度的行取值也依赖 key，属于超出范围的改动。
+  assert.match(code, /r\[`dim:\$\{dim\.field\}`\]/, '维度取值应保持 dim:<field> 形态')
 })
 
 if (failures.length) {

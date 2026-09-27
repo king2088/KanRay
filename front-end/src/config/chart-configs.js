@@ -2,6 +2,7 @@ import { COLOR_PALETTES, DEFAULT_PALETTE, DEFAULT_PALETTE_INDEX } from './color-
 import { dirH, dirV, lblTop, lblBot, lblLeft, lblRight, lblIn, pieOut, pieIn, pieCenter, alignAuto, alignLeft, alignCenter, alignRight } from '../components/charts/control-icons'
 import { tr } from '@/i18n/translate'
 import { formatNumber } from '../utils/num-format'
+import { metricValue } from '../utils/metric-value'
 
 // ---- 主题默认值（明亮/背景/文字颜色由 ThemeConfigPanel 配置） ----
 export const DEFAULT_THEME = { mode: 'light', background: '', textColor: '' }
@@ -904,13 +905,13 @@ function buildBar(data, config, palette, horizontal = false) {
   if (groupDim) {
     const groups = getGroups(rows, groupDim)
     Object.entries(groups).forEach(([g, rws]) => {
-      const s = { name: g, type: 'bar', data: rws.map((r) => r[metric.field]), ...barStyle }
+      const s = { name: g, type: 'bar', data: rws.map((r) => metricValue(r, metric)), ...barStyle }
       addMarkLine(s, config)
       applyLabelConfig(s, config)
       series.push(s)
     })
   } else {
-    const s = { name: metric.label, type: 'bar', data: rows.map((r) => r[metric.field]), ...barStyle }
+    const s = { name: metric.label, type: 'bar', data: rows.map((r) => metricValue(r, metric)), ...barStyle }
     addMarkLine(s, config)
     applyLabelConfig(s, config)
     series.push(s)
@@ -1047,13 +1048,13 @@ function buildLineChart(data, config, palette) {
   if (groupDim) {
     const groups = getGroups(rows, groupDim)
     Object.entries(groups).forEach(([g, rws]) => {
-      const s = applyLineStyle({ name: g, data: rws.map((r) => r[metric.field]), ...lineBase }, config)
+      const s = applyLineStyle({ name: g, data: rws.map((r) => metricValue(r, metric)), ...lineBase }, config)
       addMarkLine(s, config)
       applyLabelConfig(s, config)
       series.push(s)
     })
   } else {
-    const s = applyLineStyle({ name: metric.label, data: rows.map((r) => r[metric.field]), ...lineBase }, config)
+    const s = applyLineStyle({ name: metric.label, data: rows.map((r) => metricValue(r, metric)), ...lineBase }, config)
     addMarkLine(s, config)
     applyLabelConfig(s, config)
     series.push(s)
@@ -1092,7 +1093,7 @@ function buildPie(data, config, palette, type = 'pie') {
   const metric = check.metric
 
   const opt = buildCommonOption(config, palette)
-  const pieData = rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: r[metric.field] }))
+  const pieData = rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: metricValue(r, metric) }))
 
   let seriesCfg = {
     name: metric.label,
@@ -1128,7 +1129,7 @@ function buildPie(data, config, palette, type = 'pie') {
   }
 
   if (type === 'doughnut' && config.showCenter) {
-    const total = rows.reduce((a, r) => a + (Number(r[metric.field]) || 0), 0)
+    const total = rows.reduce((a, r) => a + (Number(metricValue(r, metric)) || 0), 0)
     const fontSize = config.centerFontSize || 22
     const subFontSize = config.centerSubFontSize || 12
     const main = config.centerText || formatNumber(total, metric?.decimals)
@@ -1173,7 +1174,7 @@ function buildFunnel(data, config, palette, horizontal = false) {
     label: config.label?.show
       ? buildLabelConfig(config, 'inside')
       : { show: true, position: 'inside', formatter: '{b}: {c}' },
-    data: rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: r[metric.field] })),
+    data: rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: metricValue(r, metric) })),
   }]
   return opt
 }
@@ -1193,7 +1194,7 @@ function buildScatter(data, config, palette, isBubble = false) {
   })
   const scatterData = rows.map((r) => {
     const x = xNumeric ? Number(r[`dim:${dim.field}`]?.value) : String(r[`dim:${dim.field}`]?.value ?? '')
-    const y = r[metric.field]
+    const y = metricValue(r, metric)
     return isBubble ? [x, y, Math.abs(y) || 10] : [x, y]
   })
 
@@ -1226,10 +1227,10 @@ function buildRadar(data, config, palette) {
   const cats = getCats(dim, rows)
   if (cats.length === 0) return emptyOption(tr('chart.empty.configureDimsMetricsShort'))
   const maxes = metrics.map((m) => {
-    const mx = Math.max(...rows.map((r) => Number(r[m.field]) || 0))
+    const mx = Math.max(...rows.map((r) => Number(metricValue(r, m)) || 0))
     return mx > 0 ? mx : 1
   })
-  const valueOf = (r, i) => Math.max(0, Math.min(100, Math.round(((Number(r?.[metrics[i].field]) || 0) / maxes[i]) * 100)))
+  const valueOf = (r, i) => Math.max(0, Math.min(100, Math.round(((Number(metricValue(r, metrics[i])) || 0) / maxes[i]) * 100)))
   const series = cats.map((catName) => {
     const r = rows.find((row) => String(row[`dim:${dim.field}`]?.value ?? '') === catName)
     return {
@@ -1278,7 +1279,7 @@ function buildGauge(data, config, palette) {
     axisLabel: { distance: 20, fontSize: 10 },
     pointer: { show: true },
     detail: { valueAnimation: true, formatter: '{value}', fontSize: 24, offsetCenter: [0, '70%'] },
-    data: [{ value: rows[0][metric.field], name: metric.label }],
+    data: [{ value: metricValue(rows[0], metric), name: metric.label }],
   }]
   return opt
 }
@@ -1296,7 +1297,7 @@ function buildHeatmap(data, config, palette) {
   const heatData = rows.map((r) => [
     xCats.indexOf(String(r[`dim:${dimX.field}`]?.value ?? '')),
     yCats.indexOf(String(r[`dim:${dimY.field}`]?.value ?? '')),
-    r[metric.field],
+    metricValue(r, metric),
   ])
   opt.grid = mergeConfig({ left: 80, right: 80, top: 40, bottom: 60 }, opt.grid)
   opt.xAxis = mergeConfig(opt.xAxis || {}, { type: 'category', data: xCats, boundaryGap: true, splitArea: { show: true } })
@@ -1325,7 +1326,7 @@ function buildWaterfall(data, config, palette) {
   const dim = check.dim
   const metric = check.metric
   const cats = getCats(dim, rows)
-  const values = rows.map((r) => r[metric.field])
+  const values = rows.map((r) => metricValue(r, metric))
   let cumulative = 0
   const placeholder = values.map((v) => { const p = cumulative; cumulative += v; return p })
   const increaseColor = config.increaseColor || '#67C23A'
@@ -1353,7 +1354,7 @@ function buildBoxplot(data, config, palette) {
   rows.forEach((r) => {
     const g = String(r[`dim:${dim.field}`]?.value ?? tr('chart.empty.none'))
     if (!groups[g]) groups[g] = []
-    groups[g].push(r[metric.field])
+    groups[g].push(metricValue(r, metric))
   })
   const cats = Object.keys(groups)
   const boxData = cats.map((g) => {
@@ -1381,7 +1382,7 @@ function buildTreemap(data, config, palette) {
   const opt = buildCommonOption(config, palette)
   opt.series = [{
     type: 'treemap',
-    data: rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: r[metric.field] })),
+    data: rows.map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: metricValue(r, metric) })),
     orient: config.orient || 'horizontal',
   }]
   return opt
@@ -1400,7 +1401,7 @@ function buildSankey(data, config, palette) {
     const t = String(r[`dim:${targetDim.field}`]?.value ?? tr('chart.empty.none'))
     nodeSet.add(s)
     nodeSet.add(t)
-    return { source: s, target: t, value: r[metric.field] }
+    return { source: s, target: t, value: metricValue(r, metric) }
   })
   const opt = buildCommonOption(config, palette)
   opt.series = [{
@@ -1422,7 +1423,7 @@ function buildCalendar(data, config, palette) {
   const { dimensions, rows } = data
   const dim = check.dim
   const metric = check.metric
-  const calData = rows.map((r) => [String(r[`dim:${dim.field}`]?.value ?? ''), r[metric.field]])
+  const calData = rows.map((r) => [String(r[`dim:${dim.field}`]?.value ?? ''), metricValue(r, metric)])
   const values = calData.map((d) => d[1])
   const opt = buildCommonOption(config, palette)
   const year = new Date().getFullYear()
@@ -1450,7 +1451,7 @@ function buildPolarBar(data, config, palette) {
   opt.angleAxis = { type: 'category', data: rows.map((r) => String(r[`dim:${dim.field}`]?.value ?? '')) }
   opt.radiusAxis = {}
   opt.polar = {}
-  opt.series = [{ type: 'bar', coordinateSystem: 'polar', data: rows.map((r) => r[metric.field]), ...barCfg }]
+  opt.series = [{ type: 'bar', coordinateSystem: 'polar', data: rows.map((r) => metricValue(r, metric)), ...barCfg }]
   return opt
 }
 
@@ -1461,7 +1462,7 @@ function buildCandlestick(data, config, palette) {
   const dim = dimensions?.[0]
   const opt = buildCommonOption(config, palette, true)
   const cats = rows.map((r) => String(r[`dim:${dim.field}`]?.value ?? ''))
-  const ohlc = rows.map((r) => [r[metrics[0].field], r[metrics[1].field], r[metrics[2].field], r[metrics[3].field]])
+  const ohlc = rows.map((r) => [metricValue(r, metrics[0]), metricValue(r, metrics[1]), metricValue(r, metrics[2]), metricValue(r, metrics[3])])
   opt.grid = mergeConfig({ left: 60, right: 30, top: 30, bottom: 36 }, opt.grid)
   opt.xAxis = mergeConfig({ type: 'category', data: cats }, opt.xAxis)
   opt.yAxis = mergeConfig({ type: 'value' }, opt.yAxis)
@@ -1479,7 +1480,7 @@ function buildCandlestick(data, config, palette) {
 function buildProgress(data, config, type) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
-  const value = rows?.[0]?.[metric?.field]
+  const value = metricValue(rows?.[0], metric)
   return { _progress: { value: value ?? 0, max: config.max ?? 100, label: metric?.label || '', decimals: metric?.decimals, type, config } }
 }
 
@@ -1487,7 +1488,7 @@ function buildProgress(data, config, type) {
 function buildStat(data, config) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
-  return { _stat: { value: rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), decimals: metric?.decimals, config } }
+  return { _stat: { value: metricValue(rows?.[0], metric) ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), decimals: metric?.decimals, config } }
 }
 
 // ---- 指标趋势图 ----
@@ -1495,8 +1496,8 @@ function buildStatTrend(data, config) {
   const { metrics, rows } = data || {}
   const metric = metrics?.[0]
   const dim = data?.dimensions?.[0]
-  const trend = rows?.map((r) => ({ label: String(r[`dim:${dim?.field}`]?.value ?? ''), value: r[metric?.field] })) || []
-  return { _statTrend: { value: trend[trend.length - 1]?.value ?? rows?.[0]?.[metric?.field] ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), decimals: metric?.decimals, trend, config } }
+  const trend = rows?.map((r) => ({ label: String(r[`dim:${dim?.field}`]?.value ?? ''), value: metricValue(r, metric) })) || []
+  return { _statTrend: { value: trend[trend.length - 1]?.value ?? metricValue(rows?.[0], metric) ?? 0, label: metric?.label || tr('chart.empty.metricFallback'), decimals: metric?.decimals, trend, config } }
 }
 
 // ---- 地图返回占位 ----

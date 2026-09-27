@@ -33,6 +33,7 @@ import echarts, { createChart } from '@/utils/echarts'
 import { i18n } from '@/i18n'
 import { OPTION_BUILDERS } from '@/config/chart-configs'
 import { formatNumber } from '@/utils/num-format'
+import { metricValue } from '@/utils/metric-value'
 import { getPalette } from '@/config/color-palettes'
 import ZRLine from 'zrender/lib/graphic/shape/Line.js'
 import ZRGroup from 'zrender/lib/graphic/Group.js'
@@ -93,7 +94,9 @@ const tableCols = computed(() => {
   if (!d) return []
   const cols = []
   ;(d.dimensions || []).forEach((x) => cols.push({ key: `dim:${x.field}`, label: x.label || x.field }))
-  ;(d.metrics || []).forEach((m) => cols.push({ key: `metric:${m.field}`, label: m.label || m.field }))
+  // 指标列必须按 key 建列，不能按 field：row['metric:' + field] 是后端为图省事的
+  // 「按字段」副本，同字段的第二个指标会把它盖掉，两个指标列就都指向同一格。
+  ;(d.metrics || []).forEach((m) => cols.push({ key: `metric:${m.key}`, label: m.label || m.field }))
   return cols
 })
 
@@ -356,7 +359,7 @@ function renderMap(meta) {
   }
   const mapName = type === 'world' ? 'chinaWorld' : 'china'
   const mapData = data.rows
-    .map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: Number(r[metric.field]) ?? null }))
+    .map((r) => ({ name: String(r[`dim:${dim.field}`]?.value ?? ''), value: Number(metricValue(r, metric)) ?? null }))
     .filter((d) => d.name && d.value !== null && Number.isFinite(d.value))
   const nums = mapData.map((d) => d.value)
   let min = nums.length ? Math.min(...nums) : 0
