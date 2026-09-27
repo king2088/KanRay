@@ -50,9 +50,8 @@ function buildExprSql(expr, baseByKey) {
   });
 }
 
-// 指标显示小数位上限：与 metrics-library.service.js 的 LIB_MAX_DECIMALS 及
-// 前端 utils/num-format.js 的 LIB_MAX_DECIMALS 三处保持一致。
-// （service 那份是重复字面量，本可以反过来从这里 import，但它不在本次改动范围内。）
+// 指标显示小数位上限：后端唯一定义（metrics-library.service.js 从这里 import），
+// 前端 utils/num-format.js 另有一份跨包副本，改这里时需同步那一份。
 const LIB_MAX_DECIMALS = 10;
 
 /**
@@ -103,13 +102,6 @@ function projectMetrics(metrics) {
   }));
 }
 
-/**
- * 图表级指标归一化：产出可直接构造 SQL 的统一指标集合。
- * - base 普通指标：agg(field)，沿用原语义；fieldsByName 传入时校验字段存在
- * - expr 复合指标：公式 $key 引用其前的普通指标，展开为完整 SQL 表达式（同一 SELECT 层内自包含）
- * @param {Array} metrics
- * @param {object} opts { dialect, fieldsByName? }
- */
 /**
  * 图表级指标归一化：产出可直接构造 SQL 的统一指标集合。
  * - base 普通指标：agg(field)，沿用原语义；fieldsByName 传入时校验字段存在
