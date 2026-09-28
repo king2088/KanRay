@@ -1,7 +1,7 @@
 {
   "name": "kanray-backend",
   "version": "1.0.1",
-  "description": "KanRay - 第一阶段后端 (ExpressJS 5)",
+  "description": "KanRay - ExpressJS 5 后端",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
