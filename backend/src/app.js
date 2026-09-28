@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
+const pkg = require('../package.json');
 const { errorHandler, notFound } = require('./middleware/response');
 const { metricsMiddleware, snapshot: metricsSnapshot } = require('./middleware/metrics');
 
@@ -36,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(metricsMiddleware);
 
 app.get('/api/health', (req, res) => {
-  res.json({ code: 0, data: { status: 'ok', name: 'kanban-backend', version: '1.0.0' }, message: 'success' });
+  res.json({ code: 0, data: { status: 'ok', name: 'kanban-backend', version: pkg.version }, message: 'success' });
 });
 
 // 运行时可观测性快照；设置 METRICS_TOKEN 后需以 X-Metrics-Token 头或 ?token= 访问

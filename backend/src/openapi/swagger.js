@@ -1,5 +1,6 @@
 const path = require('path');
 const swaggerJsdoc = require('swagger-jsdoc');
+const pkg = require('../../package.json');
 
 const options = {
   definition: {
@@ -7,7 +8,7 @@ const options = {
     info: {
       title: '看板开放 API',
       'x-en-title': 'KanRay Open API',
-      version: '1.0.0',
+          version: pkg.version,
       description:
         '面向外部客户集成的开放 REST API。使用 `Authorization: Bearer <API Key|PAT>` 或 `X-API-Key: <API Key>` 认证；凭证在管理端「开放 API」或「个人中心·访问令牌」创建，仅创建/滚动时明文展示一次。' +
         '所有响应沿用 `{code, message, data}` 外壳；列表端点返回 `data.items + data.total`，分页 `?limit`（默认 50 / 上限 200）+ `?offset`。' +
