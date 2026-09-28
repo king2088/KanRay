@@ -80,17 +80,20 @@ if [[ ! -f .env ]]; then
   rand_pg="$(rand_hex)"
   rand_mysql="$(rand_hex)"
   rand_maria="$(rand_hex)"
+  # METRICS_TOKEN 也要随机生成：该变量一旦为空，/api/metrics 就变成无鉴权的公开遥测端点
+  rand_metrics="$(rand_hex)"
   sed -i.bak -E \
     -e "s#^(JWT_SECRET=).*#JWT_SECRET=${rand_jwt}#" \
     -e "s#^(DATASOURCE_SECRET=).*#DATASOURCE_SECRET=${rand_ds}#" \
     -e "s#^(POSTGRES_PASSWORD=).*#POSTGRES_PASSWORD=${rand_pg}#" \
     -e "s#^(MYSQL_ROOT_PASSWORD=).*#MYSQL_ROOT_PASSWORD=${rand_mysql}#" \
     -e "s#^(MARIADB_ROOT_PASSWORD=).*#MARIADB_ROOT_PASSWORD=${rand_maria}#" \
+    -e "s#^(METRICS_TOKEN=).*#METRICS_TOKEN=${rand_metrics}#" \
     .env
   # 兼容 macOS / GNU sed 产生的 .bak
   rm -f .env.bak
-  t '[deploy] .env 已生成（JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD 已自动填充）' \
-      '[deploy] .env generated (JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD auto-filled)'
+  t '[deploy] .env 已生成（JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD / METRICS_TOKEN 已自动填充）' \
+      '[deploy] .env generated (JWT_SECRET / DATASOURCE_SECRET / POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / MARIADB_ROOT_PASSWORD / METRICS_TOKEN auto-filled)'
   t '[deploy] 管理员初始密码：admin123（生产环境请修改 ADMIN_INITIAL_PASSWORD）' \
       '[deploy] Initial admin password: admin123 (set ADMIN_INITIAL_PASSWORD for production)'
 fi

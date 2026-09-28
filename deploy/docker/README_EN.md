@@ -33,7 +33,9 @@ cd deploy/docker
 
 After startup, open `http://localhost:8080` (the port is adjustable via `KANRAY_PORT` in `deploy/docker/.env`); the Swagger docs are at `http://localhost:8080/api/open/docs`.
 
-On the first run, if `.env` is missing, it is copied from `.env.example` and random values are injected into `JWT_SECRET` / `DATASOURCE_SECRET` / each database's `*_PASSWORD`; the initial administrator is `admin@kanray.local / admin123` (change it in production).
+On the first run, if `.env` is missing, it is copied from `.env.example` and random values are injected into `JWT_SECRET` / `DATASOURCE_SECRET` / `METRICS_TOKEN` / each database's `*_PASSWORD`; the initial administrator is `admin@kanray.local / admin123` (change it in production).
+
+`/api/metrics` is a runtime telemetry endpoint (uptime, memory, event-loop latency, request stats). When `METRICS_TOKEN` is empty the endpoint is **unauthenticated** and anyone can read that internal runtime data; the deploy script fills it with a random value by default, and callers must send an `X-Metrics-Token` header or a `?token=` parameter.
 
 ```bash
 ./deploy.sh down         # 停机（保留数据卷）

@@ -31,7 +31,9 @@ cd deploy/docker
 
 启动后访问 `http://localhost:8080`（`deploy/docker/.env` 的 `KANRAY_PORT` 可调整端口），Swagger 文档在 `http://localhost:8080/api/open/docs`。
 
-首次运行无 `.env` 时自动从 `.env.example` 复制并随机注入 `JWT_SECRET` / `DATASOURCE_SECRET` / 各库 `*_PASSWORD`；初始管理员 `admin@kanray.local / admin123`（生产务必改密）。
+首次运行无 `.env` 时自动从 `.env.example` 复制并随机注入 `JWT_SECRET` / `DATASOURCE_SECRET` / `METRICS_TOKEN` / 各库 `*_PASSWORD`；初始管理员 `admin@kanray.local / admin123`（生产务必改密）。
+
+`/api/metrics` 是运行时遥测端点（uptime、内存、事件循环延迟、请求统计）。`METRICS_TOKEN` 为空时该端点**无鉴权**，任何人都能读取这些内部运行数据；部署脚本已默认随机填充，访问时需带 `X-Metrics-Token` 头或 `?token=` 参数。
 
 ## 子命令
 
