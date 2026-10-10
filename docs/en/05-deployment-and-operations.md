@@ -227,9 +227,6 @@ pm2 save && pm2 startup
 }
 ```
 
-|------|--------|------|
-| `DB_TYPE` | `sqlite` | `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
-
 ```bash
 APP_LANG=en-US ./deploy.sh up
 APP_LANG=en-US ../k8s/scripts/deploy.sh up
@@ -328,12 +325,6 @@ Scope: `deploy/docker/deploy.sh`, `deploy/k8s/scripts/deploy.sh` and `deploy/k8s
 > `APP_LANG` only affects the scripts' own output (check names, progress, summaries, errors). The demo data the seed scripts write into the database (form names, field labels, station names, chart names, dashboard names, …) **stays Chinese on purpose** — it is "user-supplied data" and does not follow the UI language.
 
 ---
-
-|-----------|--------|------------|
-| `mysql` / `mariadb` | mysql2 | `mysql://root:Kanban%40123@127.0.0.1:13306/testdb` |
-| `postgres` | pg | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/testdb?sslmode=disable` |
-| `sqlserver` | mssql | `mssql://sa:Kanban%40123@127.0.0.1:11433/testdb` |
-| `oracle` | oracledb | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
 
 ```bash
 cd backend

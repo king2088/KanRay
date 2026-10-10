@@ -71,11 +71,6 @@ Configuration priority: **environment variables > config.json > defaults**.
 
 `DB_TYPE` / `DB_URL` / `DB_PATH` control the **metadata database** (users / roles / data source configuration / datasets / charts / dashboards / sync configuration `sync_configs` / the local `sync_*` tables that synced data lands in). This is a different thing from an "external data source connection": a data source connection is an independent configuration, encrypted at runtime with `DATASOURCE_SECRET` and stored inside each data source record, and it does not travel with the storage backend.
 
-| --- | --- | --- |
-| `mysql` | mysql2 | |
-| `postgres` | pg | |
-| `sqlserver` | mssql | |
-
 ### Supported Storage Backends
 
 | `DB_TYPE` | Driver | Description |
@@ -129,14 +124,6 @@ For large tables or a production cutover, we recommend rehearsing the bootstrap 
 ```bash
 docker compose -f scripts/datasource-live/docker-compose.yml up -d
 ```
-
-| --- | --- | --- |
-| sqlite | — | `DB_PATH=data/kanban.db` |
-| mysql | 13306 | `mysql://root:Kanban%40123@127.0.0.1:13306/kanban` |
-| mariadb | 13307 | `mysql://root:Kanban%40123@127.0.0.1:13307/kanban` |
-| postgres | 15432 | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/kanban?sslmode=disable` |
-| sqlserver | 11433 | `mssql://sa:Kanban%40123@127.0.0.1:11433/kanban` |
-| oracle | 11521 | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
 
 ### Local Test Containers (The Same Set of Databases Used as Storage Backends)
 

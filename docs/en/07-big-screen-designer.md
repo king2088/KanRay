@@ -111,13 +111,14 @@ The layer tree manages all components in one place: click to select, reorder wit
 
 Click "**Shortcuts**" in the bottom bar at any time to see the complete list (Windows / Mac, bilingual). The common ones are:
 
-|---------|---------|-----|
 | Action | Windows | Mac |
+|---------|---------|-----|
 | Undo / Redo | Ctrl+Z / Ctrl+Shift+Z | ⌘Z / ⌘⇧Z |
 | Copy / Cut / Paste | Ctrl+C / Ctrl+X / Ctrl+V | ⌘C / ⌘X / ⌘V |
 | Copy and paste | Ctrl+D | ⌘D |
 | Select all | Ctrl+A | ⌘A |
 | Delete selection | Delete / Backspace | ⌫ |
+| Nudge position (1px / 10px) | Arrow keys / Ctrl+Arrow keys | Arrow keys / ⌘+Arrow keys |
 | Lock / unlock | Ctrl+L | ⌘L |
 | Show / hide | Ctrl+H | ⌘H |
 | Save | Ctrl+S | ⌘S |

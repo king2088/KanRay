@@ -72,10 +72,13 @@ npm run dev        # 或 npm start
 
 ### 支持的存储后端
 
-| --- | --- | --- |
 | `DB_TYPE` | 驱动库 | 说明 |
+| --- | --- | --- |
 | `sqlite` | better-sqlite3 | 默认，零运维；单文件，同步 API |
+| `mysql` | mysql2 | |
 | `mariadb` | mysql2 | 与 mysql 同驱动 |
+| `postgres` | pg | |
+| `sqlserver` | mssql | |
 | `oracle` | oracledb | 每语句自动提交（事务限制见下） |
 
 ### 切换方式一：环境变量（推荐，不落盘）
@@ -121,8 +124,14 @@ DB_TYPE=oracle DB_URL='oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1' np
 docker compose -f scripts/datasource-live/docker-compose.yml up -d
 ```
 
-| --- | --- | --- |
 | DB_TYPE | 端口 | 连接串（示例） |
+| --- | --- | --- |
+| sqlite | — | `DB_PATH=data/kanban.db` |
+| mysql | 13306 | `mysql://root:Kanban%40123@127.0.0.1:13306/kanban` |
+| mariadb | 13307 | `mysql://root:Kanban%40123@127.0.0.1:13307/kanban` |
+| postgres | 15432 | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/kanban?sslmode=disable` |
+| sqlserver | 11433 | `mssql://sa:Kanban%40123@127.0.0.1:11433/kanban` |
+| oracle | 11521 | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
 
 ### 切换注意事项
 

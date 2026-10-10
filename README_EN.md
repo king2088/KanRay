@@ -41,8 +41,10 @@ Core capabilities: **multi-user access with role-based permissions (RBAC) + 22 d
 
 22 database engines can be connected as **external data sources** (either queried directly, or synced locally for offline analysis):
 
-| --- | --- | --- |
 | Status | Count | Data source |
+| --- | --- | --- |
+| ✅ Verified in this release | 16 | MySQL, PostgreSQL, SQL Server, MariaDB, TiDB, ClickHouse, Elasticsearch, API/Web Service, Oracle, GBASE, Presto, DB2, DM, Apache Hive, Apache Impala, Alibaba Cloud MaxCompute |
+| ◐ Protocol-compatible | 6 | Apache Doris, StarRocks, Greenplum, KingbaseES, GaussDB, Amazon Redshift (reuse the mysql / pg protocol families) |
 
 Data sources support two storage modes: **direct** (`direct`, which queries the source database in real time) and **sync** (`sync`, which pulls remote tables into the local storage backend on a schedule). Both full and incremental (watermark) syncs are available, and reconciliation-based deletion via incremental primary keys is supported.
 
@@ -135,8 +137,11 @@ For further production operations detail (multi-instance distributed deployment,
 
 ## One-Click Docker Deployment
 
-| --- | --- | --- |
-| `DB_TYPE` | `sqlite` | `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
+## Storage Backend Configuration
+
+All **metadata** (users / roles / data sources / datasets / charts / dashboards / sync configuration) is read and written through a unified storage facade. The zero-ops default is SQLite; you can also switch to MySQL / MariaDB / PostgreSQL / SQL Server / Oracle.
+
+Configuration precedence: **environment variable > config.json > default value** (see `backend/config.example.json` for an example).
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -146,6 +151,8 @@ For further production operations detail (multi-instance distributed deployment,
 | `PORT` | `3001` | Backend port |
 | `DATA_DIR` / `UPLOAD_DIR` | `backend/data` / `backend/uploads` | Runtime data directories |
 
+**Switching storage (example: PostgreSQL)**:
+
 ```bash
 cd backend
 # 方式一：环境变量（优先）
@@ -154,12 +161,9 @@ DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmo
 # { "db": { "type": "postgres", "url": "postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmode=disable" } }
 ```
 
-| --- | --- |
-| sqlite | `DB_PATH=data/kanban.db` |
-| mysql / mariadb | `mysql://root:Kanban%40123@127.0.0.1:13306/testdb` |
-| postgres | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/testdb` |
-| sqlserver | `mssql://sa:Kanban%40123@127.0.0.1:11433/testdb` |
-| oracle | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
+On first launch, idempotent table creation plus column back-filling for pre-existing databases is run against the selected database (`IF NOT EXISTS` / column-existence probing); after that it is used as normal.
+
+**Connection string examples per database**:
 
 | DB_TYPE | Connection string example |
 | --- | --- |
@@ -168,18 +172,6 @@ DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmo
 | postgres | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/testdb` |
 | sqlserver | `mssql://sa:Kanban%40123@127.0.0.1:11433/testdb` |
 | oracle | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
-
-## Storage Backend Configuration
-
-All **metadata** (users / roles / data sources / datasets / charts / dashboards / sync configuration) is read and written through a unified storage facade. The zero-ops default is SQLite; you can also switch to MySQL / MariaDB / PostgreSQL / SQL Server / Oracle.
-
-Configuration precedence: **environment variable > config.json > default value** (see `backend/config.example.json` for an example).
-
-**Switching storage (example: PostgreSQL)**:
-
-On first launch, idempotent table creation plus column back-filling for pre-existing databases is run against the selected database (`IF NOT EXISTS` / column-existence probing); after that it is used as normal.
-
-**Connection string examples per database**:
 
 For production notes and migration tooling, see [Deployment & operations manual](docs/en/05-deployment-and-operations.md) and the [backend README](backend/README_EN.md).
 

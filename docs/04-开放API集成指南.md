@@ -137,8 +137,14 @@ GET /api/open/v1/dashboards/{id}/export
 
 **成功响应通常不带 `messageEn`**：开放 API 的成功响应走默认文案 `message: "success"`，而 `"success"` 在对照表中没有英文条目，因此查不到译文、字段被省略。**错误响应则基本都带 `messageEn`**，各状态码的常见取值如下：
 
-|--------|-------------------|---------------------|
 | 状态码 | `message`（中文） | `messageEn`（英文） |
+|--------|-------------------|---------------------|
+| 401 | `缺少 API Key` | `Missing API Key` |
+| 401 | `API Key 无效` | `Invalid API Key` |
+| 403 | `该 API Key 无权执行操作: chart:read` | `This API Key is not allowed to perform: chart:read` |
+| 404 | `资源不存在或无权访问` | `Resource not found or you do not have access to it` |
+| 422 | `聚合包含未注册字段: 区域` | `Aggregation contains unregistered fields: 区域` |
+| 429 | `请求过于频繁，请稍后再试` | `Too many requests, please try again later` |
 
 集成方取值一律写 `messageEn || message`（`messageEn` 缺失时回退中文），不要假设该字段一定存在。
 
@@ -153,9 +159,6 @@ GET /api/open/v1/dashboards/{id}/export
 | 限流 | 每 Key 每分钟 `OPEN_API_RATE_PER_MIN` 次（默认 120），超限返回 `429 请求过于频繁，请稍后再试` |
 | 行数上限 | `OPEN_API_MAX_ROWS`（默认 10000），超出截断并标记 `truncated` |
 | 审计 | 取数类调用记录审计日志（资源 chart/dataset，操作 `api:chart.data` 等） |
-
-|------|------|
-| Rate limiting | `OPEN_API_RATE_PER_MIN` requests per key per minute (120 by default); exceeding it returns 429 "请求过于频繁，请稍后再试" (Too many requests, please try again later) |
 
 ## 五、错误码
 

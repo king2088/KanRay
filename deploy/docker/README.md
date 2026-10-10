@@ -62,10 +62,12 @@ APP_LANG=en-US ./deploy.sh up
 
 ## stack 说明
 
-|-------|----------|----------|
 | stack | 编排文件 | 元数据库 |
+|-------|----------|----------|
 | `pg`（默认） | `docker-compose.yml` | PostgreSQL |
 | `sqlite` | `docker-compose.sqlite.yml` | SQLite（演示，不支持多副本） |
+| `mysql` | `docker-compose.mysql.yml` | MySQL 8.0 |
+| `mariadb` | `docker-compose.mariadb.yml` | MariaDB 11 |
 
 ## 数据卷
 

@@ -125,14 +125,6 @@ The envelope always carries two text fields with different roles:
 - `message`: the **Chinese** text, always present.
 - `messageEn`: an **optional** English field, present only when an English translation actually exists.
 
-|--------|-------------------|---------------------|
-| 401 | `缺少 API Key` | `Missing API Key` |
-| 401 | `API Key 无效` | `Invalid API Key` |
-| 403 | `该 API Key 无权执行操作: chart:read` | `This API Key is not allowed to perform: chart:read` |
-| 404 | `资源不存在或无权访问` | `Resource not found or you do not have access to it` |
-| 422 | `聚合包含未注册字段: 区域` | `Aggregation contains unregistered fields: 区域` |
-| 429 | `请求过于频繁，请稍后再试` | `Too many requests, please try again later` |
-
 Three hard rules about `messageEn` that integrators can rely on:
 
 1. **When no translation is found, the field is omitted entirely** — the Chinese text is never copied into `messageEn`, and it is never an empty string. Receiving a response with only `message` is perfectly normal; do not treat it as an error.
@@ -156,12 +148,13 @@ Always read the text as `messageEn || message` (falling back to Chinese when `me
 
 ## 4. Security and rate limiting
 
-|------|------|
 | Mechanism | Description |
+|------|------|
 | Authentication | Only valid `kan_*` credentials are accepted; an invalid, revoked, or expired credential returns 401, and a missing permission returns 403 |
 | Resource isolation | Lists return only what you can see; data endpoints validate ownership of both the chart and the dataset |
 | Row limit | `OPEN_API_MAX_ROWS` (10000 by default); larger results are truncated and flagged with `truncated` |
 | Audit | Data-fetching calls are written to the audit log (resource `chart`/`dataset`, action `api:chart.data`, and so on) |
+| Rate limiting | `OPEN_API_RATE_PER_MIN` requests per key per minute (120 by default); exceeding it returns 429 "Too many requests, please try again later" |
 
 ## 5. Error codes
 

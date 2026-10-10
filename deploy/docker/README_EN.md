@@ -64,10 +64,6 @@ The language of `deploy.sh`'s **own console output** is controlled by the `APP_L
 
 > **Note**: `APP_LANG` only affects the script's own output (check names, progress, summaries, errors); it does not change the application's UI language. The `APP_LANG=en-US ./deploy.sh up` command is listed once, above.
 
-|-------|----------|----------|
-| `mysql` | `docker-compose.mysql.yml` | MySQL 8.0 |
-| `mariadb` | `docker-compose.mariadb.yml` | MariaDB 11 |
-
 ## About the Stacks
 
 | Stack | Compose file | Metadata database |

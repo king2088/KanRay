@@ -49,9 +49,6 @@ KanRay 是一款开源的一站式 BI（商业智能）平台，面向业务与�
 | ✅ 本期实测 | 16 | MySQL、PostgreSQL、SQL Server、MariaDB、TiDB、ClickHouse、Elasticsearch、API/Web Service、Oracle、南大通用 GBASE、Presto、DB2、达梦 DM、Apache Hive、Apache Impala、阿里云 MaxCompute |
 | ◐ 协议兼容 | 6 | Apache Doris、StarRocks、Greenplum、人大金仓 KingbaseES、GaussDB、Amazon Redshift（复用 mysql/pg 协议族） |
 
-| --- | --- | --- |
-| ✅ Verified in this release | 16 | MySQL, PostgreSQL, SQL Server, MariaDB, TiDB, ClickHouse, Elasticsearch, API/Web Service, Oracle, GBASE, Presto, DB2, DM (达梦), Apache Hive, Apache Impala, Alibaba Cloud MaxCompute |
-| ◐ Protocol-compatible | 6 | Apache Doris, StarRocks, Greenplum, KingbaseES (人大金仓), GaussDB, Amazon Redshift (reuse the mysql / pg protocol families) |
 
 数据源支持**直连**（`direct`，实时查询打源库）与**同步**（`sync`，按任务把远端表定时拉到本机存储后端）两种存储方式，全量/增量（水印）同步，支持增量主键对账删除。
 
@@ -150,8 +147,9 @@ cd deploy/docker
 
 配置优先级：**环境变量 > config.json > 默认值**（示例见 `backend/config.example.json`）。
 
-| --- | --- | --- |
 | 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DB_TYPE` | `sqlite` | `sqlite` / `mysql` / `mariadb` / `postgres` / `sqlserver` / `oracle` |
 | `DB_URL` | 空 | 非 sqlite 时的 JDBC 风格连接串（见下方示例） |
 | `DB_PATH` | `data/kanban.db` | sqlite 文件路径（支持绝对路径） |
 | `PORT` | `3001` | 后端端口 |
@@ -171,8 +169,13 @@ DB_TYPE=postgres DB_URL='postgresql://kanray:kanray@127.0.0.1:15432/kanray?sslmo
 
 **各库连接串示例**：
 
-| --- | --- |
 | DB_TYPE | 连接串示例 |
+| --- | --- |
+| sqlite | `DB_PATH=data/kanban.db` |
+| mysql / mariadb | `mysql://root:Kanban%40123@127.0.0.1:13306/testdb` |
+| postgres | `postgresql://postgres:Kanban%40123@127.0.0.1:15432/testdb` |
+| sqlserver | `mssql://sa:Kanban%40123@127.0.0.1:11433/testdb` |
+| oracle | `oracle://SYSTEM:Kanban%40123@127.0.0.1:11521/FREEPDB1` |
 
 生产注意事项与迁移工具等见 [部署运维手册](docs/05-部署运维手册.md) 及 [后端 README](backend/README.md)。
 
