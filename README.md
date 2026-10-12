@@ -194,6 +194,10 @@ KanRay 由个人创作者独立开发维护，从架构设计、功能实现再�
 
 如果你觉得 KanRay 对你有帮助，欢迎请我喝杯咖啡：
 
+<img src="docs/images/wechat.jpg" width="400" alt="微信赞赏">
+
+<img src="docs/images/alipay.jpg" width="400" alt="支付宝赞赏">
+
 > 你的捐赠将用于持续开发。同时欢迎通过 [提交 Issue / PR](https://github.com/) 的方式支持项目——代码贡献同样是开源最好的鼓励。
 
 感谢每一位使用与支持 KanRay 的朋友！
